@@ -19,7 +19,10 @@ export interface HousekeepingTask {id:Id; hotelId:Id; roomId:Id; roomNumber:stri
 export interface Folio {id:Id; hotelId:Id; reservationId:Id; reservationReference:string; guestName:string; status:FolioStatus; balance:Money; totalCharges:Money; totalPayments:Money;}
 export interface DashboardSummary {hotelId:Id; asOf:ISODate; totalRooms:number; occupiedRooms:number; vacantRooms:number; dirtyRooms:number; arrivalsToday:number; departuresToday:number; reservationsToday:number;}
 export type ListParams = {search?:string;page?:number;perPage?:number};
+export type CalendarParams = {from:ISODate;to:ISODate};
+export type ReservationCalendarResponse = {data:Reservation[];meta:{from:ISODate;to:ISODate;roomTypes:{id:Id;name:string}[]}};
 export interface HotelDataSource {
+ getReservationCalendar(params:CalendarParams):Promise<ReservationCalendarResponse>;
  getDashboard():Promise<ItemResponse<DashboardSummary>>;
  listReservations(params?:ListParams):Promise<CollectionResponse<Reservation>>;
  listRooms(params?:ListParams & {floor?:number}):Promise<CollectionResponse<Room>>;

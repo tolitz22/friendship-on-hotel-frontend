@@ -54,7 +54,20 @@ export type MaintenanceBoardResponse={
  data:{workOrders:MaintenanceWorkOrder[];rooms:Room[];technicians:Array<{id:Id;name:string}>;};
  meta:{hotelId:Id;isPreview:boolean};
 };
+export type ReportQuery={from:ISODate;to:ISODate};
+export type ReportMetrics={
+ reservationsByStatus:{status:ReservationStatus;count:number}[];
+ arrivalsByDay:{date:ISODate;count:number}[];
+ totalArrivals:number;
+ bookingValueMinor:number;
+ roomSnapshot:{total:number;occupied:number;vacant:number;outOfOrder:number};
+ housekeeping:{total:number;todo:number;inProgress:number;done:number};
+ maintenance:{reported:number;open:number;inProgress:number;resolved:number;closed:number;highPriority:number};
+ folios:{count:number;chargesMinor:number;paymentsMinor:number;balanceMinor:number};
+};
+export type ReportResponse={data:ReportMetrics;meta:{hotelId:Id;from:ISODate;to:ISODate;currency:CurrencyCode;isIllustrative:boolean;roomSnapshotAsOf:ISODate;folioScope:'all_sample_records'}};
 export interface HotelDataSource {
+ getReports(params:ReportQuery):Promise<ReportResponse>;
  getMaintenanceBoard():Promise<MaintenanceBoardResponse>;
  getHousekeepingBoard():Promise<HousekeepingBoardResponse>;
  getFrontDeskBoard(date:ISODate):Promise<FrontDeskBoardResponse>;

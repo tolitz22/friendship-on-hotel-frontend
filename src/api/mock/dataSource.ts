@@ -8,6 +8,19 @@ function collect<T>(items:T[],params:ListParams={},matcher:(row:T,search:string)
 }
 const match=(...values:(string|null)[])=>(q:string)=>values.some(value=>(value??'').toLowerCase().includes(q));
 export const mockDataSource:HotelDataSource={
+ async getRoomTimeline({from,to}:CalendarParams){
+  await wait();
+  const active=reservations.filter(r=>['pending','confirmed','checked_in'].includes(r.status)&&r.checkIn<to&&r.checkOut>from);
+  const blocks=active.filter(r=>r.assignedRoomId).map(r=>({
+   id:'block-'+r.id,kind:'reservation' as const,roomId:r.assignedRoomId!,
+   from:r.checkIn,to:r.checkOut,reservationId:r.id,reference:r.reference,guestName:r.primaryGuestName,status:r.status
+  }));
+  const maintenance=rooms.filter(r=>r.maintenanceStatus==='out_of_order').map(r=>({
+   id:'maintenance-'+r.id,kind:'maintenance' as const,roomId:r.id,from:'2026-11-16',to:'2026-11-25',
+   reason:'Example scheduled repairs'
+  })).filter(b=>b.from<to&&b.to>from);
+  return {data:{rooms,blocks:[...blocks,...maintenance],unassignedReservations:active.filter(r=>!r.assignedRoomId)},meta:{hotelId:'hotel-demo-001',from,to}};
+ },
  async getReservationCalendar({from,to}:CalendarParams){
   await wait();
   const overlapping=reservations.filter(r=>r.checkIn<to&&r.checkOut>from);

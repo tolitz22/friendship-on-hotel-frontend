@@ -1,7 +1,10 @@
 import {describe,it,expect} from 'vitest';
-import {addDays,overlapsStay,reservationOnNight,startOfWeek,visibleDays} from './calendarDate';
+import {addDays,hotelToday,overlapsStay,reservationOnNight,startOfWeek,visibleDays} from './calendarDate';
 
 describe('hotel reservation calendar dates',()=>{
+ it('uses Manila time for the current hotel date',()=>{
+  expect(hotelToday(new Date('2026-11-16T17:00:00Z'))).toBe('2026-11-17');
+ });
  it('uses Monday as the first day of the week',()=>{
   expect(startOfWeek('2026-11-17')).toBe('2026-11-16');
   expect(visibleDays('2026-11-17','week')).toEqual([

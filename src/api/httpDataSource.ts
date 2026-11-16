@@ -1,7 +1,8 @@
 import {getJson} from './http';
-import type {CollectionResponse,DashboardSummary,Folio,Guest,HotelDataSource,HousekeepingTask,ItemResponse,ListParams,Reservation,Room} from './types';
+import type {CalendarParams,ReservationCalendarResponse,CollectionResponse,DashboardSummary,Folio,Guest,HotelDataSource,HousekeepingTask,ItemResponse,ListParams,Reservation,Room} from './types';
 const params=(p:ListParams={})=>({search:p.search,page:p.page,per_page:p.perPage});
 export const httpDataSource:HotelDataSource={
+ getReservationCalendar:(p:CalendarParams)=>getJson<ReservationCalendarResponse>('/reservations/calendar',{from:p.from,to:p.to}),
  getDashboard:()=>getJson<ItemResponse<DashboardSummary>>('/dashboard/summary'),
  listReservations:(p)=>getJson<CollectionResponse<Reservation>>('/reservations',params(p)),
  listRooms:(p)=>getJson<CollectionResponse<Room>>('/rooms',{...params(p),floor:p?.floor}),

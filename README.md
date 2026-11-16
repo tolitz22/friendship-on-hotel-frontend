@@ -25,7 +25,7 @@ This starts in **mock mode**, with no Laravel server required. The sample record
 - Housekeeping mock Kanban board, staff assignment preview, progress stages, inspection notes, and maintenance alerts
 - Maintenance management with work-order filtering, technician preview assignment, room impact notes and maintenance history
 - Reports & Analytics with mock date filters, charts, CSV export and clearly labeled current-state snapshots
-- Settings remains a placeholder
+- Hotel Settings mock workspace with property details, floor and room-type preview, operational times and example staff roles
 
 **All booking/check-in/payment/housekeeping write actions are disabled** pending approved business policies and backend endpoints.
 
@@ -82,3 +82,7 @@ Open Maintenance for sample work orders and repair history. Filter by priority a
 ## Reports & Analytics milestone
 
 Navigate to Reports to explore check-in-based booking counts, maintenance reports, sample room and housekeeping snapshots, folio totals and a sample CSV export. Do not treat sample booking values or folio payments as recognized revenue. See [REPORTS.md](docs/REPORTS.md).
+
+## Settings milestone
+
+Open Settings for property details, sample room type/floor configuration, operational preferences and sample staff-role labels. In mock mode you can edit property contact fields and operational times, validate the preview and reset to defaults. Nothing is persisted. Room types and roles are read-only. See [SETTINGS.md](docs/SETTINGS.md).

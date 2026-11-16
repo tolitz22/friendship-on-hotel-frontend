@@ -17,6 +17,12 @@ const frontDeskEntry=(reservation:typeof reservations[number])=>{
  return {reservation,room,readiness:'review_required' as const,alerts};
 };
 export const mockDataSource:HotelDataSource={
+ async getHousekeepingBoard(){
+  await wait();
+  return {data:{tasks:housekeeping,rooms,staff:[
+   {id:'team-a',name:'Team A'},{id:'team-b',name:'Team B'},{id:'team-c',name:'Team C'}
+  ]},meta:{hotelId:'hotel-demo-001',isPreview:true}};
+ },
  async getFrontDeskBoard(date){
   await wait();
   const arrivals=reservations.filter(r=>r.checkIn===date&&['confirmed','pending'].includes(r.status)).map(frontDeskEntry);

@@ -23,7 +23,8 @@ This starts in **mock mode**, with no Laravel server required. The sample record
 - Front desk date-based arrivals/departures/in-house queues and simulated check-in/check-out walkthroughs
 - Folio/billing list with exact-money formatting
 - Housekeeping mock Kanban board, staff assignment preview, progress stages, inspection notes, and maintenance alerts
-- Other navigation modules remain placeholders
+- Maintenance management with work-order filtering, technician preview assignment, room impact notes and maintenance history
+- Reports and Settings navigation modules remain placeholders
 
 **All booking/check-in/payment/housekeeping write actions are disabled** pending approved business policies and backend endpoints.
 
@@ -72,3 +73,7 @@ Open Front Desk to explore the current operational date, then switch between arr
 ## Housekeeping mock milestone
 
 Open Housekeeping to see tasks grouped as To do / In progress / Completed. Filter by floor and team, inspect conditions, and simulate staff assignments or task progress. Use **Reset preview** to discard draft changes. No real reservation, housekeeping status, room readiness, maintenance or billing data changes. See [HOUSEKEEPING.md](docs/HOUSEKEEPING.md).
+
+## Maintenance milestone
+
+Open Maintenance for sample work orders and repair history. Filter by priority and status, review room-impact flags, and try local-only technician or status edits. Use Reset preview to discard these changes. No physical room is blocked or released by these drafts. See [MAINTENANCE.md](docs/MAINTENANCE.md).

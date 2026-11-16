@@ -11,7 +11,10 @@ export const mockDataSource:HotelDataSource={
  async getReservationCalendar({from,to}:CalendarParams){
   await wait();
   const overlapping=reservations.filter(r=>r.checkIn<to&&r.checkOut>from);
-  const roomTypes=Array.from(new Map([...rooms.map(r=>[r.roomTypeId,r.roomTypeName]),...overlapping.map(r=>[r.roomTypeId,r.roomTypeName])]).entries()).map(([id,name])=>({id,name}));
+  const names=new Map<string,string>();
+  for(const room of rooms)names.set(room.roomTypeId,room.roomTypeName);
+  for(const reservation of overlapping)names.set(reservation.roomTypeId,reservation.roomTypeName);
+  const roomTypes=Array.from(names,([id,name])=>({id,name}));
   return {data:overlapping,meta:{from,to,roomTypes}};
  },
  async getDashboard(){await wait();return {data:dashboard};},

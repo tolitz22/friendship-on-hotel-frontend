@@ -20,7 +20,7 @@ This starts in **mock mode**, with no Laravel server required. The sample record
 - Reservations calendar with day/week views, status and room-type filters, details drawer, searchable list view, and a mock-only reservation preview wizard
 - Room inventory with floor and search filters, plus a 7/14-day physical-room timeline
 - Guest profiles with search
-- Front desk read-only work queue
+- Front desk date-based arrivals/departures/in-house queues and simulated check-in/check-out walkthroughs
 - Folio/billing list with exact-money formatting
 - Housekeeping task list
 - Other navigation modules remain placeholders
@@ -64,3 +64,7 @@ See [Room Timeline API contract](docs/ROOM_TIMELINE.md) for the planned Laravel 
 ## Mock reservation preview
 
 Select **Preview new booking** on the Reservations page while `VITE_DATA_SOURCE=mock`. Step through an existing fictional guest, hotel-local stay dates, room type, occupant counts, and an illustrative room-only subtotal. Completing the preview does **not** create, hold, save, or charge a reservation. The wizard is disabled in API mode until Laravel pricing and inventory rules are approved. See [BOOKING_WIZARD.md](docs/BOOKING_WIZARD.md).
+
+## Front Desk preview
+
+Open Front Desk to explore the current operational date, then switch between arrivals, departures and in-house guests. In `VITE_DATA_SOURCE=mock` mode, sample queue rows can open simulated check-in/check-out staff checklists. The completion action only shows a success preview—it **never changes** reservations, occupancy, folios or payments. Use November 17, 2026 for sample arrival/departure records. See [Front Desk contract](docs/FRONT_DESK.md).

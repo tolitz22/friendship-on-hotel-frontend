@@ -1,0 +1,11 @@
+import {Link} from '@tanstack/react-router';import {BedDouble,LogIn,LogOut,ClipboardList} from 'lucide-react';
+import {useReservations,useRooms} from '../api/queries';import {DemoNotice,Heading,Panel,Status} from '../components/ui';import {QueryFeedback} from '../components/QueryFeedback';import {dateLabel,statusLabel} from '../lib/format';
+export function FrontDesk(){
+ const bookings=useReservations({perPage:50}),rooms=useRooms({perPage:100});
+ const current=bookings.data?.data.filter(r=>r.status==='confirmed'||r.status==='checked_in')??[];
+ return <><DemoNotice/><Heading title="Front desk" description="Check-in, check-out, and room assignment preparation. All actions are disabled while using mock data."/>
+ <div className="stats-grid"><div className="stat"><div className="stat-header"><span>Active sample bookings</span><ClipboardList/></div><strong>{current.length}</strong><small>Confirmed + checked in</small></div><div className="stat"><div className="stat-header"><span>Assigned room</span><BedDouble/></div><strong>{current.filter(r=>r.assignedRoomId).length}</strong><small>Physical assignment exists</small></div><div className="stat"><div className="stat-header"><span>Check-in</span><LogIn/></div><strong>—</strong><small>Requires approved policies</small></div><div className="stat"><div className="stat-header"><span>Check-out</span><LogOut/></div><strong>—</strong><small>Requires approved policies</small></div></div>
+ <Panel title="Reservations requiring front-desk attention" action={<Link to="/reservations" className="text-link">See all reservations</Link>}>
+ <QueryFeedback loading={bookings.isPending||rooms.isPending} error={bookings.error??rooms.error} empty={!!bookings.data&&current.length===0}/>
+ {bookings.data&&<div className="table-scroll"><table><thead><tr><th>Reference</th><th>Guest</th><th>Stay</th><th>Assigned room</th><th>Status</th><th>Operation</th></tr></thead><tbody>{current.map(r=><tr key={r.id}><td className="table-id">{r.reference}</td><td>{r.primaryGuestName}</td><td>{dateLabel(r.checkIn)} – {dateLabel(r.checkOut)}</td><td>{r.assignedRoomNumber??'Unassigned'}</td><td><Status value={statusLabel(r.status)}/></td><td><button disabled className="btn-inline">Manage (planned)</button></td></tr>)}</tbody></table></div>}</Panel></>;
+}

@@ -66,7 +66,19 @@ export type ReportMetrics={
  folios:{count:number;chargesMinor:number;paymentsMinor:number;balanceMinor:number};
 };
 export type ReportResponse={data:ReportMetrics;meta:{hotelId:Id;from:ISODate;to:ISODate;currency:CurrencyCode;isIllustrative:boolean;roomSnapshotAsOf:ISODate;folioScope:'all_sample_records'}};
+export interface PropertySettings {
+ id:Id;name:string;address:string;contactEmail:string;contactPhone:string;timeZone:string;currency:CurrencyCode;
+ checkInTime:string;checkOutTime:string;
+}
+export interface RoomTypeSettings {id:Id;name:string;maxOccupancy:number;roomCount:number;sampleRate:Money;}
+export interface FloorSettings {number:number;roomCount:number;}
+export interface StaffRolePreview {id:Id;name:string;description:string;permissionLabels:string[];staffCount:number;}
+export type HotelSettingsResponse={
+ data:{property:PropertySettings;roomTypes:RoomTypeSettings[];floors:FloorSettings[];roles:StaffRolePreview[]};
+ meta:{hotelId:Id;isPreview:boolean};
+};
 export interface HotelDataSource {
+ getHotelSettings():Promise<HotelSettingsResponse>;
  getReports(params:ReportQuery):Promise<ReportResponse>;
  getMaintenanceBoard():Promise<MaintenanceBoardResponse>;
  getHousekeepingBoard():Promise<HousekeepingBoardResponse>;

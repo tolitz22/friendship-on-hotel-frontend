@@ -37,3 +37,7 @@ Review `docs/MAINTENANCE.md` and maintain work orders separately from actual inv
 ## Reports & Analytics
 
 Read `docs/REPORTS.md`. All reporting data is mock/read-only at this stage; distinguish check-in-date filtered booking metrics from current room/housekeeping snapshots and all-record folio totals. Do not label gross booking totals or payments as recognized revenue. Report formulas and permissions are ultimately backend-authoritative.
+
+## Settings milestone
+
+Follow `docs/SETTINGS.md`. The Settings page uses `useHotelSettings()` and local validation only; do not add server-side configuration changes or permissions based on sample role labels. Confirm property identity, timezone, inventory schema, and RBAC through discovery before implementing Laravel update endpoints.

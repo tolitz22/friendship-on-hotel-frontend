@@ -1,6 +1,8 @@
 import {useQuery} from '@tanstack/react-query';
-import {hotelApi} from './index';import type {CalendarParams,ListParams} from './types';
+import {hotelApi} from './index';import type {BookingQuoteRequest,CalendarParams,ListParams} from './types';
 export const queryKeys={
+ bookingOptions:['booking','options'] as const,
+ bookingQuote:(p:BookingQuoteRequest)=>['booking','quote',p] as const,
  dashboard:['dashboard','summary'] as const,
  roomTimeline:(p:CalendarParams)=>['rooms','timeline',p] as const,
  reservationCalendar:(p:CalendarParams)=>['reservations','calendar',p] as const,
@@ -10,6 +12,8 @@ export const queryKeys={
  housekeeping:(p:ListParams)=>['housekeeping',p] as const,
  folios:(p:ListParams)=>['folios',p] as const
 };
+export const useBookingOptions=()=>useQuery({queryKey:queryKeys.bookingOptions,queryFn:()=>hotelApi.getBookingOptions()});
+export const useBookingQuote=(p:BookingQuoteRequest,enabled:boolean)=>useQuery({queryKey:queryKeys.bookingQuote(p),queryFn:()=>hotelApi.getBookingQuote(p),enabled});
 export const useDashboard=()=>useQuery({queryKey:queryKeys.dashboard,queryFn:()=>hotelApi.getDashboard()});
 export const useRoomTimeline=(p:CalendarParams)=>useQuery({queryKey:queryKeys.roomTimeline(p),queryFn:()=>hotelApi.getRoomTimeline(p)});
 export const useReservationCalendar=(p:CalendarParams)=>useQuery({queryKey:queryKeys.reservationCalendar(p),queryFn:()=>hotelApi.getReservationCalendar(p)});

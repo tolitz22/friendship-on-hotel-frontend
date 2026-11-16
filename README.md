@@ -17,7 +17,7 @@ This starts in **mock mode**, with no Laravel server required. The sample record
 ## Available mock screens
 
 - Hotel dashboard with room condition metrics and recent reservations
-- Reservations directory with search and totals
+- Reservations calendar with day/week views, status and room-type filters, details drawer, and a searchable list view
 - Room inventory with floor and search filters
 - Guest profiles with search
 - Front desk read-only work queue
@@ -37,6 +37,7 @@ See [API contract](docs/API_CONTRACT.md). Source of truth for entity types is `s
 
 ```bash
 npm run typecheck
+npm run test
 npm run build
 ```
 
@@ -45,3 +46,11 @@ The build must be verified in an environment with project dependencies installed
 ## Logo
 
 The original uploaded Friendship On Hotel logo was provided in the downloadable frontend project bundle but is not yet published into this GitHub repo. Until added as `public/logo.png`, the app uses a compact text brand.
+
+## Reservation calendar milestone
+
+Read [RESERVATION_CALENDAR.md](docs/RESERVATION_CALENDAR.md) for calendar date semantics, room-type grouping, and the proposed `GET /reservations/calendar` contract.
+
+The calendar is a **schedule only**. It does not calculate availability or prevent double bookings. It deliberately includes unassigned reservations and models occupied nights using `[checkIn, checkOut)`.
+
+Unit tests for date/week/checkout calculations run with `npm run test`.

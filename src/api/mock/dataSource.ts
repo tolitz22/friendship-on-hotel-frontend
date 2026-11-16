@@ -1,6 +1,7 @@
 import type {CalendarParams,CollectionResponse,HotelDataSource,ListParams} from '../types';
 import {dashboard,folios,guests,housekeeping,reservations,rooms} from './fixtures';
 import {maintenanceOrders,technicians} from './maintenanceFixtures';
+import {aggregateReports,isReportRange} from '../../features/reports/reportMath';
 const wait=()=>new Promise<void>(resolve=>setTimeout(resolve,120));
 function collect<T>(items:T[],params:ListParams={},matcher:(row:T,search:string)=>boolean=()=>true):CollectionResponse<T>{
  const filtered=params.search?items.filter(row=>matcher(row,params.search!.toLowerCase())):items;
@@ -18,6 +19,13 @@ const frontDeskEntry=(reservation:typeof reservations[number])=>{
  return {reservation,room,readiness:'review_required' as const,alerts};
 };
 export const mockDataSource:HotelDataSource={
+ async getReports({from,to}){
+  await wait();
+  if(!isReportRange(from,to))throw new Error('Choose a valid report date range');
+  return {data:aggregateReports({reservations,rooms,housekeeping,folios,maintenance:maintenanceOrders},from,to),
+   meta:{hotelId:'hotel-demo-001',from,to,currency:'PHP' as const,isIllustrative:true,
+    roomSnapshotAsOf:'2026-11-17',folioScope:'all_sample_records' as const}};
+ },
  async getMaintenanceBoard(){
   await wait();
   return {data:{workOrders:maintenanceOrders,rooms,technicians},meta:{hotelId:'hotel-demo-001',isPreview:true}};

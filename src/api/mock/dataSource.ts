@@ -2,6 +2,7 @@ import type {CalendarParams,CollectionResponse,HotelDataSource,ListParams} from 
 import {dashboard,folios,guests,housekeeping,reservations,rooms} from './fixtures';
 import {maintenanceOrders,technicians} from './maintenanceFixtures';
 import {aggregateReports,isReportRange} from '../../features/reports/reportMath';
+import {sampleHotelSettings} from './settingsFixtures';
 const wait=()=>new Promise<void>(resolve=>setTimeout(resolve,120));
 function collect<T>(items:T[],params:ListParams={},matcher:(row:T,search:string)=>boolean=()=>true):CollectionResponse<T>{
  const filtered=params.search?items.filter(row=>matcher(row,params.search!.toLowerCase())):items;
@@ -19,6 +20,8 @@ const frontDeskEntry=(reservation:typeof reservations[number])=>{
  return {reservation,room,readiness:'review_required' as const,alerts};
 };
 export const mockDataSource:HotelDataSource={
+ async getHotelSettings(){await wait();return sampleHotelSettings;},
+
  async getReports({from,to}){
   await wait();
   if(!isReportRange(from,to))throw new Error('Choose a valid report date range');

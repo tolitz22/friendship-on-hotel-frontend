@@ -34,6 +34,7 @@ All entity IDs are opaque strings. Date-only hotel stay fields are `YYYY-MM-DD`.
 | useGuests | /guests |
 | useHousekeeping | /housekeeping/tasks |
 | useHousekeepingBoard | /housekeeping/board |
+| useMaintenanceBoard | /maintenance/board |
 | useFolios | /folios |
 
 Collections accept `search`, `page`, `per_page`. Rooms also support `floor`.
@@ -57,3 +58,5 @@ See [mock booking wizard](BOOKING_WIZARD.md). These draft options and quote cont
 See [Front Desk workflow contract](FRONT_DESK.md). Check-in and check-out actions are mock-only; no mutation endpoint is implemented.
 
 See [Housekeeping board contract](HOUSEKEEPING.md). Draft task updates only affect local React state in mock mode; no mutation API exists yet.
+
+See [maintenance board](MAINTENANCE.md). Technician and status changes are local preview state only; room maintenance and inventory remain unchanged.

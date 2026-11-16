@@ -1,23 +1,47 @@
 # Friendship On Hotel PMS — Frontend
 
-React + Vite + TypeScript hotel operations dashboard. Built with TanStack Router/Query and Tailwind CSS.
+React + Vite + TypeScript, TanStack Router, TanStack Query, Tailwind CSS 4. Branded light and dark hotel operations prototype.
 
-## Run locally
+## Getting started
 
-Requires Node.js compatible with Vite 7.
+Install a Node version supported by Vite 7.
 
 ```bash
 npm install
+cp .env.example .env
 npm run dev
+```
+
+This starts in **mock mode**, with no Laravel server required. The sample records are fictional and are for UI development only.
+
+## Available mock screens
+
+- Hotel dashboard with room condition metrics and recent reservations
+- Reservations directory with search and totals
+- Room inventory with floor and search filters
+- Guest profiles with search
+- Front desk read-only work queue
+- Folio/billing list with exact-money formatting
+- Housekeeping task list
+- Other navigation modules remain placeholders
+
+**All booking/check-in/payment/housekeeping write actions are disabled** pending approved business policies and backend endpoints.
+
+## Switching to the Laravel API
+
+Set `VITE_DATA_SOURCE=api` in `.env`. Configure `VITE_API_URL` to match the Laravel API. Live API failures will be surfaced as errors; the app does not silently replace them with mock data.
+
+See [API contract](docs/API_CONTRACT.md). Source of truth for entity types is `src/api/types.ts`; queries in `src/api/queries.ts`; transport adapters in `src/api/httpDataSource.ts` and `src/api/mock/dataSource.ts`. Keep all pages using query hooks, not fixture imports.
+
+## Build
+
+```bash
+npm run typecheck
 npm run build
 ```
 
-Open http://localhost:5173. Current UI uses **mock/sample data only**. There is no functional booking engine, real authentication, or payment processing yet.
+The build must be verified in an environment with project dependencies installed. Backend repo: https://github.com/tolitz22/friendship-on-hotel-backend.
 
-Paired API: [friendship-on-hotel-backend](https://github.com/tolitz22/friendship-on-hotel-backend).
+## Logo
 
-## Brand asset
-
-The original Friendship On Hotel logo from the project brief is in the [downloadable frontend bundle](sandbox:/mnt/data/friendship-on-hotel-frontend.zip) shared in the ChatGPT conversation, but the GitHub connector cannot transfer that large PNG directly. To use the original logo in this GitHub checkout, copy it to `public/logo.png`. Until then, the UI displays its text brand fallback.
-
-See `docs/DESIGN_SYSTEM.md` for the light/dark system.
+The original uploaded Friendship On Hotel logo was provided in the downloadable frontend project bundle but is not yet published into this GitHub repo. Until added as `public/logo.png`, the app uses a compact text brand.

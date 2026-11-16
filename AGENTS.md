@@ -29,3 +29,7 @@ Follow `docs/FRONT_DESK.md`. The `useFrontDeskBoard(date)` query provides date-s
 ## Housekeeping preview
 
 Read `docs/HOUSEKEEPING.md`. Task board mock draft changes are ephemeral component state, not API writes. Task status does not imply housekeeping or room availability status. Keep all real status/assignment mutations disabled until backend authorization, policy, audit and concurrency rules are defined.
+
+## Maintenance preview
+
+Review `docs/MAINTENANCE.md` and maintain work orders separately from actual inventory blocks. `useMaintenanceBoard()` has a mock adapter and proposed API GET route. In mock mode, edits stay local; in API mode all mutation inputs are disabled. Never change room availability or check-in eligibility as a side effect of sample work-order transitions.

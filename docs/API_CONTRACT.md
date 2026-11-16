@@ -35,6 +35,7 @@ All entity IDs are opaque strings. Date-only hotel stay fields are `YYYY-MM-DD`.
 | useHousekeeping | /housekeeping/tasks |
 | useHousekeepingBoard | /housekeeping/board |
 | useMaintenanceBoard | /maintenance/board |
+| useReports | /reports/summary?from=YYYY-MM-DD&to=YYYY-MM-DD |
 | useFolios | /folios |
 
 Collections accept `search`, `page`, `per_page`. Rooms also support `floor`.
@@ -60,3 +61,5 @@ See [Front Desk workflow contract](FRONT_DESK.md). Check-in and check-out action
 See [Housekeeping board contract](HOUSEKEEPING.md). Draft task updates only affect local React state in mock mode; no mutation API exists yet.
 
 See [maintenance board](MAINTENANCE.md). Technician and status changes are local preview state only; room maintenance and inventory remain unchanged.
+
+See [Reports and Analytics](REPORTS.md) for definitions of date-filtered arrival bookings versus present-state room/folio snapshots.

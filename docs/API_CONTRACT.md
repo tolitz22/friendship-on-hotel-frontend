@@ -27,6 +27,7 @@ All entity IDs are opaque strings. Date-only hotel stay fields are `YYYY-MM-DD`.
 | useReservations | /reservations |
 | useReservationCalendar | /reservations/calendar?from=YYYY-MM-DD&to=YYYY-MM-DD |
 | useRooms | /rooms |
+| useRoomTimeline | /rooms/timeline?from=YYYY-MM-DD&to=YYYY-MM-DD |
 | useGuests | /guests |
 | useHousekeeping | /housekeeping/tasks |
 | useFolios | /folios |
@@ -44,3 +45,5 @@ Backend integration steps:
 4. Enable API mode and add integration tests, error/empty/loading tests, and safe mutations.
 
 See [reservation calendar contract](RESERVATION_CALENDAR.md) for the half-open date window and room-type metadata.
+
+See [physical room timeline](ROOM_TIMELINE.md) for room-specific blocks, unassigned bookings, and date scope.

@@ -18,7 +18,7 @@ This starts in **mock mode**, with no Laravel server required. The sample record
 
 - Hotel dashboard with room condition metrics and recent reservations
 - Reservations calendar with day/week views, status and room-type filters, details drawer, and a searchable list view
-- Room inventory with floor and search filters
+- Room inventory with floor and search filters, plus a 7/14-day physical-room timeline
 - Guest profiles with search
 - Front desk read-only work queue
 - Folio/billing list with exact-money formatting
@@ -54,3 +54,9 @@ Read [RESERVATION_CALENDAR.md](docs/RESERVATION_CALENDAR.md) for calendar date s
 The calendar is a **schedule only**. It does not calculate availability or prevent double bookings. It deliberately includes unassigned reservations and models occupied nights using `[checkIn, checkOut)`.
 
 Unit tests for date/week/checkout calculations run with `npm run test`.
+
+## Room inventory timeline milestone
+
+Room inventory now offers **Timeline** and **Grid** views. The timeline shows assigned sample reservations and dated maintenance blocks, highlights overlapping sample records, and keeps unassigned room-type bookings separate. It is a *read-only physical-room schedule*; no-assignment cells are **not** availability guarantees.
+
+See [Room Timeline API contract](docs/ROOM_TIMELINE.md) for the planned Laravel endpoint and display rules. The source remains selectable using `VITE_DATA_SOURCE=mock|api`.

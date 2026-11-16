@@ -21,3 +21,7 @@ Follow `docs/DESIGN_SYSTEM.md` for charcoal/orange/white brand and both light an
 
 ## Quality
 Run typechecks/build/tests where possible and report actual results without inventing success. Use isolated, testable modules and preserve separation between backend and frontend repositories. Never check in secrets or real guest information.
+
+## Front desk milestone
+
+Follow `docs/FRONT_DESK.md`. The `useFrontDeskBoard(date)` query provides date-scoped arrivals, departures and in-house sample entries. OperationPreview is a non-mutating checklist, not a state transition, authorization, key handover or financial action. Keep mock-only demos disabled under live API mode until backend authorization and transition rules are implemented.

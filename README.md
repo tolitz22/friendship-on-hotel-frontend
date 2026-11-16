@@ -17,7 +17,7 @@ This starts in **mock mode**, with no Laravel server required. The sample record
 ## Available mock screens
 
 - Hotel dashboard with room condition metrics and recent reservations
-- Reservations calendar with day/week views, status and room-type filters, details drawer, and a searchable list view
+- Reservations calendar with day/week views, status and room-type filters, details drawer, searchable list view, and a mock-only reservation preview wizard
 - Room inventory with floor and search filters, plus a 7/14-day physical-room timeline
 - Guest profiles with search
 - Front desk read-only work queue
@@ -60,3 +60,7 @@ Unit tests for date/week/checkout calculations run with `npm run test`.
 Room inventory now offers **Timeline** and **Grid** views. The timeline shows assigned sample reservations and dated maintenance blocks, highlights overlapping sample records, and keeps unassigned room-type bookings separate. It is a *read-only physical-room schedule*; no-assignment cells are **not** availability guarantees.
 
 See [Room Timeline API contract](docs/ROOM_TIMELINE.md) for the planned Laravel endpoint and display rules. The source remains selectable using `VITE_DATA_SOURCE=mock|api`.
+
+## Mock reservation preview
+
+Select **Preview new booking** on the Reservations page while `VITE_DATA_SOURCE=mock`. Step through an existing fictional guest, hotel-local stay dates, room type, occupant counts, and an illustrative room-only subtotal. Completing the preview does **not** create, hold, save, or charge a reservation. The wizard is disabled in API mode until Laravel pricing and inventory rules are approved. See [BOOKING_WIZARD.md](docs/BOOKING_WIZARD.md).

@@ -23,7 +23,7 @@ export function Settings(){
  const editable=dataMode==='mock';
  useEffect(()=>{if(config&&!draft)setDraft({...config.property});},[config,draft]);
  const result=draft?validateSettings(draft):null;
- const errors=result&&!result.success?result.error.flatten().fieldErrors:{};
+ const errors:Record<string,string[]|undefined>=result&&!result.success?result.error.flatten().fieldErrors:{};
  const changed=!!draft&&!!config&&JSON.stringify(draft)!==JSON.stringify(config.property);
  function change<K extends keyof PropertySettings>(key:K,value:PropertySettings[K]){
   if(!editable||!draft)return;

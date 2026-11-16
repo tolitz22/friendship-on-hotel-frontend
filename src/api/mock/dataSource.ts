@@ -1,4 +1,4 @@
-import type {CollectionResponse,HotelDataSource,ListParams} from '../types';
+import type {CalendarParams,CollectionResponse,HotelDataSource,ListParams} from '../types';
 import {dashboard,folios,guests,housekeeping,reservations,rooms} from './fixtures';
 const wait=()=>new Promise<void>(resolve=>setTimeout(resolve,120));
 function collect<T>(items:T[],params:ListParams={},matcher:(row:T,search:string)=>boolean=()=>true):CollectionResponse<T>{
@@ -8,6 +8,12 @@ function collect<T>(items:T[],params:ListParams={},matcher:(row:T,search:string)
 }
 const match=(...values:(string|null)[])=>(q:string)=>values.some(value=>(value??'').toLowerCase().includes(q));
 export const mockDataSource:HotelDataSource={
+ async getReservationCalendar({from,to}:CalendarParams){
+  await wait();
+  const overlapping=reservations.filter(r=>r.checkIn<to&&r.checkOut>from);
+  const roomTypes=Array.from(new Map([...rooms.map(r=>[r.roomTypeId,r.roomTypeName]),...overlapping.map(r=>[r.roomTypeId,r.roomTypeName])]).entries()).map(([id,name])=>({id,name}));
+  return {data:overlapping,meta:{from,to,roomTypes}};
+ },
  async getDashboard(){await wait();return {data:dashboard};},
  async listReservations(params){await wait();return collect(reservations,params,(r,q)=>match(r.reference,r.primaryGuestName,r.roomTypeName,r.assignedRoomNumber,r.status)(q));},
  async listRooms(params){await wait();return collect(rooms.filter(r=>!params?.floor||r.floor===params.floor),params,(r,q)=>match(r.number,r.roomTypeName,r.occupancyStatus,r.housekeepingStatus,r.maintenanceStatus)(q));},

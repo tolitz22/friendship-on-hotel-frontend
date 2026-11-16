@@ -38,7 +38,12 @@ export type FrontDeskBoardResponse = {
  data:{arrivals:FrontDeskEntry[];departures:FrontDeskEntry[];inHouse:FrontDeskEntry[]};
  meta:{date:ISODate;hotelId:Id;timeZone:string;isPreview:boolean};
 };
+export type HousekeepingBoardResponse = {
+ data:{tasks:HousekeepingTask[];rooms:Room[];staff:Array<{id:Id;name:string}>};
+ meta:{hotelId:Id;isPreview:boolean};
+};
 export interface HotelDataSource {
+ getHousekeepingBoard():Promise<HousekeepingBoardResponse>;
  getFrontDeskBoard(date:ISODate):Promise<FrontDeskBoardResponse>;
  getBookingOptions():Promise<BookingOptionsResponse>;
  getBookingQuote(params:BookingQuoteRequest):Promise<BookingQuoteResponse>;

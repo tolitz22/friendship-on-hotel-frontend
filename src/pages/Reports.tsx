@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {useMemo,useState} from 'react';
 import {Activity,BarChart3,BedDouble,CalendarDays,ClipboardCheck,Download,Wallet,Wrench} from 'lucide-react';
 import {useReports} from '../api/queries';
@@ -22,7 +23,7 @@ function reportCsv(data:ReportMetrics,from:string,to:string){
  ];
  return rows.map(row=>row.map(csvEscape).join(',')).join('\r\n');
 }
-function Metric({title,value,subtitle,icon}:{title:string;value:string;subtitle:string;icon:React.ReactNode}){
+function Metric({title,value,subtitle,icon}:{title:string;value:string;subtitle:string;icon:ReactNode}){
  return <div className="report-metric"><div><span>{title}</span>{icon}</div><strong>{value}</strong><small>{subtitle}</small></div>;
 }
 export function Reports(){

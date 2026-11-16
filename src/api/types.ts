@@ -21,7 +21,12 @@ export interface DashboardSummary {hotelId:Id; asOf:ISODate; totalRooms:number; 
 export type ListParams = {search?:string;page?:number;perPage?:number};
 export type CalendarParams = {from:ISODate;to:ISODate};
 export type ReservationCalendarResponse = {data:Reservation[];meta:{from:ISODate;to:ISODate;roomTypes:{id:Id;name:string}[]}};
+export type TimelineBlock =
+ | {id:Id;kind:'reservation';roomId:Id;from:ISODate;to:ISODate;reservationId:Id;reference:string;guestName:string;status:ReservationStatus}
+ | {id:Id;kind:'maintenance';roomId:Id;from:ISODate;to:ISODate;reason:string};
+export type RoomTimelineResponse = {data:{rooms:Room[];blocks:TimelineBlock[];unassignedReservations:Reservation[]};meta:{from:ISODate;to:ISODate;hotelId:Id}};
 export interface HotelDataSource {
+ getRoomTimeline(params:CalendarParams):Promise<RoomTimelineResponse>;
  getReservationCalendar(params:CalendarParams):Promise<ReservationCalendarResponse>;
  getDashboard():Promise<ItemResponse<DashboardSummary>>;
  listReservations(params?:ListParams):Promise<CollectionResponse<Reservation>>;

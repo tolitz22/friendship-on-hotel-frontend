@@ -24,6 +24,7 @@ All entity IDs are opaque strings. Date-only hotel stay fields are `YYYY-MM-DD`.
 | Hook | API path |
 | --- | --- |
 | useDashboard | /dashboard/summary |
+| useHotelSettings | /settings/overview |
 | useFrontDeskBoard | /front-desk/board?date=YYYY-MM-DD |
 | useReservations | /reservations |
 | useReservationCalendar | /reservations/calendar?from=YYYY-MM-DD&to=YYYY-MM-DD |
@@ -63,3 +64,5 @@ See [Housekeeping board contract](HOUSEKEEPING.md). Draft task updates only affe
 See [maintenance board](MAINTENANCE.md). Technician and status changes are local preview state only; room maintenance and inventory remain unchanged.
 
 See [Reports and Analytics](REPORTS.md) for definitions of date-filtered arrival bookings versus present-state room/folio snapshots.
+
+See [Hotel Settings contract](SETTINGS.md). In mock mode property form changes are only local previews; room types and staff permissions are read-only. There are no live update endpoints.

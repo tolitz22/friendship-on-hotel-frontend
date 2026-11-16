@@ -7,7 +7,8 @@ import {Guests} from './pages/Guests';
 import {Housekeeping} from './pages/Housekeeping';
 import {Billing} from './pages/Billing';
 import {FrontDesk} from './pages/FrontDesk';
-import {Maintenance} from './pages/Maintenance';import './styles.css';
+import {Maintenance} from './pages/Maintenance';
+import {Reports} from './pages/Reports';import './styles.css';
 const root=createRootRoute({component:AppShell});
 const index=createRoute({getParentRoute:()=>root,path:'/',component:Dashboard});
 const reservations=createRoute({getParentRoute:()=>root,path:'/reservations',component:Reservations});
@@ -18,8 +19,9 @@ const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/billing',component:Billing}),
  createRoute({getParentRoute:()=>root,path:'/housekeeping',component:Housekeeping}),
  createRoute({getParentRoute:()=>root,path:'/maintenance',component:Maintenance}),
+ createRoute({getParentRoute:()=>root,path:'/reports',component:Reports}),
 ];
-const pages=['/reports','/settings'] as const;
+const pages=['/settings'] as const;
 const other=pages.map(path=>createRoute({getParentRoute:()=>root,path,component:()=> <Placeholder title={path.slice(1).replace('-',' ').replace(/\b\w/g,c=>c.toUpperCase())}/>}));
 const routeTree=root.addChildren([index,reservations,rooms,...functionalRoutes,...other]);
 const router=createRouter({routeTree,defaultPreload:'intent'});

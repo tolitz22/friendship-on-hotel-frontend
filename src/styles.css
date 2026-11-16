@@ -171,3 +171,47 @@
 .wizard-finished svg{color:var(--accent)}.wizard-finished h3{font-size:20px;margin:0}
 .wizard-finished p{font-size:13px;color:var(--muted);line-height:1.6;margin:0 0 10px}
 @media(max-width:540px){.wizard-header,.wizard-body,.wizard-footer{padding:18px}.wizard-progress{padding:15px 10px}.wizard-fields{gap:8px}.wizard-header h2{font-size:19px}}
+
+
+/* Front desk: arrivals, departures, and simulated operational checklists */
+.desk-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin-bottom:22px}
+.desk-stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;display:grid;gap:8px}
+.desk-stat svg{color:var(--accent)}.desk-stat>span{font-size:12px;color:var(--muted)}
+.desk-stat>strong{font-size:28px}
+.desk-tools{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px}
+.desk-date-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.desk-date-nav>label{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted)}
+.desk-date-nav input{background:var(--surface);color:var(--text);border:0;font-size:12px;min-width:130px}
+.desk-tab-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px}
+.desk-tab-row .view-switch{flex-wrap:wrap}
+.desk-tab-count{border-radius:99px;border:1px solid currentColor;padding:1px 6px;font-size:10px}
+.desk-attention{display:inline-flex;align-items:center;gap:5px;color:#b45309;white-space:nowrap;font-size:11px}
+.desk-muted{color:var(--muted);font-size:11px}
+.desk-preview-note{margin-top:16px;background:var(--canvas);padding:13px;border-radius:9px;display:flex;gap:10px;color:var(--muted);align-items:flex-start}
+.desk-preview-note svg{flex-shrink:0;color:#b98229}
+.desk-preview-note p{font-size:11px;line-height:1.6;margin:0}
+.desk-modal-backdrop{position:fixed;inset:0;background:#090b10ba;z-index:65;display:flex;justify-content:flex-end}
+.desk-modal{background:var(--surface);color:var(--text);height:100%;width:min(480px,100%);padding:25px;overflow:auto;box-shadow:-10px 0 45px #0004}
+.desk-modal-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.desk-modal-heading small{font-size:10px;letter-spacing:1px;color:var(--accent);font-weight:800}
+.desk-modal-heading h2{margin:8px 0 0;font-size:24px}
+.desk-modal-help{color:var(--muted);font-size:12px;line-height:1.6}
+.desk-guest-card{padding:16px;border:1px solid var(--border);border-radius:12px;display:grid;gap:7px;margin-top:20px}
+.desk-guest-card>strong{font-size:16px}.desk-guest-card>span,.desk-guest-card>small{color:var(--muted);font-size:12px}
+.desk-guest-card>div{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px}
+.desk-warnings{border:1px solid #eabf79;border-radius:11px;padding:14px 16px;background:var(--canvas);margin-top:16px}
+.desk-warnings h3{margin:0 0 10px;display:flex;align-items:center;gap:7px;font-size:13px;color:#b98229}
+.desk-warnings p{font-size:12px;margin:7px 0}.desk-warnings small{font-size:11px;color:var(--muted)}
+.desk-checklist{border:0;margin:22px 0 0;padding:0;min-width:0}
+.desk-checklist legend{font-size:14px;font-weight:700;margin-bottom:12px}
+.desk-check-item{border:1px solid var(--border);border-radius:10px;padding:13px;display:flex;align-items:flex-start;gap:12px;margin-bottom:9px;cursor:pointer}
+.desk-check-item input{margin-top:4px;accent-color:var(--accent);width:16px;height:16px}
+.desk-check-item span{display:flex;flex-direction:column;gap:6px}
+.desk-check-item strong{font-size:12px}.desk-check-item small{font-size:11px;line-height:1.5;color:var(--muted)}
+.desk-modal-footer{border-top:1px solid var(--border);padding:20px 0;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.desk-modal-footer .btn-primary{gap:8px}
+.desk-completed{display:flex;flex-direction:column;align-items:center;gap:15px;margin-top:60px;text-align:center}
+.desk-completed svg{color:var(--accent)}.desk-completed h3{font-size:20px;margin:0}
+.desk-completed p{max-width:340px;color:var(--muted);font-size:13px;line-height:1.7}
+@media(max-width:1080px){.desk-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){.desk-summary{grid-template-columns:1fr 1fr;gap:8px}.desk-stat{padding:12px}.desk-stat>strong{font-size:22px}.desk-modal{padding:18px}.desk-tab-row .search-box{width:100%}}

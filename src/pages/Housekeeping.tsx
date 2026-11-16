@@ -1,4 +1,4 @@
-import {useMemo,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
 import {AlertTriangle,ClipboardCheck,Filter,RotateCcw,Search,UserRound,CheckCircle2,Wrench} from 'lucide-react';
 import type {DraftUpdate,TaskColumn} from '../features/housekeeping/board';
 import {applyDrafts,columns,nextStatus,roomAlerts} from '../features/housekeeping/board';
@@ -16,6 +16,7 @@ export function Housekeeping(){
  const [drafts,setDrafts]=useState<Record<string,DraftUpdate>>({});
  const [selected,setSelected]=useState<string|null>(null);
  const [note,setNote]=useState('');
+ const closeButtonRef=useRef<HTMLButtonElement>(null);
  const data=board.data?.data;
  const tasks=useMemo(()=>applyDrafts(data?.tasks??[],drafts),[data,drafts]);
  const roomById=useMemo(()=>new Map((data?.rooms??[]).map(r=>[r.id,r])),[data]);
@@ -26,6 +27,25 @@ export function Housekeeping(){
   const q=search.trim().toLowerCase();
   return (floor==='all'||room?.floor===Number(floor))&&(assignee==='all'||(assignee==='unassigned'?task.assignedTo===null:task.assignedTo===assignee))&&(!q||[task.roomNumber,task.type,task.assignedTo??'',task.status,room?.roomTypeName??''].some(value=>value.toLowerCase().includes(q)));
  });
+ useEffect(()=>{
+  if(!selected)return;
+  const previous=document.activeElement instanceof HTMLElement?document.activeElement:null;
+  closeButtonRef.current?.focus();
+  const handler=(event:KeyboardEvent)=>{
+   if(event.key==='Escape')setSelected(null);
+   if(event.key==='Tab'){
+    const dialog=document.querySelector<HTMLElement>('[data-housekeeping-dialog]');
+    const elements=dialog?.querySelectorAll<HTMLElement>('button:not([disabled]),select:not([disabled]),textarea:not([disabled]),input:not([disabled]),a[href]');
+    if(elements?.length){
+     const first=elements[0],last=elements[elements.length-1];
+     if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+     else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+    }
+   }
+  };
+  window.addEventListener('keydown',handler);
+  return ()=>{window.removeEventListener('keydown',handler);previous?.focus();};
+ },[selected]);
  const chosen=tasks.find(task=>task.id===selected);
  const chosenRoom=chosen?roomById.get(chosen.roomId):undefined;
  const canDraft=dataMode==='mock';
@@ -74,8 +94,8 @@ export function Housekeeping(){
   })}</div>}
   {data?.rooms.some(room=>room.maintenanceStatus!=='available')&&<section className="hk-maintenance"><h3><Wrench size={18}/> Maintenance review</h3><p>Maintenance flags do not change when a housekeeping task is completed.</p><div>{data.rooms.filter(room=>room.maintenanceStatus!=='available').map(room=><div key={room.id}><strong>Room {room.number}</strong><Status value={statusLabel(room.maintenanceStatus)}/></div>)}</div></section>}
   {chosen&&<div className="hk-overlay" onMouseDown={e=>{if(e.currentTarget===e.target)setSelected(null);}}>
-   <section className="hk-drawer" role="dialog" aria-modal="true" aria-labelledby="hk-details-title">
-    <div className="hk-drawer-top"><small>HOUSEKEEPING · {canDraft?'DEMO PREVIEW':'READ ONLY'}</small><button className="icon-btn" autoFocus aria-label="Close task details" onClick={()=>setSelected(null)}>×</button></div>
+   <section className="hk-drawer" data-housekeeping-dialog role="dialog" aria-modal="true" aria-labelledby="hk-details-title">
+    <div className="hk-drawer-top"><small>HOUSEKEEPING · {canDraft?'DEMO PREVIEW':'READ ONLY'}</small><button className="icon-btn" ref={closeButtonRef} aria-label="Close task details" onClick={()=>setSelected(null)}>×</button></div>
     <h2 id="hk-details-title">Room {chosen.roomNumber}</h2><p>{statusLabel(chosen.type)} · {chosenRoom?.roomTypeName??'Room type unavailable'}</p>
     <div className="hk-room-facts"><div><span>Task status</span><Status value={statusLabel(chosen.status)}/></div><div><span>Housekeeping condition (read only)</span><Status value={statusLabel(chosenRoom?.housekeepingStatus??'unknown')}/></div><div><span>Occupancy (read only)</span><Status value={statusLabel(chosenRoom?.occupancyStatus??'unknown')}/></div><div><span>Maintenance (read only)</span><Status value={statusLabel(chosenRoom?.maintenanceStatus??'unknown')}/></div></div>
     {roomAlerts(chosenRoom).length>0&&<div className="hk-drawer-alert"><AlertTriangle size={17}/><ul>{roomAlerts(chosenRoom).map(alert=><li key={alert}>{alert}</li>)}</ul></div>}

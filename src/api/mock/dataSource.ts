@@ -8,7 +8,22 @@ function collect<T>(items:T[],params:ListParams={},matcher:(row:T,search:string)
 }
 const match=(...values:(string|null)[])=>(q:string)=>values.some(value=>(value??'').toLowerCase().includes(q));
 const sampleRates:Record<string,number>={standard:250000,deluxe:420000,suite:560000};
+const frontDeskEntry=(reservation:typeof reservations[number])=>{
+ const room=reservation.assignedRoomId?rooms.find(r=>r.id===reservation.assignedRoomId)??null:null;
+ const alerts:string[]=[];
+ if(!room)alerts.push('No physical room assigned');
+ if(room?.maintenanceStatus!=='available'&&room)alerts.push('Room is marked for maintenance');
+ if(room&&room.housekeepingStatus!=='clean')alerts.push('Housekeeping status requires verification');
+ return {reservation,room,readiness:'review_required' as const,alerts};
+};
 export const mockDataSource:HotelDataSource={
+ async getFrontDeskBoard(date){
+  await wait();
+  const arrivals=reservations.filter(r=>r.checkIn===date&&['confirmed','pending'].includes(r.status)).map(frontDeskEntry);
+  const departures=reservations.filter(r=>r.checkOut===date&&r.status==='checked_in').map(frontDeskEntry);
+  const inHouse=reservations.filter(r=>r.checkIn<=date&&r.checkOut>=date&&r.status==='checked_in').map(frontDeskEntry);
+  return {data:{arrivals,departures,inHouse},meta:{date,hotelId:'hotel-demo-001',timeZone:'Asia/Manila',isPreview:true}};
+ },
  async getBookingOptions(){
   await wait();
   const types=new Map(rooms.map(r=>[r.roomTypeId,r.roomTypeName]));

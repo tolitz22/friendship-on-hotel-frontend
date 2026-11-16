@@ -22,7 +22,7 @@ This starts in **mock mode**, with no Laravel server required. The sample record
 - Guest profiles with search
 - Front desk date-based arrivals/departures/in-house queues and simulated check-in/check-out walkthroughs
 - Folio/billing list with exact-money formatting
-- Housekeeping task list
+- Housekeeping mock Kanban board, staff assignment preview, progress stages, inspection notes, and maintenance alerts
 - Other navigation modules remain placeholders
 
 **All booking/check-in/payment/housekeeping write actions are disabled** pending approved business policies and backend endpoints.
@@ -68,3 +68,7 @@ Select **Preview new booking** on the Reservations page while `VITE_DATA_SOURCE=
 ## Front Desk preview
 
 Open Front Desk to explore the current operational date, then switch between arrivals, departures and in-house guests. In `VITE_DATA_SOURCE=mock` mode, sample queue rows can open simulated check-in/check-out staff checklists. The completion action only shows a success preview—it **never changes** reservations, occupancy, folios or payments. Use November 17, 2026 for sample arrival/departure records. See [Front Desk contract](docs/FRONT_DESK.md).
+
+## Housekeeping mock milestone
+
+Open Housekeeping to see tasks grouped as To do / In progress / Completed. Filter by floor and team, inspect conditions, and simulate staff assignments or task progress. Use **Reset preview** to discard draft changes. No real reservation, housekeeping status, room readiness, maintenance or billing data changes. See [HOUSEKEEPING.md](docs/HOUSEKEEPING.md).

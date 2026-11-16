@@ -1,4 +1,4 @@
-import {useMemo,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
 import {CalendarDays,ChevronLeft,ChevronRight,Filter,Search,Info,AlertTriangle,X} from 'lucide-react';
 import {useRoomTimeline} from '../../api/queries';
 import type {Room,TimelineBlock} from '../../api/types';
@@ -16,6 +16,26 @@ export function RoomTimeline(){
  const [roomType,setRoomType]=useState('all');
  const [search,setSearch]=useState('');
  const [selected,setSelected]=useState<SelectedNight|null>(null);
+ const closeRef=useRef<HTMLButtonElement>(null);
+ useEffect(()=>{
+  if(!selected)return;
+  const previous=document.activeElement instanceof HTMLElement?document.activeElement:null;
+  closeRef.current?.focus();
+  const onKeyDown=(event:KeyboardEvent)=>{
+   if(event.key==='Escape')setSelected(null);
+   if(event.key==='Tab'){
+    const panel=document.querySelector<HTMLElement>('[data-room-night-dialog]');
+    const focusables=panel?.querySelectorAll<HTMLElement>('button:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])');
+    if(focusables?.length){
+     const first=focusables[0],last=focusables[focusables.length-1];
+     if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+     else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+    }
+   }
+  };
+  window.addEventListener('keydown',onKeyDown);
+  return ()=>{window.removeEventListener('keydown',onKeyDown);previous?.focus();};
+ },[selected]);
  const start=startOfWeek(anchor),end=addDays(start,span);
  const days=useMemo(()=>Array.from({length:span},(_,index)=>addDays(start,index)),[start,span]);
  const query=useRoomTimeline({from:start,to:end});
@@ -74,8 +94,8 @@ export function RoomTimeline(){
     <div className="timeline-unassigned-list">{unassigned.map(r=><div key={r.id}><strong>{r.reference}</strong><span>{r.primaryGuestName} · {r.roomTypeName}</span><Status value={statusLabel(r.status)}/></div>)}</div>
    </div>}
   {selected&&<div className="timeline-dialog-backdrop" onMouseDown={e=>{if(e.currentTarget===e.target)setSelected(null);}}>
-    <div className="timeline-dialog" role="dialog" aria-modal="true" aria-labelledby="timeline-dialog-title">
-     <div className="detail-top"><span className="detail-kicker">PHYSICAL ROOM · SAMPLE DATA</span><button className="icon-btn" autoFocus aria-label="Close night details" onClick={()=>setSelected(null)}><X size={18}/></button></div>
+    <div className="timeline-dialog" data-room-night-dialog role="dialog" aria-modal="true" aria-labelledby="timeline-dialog-title">
+     <div className="detail-top"><span className="detail-kicker">PHYSICAL ROOM · SAMPLE DATA</span><button className="icon-btn" ref={closeRef} aria-label="Close night details" onClick={()=>setSelected(null)}><X size={18}/></button></div>
      <h3 id="timeline-dialog-title">Room {selected.room.number}</h3><p>{selected.room.roomTypeName} · {dayHeading(selected.day)}</p>
      <div className="timeline-modal-status"><div>Current occupancy: <Status value={statusLabel(selected.room.occupancyStatus)}/></div><div>Current housekeeping: <Status value={statusLabel(selected.room.housekeepingStatus)}/></div></div>
      <h4>Records for this night</h4>

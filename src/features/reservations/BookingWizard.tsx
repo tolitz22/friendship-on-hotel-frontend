@@ -22,7 +22,7 @@ export function BookingWizard({onClose}:{onClose:()=>void}){
  const {register,control,trigger,formState:{errors},getValues}=useForm<BookingDraft>({
   resolver:zodResolver(bookingDraftSchema),mode:'onChange',defaultValues:initial()
  });
- const draft=useWatch({control});
+ useWatch({control});
  const values=getValues();
  const completeDraft=draftReady(values);
  const guests=useGuests({perPage:100});

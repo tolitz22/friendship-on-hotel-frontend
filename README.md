@@ -24,7 +24,8 @@ This starts in **mock mode**, with no Laravel server required. The sample record
 - Folio/billing list with exact-money formatting
 - Housekeeping mock Kanban board, staff assignment preview, progress stages, inspection notes, and maintenance alerts
 - Maintenance management with work-order filtering, technician preview assignment, room impact notes and maintenance history
-- Reports and Settings navigation modules remain placeholders
+- Reports & Analytics with mock date filters, charts, CSV export and clearly labeled current-state snapshots
+- Settings remains a placeholder
 
 **All booking/check-in/payment/housekeeping write actions are disabled** pending approved business policies and backend endpoints.
 
@@ -77,3 +78,7 @@ Open Housekeeping to see tasks grouped as To do / In progress / Completed. Filte
 ## Maintenance milestone
 
 Open Maintenance for sample work orders and repair history. Filter by priority and status, review room-impact flags, and try local-only technician or status edits. Use Reset preview to discard these changes. No physical room is blocked or released by these drafts. See [MAINTENANCE.md](docs/MAINTENANCE.md).
+
+## Reports & Analytics milestone
+
+Navigate to Reports to explore check-in-based booking counts, maintenance reports, sample room and housekeeping snapshots, folio totals and a sample CSV export. Do not treat sample booking values or folio payments as recognized revenue. See [REPORTS.md](docs/REPORTS.md).

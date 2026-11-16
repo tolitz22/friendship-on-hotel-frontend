@@ -1,7 +1,8 @@
 import {getJson} from './http';
-import type {FrontDeskBoardResponse,BookingOptionsResponse,BookingQuoteResponse,RoomTimelineResponse,CalendarParams,ReservationCalendarResponse,CollectionResponse,DashboardSummary,Folio,Guest,HotelDataSource,HousekeepingTask,ItemResponse,ListParams,Reservation,Room} from './types';
+import type {HousekeepingBoardResponse,FrontDeskBoardResponse,BookingOptionsResponse,BookingQuoteResponse,RoomTimelineResponse,CalendarParams,ReservationCalendarResponse,CollectionResponse,DashboardSummary,Folio,Guest,HotelDataSource,HousekeepingTask,ItemResponse,ListParams,Reservation,Room} from './types';
 const params=(p:ListParams={})=>({search:p.search,page:p.page,per_page:p.perPage});
 export const httpDataSource:HotelDataSource={
+ getHousekeepingBoard:()=>getJson<HousekeepingBoardResponse>('/housekeeping/board'),
  getFrontDeskBoard:date=>getJson<FrontDeskBoardResponse>('/front-desk/board',{date}),
  getBookingOptions:()=>getJson<BookingOptionsResponse>('/booking-drafts/options'),
  getBookingQuote:p=>getJson<BookingQuoteResponse>('/booking-drafts/quote',{room_type_id:p.roomTypeId,check_in:p.checkIn,check_out:p.checkOut,adults:p.adults,children:p.children}),

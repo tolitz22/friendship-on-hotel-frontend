@@ -25,3 +25,7 @@ Run typechecks/build/tests where possible and report actual results without inve
 ## Front desk milestone
 
 Follow `docs/FRONT_DESK.md`. The `useFrontDeskBoard(date)` query provides date-scoped arrivals, departures and in-house sample entries. OperationPreview is a non-mutating checklist, not a state transition, authorization, key handover or financial action. Keep mock-only demos disabled under live API mode until backend authorization and transition rules are implemented.
+
+## Housekeeping preview
+
+Read `docs/HOUSEKEEPING.md`. Task board mock draft changes are ephemeral component state, not API writes. Task status does not imply housekeeping or room availability status. Keep all real status/assignment mutations disabled until backend authorization, policy, audit and concurrency rules are defined.

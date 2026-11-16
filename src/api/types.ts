@@ -28,7 +28,18 @@ export type RoomTimelineResponse = {data:{rooms:Room[];blocks:TimelineBlock[];un
 export type BookingOptionsResponse = {data:{roomTypes:Array<{id:Id;name:string;maxOccupancy:number;sampleNightlyRate:Money}>}};
 export type BookingQuoteRequest = {roomTypeId:Id;checkIn:ISODate;checkOut:ISODate;adults:number;children:number};
 export type BookingQuoteResponse = {data:{nights:number;nightlyRate:Money;roomSubtotal:Money;currency:CurrencyCode;isIllustrative:boolean}};
+export type FrontDeskEntry = {
+ reservation:Reservation;
+ room:Room|null;
+ readiness:'review_required'|'unverified';
+ alerts:string[];
+};
+export type FrontDeskBoardResponse = {
+ data:{arrivals:FrontDeskEntry[];departures:FrontDeskEntry[];inHouse:FrontDeskEntry[]};
+ meta:{date:ISODate;hotelId:Id;timeZone:string;isPreview:boolean};
+};
 export interface HotelDataSource {
+ getFrontDeskBoard(date:ISODate):Promise<FrontDeskBoardResponse>;
  getBookingOptions():Promise<BookingOptionsResponse>;
  getBookingQuote(params:BookingQuoteRequest):Promise<BookingQuoteResponse>;
  getRoomTimeline(params:CalendarParams):Promise<RoomTimelineResponse>;

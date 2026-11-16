@@ -33,3 +33,7 @@ Read `docs/HOUSEKEEPING.md`. Task board mock draft changes are ephemeral compone
 ## Maintenance preview
 
 Review `docs/MAINTENANCE.md` and maintain work orders separately from actual inventory blocks. `useMaintenanceBoard()` has a mock adapter and proposed API GET route. In mock mode, edits stay local; in API mode all mutation inputs are disabled. Never change room availability or check-in eligibility as a side effect of sample work-order transitions.
+
+## Reports & Analytics
+
+Read `docs/REPORTS.md`. All reporting data is mock/read-only at this stage; distinguish check-in-date filtered booking metrics from current room/housekeeping snapshots and all-record folio totals. Do not label gross booking totals or payments as recognized revenue. Report formulas and permissions are ultimately backend-authoritative.

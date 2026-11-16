@@ -1,4 +1,4 @@
-import {useMemo,useState} from 'react';
+import {useMemo,useState,type CSSProperties} from 'react';
 import {CalendarDays,ChevronLeft,ChevronRight,LayoutList,Search,SlidersHorizontal} from 'lucide-react';
 import {useReservationCalendar} from '../../api/queries';
 import type {Reservation,ReservationStatus} from '../../api/types';
@@ -6,7 +6,7 @@ import {QueryFeedback} from '../../components/QueryFeedback';
 import {Status} from '../../components/ui';
 import {statusLabel} from '../../lib/format';
 import {ReservationDetail} from './ReservationDetail';
-import {addDays,dayHeading,dayString,overlapsStay,reservationOnNight,startOfWeek,visibleDays} from './calendarDate';
+import {addDays,dayHeading,hotelToday,reservationOnNight,visibleDays} from './calendarDate';
 
 const statusOptions: {value:'all'|ReservationStatus;label:string}[]=[
  {value:'all',label:'All statuses'},{value:'confirmed',label:'Confirmed'},{value:'pending',label:'Pending'},
@@ -14,7 +14,7 @@ const statusOptions: {value:'all'|ReservationStatus;label:string}[]=[
  {value:'cancelled',label:'Cancelled'},{value:'no_show',label:'No-show'}
 ];
 const selectionStatuses=new Set<ReservationStatus>(['pending','confirmed','checked_in']);
-const initialDate=()=>dayString(new Date());
+const initialDate=()=>hotelToday();
 export function ReservationCalendar(){
  const [anchor,setAnchor]=useState(initialDate);
  const [view,setView]=useState<'day'|'week'>('week');
@@ -58,7 +58,7 @@ export function ReservationCalendar(){
   </div>
   <div className="calendar-summary"><span><CalendarDays size={16}/> {active.length} active bookings overlapping period</span><span><LayoutList size={16}/> {historical.length} inactive records</span><span className="calendar-help">Departure date does not consume another night.</span></div>
   <QueryFeedback loading={query.isPending} error={query.error}/>
-  {query.data&&<div className="calendar-grid-scroll"><div className="calendar-grid" style={{'--day-count':String(days.length)} as React.CSSProperties}>
+  {query.data&&<div className="calendar-grid-scroll"><div className="calendar-grid" style={{'--day-count':String(days.length)} as CSSProperties}>
     <div className="calendar-header-cell calendar-type-heading">Room type</div>
     {days.map(day=><div key={day} className={day===initialDate()?'calendar-header-cell current-day':'calendar-header-cell'}><strong>{dayHeading(day)}</strong><small>{day===initialDate()?'Today':'Night'}</small></div>)}
     {types.filter(t=>roomType==='all'||t.id===roomType).map(type=><div className="calendar-row" key={type.id}>

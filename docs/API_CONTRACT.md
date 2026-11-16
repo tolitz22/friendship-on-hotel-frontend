@@ -26,6 +26,8 @@ All entity IDs are opaque strings. Date-only hotel stay fields are `YYYY-MM-DD`.
 | useDashboard | /dashboard/summary |
 | useReservations | /reservations |
 | useReservationCalendar | /reservations/calendar?from=YYYY-MM-DD&to=YYYY-MM-DD |
+| useBookingOptions | /booking-drafts/options |
+| useBookingQuote | /booking-drafts/quote (provisional GET) |
 | useRooms | /rooms |
 | useRoomTimeline | /rooms/timeline?from=YYYY-MM-DD&to=YYYY-MM-DD |
 | useGuests | /guests |
@@ -47,3 +49,5 @@ Backend integration steps:
 See [reservation calendar contract](RESERVATION_CALENDAR.md) for the half-open date window and room-type metadata.
 
 See [physical room timeline](ROOM_TIMELINE.md) for room-specific blocks, unassigned bookings, and date scope.
+
+See [mock booking wizard](BOOKING_WIZARD.md). These draft options and quote contracts are not yet implemented in Laravel. API mode disables the wizard until business and pricing rules are approved.

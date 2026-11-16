@@ -7,7 +7,24 @@ function collect<T>(items:T[],params:ListParams={},matcher:(row:T,search:string)
  return {data:filtered.slice((page-1)*perPage,page*perPage),meta:{page,perPage,total:filtered.length,totalPages:Math.ceil(filtered.length/perPage)}};
 }
 const match=(...values:(string|null)[])=>(q:string)=>values.some(value=>(value??'').toLowerCase().includes(q));
+const sampleRates:Record<string,number>={standard:250000,deluxe:420000,suite:560000};
 export const mockDataSource:HotelDataSource={
+ async getBookingOptions(){
+  await wait();
+  const types=new Map(rooms.map(r=>[r.roomTypeId,r.roomTypeName]));
+  return {data:{roomTypes:Array.from(types,([id,name])=>({
+   id,name,maxOccupancy:Math.max(...rooms.filter(r=>r.roomTypeId===id).map(r=>r.maxOccupancy)),
+   sampleNightlyRate:{amountMinor:sampleRates[id]??0,currency:'PHP' as const}
+  }))}};
+ },
+ async getBookingQuote(p){
+  await wait();
+  const rate=sampleRates[p.roomTypeId];
+  const start=Date.parse(p.checkIn+'T00:00:00Z'),end=Date.parse(p.checkOut+'T00:00:00Z');
+  const nights=Math.round((end-start)/86400000);
+  if(rate===undefined||!Number.isSafeInteger(nights)||nights<1||nights>30||!Number.isInteger(p.adults)||p.adults<1||!Number.isInteger(p.children)||p.children<0)throw new Error('Invalid sample quote inputs');
+  return {data:{nights,nightlyRate:{amountMinor:rate,currency:'PHP' as const},roomSubtotal:{amountMinor:rate*nights,currency:'PHP' as const},currency:'PHP' as const,isIllustrative:true}};
+ },
  async getRoomTimeline({from,to}:CalendarParams){
   await wait();
   const active=reservations.filter(r=>['pending','confirmed','checked_in'].includes(r.status)&&r.checkIn<to&&r.checkOut>from);

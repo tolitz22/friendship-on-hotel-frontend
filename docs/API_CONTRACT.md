@@ -25,6 +25,7 @@ All entity IDs are opaque strings. Date-only hotel stay fields are `YYYY-MM-DD`.
 | --- | --- |
 | useDashboard | /dashboard/summary |
 | useReservations | /reservations |
+| useReservationCalendar | /reservations/calendar?from=YYYY-MM-DD&to=YYYY-MM-DD |
 | useRooms | /rooms |
 | useGuests | /guests |
 | useHousekeeping | /housekeeping/tasks |
@@ -41,3 +42,5 @@ Backend integration steps:
 2. Build Laravel authentication, authorization, validation, migrations and endpoints.
 3. Map actual Laravel response fields into these frontend models (or align Laravel Resources to the contract).
 4. Enable API mode and add integration tests, error/empty/loading tests, and safe mutations.
+
+See [reservation calendar contract](RESERVATION_CALENDAR.md) for the half-open date window and room-type metadata.

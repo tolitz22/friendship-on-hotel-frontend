@@ -31,3 +31,10 @@ export function reservationOnNight(reservation:Pick<Reservation,'checkIn'|'check
 export function dayHeading(day:string):string {
   return new Intl.DateTimeFormat('en-PH',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'}).format(parseDay(day));
 }
+
+/** Today's date in the property's configured initial time zone, not the browser or UTC. */
+export function hotelToday(now:Date=new Date(),timeZone='Asia/Manila'):string {
+ const parts=new Intl.DateTimeFormat('en-GB',{timeZone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);
+ const get=(type:string)=>parts.find(part=>part.type===type)?.value??'';
+ return `${get('year')}-${get('month')}-${get('day')}`;
+}

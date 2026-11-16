@@ -1,6 +1,7 @@
 import {useQuery} from '@tanstack/react-query';
-import {hotelApi} from './index';import type {BookingQuoteRequest,CalendarParams,ListParams} from './types';
+import {hotelApi} from './index';import type {BookingQuoteRequest,CalendarParams,ListParams,ReportQuery} from './types';
 export const queryKeys={
+ reports:(p:ReportQuery)=>['reports','summary',p] as const,
  maintenanceBoard:['maintenance','board'] as const,
  housekeepingBoard:['housekeeping','board'] as const,
  frontDesk:(date:string)=>['front-desk','board',date] as const,
@@ -15,6 +16,7 @@ export const queryKeys={
  housekeeping:(p:ListParams)=>['housekeeping',p] as const,
  folios:(p:ListParams)=>['folios',p] as const
 };
+export const useReports=(p:ReportQuery,enabled:boolean)=>useQuery({queryKey:queryKeys.reports(p),queryFn:()=>hotelApi.getReports(p),enabled});
 export const useMaintenanceBoard=()=>useQuery({queryKey:queryKeys.maintenanceBoard,queryFn:()=>hotelApi.getMaintenanceBoard()});
 export const useHousekeepingBoard=()=>useQuery({queryKey:queryKeys.housekeepingBoard,queryFn:()=>hotelApi.getHousekeepingBoard()});
 export const useFrontDeskBoard=(date:string)=>useQuery({queryKey:queryKeys.frontDesk(date),queryFn:()=>hotelApi.getFrontDeskBoard(date)});

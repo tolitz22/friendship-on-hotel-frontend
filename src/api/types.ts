@@ -42,7 +42,20 @@ export type HousekeepingBoardResponse = {
  data:{tasks:HousekeepingTask[];rooms:Room[];staff:Array<{id:Id;name:string}>};
  meta:{hotelId:Id;isPreview:boolean};
 };
+export type MaintenancePriority='low'|'medium'|'high'|'urgent';
+export type WorkOrderStatus='open'|'in_progress'|'resolved'|'closed';
+export interface MaintenanceWorkOrder {
+ id:Id;hotelId:Id;roomId:Id;roomNumber:string;title:string;description:string;
+ priority:MaintenancePriority;status:WorkOrderStatus;assignedTo:string|null;
+ reportedAt:ISODateTime;resolvedAt:ISODateTime|null;
+ affectsRoom:boolean;history:Array<{id:Id;at:ISODateTime;message:string}>;
+}
+export type MaintenanceBoardResponse={
+ data:{workOrders:MaintenanceWorkOrder[];rooms:Room[];technicians:Array<{id:Id;name:string}>;};
+ meta:{hotelId:Id;isPreview:boolean};
+};
 export interface HotelDataSource {
+ getMaintenanceBoard():Promise<MaintenanceBoardResponse>;
  getHousekeepingBoard():Promise<HousekeepingBoardResponse>;
  getFrontDeskBoard(date:ISODate):Promise<FrontDeskBoardResponse>;
  getBookingOptions():Promise<BookingOptionsResponse>;

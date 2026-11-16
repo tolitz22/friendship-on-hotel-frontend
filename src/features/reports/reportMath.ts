@@ -1,19 +1,9 @@
-import type {Folio,HousekeepingTask,MaintenanceWorkOrder,Reservation,Room,ReservationStatus} from '../../api/types';
+import type {Folio,HousekeepingTask,MaintenanceWorkOrder,Reservation,Room,ReservationStatus,ReportMetrics} from '../../api/types';
 
 export const reservationStatuses:ReservationStatus[]=['pending','confirmed','checked_in','checked_out','cancelled','no_show'];
-export interface ReportSnapshot {
- reservationsByStatus:{status:ReservationStatus;count:number}[];
- arrivalsByDay:{date:string;count:number}[];
- totalArrivals:number;
- bookingValueMinor:number;
- roomSnapshot:{total:number;occupied:number;vacant:number;outOfOrder:number};
- housekeeping:{total:number;todo:number;inProgress:number;done:number};
- maintenance:{reported:number;open:number;inProgress:number;resolved:number;closed:number;highPriority:number};
- folios:{count:number;chargesMinor:number;paymentsMinor:number;balanceMinor:number};
-}
 const validDate=(date:string)=>/^\d{4}-\d{2}-\d{2}$/.test(date);
 export function isReportRange(from:string,to:string):boolean{return validDate(from)&&validDate(to)&&from<=to;}
-export function aggregateReports(inputs:{reservations:Reservation[];rooms:Room[];housekeeping:HousekeepingTask[];maintenance:MaintenanceWorkOrder[];folios:Folio[]},from:string,to:string):ReportSnapshot{
+export function aggregateReports(inputs:{reservations:Reservation[];rooms:Room[];housekeeping:HousekeepingTask[];maintenance:MaintenanceWorkOrder[];folios:Folio[]},from:string,to:string):ReportMetrics{
  if(!isReportRange(from,to))throw new Error('Invalid report date range');
  const arrivals=inputs.reservations.filter(r=>r.checkIn>=from&&r.checkIn<=to);
  const reservationsByStatus=reservationStatuses.map(status=>({status,count:arrivals.filter(r=>r.status===status).length}));

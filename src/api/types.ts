@@ -25,7 +25,12 @@ export type TimelineBlock =
  | {id:Id;kind:'reservation';roomId:Id;from:ISODate;to:ISODate;reservationId:Id;reference:string;guestName:string;status:ReservationStatus}
  | {id:Id;kind:'maintenance';roomId:Id;from:ISODate;to:ISODate;reason:string};
 export type RoomTimelineResponse = {data:{rooms:Room[];blocks:TimelineBlock[];unassignedReservations:Reservation[]};meta:{from:ISODate;to:ISODate;hotelId:Id}};
+export type BookingOptionsResponse = {data:{roomTypes:Array<{id:Id;name:string;maxOccupancy:number;sampleNightlyRate:Money}>}};
+export type BookingQuoteRequest = {roomTypeId:Id;checkIn:ISODate;checkOut:ISODate;adults:number;children:number};
+export type BookingQuoteResponse = {data:{nights:number;nightlyRate:Money;roomSubtotal:Money;currency:CurrencyCode;isIllustrative:boolean}};
 export interface HotelDataSource {
+ getBookingOptions():Promise<BookingOptionsResponse>;
+ getBookingQuote(params:BookingQuoteRequest):Promise<BookingQuoteResponse>;
  getRoomTimeline(params:CalendarParams):Promise<RoomTimelineResponse>;
  getReservationCalendar(params:CalendarParams):Promise<ReservationCalendarResponse>;
  getDashboard():Promise<ItemResponse<DashboardSummary>>;

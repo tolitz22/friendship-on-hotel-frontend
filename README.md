@@ -98,3 +98,7 @@ In `VITE_DATA_SOURCE=api`, **Overview**, **Room Inventory**, and **Hotel Setting
 ## Phase 7 — Room catalogue administration
 
 In API mode, hotel administrators can create registered room types from Settings, and physical rooms from either Settings or Room Inventory. Laravel validates permissions, duplicate room numbers and room-type membership; the frontend surfaces field errors and refreshes Overview/Settings/Room Inventory counts. Existing mock screens remain available. See [Phase 7](docs/PHASE_7_CATALOG_ADMIN.md). No reservation/availability functionality is implied.
+
+## Phase 8 — Guarded Catalogue Editing and Audit History
+
+Admin users can now edit room numbers/floors/types from Room Inventory and room type names/capacities from Settings, subject to reservation-linked restrictions enforced by Laravel. Successful edits are audited transactionally and the UI exposes per-record before/after history. Run the new backend audit-table migration first. See [Phase 8](docs/PHASE_8_CATALOG_EDITS.md).

@@ -39,10 +39,10 @@ describe('Phase 35 live room-readiness API contract',()=>{
    }},
   },'4','7')).toThrow(/contradicts/);
  });
- it('rejects unsupported direct check-in enforcement or guaranteed inventory',()=>{
-  expect(()=>parseReadiness({
+ it('accepts opt-in enforced check-in but still rejects guaranteed inventory',()=>{
+  expect(parseReadiness({
    data:{...sample.data,enforcedAtCheckIn:true},
-  },'4','7')).toThrow();
+  },'4','7').enforcedAtCheckIn).toBe(true);
   expect(()=>parseReadiness({
    data:{...sample.data,inventoryGuaranteed:true},
   },'4','7')).toThrow();

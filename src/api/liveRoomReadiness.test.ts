@@ -16,6 +16,8 @@ const sample={
    activeRoomImpactMaintenance:false,
    latestTurnoverIncomplete:false,
    newTurnoverSinceInspection:false,
+   unfinishedHousekeeping:false,
+   newRoomWorkSinceInspection:false,
   },
   advisoryReady:true,enforcedAtCheckIn:false,inventoryGuaranteed:false,
  },

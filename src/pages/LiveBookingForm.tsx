@@ -77,11 +77,13 @@ export function LiveBookingForm(){
   try{
    const confirmed=await createLiveBooking(submission);
    setResult(confirmed);setPending(null);
-   await Promise.all([
+   // The backend has already confirmed this booking. Cache refresh failures
+   // must not turn a successful submission into an ambiguous retry.
+   void Promise.all([
     client.invalidateQueries({queryKey:['live','reservation-records',submission.hotelId]}),
     client.invalidateQueries({queryKey:['live','availability',submission.hotelId]}),
     client.invalidateQueries({queryKey:['live','front-desk','manifest',submission.hotelId]}),
-   ]);
+   ]).catch(()=>{});
   }catch(cause){
    setError(cause instanceof Error?cause:new Error('The booking result could not be confirmed.'));
    // Keep pending submission intact. Network/5xx may have committed on server.

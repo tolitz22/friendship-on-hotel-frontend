@@ -80,7 +80,7 @@ export function LiveReservations(){
   {selectedRecordId?<>
    <div className="reservation-workspace-bar">
     <button type="button" className="btn-inline" onClick={closeBooking}>← All reservations</button>
-    <span className="table-count">Booking details / #{selectedRecordId}</span>
+    <span className="table-count">Reservation details / #{selectedRecordId}</span>
    </div>
    <section className="desk-selected-workflow" aria-label="Selected reservation">
     <QueryFeedback loading={detail.isPending} error={detail.error} onRetry={()=>void detail.refetch()}/>
@@ -92,13 +92,20 @@ export function LiveReservations(){
    <div className="reservation-workspace-bar" role="group" aria-label="Reservation tasks">
     <div className="view-switch">
      <button type="button" aria-pressed={view==='manage'} className={view==='manage'?'selected':''}
-      onClick={()=>setView('manage')}><ClipboardList size={16}/> Manage bookings</button>
+      onClick={()=>setView('manage')}><ClipboardList size={16}/> Manage reservations</button>
      {canOperate&&<button type="button" aria-pressed={view==='new'} className={view==='new'?'selected':''}
-      onClick={()=>setView('new')}><Plus size={16}/> New booking</button>}
+      onClick={()=>setView('new')}><Plus size={16}/> New reservation</button>}
     </div>
-    <span className="table-count">{pagination?.total??'—'} matching reservations</span>
+    <span className="table-count">{pagination?.total??'—'} matching reservations · newest first</span>
    </div>
-   {view==='new'&&canOperate?<LiveBookingForm/>:<Panel title="Find and manage a reservation"
+   {view==='manage'&&<div className="reservation-flow-guide" aria-label="Reservation workflow">
+    <span><strong>1 · Reserve</strong><small>Create a reservation with guest, dates and rate</small></span>
+    <ArrowRight size={15} aria-hidden="true"/>
+    <span><strong>2 · Assign room</strong><small>Choose an available physical room</small></span>
+    <ArrowRight size={15} aria-hidden="true"/>
+    <span><strong>3 · Check in</strong><small>Verify arrival and room readiness</small></span>
+   </div>}
+   {view==='new'&&canOperate?<LiveBookingForm/>:<Panel title="Find a reservation"
     action={<button type="button" className="btn-inline" onClick={()=>void records.refetch()}>
      <RefreshCw size={15}/> Refresh</button>}>
     <div className="reservation-filter-layout">
@@ -119,8 +126,8 @@ export function LiveReservations(){
      onRetry={()=>void records.refetch()}
      empty={records.isSuccess&&filtered.length===0}
      emptyMessage={appliedSearch||filter!=='all'
-      ?'No matching bookings. Clear the search or change the filter.'
-      :'No bookings yet. Use New booking to register the first reservation.'}/>
+      ?'No matching reservations. Clear the search or change the filter.'
+      :'No reservations yet. Use New reservation to register the first guest stay.'}/>
     {filtered.length>0&&<div className="reservation-manage-list">
      {filtered.map(record=><article className="reservation-manage-card" key={record.id}>
       <div className="reservation-manage-primary">

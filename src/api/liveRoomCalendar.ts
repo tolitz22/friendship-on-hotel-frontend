@@ -42,5 +42,7 @@ export function useRoomCalendar(params:{
    return response;
   },
   retry:false,staleTime:0,
+  refetchInterval:30000,
+  refetchIntervalInBackground:false,
  });
 }

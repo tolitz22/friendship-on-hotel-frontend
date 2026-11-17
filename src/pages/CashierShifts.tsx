@@ -104,7 +104,8 @@ export function CashierShifts(){
  const [error,setError]=useState('');
  const key=useRef<string|null>(null);
  const shifts=useCashierShifts(allowed,page,status==='all'?undefined:status as CashierShift['status']);
- const active=shifts.data?.data.find(s=>s.status==='open' && String(s.cashierId)===String(user?.id));
+ const openShifts=useCashierShifts(allowed,1,'open');
+ const active=openShifts.data?.data.find(s=>s.status==='open' && String(s.cashierId)===String(user?.id));
  const refresh=()=>hotelId&&client.invalidateQueries({queryKey:['live','cashier-shifts',hotelId]});
  async function start(){
   if(!hotelId||openBusy||!validMoney(float))return;

@@ -102,3 +102,7 @@ In API mode, hotel administrators can create registered room types from Settings
 ## Phase 8 — Guarded Catalogue Editing and Audit History
 
 Admin users can now edit room numbers/floors/types from Room Inventory and room type names/capacities from Settings, subject to reservation-linked restrictions enforced by Laravel. Successful edits are audited transactionally and the UI exposes per-record before/after history. Run the new backend audit-table migration first. See [Phase 8](docs/PHASE_8_CATALOG_EDITS.md).
+
+## Phase 9 — Reservation Demand Diagnostic
+
+In API mode, the sidebar now has a **Demand diagnostic** view for read-only, per-night room-type counts of stored Laravel reservation records. It is explicitly **not** an occupancy, sellable-availability, or booking API. Reservations and other operational screens remain mock previews. See [Phase 9](docs/PHASE_9_RESERVATION_DEMAND.md).

@@ -89,9 +89,9 @@ export function LiveReservations(){
    <div className="reservation-workspace-bar" role="group" aria-label="Reservation tasks">
     <div className="view-switch">
      <button type="button" aria-pressed={view==='manage'} className={view==='manage'?'selected':''}
-      onClick={()=>setView('manage')}><ClipboardList size={16}/> Manage reservations</button>
+      onClick={()=>{setView('manage');void navigation({to:'/reservations',search:{}});}}><ClipboardList size={16}/> Manage reservations</button>
      {canOperate&&<button type="button" aria-pressed={view==='new'} className={view==='new'?'selected':''}
-      onClick={()=>setView('new')}><Plus size={16}/> New reservation</button>}
+      onClick={()=>{setView('new');void navigation({to:'/reservations',search:{mode:'new'}});}}><Plus size={16}/> New reservation</button>}
     </div>
     <span className="table-count">{pagination?.total??'—'} matching reservations · newest first</span>
    </div>

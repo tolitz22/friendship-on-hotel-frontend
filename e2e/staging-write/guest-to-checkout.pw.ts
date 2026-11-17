@@ -25,7 +25,11 @@ async function signIn(page:Page){
  await page.getByLabel('Password').fill(env('PMS_STAGING_STAFF_PASSWORD'));
  await page.getByRole('button',{name:'Sign in',exact:true}).click();
  const chooser=page.getByRole('heading',{name:'Choose a property'});
- if(await chooser.isVisible().catch(()=>false)){
+ await Promise.race([
+  chooser.waitFor({state:'visible'}),
+  page.getByText('LIVE HOTEL DATA').first().waitFor({state:'visible'}),
+ ]);
+ if(await chooser.isVisible()){
   // Only the dedicated configured hotel may be selected.
   const choice=page.locator('.auth-hotel-list button').filter({hasText:env('PMS_STAGING_TEST_HOTEL_NAME')});
   await expect(choice).toHaveCount(1);
@@ -41,9 +45,9 @@ test('real React guest → booking → room assignment → check-in and Laravel 
  await page.goto('/guests');
  await page.getByRole('button',{name:'Add guest'}).click();
  const dialog=page.getByRole('dialog',{name:'Add guest'});
- await dialog.getByText('First name').locator('input').fill(first);
- await dialog.getByText('Last name').locator('input').fill(last);
- await dialog.getByText('Email').locator('input').fill('synthetic-'+suffix+'@example.test');
+ await dialog.getByLabel('First name').fill(first);
+ await dialog.getByLabel('Last name').fill(last);
+ await dialog.getByLabel('Email').fill('synthetic-'+suffix+'@example.test');
  const guestPost=page.waitForResponse(response=>matching('/guests','POST')(response));
  await dialog.getByRole('button',{name:'Save guest'}).click();
  const guestResponse=await guestPost;
@@ -75,13 +79,14 @@ test('real React guest → booking → room assignment → check-in and Laravel 
  const assignment=page.waitForResponse(response=>matching('/bookings/'+booking.data.id+'/assign-room','PATCH')(response));
  await page.getByRole('button',{name:'Assign selected room'}).click();
  expect((await assignment).status()).toBe(200);
- await expect(page.getByText('Room assignment saved by Laravel.')).toBeVisible();
+ await expect(page.getByRole('button',{name:'Confirm guest check-in'})).toBeVisible();
 
  await page.getByLabel('I have separately checked the guest identity, physical room and housekeeping readiness.').check();
+ await expect(page.getByRole('button',{name:'Confirm guest check-in'})).toBeEnabled();
  const checkIn=page.waitForResponse(response=>matching('/bookings/'+booking.data.id+'/check-in','POST')(response));
  await page.getByRole('button',{name:'Confirm guest check-in'}).click();
  expect((await checkIn).status()).toBe(200);
- await expect(page.getByText('Check-in recorded in Laravel.')).toBeVisible();
+ await expect(page.getByText('In house', {exact:true})).toBeVisible();
 
  // This confirms an actual authenticated browser-to-Laravel write.
  // A staff confirmation is NOT proof of bank/gateway settlement.
@@ -126,6 +131,6 @@ test('deployed React checks out a pre-seeded due synthetic stay and exposes turn
  const checkout=page.waitForResponse(response=>matching('/bookings/'+bookingId+'/check-out','POST')(response));
  await page.getByRole('button',{name:'Confirm guest check-out'}).click();
  expect((await checkout).status()).toBe(200);
- await expect(page.getByText('Checkout recorded. Laravel creates a checkout-clean housekeeping task.')).toBeVisible();
+ await expect(page.getByText('Checked out', {exact:true})).toBeVisible();
  await expect(page.getByRole('link',{name:/Open checkout task #/})).toBeVisible();
 });

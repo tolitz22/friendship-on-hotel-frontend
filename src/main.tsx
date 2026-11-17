@@ -27,11 +27,12 @@ import {Settings} from './pages/Settings';import './styles.css';
 const root=createRootRoute({component:AppShell});
 const index=createRoute({getParentRoute:()=>root,path:'/',component:dataMode==='api'?LiveDashboard:Dashboard});
 const reservations=createRoute({getParentRoute:()=>root,path:'/reservations',
- validateSearch:(value:Record<string,unknown>):{booking?:string;guest?:string;room?:string;roomNumber?:string;checkIn?:string;checkOut?:string}=>({
+ validateSearch:(value:Record<string,unknown>):{booking?:string;guest?:string;room?:string;roomNumber?:string;checkIn?:string;checkOut?:string;deskAction?:'assign'|'check-in'|'check-out'}=>({
   booking:typeof value.booking==='string'&&/^[1-9][0-9]*$/.test(value.booking)?value.booking:undefined,
   guest:typeof value.guest==='string'&&/^[1-9][0-9]*$/.test(value.guest)?value.guest:undefined,
   room:typeof value.room==='string'&&/^[1-9][0-9]*$/.test(value.room)?value.room:undefined,
   roomNumber:typeof value.roomNumber==='string'&&value.roomNumber.length<=32?value.roomNumber:undefined,
+  deskAction:value.deskAction==='assign'||value.deskAction==='check-in'||value.deskAction==='check-out'?value.deskAction:undefined,
   checkIn:typeof value.checkIn==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.checkIn)&&!Number.isNaN(Date.parse(value.checkIn+'T00:00:00Z'))&&new Date(value.checkIn+'T00:00:00Z').toISOString().slice(0,10)===value.checkIn?value.checkIn:undefined,
   checkOut:typeof value.checkOut==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.checkOut)&&!Number.isNaN(Date.parse(value.checkOut+'T00:00:00Z'))&&new Date(value.checkOut+'T00:00:00Z').toISOString().slice(0,10)===value.checkOut?value.checkOut:undefined,
  }),component:Reservations});

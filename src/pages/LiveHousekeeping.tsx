@@ -111,6 +111,8 @@ export function LiveHousekeeping(){
     client.invalidateQueries({queryKey:['live','housekeeping-direct-task',hotelId]}),
    ]).catch(()=>{});
   }catch(caught){
+   // A response from a previous hotel must not appear in the new hotel's editor.
+   if(readSession().hotelId!==hotelId)return;
    if(caught instanceof ApiError){
     setFieldErrors(caught.fieldErrors??{});
     setError(caught.status===409?'This task changed. Close and reopen the latest task before saving.':caught.message);

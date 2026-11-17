@@ -1,6 +1,6 @@
 import {afterEach,describe,expect,it,vi} from 'vitest';
 import {clearSession,setSessionHotel,setSessionToken} from './session';
-import {getLiveCatalogSummary,getLiveProperty,getLiveRooms} from './liveCatalog';
+import {createLiveRoom,createLiveRoomType,getLiveCatalogSummary,getLiveProperty,getLiveRooms} from './liveCatalog';
 
 afterEach(()=>{clearSession();vi.unstubAllGlobals();});
 
@@ -30,5 +30,44 @@ describe('Phase 6 hotel-scoped catalogue requests',()=>{
    ok:false,status:500,json:async()=>({message:'Database unavailable'}),
   }));
   await expect(getLiveCatalogSummary()).rejects.toMatchObject({status:500,message:'Database unavailable'});
+ });
+});
+
+describe('Phase 7 catalogue write requests',()=>{
+ it('posts a room type within the selected hotel using the bearer token',async()=>{
+  setSessionToken('admin-token');setSessionHotel('7');
+  const fetchMock=vi.fn().mockResolvedValue({ok:true,json:async()=>({data:{id:'3',name:'Deluxe'}})});
+  vi.stubGlobal('fetch',fetchMock);
+  await createLiveRoomType({name:'Deluxe',maxOccupancy:3});
+  const [url,init]=fetchMock.mock.calls[0] as [string,RequestInit];
+  expect(new URL(url).pathname).toBe('/api/v1/hotels/7/room-types');
+  expect(init.method).toBe('POST');
+  expect(JSON.parse(init.body as string)).toEqual({name:'Deluxe',maxOccupancy:3});
+  expect((init.headers as Record<string,string>).Authorization).toBe('Bearer admin-token');
+ });
+ it('posts a physical room and nullable floor to the current hotel',async()=>{
+  setSessionToken('admin-token');setSessionHotel('12');
+  const fetchMock=vi.fn().mockResolvedValue({ok:true,json:async()=>({data:{id:'9',number:'201'}})});
+  vi.stubGlobal('fetch',fetchMock);
+  await createLiveRoom({roomTypeId:'4',number:'201',floor:null});
+  const [url,init]=fetchMock.mock.calls[0] as [string,RequestInit];
+  expect(new URL(url).pathname).toBe('/api/v1/hotels/12/rooms');
+  expect(JSON.parse(init.body as string)).toEqual({roomTypeId:'4',number:'201',floor:null});
+ });
+ it('surfaces duplicate room validation instead of fabricating success',async()=>{
+  setSessionToken('admin-token');setSessionHotel('3');
+  vi.stubGlobal('fetch',vi.fn().mockResolvedValue({
+   ok:false,status:422,json:async()=>({message:'Invalid room',errors:{number:['The number has already been taken.']}})
+  }));
+  await expect(createLiveRoom({roomTypeId:'2',number:'101',floor:1})).rejects.toMatchObject({
+   status:422,fieldErrors:{number:['The number has already been taken.']}
+  });
+ });
+ it('rejects catalogue writes before a hotel is selected',async()=>{
+  setSessionToken('admin-token');
+  const fetchMock=vi.fn();
+  vi.stubGlobal('fetch',fetchMock);
+  await expect(createLiveRoomType({name:'Suite',maxOccupancy:2})).rejects.toThrow('Choose a hotel');
+  expect(fetchMock).not.toHaveBeenCalled();
  });
 });

@@ -75,8 +75,12 @@ export function QuickGuestDialog({onClose,onCreated}:{
     value={value} disabled={busy} onChange={e=>set(e.target.value)}/>
    {fields[field]?.map((message,i)=><small role="alert" key={i}>{message}</small>)}
   </label>;
- return createPortal(<div className="qg-backdrop" role="presentation" onMouseDown={e=>{if(e.currentTarget===e.target&&!busy)onClose();}}>
-  <section id="quick-guest-dialog" className="qg-dialog" role="dialog" aria-modal="true" aria-labelledby="quick-guest-title">
+ return createPortal(<div className="qg-backdrop"
+  style={{position:'fixed',inset:0,zIndex:10010,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(9,12,21,.75)',padding:16}}
+  role="presentation" onMouseDown={e=>{if(e.currentTarget===e.target&&!busy)onClose();}}>
+  <section id="quick-guest-dialog" className="qg-dialog"
+   style={{width:'min(100%,540px)',maxHeight:'90vh',overflowY:'auto',background:'var(--surface)',color:'var(--text)',border:'1px solid var(--border)',borderRadius:16}}
+   role="dialog" aria-modal="true" aria-labelledby="quick-guest-title">
    <header className="qg-head"><div><span className="detail-kicker">NEW GUEST PROFILE</span>
     <h2 id="quick-guest-title">Register a guest</h2>
     <p>Stay on this booking. The guest will be selected automatically after saving.</p></div>

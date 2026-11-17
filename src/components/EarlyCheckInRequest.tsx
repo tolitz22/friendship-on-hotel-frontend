@@ -5,10 +5,13 @@ import {AlertTriangle,Clock3,Send,ShieldCheck} from 'lucide-react';
 import type {LiveRecord} from '../api/liveReservations';
 import {requestManagerApproval,useApprovalRequests} from '../api/managerApprovals';
 import {readSession} from '../api/session';
+import {useHotelAuth} from './AuthProvider';
 import {dateLabel} from '../lib/format';
 
 export function EarlyCheckInRequest({record,today}:{record:LiveRecord;today:string}){
  const {hotelId}=readSession();
+ const {user}=useHotelAuth();
+ const manager=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const client=useQueryClient();
  const requests=useApprovalRequests({enabled:!!hotelId,bookingId:record.id,status:'pending'});
  const [reason,setReason]=useState('');
@@ -44,7 +47,9 @@ export function EarlyCheckInRequest({record,today}:{record:LiveRecord;today:stri
    <strong>Guest arriving before the booked date?</strong>
    <p>Scheduled check-in: {dateLabel(record.checkIn)}. Early arrival requires another manager's approval and will be recorded as <b>Early check-in</b>.</p>
    {requests.isError&&<p role="alert" className="stay-feedback-error">Could not check existing requests. Refresh before submitting a duplicate.</p>}
-   {pending&&<p className="stay-early-pending"><ShieldCheck size={15}/> Early check-in awaiting manager review. No check-in has been recorded.</p>}
+   {pending&&<p className="stay-early-pending"><ShieldCheck size={15}/> Early check-in awaiting manager review. No check-in has been recorded.
+    <button type="button" className="stay-text-button" onClick={()=>void requests.refetch()}>Refresh</button>
+   </p>}
    {!pending&&eligible&&!open&&<button type="button" className="btn-inline"
     disabled={busy||requests.isPending||requests.isError}
     onClick={()=>setOpen(true)}>Request early check-in <Send size={14}/></button>}
@@ -65,7 +70,8 @@ export function EarlyCheckInRequest({record,today}:{record:LiveRecord;today:stri
    </div>}
    {success&&<p role="status" className="stay-feedback-success">{success}</p>}
    {error&&<p role="alert" className="stay-feedback-error"><AlertTriangle size={15}/>{error}</p>}
-   <Link to="/manager-approvals" className="stay-early-inbox">Manager approval inbox</Link>
+   {manager?<Link to="/manager-approvals" className="stay-early-inbox">Open manager approval inbox</Link>
+    :<span className="stay-early-hint">A hotel manager other than the requesting staff member must approve.</span>}
   </div>
  </div>;
 }

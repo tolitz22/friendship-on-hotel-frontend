@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {ArrowLeft,ArrowRight,BedDouble,CalendarDays,LogIn,LogOut,Search,Users,AlertTriangle} from 'lucide-react';
 import {useLiveManifest} from '../api/liveFrontDesk';
+import {readSession} from '../api/session';
 import type {ManifestKind,ManifestEntry} from '../api/liveFrontDesk';
 import {Heading,Panel,Status} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
@@ -29,6 +30,7 @@ export function LiveFrontDesk(){
  const inHouse=useLiveManifest(date,'in_house',pageByKind.in_house);
  const queries={arrivals,departures,in_house:inHouse};
  const current=queries[kind];
+ const hasHotel=!!readSession().hotelId;
  const rows=current.data?.data??[];
  const term=search.trim().toLocaleLowerCase();
  const filtered=term?rows.filter(r=>[
@@ -43,6 +45,10 @@ export function LiveFrontDesk(){
  const count=(name:ManifestKind)=>queries[name].data?.meta.total??'—';
  const page=current.data?.meta.page??pageByKind[kind];
  const pages=current.data?.meta.totalPages??0;
+ if(!hasHotel)return <>
+  <Heading title="Front desk" description="Select an authorized hotel to view its live arrival, departure and in-house reservations."/>
+  <Panel title="Hotel selection required"><p role="status">Choose a hotel from your authenticated session before loading live front desk records.</p></Panel>
+ </>;
  return <>
   <Heading title="Front desk" description="Live reservation manifests from your selected hotel. Read-only: check-in, checkout, room readiness and financial settlement are not performed on this screen."/>
   <section className="desk-summary" aria-label="Live reservation queue totals">

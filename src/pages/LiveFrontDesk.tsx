@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {Link} from '@tanstack/react-router';
 import {ArrowLeft,ArrowRight,BedDouble,CalendarDays,LogIn,LogOut,Search,Users,AlertTriangle} from 'lucide-react';
 import {useLiveManifest} from '../api/liveFrontDesk';
 import {readSession} from '../api/session';
@@ -50,7 +51,7 @@ export function LiveFrontDesk(){
   <Panel title="Hotel selection required"><p role="status">Choose a hotel from your authenticated session before loading live front desk records.</p></Panel>
  </>;
  return <>
-  <Heading title="Front desk" description="Live reservation manifests from your selected hotel. Use the Reservations page to open administrator room assignment and check-in/out controls; this manifest remains read-only."/>
+  <Heading title="Front desk" description="Review today's arrivals and departures. Manage a reservation from the Reservations workspace." action={<Link to="/reservations" className="inline-task-link">Manage reservations <ArrowRight size={15}/></Link>}/>
   <section className="desk-summary" aria-label="Live reservation queue totals">
    <div className="desk-stat"><LogIn size={21}/><span>Confirmed arrivals</span><strong>{count('arrivals')}</strong></div>
    <div className="desk-stat"><LogOut size={21}/><span>Scheduled departures</span><strong>{count('departures')}</strong></div>
@@ -81,7 +82,9 @@ export function LiveFrontDesk(){
      value={search} onChange={e=>setSearch(e.target.value)}/></label>
    </div>
    <QueryFeedback loading={current.isPending} error={current.error}
-    empty={current.isSuccess&&filtered.length===0}/>
+    onRetry={()=>void current.refetch()}
+    empty={current.isSuccess&&filtered.length===0}
+    emptyMessage={term?'No matches on this page. Clear search or change pages.':'No reservations in this queue for the chosen date.'}/>
    {current.isSuccess&&filtered.length>0&&<div className="table-scroll">
     <table><thead><tr><th>Guest & reservation</th><th>Stay</th><th>Assigned room</th><th>Status</th><th>Operational checks</th></tr></thead>
      <tbody>{filtered.map(row=><tr key={row.id}>
@@ -90,8 +93,9 @@ export function LiveFrontDesk(){
       <td>{row.roomNumber??'Unassigned'}</td>
       <td><Status value={statusLabel(row.status)}/></td>
       <td>{row.assignedRoomId===null
-       ?<span className="desk-attention"><AlertTriangle size={14}/> Room assignment required</span>
-       :<span className="desk-muted">Room readiness and guest identity unverified</span>}</td>
+       ?<span className="desk-attention"><AlertTriangle size={14}/> Assign a room before check-in</span>
+       :<span className="desk-muted">Verify guest identity and room readiness</span>}
+       <Link to="/reservations" className="cell-note">Open reservation workspace</Link></td>
      </tr>)}</tbody>
     </table>
    </div>}

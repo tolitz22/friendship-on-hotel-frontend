@@ -67,7 +67,7 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
   <QueryFeedback loading={state.isPending} error={state.error}/>
   {state.data&&<>
    <p role="status"><strong>Advisory readiness: {state.data.advisoryReady?'Approved, with no current blockers found':'Not approved / blocked'}</strong></p>
-   <p>Check-in enforcement: <strong>not enabled</strong>. Readiness is advisory and is not a guaranteed room allocation.</p>
+   <p>Check-in inspection gate: <strong>{state.data.enforcedAtCheckIn?'Enabled for this hotel':'Not enabled'}</strong>. Readiness is never guaranteed room inventory, guest identity verification, or payment settlement.</p>
    <div className="hk-notice">
     <AlertTriangle size={16}/>
     <span>Current inventory block: {blockers?.activeInventoryBlockToday?'Yes':'No'} ·

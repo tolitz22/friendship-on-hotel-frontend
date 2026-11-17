@@ -126,7 +126,7 @@ export function LiveMaintenance(){
       <label>Description<textarea required maxLength={5000} rows={3} disabled={!!selected||!admin||saving} value={draft.description} onChange={e=>change('description',e.target.value)}/></label>
       <label>Priority<select disabled={!admin||saving} value={draft.priority} onChange={e=>change('priority',e.target.value as MaintenancePriority)}>{priorities.map(p=><option key={p} value={p}>{p}</option>)}</select></label>
       <label>Status<select disabled={!selected||!admin||saving} value={draft.status} onChange={e=>change('status',e.target.value as MaintenanceStatus)}>
-       {[draft.status,...(transitions[selected?.status??'open']??[])].filter((x,i,arr)=>arr.indexOf(x)===i).map(s=><option value={s} key={s}>{s.replaceAll('_',' ')}</option>)}
+       {[selected?.status??'open',...(transitions[selected?.status??'open']??[])].filter((x,i,arr)=>arr.indexOf(x)===i).map(s=><option value={s} key={s}>{s.replaceAll('_',' ')}</option>)}
       </select></label>
       <label>Assigned technician (text)<input maxLength={120} disabled={!admin||saving} value={draft.assignedTo} onChange={e=>change('assignedTo',e.target.value)}/></label>
       <label className="maintenance-checkbox"><input type="checkbox" disabled={!admin||saving} checked={draft.affectsRoom} onChange={e=>change('affectsRoom',e.target.checked)}/> Affects room (flag only; never blocks inventory)</label>

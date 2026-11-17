@@ -11,6 +11,7 @@ import {
 import {ApiError} from '../api/http';
 import {readSession} from '../api/session';
 import {listHotelStaff} from '../api/liveStaff';
+import {listMaintenance} from '../api/liveMaintenance';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 
@@ -31,6 +32,10 @@ export function LiveHousekeeping(){
  const role=user?.hotels.find(h=>h.id===hotelId)?.role;
  const admin=role==='admin';
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin});
+ const maintenance=useQuery({
+  queryKey:['live','maintenance-for-housekeeping',hotelId],
+  queryFn:()=>listMaintenance(1,100),enabled:!!hotelId,retry:false,
+ });
  const client=useQueryClient();
  const [page,setPage]=useState(1);
  const [statusFilter,setStatusFilter]=useState<HousekeepingStatus|''>('');
@@ -50,18 +55,19 @@ export function LiveHousekeeping(){
  const [error,setError]=useState('');
  const [fieldErrors,setFieldErrors]=useState<Record<string,string[]>>({});
  const [historyOpen,setHistoryOpen]=useState(false);
+ const [historyPage,setHistoryPage]=useState(1);
  const history=useQuery({
-  queryKey:['housekeeping-history',hotelId,selected?.id],
-  queryFn:()=>getHousekeepingHistory(selected!.id),
+  queryKey:['housekeeping-history',hotelId,selected?.id,historyPage],
+  queryFn:()=>getHousekeepingHistory(selected!.id,historyPage),
   enabled:!!selected&&historyOpen,
  });
  useEffect(()=>{
-  setPage(1);setSelected(null);setForm(null);setError('');setHistoryOpen(false);
+  setPage(1);setSelected(null);setForm(null);setError('');setHistoryOpen(false);setHistoryPage(1);
   setTextFilter('');setStatusFilter('');setTypeFilter('');
  },[hotelId]);
- const openCreate=()=>{setSelected(null);setForm(empty());setError('');setFieldErrors({});setHistoryOpen(false);};
+ const openCreate=()=>{setSelected(null);setForm(empty());setError('');setFieldErrors({});setHistoryOpen(false);setHistoryPage(1);};
  const openEdit=(task:LiveHousekeepingTask)=>{
-  setSelected(task);setForm(fromTask(task));setError('');setFieldErrors({});setHistoryOpen(false);
+  setSelected(task);setForm(fromTask(task));setError('');setFieldErrors({});setHistoryOpen(false);setHistoryPage(1);
  };
  const close=()=>{setSelected(null);setForm(null);setError('');setHistoryOpen(false);};
  const change=<K extends keyof FormState>(key:K,value:FormState[K])=>
@@ -145,6 +151,25 @@ export function LiveHousekeeping(){
    <div className="catalog-modal-heading"><h3 id="hk-dialog-title">{selected?'Housekeeping task HK-'+selected.id:'Create housekeeping task'}</h3>
     <button type="button" className="icon-btn" aria-label="Close" disabled={saving} onClick={close}><X size={19}/></button></div>
    <p>Task progress is informational. Room readiness is a separate, unimplemented operational policy.</p>
+   {selected&&<>
+    <QueryFeedback loading={maintenance.isPending} error={maintenance.error}/>
+    {maintenance.isSuccess&&<>
+     {maintenance.data.data.filter(order=>order.roomId===selected.roomId
+      &&(order.status==='open'||order.status==='in_progress')).map(order=>
+      <p className="hk-notice" key={order.id}>
+       <ShieldAlert size={16}/> Active maintenance work order {order.id}: {order.title}
+       {order.affectsRoom?' · flagged room impact (not an inventory block)':''}.
+      </p>)}
+     {maintenance.data.meta.totalPages>1&&<p className="hk-notice">
+      Maintenance visibility is incomplete: only the first 100 work orders were checked.
+      Review the full Maintenance screen before confirming a room is ready.
+     </p>}
+     {maintenance.data.meta.totalPages<=1&&!maintenance.data.data.some(order=>
+       order.roomId===selected.roomId&&(order.status==='open'||order.status==='in_progress'))&&
+      <p>There are no active work orders for this room in the current complete work-order list.
+       This does not certify room readiness.</p>}
+    </>}
+   </>}
    {!selected&&rooms.data&&rooms.data.meta.total>100&&<p className="guest-info">Room selector displays only the first 100 registered rooms.</p>}
    <form onSubmit={e=>void save(e)}><div className="guest-fields">
     <label>Room<select required disabled={!!selected||!admin||saving} value={form.roomId} onChange={e=>change('roomId',e.target.value)}>
@@ -171,7 +196,16 @@ export function LiveHousekeeping(){
     {historyOpen&&<><QueryFeedback loading={history.isPending} error={history.error}/>
      {history.data?.data.map(event=><article className="maintenance-history-event" key={event.id}>
       <strong>{event.action} · Staff #{event.actorId}</strong><small>{event.createdAt}</small>
-      {event.note&&<p>{event.note}</p>}</article>)}</>}
+      {event.note&&<p>{event.note}</p>}</article>)}
+     {history.data&&<div className="guest-pagination">
+      <span>Event page {history.data.meta.page} of {Math.max(1,history.data.meta.totalPages)}</span>
+      <div><button type="button" className="btn-inline" disabled={historyPage<=1}
+       onClick={()=>setHistoryPage(n=>n-1)}>Previous events</button>
+       <button type="button" className="btn-inline" disabled={historyPage>=history.data.meta.totalPages}
+       onClick={()=>setHistoryPage(n=>n+1)}>Next events</button>
+      </div>
+     </div>}
+    </>}
    </div>}
   </section></div>}
   <div className="demand-warning"><ShieldAlert size={18}/><div><strong>No automatic room readiness</strong>

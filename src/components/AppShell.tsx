@@ -10,8 +10,9 @@ import {HotelChooser} from './HotelChooser';
 const nav=[{to:'/',label:'Overview',icon:LayoutDashboard},{to:'/reservations',label:'Reservations',icon:CalendarDays},{to:'/reservation-demand',label:'Demand diagnostic',icon:CalendarDays},{to:'/reservation-policy',label:'Booking policies',icon:Settings},{to:'/reservation-simulation',label:'Stay simulator',icon:CalendarDays},{to:'/rooms',label:'Room inventory',icon:BedDouble},{to:'/front-desk',label:'Front desk',icon:Hotel},{to:'/guests',label:'Guests',icon:Users},{to:'/billing',label:'Billing',icon:Wallet},{to:'/housekeeping',label:'Housekeeping',icon:ClipboardCheck},{to:'/maintenance',label:'Maintenance',icon:Wrench},{to:'/reports',label:'Reports',icon:ChartNoAxesCombined},{to:'/settings',label:'Settings',icon:Settings},{to:'/staff',label:'Hotel staff',icon:Users},{to:'/change-password',label:'Change password',icon:Settings}] as const;
 export function AppShell(){const {theme,toggle}=useTheme();const {user,hotelId,selectHotel,signOut,pending}=useHotelAuth();const [open,setOpen]=useState(false);const pathname=useRouterState({select:s=>s.location.pathname});const current=nav.find(n=>n.to===pathname)?.label??'Dashboard';
 if(dataMode==='api'&&!user&&['/forgot-password','/reset-password'].includes(pathname))return <Outlet/>;
-if(dataMode==='api'&&pending&&!user&&isCookieAuth())return <div className="auth-shell"><div className="auth-card"><p role="status">Checking your secure staff session…</p></div></div>;
+if(dataMode==='api'&&pending&&!user&&isCookieAuth())return <div className="auth-shell"><div className="auth-card"><p role="status">Checking or establishing your secure staff session…</p></div></div>;
 if(dataMode==='api'&&!user)return <StaffSignIn/>;
+if(dataMode==='api'&&user&&!hotelId&&pathname==='/change-password')return <Outlet/>;
 if(dataMode==='api'&&!hotelId)return <HotelChooser/>;
 return <div className="app-layout">
 {open&&<button className="mobile-overlay" aria-label="Close navigation" onClick={()=>setOpen(false)}/>}

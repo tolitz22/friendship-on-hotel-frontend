@@ -258,3 +258,35 @@ npm run build
 \`\`\`
 
 Test with two staff accounts (hotel admin and active assigned maintenance worker), property switches, paginated filters/history, simultaneous edits causing 409, multi-page room catalogues and work-order flags with active inventory blocks. Do not claim room availability based on this UI.
+
+
+## Frontend Phase 35 — Real room inspection and advisory readiness
+
+In \`VITE_DATA_SOURCE=api\`, the main Rooms route now mounts \`LiveRooms\`, displaying Laravel's real hotel-scoped room catalogue. Each physical room has an **Inspection / readiness** entry that opens \`RoomReadinessPanel\`. Mock mode preserves the original room-timeline simulation.
+
+Real Laravel endpoints:
+
+\`\`\`http
+GET /hotels/{hotel}/rooms/{room}/readiness
+GET /hotels/{hotel}/rooms/{room}/readiness/history?page=1
+POST /hotels/{hotel}/rooms/{room}/readiness/inspections
+POST /hotels/{hotel}/rooms/{room}/readiness/inspections/{inspection}/review
+\`\`\`
+
+The backend records a physical checklist for cleanliness, safety and amenities, inspector identity, mandatory notes, review status and actor-attributed history. A separate hotel administrator must approve it. Incomplete checks, current active room-impact maintenance, an active dated block today, an unfinished latest turnover, or a turnover created since inspection prevent approval. Stale review revisions produce 409; the frontend does not auto-retry writes.
+
+\`src/api/liveRoomReadiness.ts\` validates hotel/room identity, current blockers, historical actions, and explicit \`enforcedAtCheckIn:false\` / \`inventoryGuaranteed:false\` flags. \`src/components/RoomReadinessPanel.tsx\` displays the latest inspector/reviewer, checklist, blocker flags, review controls and paginated audit entries. Property members may read; only admins may write, with independent approval enforced by Laravel.
+
+**This is advisory readiness, not an automatic room-clearance or occupancy system.** The backend's preexisting check-in route does not yet enforce these approvals, and its work-order/housekeeping/block writers are not yet coordinated by a single readiness lock. Show no final green room-bookable promise. In production, a consistent transactional readiness gate requires separate policy approval, locking across operational mutations and concurrency tests.
+
+Frontend verification:
+
+\`\`\`bash
+git pull origin main
+npm ci
+npm run typecheck
+npm test
+npm run build
+\`\`\`
+
+Backend: \`php artisan migrate && php artisan test --filter=RoomReadinessPhase35Test\`. Both suites and browser acceptance remain unverified in this remote commit session.

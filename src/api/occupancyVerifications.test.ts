@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {parseOccupancyList} from './occupancyVerifications';
+import {parseOccupancyHistory,parseOccupancyList} from './occupancyVerifications';
 
 const row={
  id:'6',hotelId:'1',roomId:'12',roomNumber:'101',
@@ -13,6 +13,18 @@ const row={
 };
 const payload={data:[row],meta:{page:1,perPage:20,total:1,totalPages:1,hotelDate:'2026-11-18'}};
 describe('Phase 53 occupancy evidence response',()=>{
+ it('validates event identifiers independently of the verification ID',()=>{
+  const audit=parseOccupancyHistory({data:[{
+   id:'42',actorId:'7',event:'observed',details:{discrepancy:'match'},
+   createdAt:'2026-11-18 14:00:00',
+  }]});
+  expect(audit.data[0].id).toBe('42');
+  expect(audit.data[0].actorId).toBe('7');
+  expect(()=>parseOccupancyHistory({data:[{
+   id:'invalid',actorId:'7',event:'observed',details:{},
+   createdAt:'2026-11-18 14:00:00',
+  }]})).toThrow();
+ });
  it('retains hotel-local inspection date and independent observation discrepancy',()=>{
   const parsed=parseOccupancyList(payload,'1');
   expect(parsed.meta.hotelDate).toBe('2026-11-18');

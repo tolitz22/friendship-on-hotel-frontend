@@ -27,9 +27,12 @@ import {Settings} from './pages/Settings';import './styles.css';
 const root=createRootRoute({component:AppShell});
 const index=createRoute({getParentRoute:()=>root,path:'/',component:dataMode==='api'?LiveDashboard:Dashboard});
 const reservations=createRoute({getParentRoute:()=>root,path:'/reservations',
- validateSearch:(value:Record<string,unknown>):{booking?:string;guest?:string}=>({
+ validateSearch:(value:Record<string,unknown>):{booking?:string;guest?:string;room?:string;roomNumber?:string;checkIn?:string}=>({
   booking:typeof value.booking==='string'&&/^[1-9][0-9]*$/.test(value.booking)?value.booking:undefined,
   guest:typeof value.guest==='string'&&/^[1-9][0-9]*$/.test(value.guest)?value.guest:undefined,
+  room:typeof value.room==='string'&&/^[1-9][0-9]*$/.test(value.room)?value.room:undefined,
+  roomNumber:typeof value.roomNumber==='string'&&value.roomNumber.length<=32?value.roomNumber:undefined,
+  checkIn:typeof value.checkIn==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.checkIn)?value.checkIn:undefined,
  }),component:Reservations});
 const rooms=createRoute({getParentRoute:()=>root,path:'/rooms',component:dataMode==='api'?LiveRooms:Rooms});
 const roomCalendar=createRoute({getParentRoute:()=>root,path:'/room-calendar',component:LiveRoomCalendar});

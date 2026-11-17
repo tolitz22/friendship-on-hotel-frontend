@@ -51,11 +51,15 @@ export async function reviewOccupancy(hotelId:string,id:string,input:{decision:'
  verifyContext(hotelId);
  return verifyItem(await requestJson<unknown>(hotelPath('/occupancy-verifications/'+encodeURIComponent(id)+'/review'),{method:'POST',body:input}),hotelId);
 }
+const historySchema=z.object({data:z.array(z.object({
+ id,actorId:id,event:z.string(),details:z.unknown(),createdAt:z.string(),
+}))});
+export function parseOccupancyHistory(value:unknown){
+ return historySchema.parse(value);
+}
 export async function occupancyHistory(hotelId:string,verificationId:string){
  verifyContext(hotelId);
- return z.object({data:z.array(z.object({
-  id,actorId:id,event:z.string(),details:z.unknown(),createdAt:z.string(),
- }))}).parse(await getJson<unknown>(
+ return parseOccupancyHistory(await getJson<unknown>(
   hotelPath('/occupancy-verifications/'+encodeURIComponent(verificationId)+'/history'),
  ));
 }

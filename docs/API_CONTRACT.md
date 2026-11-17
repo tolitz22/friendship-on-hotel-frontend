@@ -90,3 +90,10 @@ GET /hotels/{hotel}/bookings/{booking}/folio-ledger
 It returns the backend's `summary` containing `roomSubtotalMinor`, `additionalDebitsMinor`, `creditsMinor`, `pendingReviewPaymentsMinor`, `staffConfirmedPaymentsMinor`, `provisionalDifferenceMinor`, `finalPayableTotalKnown:false`, `bankOrGatewayVerified:false`, and `isSettled:false`. This is **not** a legally payable or verified settlement amount. Loading and failure states are visible; no silent fixture fallback occurs. The existing `listFolios` table **remains sample/demo** because the Laravel backend does not provide the same full list contract.
 
 No frontend mutation flow for rate policies, payments, adjustments or refunds has been enabled. Their backend Phase 26 routes are for authenticated administrator use only and remain provisional. See the backend `docs/PHASE_26_FINANCE_POLICY_AND_REFUNDS.md`.
+
+
+## Phase 29 live Front Desk adapter
+
+The implemented Laravel endpoint is `GET /hotels/{hotel}/front-desk/manifest` with `date`, `kind=arrivals|departures|in_house`, `page` and `per_page`. The frontend now uses it in API mode via `src/api/liveFrontDesk.ts` and `src/pages/LiveFrontDesk.tsx`. Unlike the earlier hypothetical `/front-desk/board` response, the real manifest provides a **paginated flat list** of reservation identity, nullable guest name/assigned room, dates and lifecycle status, plus `determinesHousekeepingReadiness:false`. The mock board contract stays available solely in mock mode.
+
+In API mode the Front Desk page has three independent live queues, property-scoped query keys, pagination and local search of the current page. There is no API-to-mock fallback and no live check-in or checkout mutation. Other modules still follow their explicit mock/live split. See `docs/FRONT_DESK.md` for precise behavior.

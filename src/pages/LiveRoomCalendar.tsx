@@ -55,6 +55,7 @@ export function LiveRoomCalendar(){
  const selectedBlocks=selected&&data?data.blocks.filter(b=>b.roomId===selected.room.id&&b.checkIn<=selected.day&&selected.day<b.checkOut):[];
  const reservation=useLiveReservationDetail(selectedBookings.length===1?selectedBookings[0].id:null);
  const meta=calendar.data?.meta;
+ const canStartBooking=!!selected&&selected.day>=hotelToday()&&selectedBookings.length===0&&selectedBlocks.length===0;
  const periodLabel=mode==='week'
   ?dayText(dates.start,{month:'short',day:'numeric',year:'numeric'})+' – '+dayText(shift(dates.end,-1),{month:'short',day:'numeric',year:'numeric'})
   :dayText(dates.start,{month:'long',year:'numeric'});
@@ -173,11 +174,16 @@ export function LiveRoomCalendar(){
        </div>)}
       </div>}
       {selectedBookings.length+selectedBlocks.length>1&&<p className="lrc-modal-warning"><AlertTriangle size={17}/> Overlapping records detected. Review assignments and blocks before changing anything.</p>}
-      <div className="lrc-modal-hint"><Info size={17}/><span>Booking a room requires a guest, rate and final availability validation. This calendar never reserves a room automatically.</span></div>
+      <div className="lrc-modal-hint"><Info size={17}/><span>Booking requires a guest, an active rate, and final availability checks. Selecting a room here never reserves or assigns it automatically.</span></div>
+      {selectedBookings.length===0&&selectedBlocks.length===0&&selected.day<hotelToday()&&
+       <p role="status" className="lrc-modal-warning">Past dates cannot start new reservations. Pick today or a future date.</p>}
      </div>
      <div className="lrc-modal-footer">
       <button className="btn-inline" type="button" onClick={()=>setSelected(null)}>Close</button>
-      <Link to="/reservations" className="btn-primary" onClick={()=>setSelected(null)}>Create / manage bookings <ArrowUpRight size={15}/></Link>
+      {canStartBooking
+       ?<Link to="/reservations" search={{room:selected.room.id,roomNumber:selected.room.number,checkIn:selected.day}}
+          className="btn-primary" onClick={()=>setSelected(null)}>Start booking for this room <ArrowUpRight size={15}/></Link>
+       :<Link to="/reservations" className="btn-primary" onClick={()=>setSelected(null)}>Manage bookings <ArrowUpRight size={15}/></Link>}
      </div>
     </section>
    </div>}

@@ -55,3 +55,7 @@ Backend now has a hotel-scoped guest directory and validated CRUD subset (list/v
 ## Frontend Phase 5 integration implemented
 
 The frontend now has an API-mode sign-in gate, selected-hotel context, and a **live Guests page**, including authorized administrator create/edit. Guest bearer tokens are in-memory only (refresh signs out). All other PMS modules remain explicitly labeled mock previews. The final browser auth strategy, real reservations, live rates, occupancy, and operational status integrations are still pending. See frontend `docs/PHASE_5_LARAVEL_INTEGRATION.md` and backend `docs/PHASE_5_FRONTEND_INTEGRATION.md`.
+
+## Phase 6 live property catalogue
+
+API mode now uses Laravel for Overview (registered physical room count, type/floor counts and selected property), Room Inventory (catalogue list + validated room/floor filtering), and Settings (read-only saved contact details, types and floors). **No occupancy, vacant/dirty room, rate, booking, or operational summary values are presented as live.** Existing mock components are still available in mock mode. Backend provides `/api/v1/hotels/{hotel}/catalog-summary`. See `docs/PHASE_6_LIVE_CATALOG.md`.

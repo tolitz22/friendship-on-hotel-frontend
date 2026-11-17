@@ -5,8 +5,8 @@ import {Link} from '@tanstack/react-router';
 import {AlertTriangle,CheckCircle2,ArrowRight,ClipboardCheck,DoorOpen,DoorClosed,BedDouble} from 'lucide-react';
 import type {LiveRecord} from '../api/liveReservations';
 import {
- allowedOperation,assignLiveRoom,hasActiveStayBlock,transitionLiveStay,
- useLiveAssignableRooms,useLiveRoomBlocks,useLiveReservationHistory,
+ allowedOperation,assignLiveRoom,transitionLiveStay,
+ useLiveRoomChoices,useLiveReservationHistory,
 } from '../api/liveReservationOperations';
 import type {Operation} from '../api/liveReservationOperations';
 import {readSession} from '../api/session';
@@ -38,19 +38,22 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const assignmentRef=useRef<HTMLElement>(null);
  const lifecycleRef=useRef<HTMLElement>(null);
  const client=useQueryClient();
- const rooms=useLiveAssignableRooms(record,roomPage,canOperate);
- const blocks=useLiveRoomBlocks(roomId||null,canOperate);
+ const roomChoices=useLiveRoomChoices(record,roomPage,canOperate);
  const history=useLiveReservationHistory(record,historyPage);
  const readinessPolicy=useReadinessPolicy();
  const readiness=useLiveReadiness(record.assignedRoomId);
  const turnover=useBookingTurnover(record.id,record.lifecycleState==='checked_out');
- const room=rooms.data?.data.find(r=>r.id===roomId);
- const activeBlock=blocks.data
-  ?hasActiveStayBlock(blocks.data.data,record):false;
- const allBlockPagesLoaded=!!blocks.data&&blocks.data.meta.totalPages<=1;
- const canAssign=canOperate&&record.lifecycleState==='confirmed'&&!!room
-  &&blocks.isSuccess&&allBlockPagesLoaded&&!activeBlock&&!busy
-  &&roomId!==record.assignedRoomId;
+ const selectedRoom=roomChoices.data?.data.find(r=>r.id===roomId);
+ const canAssign=canOperate&&record.lifecycleState==='confirmed'
+  &&!!selectedRoom&&selectedRoom.status==='available'
+  &&roomId!==record.assignedRoomId&&!busy;
+ const choiceStatus=selectedRoom?.reason==='maintenance_block'
+  ?'Blocked by maintenance for the selected nights.'
+  :selectedRoom?.reason==='reservation_conflict'
+  ?'Already assigned to another reservation during this stay.'
+  :selectedRoom?.current?'This is already the assigned room.'
+  :selectedRoom?'No listed conflicts. Laravel will check again on save.'
+  :'Select an available room to proceed.';
  const hotelDate=hotelToday();
  const readyForEnforcedCheckin=readinessPolicy.isSuccess&&(
   !readinessPolicy.data.enforceAtCheckIn || (readiness.isSuccess&&readiness.data.advisoryReady)
@@ -64,11 +67,11 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
   setSuccess('');setError('');
  },[hotelId,record.id,record.lifecycleState,record.assignedRoomId]);
  useEffect(()=>{
-  if(!preferredRoomId||!preferredRoomNumber||!rooms.data||roomId)return;
-  const verified=rooms.data.data.find(item=>item.id===preferredRoomId
+  if(!preferredRoomId||!preferredRoomNumber||!roomChoices.data||roomId)return;
+  const verified=roomChoices.data.data.find(item=>item.id===preferredRoomId
    &&item.number===preferredRoomNumber&&item.roomTypeId===record.roomTypeId);
-  if(verified)setRoomId(verified.id);
- },[preferredRoomId,preferredRoomNumber,rooms.data,record.roomTypeId,roomId]);
+  if(verified&&verified.status==='available')setRoomId(verified.id);
+ },[preferredRoomId,preferredRoomNumber,roomChoices.data,record.roomTypeId,roomId]);
  useEffect(()=>{
   // A front desk shortcut highlights the relevant guarded operation;
   // never execute an assignment or lifecycle transition on navigation.
@@ -90,6 +93,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
    client.invalidateQueries({queryKey:['live','front-desk','manifest',hotel]}),
    client.invalidateQueries({queryKey:['live','availability',hotel]}),
    client.invalidateQueries({queryKey:['live','assignable-rooms',hotel]}),
+   client.invalidateQueries({queryKey:['live','room-choices',hotel]}),
    client.invalidateQueries({queryKey:['live','room-blocks',hotel]}),
    client.invalidateQueries({queryKey:['live','room-readiness',hotel]}),
    client.invalidateQueries({queryKey:['live','readiness-policy',hotel]}),
@@ -147,41 +151,66 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
   <p className="help-copy">Reservation #{record.id} · Room type #{record.roomTypeId} · Assigned room: {record.assignedRoomId??'None'}.</p>
   {!canOperate&&<p role="status">Only authorized front-desk staff and hotel managers can assign rooms or change a reservation lifecycle. Laravel enforces permissions.</p>}
   {canOperate&&<>
-   {record.lifecycleState==='confirmed'&&<section ref={assignmentRef} className={deskAction==='assign'?'fdc-target-operation':''}>
-    <h4>Assign a physical room</h4>
-    {preferredRoomId&&<p role="status" className="calendar-booking-context">Preferred room from calendar: {preferredRoomNumber??'Selected room'}. We only preselect it when Laravel returns a matching room. Assignment is still subject to block and availability checks.</p>}
-    <p>Rooms are filtered by matching room type. This is not proof of cleanliness, occupancy readiness, or freedom from future conflicts: Laravel performs the final block and assignment checks.</p>
-    <QueryFeedback loading={rooms.isPending} error={rooms.error}/>
-    {rooms.isSuccess&&<div>
-     <label htmlFor="operation-room" className="wizard-label">Matching room from catalogue page {rooms.data.meta.page}</label>
-     <select id="operation-room" className="wizard-input" value={roomId}
-      onChange={e=>{setRoomId(e.target.value);setError('');}} disabled={busy}>
-      <option value="">Select a physical room</option>
-      {rooms.data.data.map(r=><option key={r.id} value={r.id}>Room {r.number} · Floor {r.floor??'not set'}{r.id===record.assignedRoomId?' (current)':''}</option>)}
-     </select>
+   {record.lifecycleState==='confirmed'&&<section ref={assignmentRef}
+    className={'reservation-room-picker'+(deskAction==='assign'?' fdc-target-operation':'')}
+    aria-label="Choose a physical room">
+    <div className="desk-tools">
+     <div><h4>1 · Choose the guest's room</h4>
+      <p className="desk-muted">Only rooms of the booked type are shown. Availability is checked for the entire stay.</p></div>
+     <button type="button" className="btn-inline" disabled={busy||roomChoices.isFetching}
+      onClick={()=>void roomChoices.refetch()}>Refresh choices</button>
+    </div>
+    <div className="reservation-selection-summary">
+     <div><small>Room type</small><strong>{roomChoices.data?.meta.roomTypeName??'Booked room type'} (#{record.roomTypeId})</strong></div>
+     <div><small>Stay</small><strong>{dateLabel(record.checkIn)} – {dateLabel(record.checkOut)}</strong></div>
+     <div><small>Current room</small><strong>{roomChoices.data?.meta.currentRoomNumber
+      ?'Room '+roomChoices.data.meta.currentRoomNumber
+      :record.assignedRoomId?'Room #'+record.assignedRoomId:'Not yet assigned'}</strong></div>
+    </div>
+    {preferredRoomId&&<p role="status" className="calendar-booking-context">
+     Opened from the calendar: Room {preferredRoomNumber??preferredRoomId}. Choose the same room below if available.
+    </p>}
+    <QueryFeedback loading={roomChoices.isPending} error={roomChoices.error}
+     onRetry={()=>void roomChoices.refetch()}/>
+    {roomChoices.isSuccess&&<>
+     <p className="desk-muted">Choose a room below. Rooms with conflicting reservations or active maintenance blocks cannot be selected.</p>
+     {roomChoices.data.data.length===0&&<p role="status">No rooms of this type on this page.
+      Ask a manager to check the room catalogue or select another room page.</p>}
+     <div className="reservation-room-options" role="radiogroup" aria-label="Room choices">
+      {roomChoices.data.data.map(option=><label key={option.id}
+       className={'reservation-room-option'+(roomId===option.id?' selected':'')+(option.status==='unavailable'?' unavailable':'')}>
+       <input type="radio" name={'room-choice-'+record.id} value={option.id}
+        checked={roomId===option.id} disabled={busy||option.status!=='available'}
+        onChange={()=>{setRoomId(option.id);setError('');setSuccess('');}}/>
+       <span><strong>Room {option.number}</strong><small>Floor {option.floor??'not set'}</small></span>
+       <span className="reservation-room-option-status">{option.current?'Current room':
+        option.reason==='maintenance_block'?'Maintenance block':
+        option.reason==='reservation_conflict'?'Already booked':'Available'}</span>
+      </label>)}
+     </div>
      <div className="desk-tools">
-      <span>Catalogue page {rooms.data.meta.page} of {Math.max(1,rooms.data.meta.totalPages)}</span>
+      <span>Rooms {roomChoices.data.meta.page} / {Math.max(1,roomChoices.data.meta.totalPages)}
+       {' · '}{roomChoices.data.meta.total} matching physical rooms</span>
       <div className="desk-date-nav">
        <button type="button" className="btn-inline" disabled={busy||roomPage<=1}
-        onClick={()=>{setRoomPage(v=>v-1);setRoomId('');}}>Previous rooms</button>
-       <button type="button" className="btn-inline" disabled={busy||roomPage>=rooms.data.meta.totalPages}
-        onClick={()=>{setRoomPage(v=>v+1);setRoomId('');}}>Next rooms</button>
+        onClick={()=>{setRoomPage(p=>p-1);setRoomId('');}}>Previous</button>
+       <button type="button" className="btn-inline"
+        disabled={busy||roomPage>=roomChoices.data.meta.totalPages}
+        onClick={()=>{setRoomPage(p=>p+1);setRoomId('');}}>Next</button>
       </div>
      </div>
-    </div>}
-    {roomId&&<div>
-     <QueryFeedback loading={blocks.isPending} error={blocks.error}/>
-     {blocks.isSuccess&&<p className={activeBlock?'desk-attention':'desk-muted'}>
-      {activeBlock?'Active dated maintenance block overlaps this stay.':
-       !allBlockPagesLoaded?'Block history is paginated; this preview is incomplete.':
-       'No active dated block found in the returned block history.'}
-     </p>}
-    </div>}
-    <button type="button" className="btn-primary" disabled={!canAssign}
-     onClick={()=>void perform('assign')}>{busy?'Saving…':'Assign selected room'}</button>
+    </>}
+    <div className="reservation-assignment-footer">
+     <p role="status">{choiceStatus}</p>
+     <button type="button" className="btn-primary" disabled={!canAssign}
+      onClick={()=>void perform('assign')}>{busy?'Assigning…':
+       selectedRoom?'Assign Room '+selectedRoom.number:'Select a room first'}</button>
+    </div>
+    <p className="desk-muted">These choices are advisory and do not hold inventory or certify room readiness.
+     The backend rechecks all conflicts when you save.</p>
    </section>}
    <section ref={lifecycleRef} className={deskAction==='check-in'||deskAction==='check-out'?'fdc-target-operation':''}>
-    <h4>Front desk lifecycle</h4>
+    <h4>2 · Guest stay actions</h4>
     <p>Hotel calendar day used for the interface: {hotelDate}. Laravel checks the hotel's authoritative local date and current reservation state again before saving.</p>
     {record.lifecycleState==='confirmed'&&<p>{record.assignedRoomId===null?'A room must be assigned before check-in.':'A room is assigned. Check guest identity and room readiness independently before check-in.'}</p>}
     {record.lifecycleState==='confirmed'&&<>
@@ -213,9 +242,14 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
     <p className="desk-muted">Acknowledgement is a UI confirmation only; the backend does not store independent identity/readiness attestations. Payments and refunds are not changed by these actions.</p>
    </section>
   </>}
-  {(canOperate||manager)&&<ReservationApprovalRequests key={hotelId+'-'+record.id}
-   record={record} canRequest={canOperate} manager={manager}/>}
-  <section aria-label="Reservation change history">
+  {(canOperate||manager)&&<details className="workflow-disclosure reservation-secondary-detail">
+   <summary>Manager exceptions · Cancellation and date change requests</summary>
+   <ReservationApprovalRequests key={hotelId+'-'+record.id}
+    record={record} canRequest={canOperate} manager={manager}/>
+  </details>}
+  <details className="workflow-disclosure reservation-secondary-detail">
+   <summary>Recorded reservation history · Audit events</summary>
+   <section aria-label="Reservation change history">
    <h4>Recorded reservation history</h4>
    <p>These are Laravel reservation events and actor IDs, not proof of room readiness, guest verification or financial settlement.</p>
    <QueryFeedback loading={history.isPending} error={history.error}
@@ -239,6 +273,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
     </div>
    </div>}
   </section>
+  </details>
   {record.lifecycleState==='checked_out'&&<div className="task-next-step">
    <p><strong>Next step: housekeeping turnover.</strong> Open the cleaning task created by checkout. Task completion does not independently certify room readiness.</p>
    <QueryFeedback loading={turnover.isPending} error={turnover.error}

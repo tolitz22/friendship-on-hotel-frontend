@@ -20,7 +20,7 @@ describe('authenticated JSON transport',()=>{
   await getJson('/hotels/1/guests',{page:1});
   const options=fetchSpy.mock.calls[0][1] as RequestInit;
   expect((options.headers as Record<string,string>).Authorization).toBe('Bearer example-token');
-  expect(options.credentials).toBeUndefined();
+  expect(options.credentials).toBe('omit'); // Bearer mode must not send browser cookies.
  });
  it('omits authorization for login requests',async()=>{
   const fetchSpy=vi.fn().mockResolvedValue({

@@ -53,12 +53,15 @@ export function LiveReservations(){
   requested.stay.checkOut!==inputs.checkOut);
 
  if(!hasHotel)return <>
-  <Heading title="Reservations" description="Select an authorized hotel before viewing live reservations."/>
-  <Panel title="Hotel required"><p role="status">Choose a hotel from your authenticated session first.</p></Panel>
- </>;
-
- return <>
-  <Heading title="Reservations" description="Actual hotel reservation records, nightly inventory and room-rate previews. Administrators may create confirmed reservations; payments, tax-complete invoices and room readiness remain separate."/>
+  <Heading title="Reservations" description="Create a confirmed booking or manage an existing stay. Your hotel is selected in the header."/>
+  <div className="workflow-intro" aria-label="Booking workflow steps">
+   <div className="workflow-step"><strong>1</strong><span>Select guest and dates</span></div>
+   <div className="workflow-step"><strong>2</strong><span>Review current capacity and subtotal</span></div>
+   <div className="workflow-step"><strong>3</strong><span>Confirm the booking in Laravel</span></div>
+  </div>
+  <LiveBookingForm/>
+  <details className="workflow-disclosure" open>
+   <summary>Existing bookings · Find a reservation and manage its stay</summary>
   <Panel title="Saved reservation records" action={<span className="table-count">{pagination?.total??'—'} records</span>}>
    <div className="table-toolbar">
     <label className="search-box"><Search size={17}/>
@@ -87,11 +90,14 @@ export function LiveReservations(){
      <button type="button" className="btn-inline" disabled={page>=pagination!.totalPages} onClick={()=>{setPage(v=>v+1);setSearch('');}}>Next page</button>
     </div>
    </div>}
-   <p className="desk-preview-note">These are structural records; this list does not prove availability, guest identity, room cleanliness, or a payable rate. Administrator assignment and lifecycle operations open from the reference; Laravel checks them again. The audit timeline is not yet exposed by the backend.</p>
+   <p className="desk-preview-note">These are structural records; this list does not prove availability, guest identity, room cleanliness, or a payable rate. Administrator assignment and lifecycle operations open from the reference; Laravel checks them again. Select a reservation reference to open room assignment, check-in/out and recorded activity.</p>
   </Panel>
   {selectedRecord&&<LiveReservationOperations key={hotelId+'-'+selectedRecord.id}
    record={selectedRecord} onClose={()=>setSelectedRecordId(null)}/>}
 
+  </details>
+  <details className="workflow-disclosure">
+   <summary>Optional · Check nightly availability and compare a rate</summary>
   <Panel title="Check room-type availability and nightly rate">
    <div className="desk-preview-note"><CalendarDays size={18}/>
     <p>Check a future stay against current physical-room inventory and a selected active rate. These requests do not hold rooms, make reservations, collect deposits, or calculate final taxes and fees.</p>
@@ -150,6 +156,6 @@ export function LiveReservations(){
     </div>}
    </div>}
   </Panel>
-  <LiveBookingForm/>
+  </details>
  </>;
 }

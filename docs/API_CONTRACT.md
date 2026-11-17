@@ -118,3 +118,37 @@ Availability returns dated physical-room capacity, reserved and maintenance-bloc
 All queries use the selected authenticated hotel ID in their TanStack Query keys; invalid responses and HTTP failures are exposed rather than falling back to mock data. The preview is read-only: there is **no live booking submission, cancellation, payment, rate edit, or check-in/out action**.
 
 Tests: `src/api/liveReservations.test.ts` covers schema validity, per-hotel identity, stay range, nightly blocks, quote identity and nonfinal financial flags. Validate with `npm ci && npm run typecheck && npm test && npm run build`, plus a real browser session against the migrated Laravel backend. Actual CI/test success is not confirmed in this repository write session.
+
+
+## Frontend Phase 31 — Live administrator booking creation
+
+In `VITE_DATA_SOURCE=api`, the Reservations screen now renders `src/pages/LiveBookingForm.tsx` next to the already-live, read-only reservation list and availability/rate preview. The form uses the authenticated selected-hotel guest list, room types, active rate plans, nightly availability and subtotal quote, then submits **a real booking** to the implemented Laravel admin-only endpoint:
+
+```http
+POST /api/v1/hotels/{hotel}/bookings
+Content-Type: application/json
+
+{"idempotencyKey":"unique-random-uuid","guestId":23,"roomTypeId":9,"ratePlanId":7,"checkIn":"2026-12-10","checkOut":"2026-12-12"}
+```
+
+The frontend only exposes this submission to users marked as administrator for the selected hotel; **Laravel enforces `hotel.admin` and `hotel:write` regardless of frontend display**. Only stays of 1–31 nights, an existing visible guest, an active rate plan and a positive available night-by-night inventory preview are eligible for submission. The server revalidates inventory and rate under its booking transaction, so preview does not reserve/guarantee anything.
+
+The UI produces an independent random idempotency key per new booking and freezes the entire request before sending it. If the network or backend result is uncertain, the UI **retains the same key and immutable data**, disables edits and offers retry of that exact request. Replays return the original reservation with `idempotentReplay:true`. Staff may explicitly abandon the local attempt **only after verifying the hotel records**, as a booking might already have committed. Request keys are held in memory only; browser reloads lose them, and staff must reconcile before making another booking after an interrupted session. No payment is taken, no physical room is assigned, and the folio contains **room-night snapshots without a tax-complete final payable total**.
+
+Upon a valid `confirmed` response, the UI displays the Laravel-generated booking reference and reservation ID; it invalidates cached reservation lists, availability and front-desk manifests for the hotel. Cache invalidation failure cannot turn an already-confirmed response into a failed booking. Switching hotels while the request is pending cannot show the previous hotel's confirmation.
+
+The original mock-mode booking wizard remains simulated. New API contracts are isolated to `src/api/liveBooking.ts`; `src/api/liveBooking.test.ts` covers payload precision, idempotency replay, tenant-scope response validation and failure cases.
+
+### Verification
+
+```bash
+git pull origin main
+npm ci
+npm run typecheck
+npm test
+npm run build
+```
+
+Against a migrated Laravel test/staging backend, confirm admin creation, backend 403 for nonadmins, 409 for no inventory, 404 for wrong-property guest/rate, identical retry (one reservation/folio), conflict on a reused key with different fields, property switch, network timeout after server commit, and subsequent inventory/manifest updates. The current GitHub write environment has **not run** the frontend test/build suite or cross-service browser acceptance tests.
+
+**Still excluded:** taxes, final payable amount, real money handling, refunds, guest identity verification, room assignment, automated check-in/out, housekeeping readiness and user-facing customer booking.

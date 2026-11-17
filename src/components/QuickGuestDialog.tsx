@@ -3,6 +3,7 @@ import {createPortal} from 'react-dom';
 import {useQueryClient} from '@tanstack/react-query';
 import {X,UserPlus} from 'lucide-react';
 import {createLiveGuest} from '../api/httpDataSource';
+import {readSession} from '../api/session';
 import {ApiError} from '../api/http';
 import {useHotelAuth} from './AuthProvider';
 import type {Guest} from '../api/types';
@@ -50,8 +51,10 @@ export function QuickGuestDialog({onClose,onCreated}:{
     email:email.trim()||null,phone:phone.trim()||null,
     nationality:nationality.trim()||null,
    });
-   if(originalHotel!==hotelId)return;
-   await client.invalidateQueries({queryKey:['guests']});
+   if(originalHotel!==readSession().hotelId)return;
+   // The record is already committed. Never turn cache-refresh failure
+   // into a duplicate-creation retry.
+   void client.invalidateQueries({queryKey:['guests']}).catch(()=>{});
    onCreated(response.data);
   }catch(cause){
    setError(cause instanceof Error?cause.message:'Unable to register guest.');

@@ -54,7 +54,7 @@ export function ReservationCalendar(){
   <div className="calendar-filters">
     <label className="calendar-search"><Search size={16}/><input aria-label="Search calendar reservations" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Guest, reference or room"/></label>
     <label><SlidersHorizontal size={16}/><span className="sr-only">Room type</span><select aria-label="Filter room type" value={roomType} onChange={e=>setRoomType(e.target.value)}><option value="all">All room types</option>{types.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
-    <label><span className="sr-only">Reservation status</span><select aria-label="Filter reservation status" value={status} onChange={e=>setStatus(e.target.value)}>{statusOptions.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select></label>
+    <label><span className="sr-only">Reservation status</span><select aria-label="Filter reservation status" value={status} onChange={e=>{const next=statusOptions.find(option=>option.value===e.target.value);if(next)setStatus(next.value);}}>{statusOptions.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select></label>
   </div>
   <div className="calendar-summary"><span><CalendarDays size={16}/> {active.length} active bookings overlapping period</span><span><LayoutList size={16}/> {historical.length} inactive records</span><span className="calendar-help">Departure date does not consume another night.</span></div>
   <QueryFeedback loading={query.isPending} error={query.error}/>

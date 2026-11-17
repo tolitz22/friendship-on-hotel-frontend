@@ -502,3 +502,53 @@
 .password-change-form label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600}
 .password-change-form input{border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface);color:var(--text)}
 .password-change-form button{align-self:flex-start}
+
+
+/* Phase 38 — clearer daily workflow, visual hierarchy and accessible controls */
+.workspace-nav{overflow-y:auto;min-height:0;flex:1;scrollbar-width:thin;padding-right:2px}
+.nav-section{margin-top:22px!important;padding-top:17px!important;border-top:1px solid #ffffff19}
+.nav-expand{width:100%;border:0;text-align:left;background:transparent;font-family:inherit}
+.nav-expand:hover{background:#ffffff13}
+.nav-expand svg{transition:transform .16s ease}
+.nav-chevron-open{transform:rotate(180deg)}
+.nav-nested{margin:4px 0 8px 13px;padding-left:7px;border-left:1px solid #ffffff26}
+.nav-nested .nav-link{font-size:12px;padding:9px}
+.workflow-shortcuts{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;padding:12px 34px;border-bottom:1px solid var(--border);background:var(--surface)}
+.workflow-shortcuts>span{font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--muted);margin-right:4px}
+.workflow-shortcuts a{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:99px;padding:7px 12px;font-size:12px;font-weight:650;color:var(--text);transition:background .16s,border-color .16s}
+.workflow-shortcuts a:hover{background:var(--canvas);border-color:var(--accent)}
+.workflow-shortcuts a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.workflow-intro{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 22px}
+.workflow-step{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:11px 13px;min-width:150px;flex:1;font-size:12px}
+.workflow-step strong{border-radius:50%;width:24px;height:24px;display:grid;place-items:center;background:var(--canvas);color:var(--accent);flex-shrink:0;font-size:12px}
+.workflow-step span{font-weight:650}
+.workflow-disclosure{border:1px solid var(--border);background:var(--surface);border-radius:13px;margin:18px 0;overflow:hidden}
+.workflow-disclosure>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px;cursor:pointer;list-style:none;font-size:14px;font-weight:700}
+.workflow-disclosure>summary::-webkit-details-marker{display:none}
+.workflow-disclosure>summary::after{content:'Show details';font-size:11px;color:var(--muted);font-weight:500}
+.workflow-disclosure[open]>summary::after{content:'Hide details'}
+.workflow-disclosure>summary:hover{background:var(--canvas)}
+.workflow-disclosure>.panel{border:0;border-radius:0;box-shadow:none;margin:0}
+.workflow-disclosure>summary:focus-visible{outline:3px solid var(--accent);outline-offset:-3px}
+.help-copy{font-size:12px;line-height:1.6;color:var(--muted)}
+.inline-task-link{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--border);border-radius:9px;font-size:12px;font-weight:700;color:var(--text);background:var(--surface)}
+.inline-task-link:hover{border-color:var(--accent);background:var(--canvas)}
+.task-next-step{display:flex;align-items:flex-start;flex-wrap:wrap;gap:12px;padding:14px;background:var(--canvas);border:1px solid var(--border);border-radius:10px;margin:16px 0}
+.task-next-step p{flex:1;min-width:190px;margin:0;font-size:12px}
+.task-next-step a{font-size:12px;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.query-feedback{line-height:1.55}
+.query-feedback .feedback-content{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0}
+.query-feedback.error{justify-content:flex-start}
+.query-feedback.error button{padding:6px 12px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:7px;font-weight:700;margin-left:auto}
+.query-feedback.error button:hover{border-color:var(--accent)}
+.query-feedback.empty{background:var(--canvas);border-radius:9px}
+.panel{box-shadow:0 2px 8px #13192708}
+.btn-primary,.btn-inline{min-height:38px}
+.btn-inline{font-size:12px;padding:9px 13px}
+.wizard-fields{gap:15px}
+.wizard-input{min-height:42px}
+.wizard-label{line-height:1.6}
+@media(max-width:900px){.workflow-shortcuts{padding:12px 18px}.topbar{gap:12px}.hotel-context-select{max-width:220px}}
+@media(max-width:760px){.workflow-shortcuts{gap:7px;padding:11px 15px}.workflow-shortcuts>span{width:100%}.workflow-step{min-width:130px}.nav-section{margin-top:12px!important}}
+@media(max-width:480px){.workflow-shortcuts a{font-size:11px;padding:7px 9px}.topbar-actions{flex-wrap:wrap;justify-content:flex-end}.workflow-disclosure>summary{padding:14px}}
+@media(prefers-reduced-motion:reduce){.nav-expand svg,.workflow-shortcuts a{transition:none}}

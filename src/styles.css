@@ -1001,3 +1001,10 @@
 .reservation-secondary-detail>section{margin-top:12px}
 @media(max-width:750px){.reservation-selection-summary{grid-template-columns:1fr}.reservation-room-options{grid-template-columns:repeat(2,minmax(0,1fr))}.reservation-assignment-footer{align-items:stretch;flex-direction:column}.reservation-assignment-footer .btn-primary{width:100%}}
 @media(max-width:480px){.reservation-room-options{grid-template-columns:1fr}.reservation-room-picker{padding:13px}.reservation-room-option{min-height:68px}}
+
+/* Phase 55: inspection coverage report */
+.occupancy-coverage-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}
+.occupancy-coverage-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}
+.occupancy-coverage-rows .ex-record{margin:0}
+@media(max-width:900px){.occupancy-coverage-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.occupancy-coverage-stats,.occupancy-coverage-rows{grid-template-columns:1fr}}

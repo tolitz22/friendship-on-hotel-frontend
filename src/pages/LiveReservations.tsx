@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {LiveBookingForm} from './LiveBookingForm';
 import {AlertTriangle,CalendarDays,Search} from 'lucide-react';
 import {
  useLiveAvailability,useLiveRatePlans,useLiveReservationRecords,useLiveRoomQuote,
@@ -51,7 +52,7 @@ export function LiveReservations(){
  </>;
 
  return <>
-  <Heading title="Reservations" description="Actual hotel reservation records, nightly inventory and room-rate previews. No booking, rate hold, payment or tax-complete invoice is created here."/>
+  <Heading title="Reservations" description="Actual hotel reservation records, nightly inventory and room-rate previews. Administrators may create confirmed reservations; payments, tax-complete invoices and room readiness remain separate."/>
   <Panel title="Saved reservation records" action={<span className="table-count">{pagination?.total??'—'} records</span>}>
    <div className="table-toolbar">
     <label className="search-box"><Search size={17}/>
@@ -138,5 +139,6 @@ export function LiveReservations(){
     </div>}
    </div>}
   </Panel>
+  <LiveBookingForm/>
  </>;
 }

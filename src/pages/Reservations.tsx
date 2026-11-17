@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {LiveReservations} from './LiveReservations';
 import {CalendarDays,LayoutList,Search,SlidersHorizontal} from 'lucide-react';
 import {useReservations} from '../api/queries';
 import {DemoNotice,Heading,Panel,Status} from '../components/ui';
@@ -10,7 +11,7 @@ import {BookingWizard} from '../features/reservations/BookingWizard';
 import {dataMode} from '../api';
 import type {Reservation} from '../api/types';
 
-export function Reservations(){
+function MockReservations(){
  const [layout,setLayout]=useState<'calendar'|'list'>('calendar');
  const [search,setSearch]=useState('');
  const [selected,setSelected]=useState<Reservation|null>(null);
@@ -28,4 +29,9 @@ export function Reservations(){
  <ReservationDetail reservation={selected} onClose={()=>setSelected(null)}/>
  {wizardOpen&&<BookingWizard onClose={()=>setWizardOpen(false)}/>} 
  </>;
+}
+
+
+export function Reservations(){
+ return dataMode==='api'?<LiveReservations/>:<MockReservations/>;
 }

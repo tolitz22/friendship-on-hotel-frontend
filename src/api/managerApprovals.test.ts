@@ -21,7 +21,7 @@ describe('Phase 51 approval response safety',()=>{
   expect(parsed.data[0].payload.checkOut).toBe('2026-12-12');
  });
  it('rejects records scoped to a different property or booking',()=>{
-  expect(()=>parseApprovals(data,'2')).toThrow(/another hotel/);
+  expect(()=>parseApprovals(data,'2')).toThrow(/selected hotel/);
   expect(()=>parseApprovals(data,'1','13')).toThrow(/reservation/);
  });
  it('rejects unknown statuses, malformed IDs and missing review metadata',()=>{

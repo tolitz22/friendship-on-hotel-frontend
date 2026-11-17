@@ -14,6 +14,7 @@ import {Heading,Panel,Status} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {dateLabel,statusLabel} from '../lib/format';
 import {addDays,hotelToday} from '../features/reservations/calendarDate';
+import {nextReservationAction,reservationActionHint} from '../features/reservations/managementWorkflow';
 
 const initialStay=()=>{
  const checkIn=addDays(hotelToday(),1);
@@ -61,10 +62,6 @@ export function LiveReservations(){
  const rows=records.data?.data??[];
  const selectedRecord=detail.data??null;
  const filtered=rows;
- const nextAction=(record:typeof rows[number])=>record.lifecycleState==='confirmed'
-  ?record.assignedRoomId?'Review arrival':'Assign a room'
-  :record.lifecycleState==='checked_in'?'Manage in-house stay'
-  :record.lifecycleState==='checked_out'?'View completed stay':'View reservation';
  const pagination=records.data?.meta;
  const previewOutdated=requested!==null&&(requested.rateId!==rateId||
   requested.stay.roomTypeId!==inputs.roomTypeId||
@@ -145,15 +142,11 @@ export function LiveReservations(){
        </div>
       </div>
       <div className="reservation-manage-action">
-       <small>{record.lifecycleState==='confirmed'&&!record.assignedRoomId
-        ?'Needs room assignment before check-in'
-        :record.lifecycleState==='confirmed'?'Room assigned · check arrival readiness'
-        :record.lifecycleState==='checked_in'?'Guest currently in house'
-        :'Open details and audit history'}</small>
+       <small>{reservationActionHint(record)}</small>
        <button type="button" className="btn-primary" onClick={()=>openBooking(record.id)}>
         {record.lifecycleState==='confirmed'&&!record.assignedRoomId?<BedDouble size={16}/>:
          record.lifecycleState==='checked_in'?<LogOut size={16}/>:<LogIn size={16}/>}
-        {nextAction(record)} <ArrowRight size={15}/>
+        {nextReservationAction(record)} <ArrowRight size={15}/>
        </button>
       </div>
      </article>)}

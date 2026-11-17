@@ -39,3 +39,7 @@ Backend repository has added *structural reservation records* with property-scop
 This is **not** a live booking API. It does not write reservations, hold availability, assign rooms transactionally, enforce a booking lifecycle, or calculate prices. The frontend remains exactly where it was after the Hotel Settings milestone; its `/reservations` and `/reservations/calendar` API contracts do not match the backend's structural reservation-record endpoint.
 
 See backend `docs/RESERVATION_DOMAIN.md` and `docs/PHASE_2.md` for scope and inventory policy decisions. Preserve mock mode until backend authentication and DTO reconciliation are explicitly implemented.
+
+## Database compatibility decision (2026-11-17)
+
+The backend now targets both **MySQL 8.4 LTS (InnoDB)** and **PostgreSQL 16+**, selectable through the backend `DB_CONNECTION` environment setting. See backend `docs/DATABASE_COMPATIBILITY.md`. The React frontend is database-independent and stays in mock mode until contracts and authentication are reconciled. No frontend data flow or UI milestone has changed.

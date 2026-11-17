@@ -253,8 +253,8 @@ export function LiveBookingForm(){
     <p>Reference: <strong>{result.reference}</strong> · ID: {result.id} · Status: {result.status}</p>
     <p>{result.idempotentReplay?'This was a safe replay of the original successful booking.':'This request created a confirmed reservation.'} Physical room assignment, guest identity and payment remain separate.</p>
     <div className="task-next-step">
-     <p><strong>Next:</strong> Open this saved booking to {suggestedRoom?'verify and assign your preferred Room '+suggestedRoom.number:'assign a physical room'} and manage check-in when eligible.</p>
-     <Link to="/reservations" search={{booking:result.id,...(suggestedRoom?{room:suggestedRoom.id,roomNumber:suggestedRoom.number}:{})}}>
+     <p><strong>Next:</strong> Open this saved booking to {suggestedRoom&&result.roomTypeId===suggestedRoom.roomTypeId?'verify and assign your preferred Room '+suggestedRoom.number:'assign a physical room'} and manage check-in when eligible.</p>
+     <Link to="/reservations" search={{booking:result.id,...(suggestedRoom&&result.roomTypeId===suggestedRoom.roomTypeId?{room:suggestedRoom.id,roomNumber:suggestedRoom.number}:{})}}>
       Open this booking and assign a room
      </Link>
      <Link to="/front-desk">Front desk queues</Link>

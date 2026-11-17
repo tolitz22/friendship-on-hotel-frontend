@@ -239,7 +239,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
       </button>
       {blockedReason&&<span className="stay-blocked-hint">{isConfirmed&&record.checkIn>hotelDate
        ?'Normal check-in opens '+dateLabel(record.checkIn)+'.'
-       :blockedReason}</span>}}
+       :blockedReason}</span>}
      </div>
      {isConfirmed&&record.checkIn>hotelDate&&
       <EarlyCheckInRequest key={record.id+'-'+hotelId} record={record} today={hotelDate}/>}

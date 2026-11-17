@@ -9,6 +9,11 @@ This milestone addresses concrete frontend workflow hazards found by reading the
 ### Linked guest selection
 The booking wizard now treats the exact linked-guest lookup as relevant only while the linked guest remains selected. If an administrator chooses a different guest from the directory, an unrelated failure/loading state from the original guest link no longer blocks or obscures the form. Identity remains validated through the hotel-scoped GET /guests/{id}; a mismatch cannot result in a booking for an unknown profile.
 
+
+### Booking idempotency after property switching
+
+The live booking form keeps a temporary, in-memory pending-submission journal keyed by hotel ID while the component remains mounted. A request with an uncertain network outcome is restored when staff switch back to that hotel, preserving its exact guest/stay/rate values and idempotency key. It is cleared only after verified success or explicit local abandonment. A response from a previous hotel is not displayed under the new hotel. The journal is **not persisted across full page reloads or app navigation**, so unresolved submissions must still be reconciled against the saved hotel records before attempting a new booking.
+
 ### Cross-hotel asynchronous errors
 Housekeeping and maintenance mutation handlers now suppress a late error returned from a property the user has already switched away from. They continue to rely on hotel-scoped API paths, server-side permissions and revision checks. Success handlers already checked the selected hotel. An uncertain mutation result requires manual reconciliation; do not automatically submit a second booking or work order.
 

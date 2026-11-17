@@ -478,3 +478,5 @@
 .policy-readiness-item{border:1px solid var(--border);border-radius:9px;padding:12px 14px;background:var(--surface)}
 .policy-readiness-item strong{text-transform:capitalize;font-size:11px;color:var(--text)}
 .policy-readiness-item p{font-size:12px;color:var(--muted);margin:5px 0 0;line-height:1.55}
+
+.demand-form select{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;max-width:240px}

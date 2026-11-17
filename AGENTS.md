@@ -70,3 +70,8 @@ Read `docs/API_CONTRACT.md` Phase 32. `LiveReservationOperations` is opened from
 ## Frontend Phase 33 — Real housekeeping
 
 In API mode the main Housekeeping route mounts the already implemented \`LiveHousekeeping\` Laravel editor, not the mock board. See the Phase 33 section in \`docs/API_CONTRACT.md\`. Use hotel-scoped task validation, backend status/type filters, revisioned PATCH with 409 conflict reloading, and actor-attributed history. Admin and active assigned housekeeper capabilities differ. The maintenance preview is informational and can be incomplete because of pagination. Never infer room cleanliness, readiness, inventory blocks, or financial status from task completion. Preserve mock mode.
+
+
+## Frontend Phase 34 — Live maintenance and readiness boundary
+
+\`src/pages/Maintenance.tsx\` now selects \`LiveMaintenance\` in API mode while preserving the mock board in mock mode. See \`docs/API_CONTRACT.md\` Phase 34. Validate hotel-scoped maintenance responses, use backend status/priority filters, enforce \`expectedRevision\`, surface 409 conflicts and show auditable paginated work-order events. Admins and assigned maintenance employees have different mutation rights; Laravel remains authoritative. \`affectsRoom\` is a flag, **not** an inventory block or room-readiness approval. No automatic check-in, release, room clean status or booking eligibility changes arise from maintenance completion.

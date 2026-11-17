@@ -10,6 +10,8 @@ import {
 import type {Operation} from '../api/liveReservationOperations';
 import {readSession} from '../api/session';
 import {ApiError} from '../api/http';
+import {useReadinessPolicy} from '../api/readinessEnforcementPolicy';
+import {useLiveReadiness} from '../api/liveRoomReadiness';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
@@ -33,6 +35,8 @@ export function LiveReservationOperations({record,onClose}:{
  const rooms=useLiveAssignableRooms(record,roomPage,admin);
  const blocks=useLiveRoomBlocks(roomId||null,admin);
  const history=useLiveReservationHistory(record,historyPage);
+ const readinessPolicy=useReadinessPolicy();
+ const readiness=useLiveReadiness(record.assignedRoomId);
  const room=rooms.data?.data.find(r=>r.id===roomId);
  const activeBlock=blocks.data
   ?hasActiveStayBlock(blocks.data.data,record):false;
@@ -41,7 +45,11 @@ export function LiveReservationOperations({record,onClose}:{
   &&blocks.isSuccess&&allBlockPagesLoaded&&!activeBlock&&!busy
   &&roomId!==record.assignedRoomId;
  const hotelDate=hotelToday();
- const canCheckIn=admin&&allowedOperation(record,'check-in',hotelDate)&&acknowledged&&!busy;
+ const readyForEnforcedCheckin=readinessPolicy.isSuccess&&(
+  !readinessPolicy.data.enforceAtCheckIn || (readiness.isSuccess&&readiness.data.advisoryReady)
+ );
+ const canCheckIn=admin&&allowedOperation(record,'check-in',hotelDate)
+  &&readyForEnforcedCheckin&&acknowledged&&!busy;
  const canCheckOut=admin&&allowedOperation(record,'check-out',hotelDate)&&acknowledged&&!busy;
 
  useEffect(()=>{
@@ -55,6 +63,8 @@ export function LiveReservationOperations({record,onClose}:{
    client.invalidateQueries({queryKey:['live','availability',hotel]}),
    client.invalidateQueries({queryKey:['live','assignable-rooms',hotel]}),
    client.invalidateQueries({queryKey:['live','room-blocks',hotel]}),
+   client.invalidateQueries({queryKey:['live','room-readiness',hotel]}),
+   client.invalidateQueries({queryKey:['live','readiness-policy',hotel]}),
    client.invalidateQueries({queryKey:['live','reservation-history',hotel,record.id]}),
   ]);
  }
@@ -129,6 +139,14 @@ export function LiveReservationOperations({record,onClose}:{
     <h4>Front desk lifecycle</h4>
     <p>Hotel calendar day used for the interface: {hotelDate}. Laravel checks the hotel's authoritative local date and current reservation state again before saving.</p>
     {record.lifecycleState==='confirmed'&&<p>{record.assignedRoomId===null?'A room must be assigned before check-in.':'A room is assigned. Check guest identity and room readiness independently before check-in.'}</p>}
+    {record.lifecycleState==='confirmed'&&<>
+     <QueryFeedback loading={readinessPolicy.isPending} error={readinessPolicy.error}/>
+     {readinessPolicy.data?.enforceAtCheckIn&&<>
+      <p>Mandatory readiness inspection is enabled for this hotel. Check-in requires independently approved current room readiness.</p>
+      {record.assignedRoomId&&<QueryFeedback loading={readiness.isPending} error={readiness.error}/>}
+      {record.assignedRoomId&&readiness.data&&<p role="status">Current room readiness: <strong>{readiness.data.advisoryReady?'Approved, no blockers found':'Not approved or blocked'}</strong>. The backend rechecks all conditions under its transaction lock.</p>}
+     </>}
+    </>}
     {record.lifecycleState==='checked_in'&&<p>Checkout is permitted by Laravel only on or after scheduled departure. An early departure needs a separate stay amendment.</p>}
     {(record.lifecycleState==='confirmed'||record.lifecycleState==='checked_in')&&<label className="wizard-label">
      <input type="checkbox" checked={acknowledged} disabled={busy}

@@ -92,15 +92,20 @@ export function LiveReservations(){
     empty={records.isSuccess&&filtered.length===0}
     emptyMessage={term?'No bookings on this page match the search. Try another page or clear search.':'No reservations have been recorded for this hotel yet.'}/>
    {records.isSuccess&&filtered.length>0&&<div className="table-scroll"><table>
-    <thead><tr><th>Reference</th><th>Stay</th><th>Room type ID</th><th>Assigned room ID</th><th>Lifecycle</th></tr></thead>
+    <thead><tr><th>Booking / reference</th><th>Stay dates</th><th>Room category</th><th>Physical room</th><th>Status</th><th>Action</th></tr></thead>
     <tbody>{filtered.map(record=><tr key={record.id}>
      <td><button type="button" className="reservation-reference-button"
        aria-label={'Manage reservation '+record.reference}
        onClick={()=>openBooking(record.id)}>{record.reference}</button>
        <span className="cell-note">Record #{record.id}</span></td>
      <td>{dateLabel(record.checkIn)} – {dateLabel(record.checkOut)}</td>
-     <td>{record.roomTypeId}</td><td>{record.assignedRoomId??'Unassigned'}</td>
+     <td>{record.roomTypeName??types.data?.data.find(type=>type.id===record.roomTypeId)?.name??'Room type #'+record.roomTypeId}</td>
+     <td>{record.assignedRoomNumber?'Room '+record.assignedRoomNumber:
+      record.assignedRoomId?'Room #'+record.assignedRoomId:'Not assigned'}</td>
      <td>{record.lifecycleState?<Status value={statusLabel(record.lifecycleState)}/>:<span className="desk-muted">Unknown / legacy</span>}</td>
+     <td><button type="button" className="btn-inline" onClick={()=>openBooking(record.id)}>
+      {record.lifecycleState==='confirmed'&&record.assignedRoomId===null?'Assign room':'View booking'}
+     </button></td>
     </tr>)}</tbody></table></div>}
    {records.isSuccess&&<div className="desk-tools">
     <span className="table-count">Page {pagination!.page} of {Math.max(1,pagination!.totalPages)} · Search filters this page only.</span>

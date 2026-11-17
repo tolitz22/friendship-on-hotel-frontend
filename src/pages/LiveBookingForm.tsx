@@ -76,6 +76,9 @@ export function LiveBookingForm(){
   inFlight.current=true;setBusy(true);setError(null);
   try{
    const confirmed=await createLiveBooking(submission);
+   // A property switch may occur while the network request is in flight.
+   // Never show another property's confirmation in the newly selected hotel.
+   if(readSession().hotelId!==submission.hotelId)return;
    setResult(confirmed);setPending(null);
    // The backend has already confirmed this booking. Cache refresh failures
    // must not turn a successful submission into an ambiguous retry.

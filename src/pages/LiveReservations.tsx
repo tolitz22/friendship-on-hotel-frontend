@@ -1,4 +1,6 @@
-import {useState} from 'react';
+import {useEffect,useState} from 'react';
+import {useHotelAuth} from '../components/AuthProvider';
+import {LiveReservationOperations} from './LiveReservationOperations';
 import {LiveBookingForm} from './LiveBookingForm';
 import {AlertTriangle,CalendarDays,Search} from 'lucide-react';
 import {
@@ -21,7 +23,10 @@ const price=(minor:number,currency:string)=>currency==='PHP'
  :new Intl.NumberFormat('en-US').format(minor)+' '+currency+' minor units';
 
 export function LiveReservations(){
+ const {hotelId}=useHotelAuth();
+ const [selectedRecordId,setSelectedRecordId]=useState<string|null>(null);
  const [page,setPage]=useState(1);
+ useEffect(()=>{setSelectedRecordId(null);setPage(1);},[hotelId]);
  const [search,setSearch]=useState('');
  const [inputs,setInputs]=useState<LiveStay>(initialStay);
  const [rateId,setRateId]=useState('');
@@ -37,6 +42,7 @@ export function LiveReservations(){
  const activeRates=(rates.data?.data??[]).filter(rate=>rate.roomTypeId===inputs.roomTypeId&&rate.active);
  const chosenRate=activeRates.find(rate=>rate.id===rateId);
  const rows=records.data?.data??[];
+ const selectedRecord=rows.find(item=>item.id===selectedRecordId)??null;
  const term=search.trim().toLocaleLowerCase();
  const filtered=rows.filter(record=>!term||
   [record.reference,record.id,record.lifecycleState??''].some(v=>v.toLocaleLowerCase().includes(term)));
@@ -66,7 +72,10 @@ export function LiveReservations(){
    {records.isSuccess&&filtered.length>0&&<div className="table-scroll"><table>
     <thead><tr><th>Reference</th><th>Stay</th><th>Room type ID</th><th>Assigned room ID</th><th>Lifecycle</th></tr></thead>
     <tbody>{filtered.map(record=><tr key={record.id}>
-     <td><strong>{record.reference}</strong><span className="cell-note">Record #{record.id}</span></td>
+     <td><button type="button" className="reservation-reference-button"
+       aria-label={'Manage reservation '+record.reference}
+       onClick={()=>setSelectedRecordId(record.id)}>{record.reference}</button>
+       <span className="cell-note">Record #{record.id}</span></td>
      <td>{dateLabel(record.checkIn)} – {dateLabel(record.checkOut)}</td>
      <td>{record.roomTypeId}</td><td>{record.assignedRoomId??'Unassigned'}</td>
      <td>{record.lifecycleState?<Status value={statusLabel(record.lifecycleState)}/>:<span className="desk-muted">Unknown / legacy</span>}</td>
@@ -78,8 +87,10 @@ export function LiveReservations(){
      <button type="button" className="btn-inline" disabled={page>=pagination!.totalPages} onClick={()=>{setPage(v=>v+1);setSearch('');}}>Next page</button>
     </div>
    </div>}
-   <p className="desk-preview-note">These are structural records; this list does not prove availability, guest identity, room cleanliness, or a payable rate. Calendar and detail previews remain available only in mock mode.</p>
+   <p className="desk-preview-note">These are structural records; this list does not prove availability, guest identity, room cleanliness, or a payable rate. Administrator assignment and lifecycle operations open from the reference; Laravel checks them again. The audit timeline is not yet exposed by the backend.</p>
   </Panel>
+  {selectedRecord&&<LiveReservationOperations key={hotelId+'-'+selectedRecord.id}
+   record={selectedRecord} onClose={()=>setSelectedRecordId(null)}/>}
 
   <Panel title="Check room-type availability and nightly rate">
    <div className="desk-preview-note"><CalendarDays size={18}/>

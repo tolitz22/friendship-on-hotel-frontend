@@ -73,13 +73,9 @@ export function LiveReservations(){
   <Panel title="Choose a property"><p role="status">Select your hotel from the authenticated workspace before creating or managing reservations.</p></Panel>
  </>;
  return <>
-  <Heading title="Reservations" description="Find a guest booking, see what needs attention, and complete the next step."/>
+  {!selectedRecordId&&<Heading title="Reservations" description="Find a guest booking, see what needs attention, and complete the next step."/>}
   {selectedRecordId?<>
-   <div className="reservation-workspace-bar">
-    <button type="button" className="btn-inline" onClick={closeBooking}>← All reservations</button>
-    <span className="table-count">Reservation details / #{selectedRecordId}</span>
-   </div>
-   <section className="desk-selected-workflow" aria-label="Selected reservation">
+   <section className="stay-selected-workflow" aria-label="Selected reservation">
     <QueryFeedback loading={detail.isPending} error={detail.error} onRetry={()=>void detail.refetch()}/>
     {selectedRecord&&<LiveReservationOperations key={hotelId+'-'+selectedRecord.id}
      record={selectedRecord} preferredRoomId={routeSearch.room??null}

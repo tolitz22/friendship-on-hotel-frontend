@@ -63,3 +63,7 @@ API mode now uses Laravel for Overview (registered physical room count, type/flo
 ## Phase 7 administration continuity
 
 Live API mode now supports admin-only room type and physical room **creation**, from Settings and Room Inventory, using existing Laravel POST endpoints. The shared room catalogue summary and lists refresh after successful creation. No edit, delete, inventory availability, reservation create, occupancy or operational status API has been added; mock components are preserved. See `docs/PHASE_7_CATALOG_ADMIN.md`.
+
+## Phase 8 — Admin catalogue edits
+
+In API mode, authenticated admins can edit room numbers, floors and safe type assignments from Room Inventory; room type names and safe capacities from Settings. Server writes are audited per record and refresh the shared catalogue. Referenced inventory assignments and capacities are blocked as described in `docs/PHASE_8_CATALOG_EDITS.md`. No booking engine or occupancy API is enabled. The previous mock UI remains preserved.

@@ -65,14 +65,14 @@ function CheckCard({check,manager,onChanged}:{check:OccupancyVerification;manage
      disabled={busy||check.discrepancy!=='match'||note.trim().length<5}
      onClick={()=>void submit('verified')}><ShieldCheck size={16}/> Verify matching evidence</button>
     <button type="button" className="btn-inline" disabled={busy||note.trim().length<5}
-     onClick={()=>void submit('flag')}><AlertTriangle size={16}/> Flag for investigation</button>
+     onClick={()=>void submit('flagged')}><AlertTriangle size={16}/> Flag for investigation</button>
    </div>
   </div>}
   {check.reviewNote&&<p>Manager note: {check.reviewNote}</p>}
   <button type="button" className="btn-inline" aria-expanded={showHistory}
    onClick={()=>setShowHistory(v=>!v)}>Show {showHistory?'less':'more'} audit history</button>
   {showHistory&&<div><QueryFeedback loading={history.isPending} error={history.error}/>
-   {history.data?.data.map(event=><p key={event.id} className="desk-muted">
+   {history.data?.data.map((event:{id:string;event:string;actorId:string;createdAt:string})=><p key={event.id} className="desk-muted">
     {event.event} · Staff #{event.actorId} · {event.createdAt}
    </p>)}</div>}
   {error&&<p role="alert" className="auth-error">{error}</p>}

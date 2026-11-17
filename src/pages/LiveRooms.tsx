@@ -3,6 +3,7 @@ import {BedDouble,Filter,Search,Plus} from 'lucide-react';
 import {useLiveCatalogSummary,useLiveRooms,useLiveRoomTypes} from '../api/liveCatalogQueries';
 import {CatalogCreateDialog} from '../components/CatalogCreateDialog';
 import {CatalogEditDialog} from '../components/CatalogEditDialog';
+import {RoomReadinessPanel} from '../components/RoomReadinessPanel';
 import type {LiveRoom} from '../api/liveCatalog';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading} from '../components/ui';
@@ -14,7 +15,8 @@ export function LiveRooms(){
  const roomTypes=useLiveRoomTypes();
  const [showCreate,setShowCreate]=useState(false);
  const [editingRoom,setEditingRoom]=useState<LiveRoom|null>(null);
- useEffect(()=>{setShowCreate(false);setEditingRoom(null);},[hotelId]);
+ const [readinessRoom,setReadinessRoom]=useState<LiveRoom|null>(null);
+ useEffect(()=>{setShowCreate(false);setEditingRoom(null);setReadinessRoom(null);},[hotelId]);
  const [floor,setFloor]=useState('all');
  const [search,setSearch]=useState('');
  const [page,setPage]=useState(1);
@@ -22,7 +24,7 @@ export function LiveRooms(){
  const rooms=useLiveRooms({page,perPage:24,floor:floor==='all'?undefined:Number(floor),search});
  const totalPages=rooms.data?.meta.totalPages??1;
  return <>
- <div className="notice"><strong>Live room catalogue</strong> · Room number, type, floor, and capacity come from Laravel. No real occupancy, housekeeping status, or reservation timeline is available.</div>
+ <div className="notice"><strong>Live room catalogue</strong> · Room number, type, floor, and capacity come from Laravel. Room inspection and advisory readiness are available separately. Occupancy and room allocation are not inferred.</div>
  <Heading title="Room inventory" description="Registered physical rooms · Hotel-scoped catalogue view" action={admin?<button type="button" className="btn-primary" onClick={()=>setShowCreate(true)}><Plus size={16}/> Add room</button>:undefined}/>
  <div className="inventory-toolbar">
   <div><Filter size={17}/><label htmlFor="floor-filter">Floor</label>
@@ -39,11 +41,13 @@ export function LiveRooms(){
   <h3>Room {room.number}</h3><div className="room-details"><div><span>Max occupants</span><strong>{room.maxOccupancy}</strong></div>
   <div><span>Occupancy</span><strong>Not tracked</strong></div>
   <div><span>Maintenance</span><strong>Not tracked</strong></div></div>
+  <button type="button" className="btn-inline" onClick={()=>setReadinessRoom(room)}>Inspection / readiness</button>
   {admin&&<button type="button" className="guest-edit-button" onClick={()=>setEditingRoom(room)}>Edit room</button>}
  </article>)}</div>}
  {rooms.data&&<div className="guest-pagination"><span>Page {rooms.data.meta.page} of {Math.max(1,totalPages)}</span><div>
  <button className="btn-inline" disabled={page<=1} onClick={()=>setPage(p=>Math.max(1,p-1))}>Previous</button>
  <button className="btn-inline" disabled={page>=totalPages} onClick={()=>setPage(p=>p+1)}>Next</button></div></div>}
+ {readinessRoom&&<RoomReadinessPanel key={hotelId+'-'+readinessRoom.id} room={readinessRoom} onClose={()=>setReadinessRoom(null)}/>}
  {editingRoom&&admin&&<CatalogEditDialog key={'edit-'+hotelId+'-'+editingRoom.id} target={{kind:'room',record:editingRoom}} roomTypes={roomTypes.data?.data??[]} onClose={()=>setEditingRoom(null)} onSaved={()=>setEditingRoom(null)}/>}
  {showCreate&&admin&&<CatalogCreateDialog key={hotelId} mode="room" roomTypes={roomTypes.data?.data??[]} onClose={()=>setShowCreate(false)} onCreated={()=>{setShowCreate(false);setPage(1);setSearch('');setFloor('all');}}/>}
  </>;

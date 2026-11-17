@@ -39,6 +39,15 @@ describe('Phase 30 live reservation wire contracts',()=>{
  it('accepts scoped structural records without requiring mock fields',()=>{
   expect(parseRecords(records,'4').data[0].assignedRoomId).toBeNull();
  });
+ it('keeps guest and room labels for the actionable reservation list',()=>{
+  const booking={...records.data[0],
+   guestName:'Maria Santos',roomTypeName:'Standard',
+   assignedRoomNumber:'201',assignedRoomId:'55'};
+  const result=parseRecords({...records,data:[booking]},'4');
+  expect(result.data[0].guestName).toBe('Maria Santos');
+  expect(result.data[0].assignedRoomNumber).toBe('201');
+  expect(result.data[0].roomTypeName).toBe('Standard');
+ });
  it('rejects cross-property structural data',()=>{
   expect(()=>parseRecords(records,'5')).toThrow(/another hotel/);
  });

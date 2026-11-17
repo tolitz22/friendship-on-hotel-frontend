@@ -55,7 +55,10 @@ const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/manager-approvals',component:ManagerApprovals}),
  createRoute({getParentRoute:()=>root,path:'/cashier-shifts',component:CashierShifts}),
  createRoute({getParentRoute:()=>root,path:'/occupancy-verification',component:OccupancyVerification}),
- createRoute({getParentRoute:()=>root,path:'/keycard-access',component:KeycardAccess}),
+ createRoute({getParentRoute:()=>root,path:'/keycard-access',
+  validateSearch:(value:Record<string,unknown>):{booking?:string}=>({
+   booking:typeof value.booking==='string'&&/^[1-9][0-9]*$/.test(value.booking)?value.booking:undefined,
+  }),component:KeycardAccess}),
  createRoute({getParentRoute:()=>root,path:'/reservation-demand',component:LiveReservationDemand}),
  createRoute({getParentRoute:()=>root,path:'/reservation-policy',component:LiveReservationPolicy}),
  createRoute({getParentRoute:()=>root,path:'/reservation-simulation',component:LiveReservationSimulation}),

@@ -311,3 +311,32 @@ PATCH /api/v1/hotels/{hotel}/readiness/enforcement-policy
 **Safety:** Enabling can block existing arrivals. Run a real staging rollout, inspect rooms, verify assignments/housekeeping/maintenance, and pass the backend concurrency tests before enabling in production. The coarse hotel-wide database lock serializes readiness-sensitive writes and needs performance/load validation. The policy may be disabled again by an authorized admin using the latest revision and an audit reason; do not modify migrations to roll back behavior.
 
 Tests: \`src/api/readinessEnforcementPolicy.test.ts\`, plus revised \`liveRoomReadiness.test.ts\`. Test/build/browser results have **not** been verified by this remote GitHub edit. See backend \`docs/PHASE_36_TRANSACTIONAL_READINESS_ENFORCEMENT.md\` for rollback, migration and race-test procedures.
+
+
+## Frontend Phase 37 — Hotel readiness monitoring and arrival exceptions
+
+In \`VITE_DATA_SOURCE=api\`, \`src/pages/LiveRooms.tsx\` now renders \`ReadinessDashboardPanel\` alongside the physical room catalogue, its independent inspection editor and the hotel policy switch. The dashboard calls the actual read-only, hotel-member-scoped Laravel endpoint:
+
+\`\`\`http
+GET /api/v1/hotels/{hotel}/readiness/dashboard?days=7&room_page=1&room_per_page=20
+\`\`\`
+
+The report returns hotel-local \`asOfHotelDate\`, 1–14-day arrival window, current check-in enforcement setting, **full-hotel** room inspection totals, 20-per-page room readiness details, and all confirmed arrivals in the bounded window (up to the backend reporting limit). Each arrival has a nullable assigned room and one reason: unassigned, missing room, current inspection/blocker attention, or no current readiness issue.
+
+The React data adapter \`src/api/readinessDashboard.ts\` uses Zod validation, hotel-scoped TanStack Query keys, reconciling totals, exact date-window checks and explicit \`snapshotOnly:true\`/\`inventoryGuaranteed:false\`/\`futureRoomReadinessGuaranteed:false\`/\`guestOrPaymentVerified:false\` safeguards. API errors never fall back to mock data. Changing the arrival horizon resets room pagination. The report's arrival filter and pagination work over the entire returned arrival window; the room-status filter applies to the **currently loaded room page only**. Summary tiles cover the full hotel.
+
+After real booking creation, room assignment/check-in/out, inspection review, maintenance/housekeeping edits or readiness policy updates, the dashboard's selected-hotel query cache is invalidated. There is also a manual Refresh action. No dashboard control changes room assignments, reservations or inspection decisions. Staff use the already-integrated Rooms inspection panel and Reservations operational controls to take those actions.
+
+**Current readiness is NOT a prediction of future-night room availability.** It reflects present-day inspection and blocker state, and may change the moment other staff act. Laravel's Phase 36 check-in transaction remains the sole final gate when enabled. The dashboard does not verify guests, payment or room inventory holds. Backend caps synchronous exact reporting at 1,000 rooms and 2,000 windowed arrivals rather than returning partial hotel-wide totals. The Laravel and React builds and multi-process DB concurrency experiments are not yet verified.
+
+Validation:
+
+\`\`\`bash
+git pull origin main
+npm ci
+npm run typecheck
+npm test
+npm run build
+\`\`\`
+
+See backend \`docs/PHASE_37_READINESS_MONITORING.md\` for reporting limits and the required MySQL/PostgreSQL lock-contention and race-test runbook.

@@ -30,3 +30,12 @@ The backend uses Bearer tokens for Phase 1 testing; a production browser SPA sho
 6. Only later integrate reservations/availability/payment after requirements approval and concurrency testing.
 
 Never claim a live reservation system exists based on the frontend's simulated UI.
+
+
+## Backend Phase 2 continuity (2026-11-17)
+
+Backend repository has added *structural reservation records* with property-scoped room type and optional matching physical-room assignment, half-open date rules, a pure known-room overlap detector, and read-only `GET /api/v1/hotels/{hotel}/reservation-records`.
+
+This is **not** a live booking API. It does not write reservations, hold availability, assign rooms transactionally, enforce a booking lifecycle, or calculate prices. The frontend remains exactly where it was after the Hotel Settings milestone; its `/reservations` and `/reservations/calendar` API contracts do not match the backend's structural reservation-record endpoint.
+
+See backend `docs/RESERVATION_DOMAIN.md` and `docs/PHASE_2.md` for scope and inventory policy decisions. Preserve mock mode until backend authentication and DTO reconciliation are explicitly implemented.

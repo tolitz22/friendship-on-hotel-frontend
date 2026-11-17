@@ -38,6 +38,7 @@ export function LiveStaff(){
   try{
    await updateHotelStaff(userId,patch);
    await client.invalidateQueries({queryKey:['hotel-staff',hotelId]});
+   await client.invalidateQueries({queryKey:['hotel-staff-history',hotelId]});
    setNotice('Membership updated. Affected staff should sign in again to refresh their displayed role.');
   }catch(e){setError(e instanceof ApiError?e.message:e instanceof Error?e.message:'Unable to update staff.');}
   finally{setSaving(null);}

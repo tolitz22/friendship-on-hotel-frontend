@@ -6,6 +6,7 @@ import {AuthProvider} from './components/AuthProvider';import {ThemeProvider} fr
 import {Dashboard} from './pages/Dashboard';
 import {LiveDashboard} from './pages/LiveDashboard';
 import {LiveRooms} from './pages/LiveRooms';
+import {LiveRoomCalendar} from './pages/LiveRoomCalendar';
 import {LiveSettings} from './pages/LiveSettings';
 import {LiveStaff} from './pages/LiveStaff';
 import {AcceptInvitation} from './pages/AcceptInvitation';
@@ -31,6 +32,7 @@ const reservations=createRoute({getParentRoute:()=>root,path:'/reservations',
   guest:typeof value.guest==='string'&&/^[1-9][0-9]*$/.test(value.guest)?value.guest:undefined,
  }),component:Reservations});
 const rooms=createRoute({getParentRoute:()=>root,path:'/rooms',component:dataMode==='api'?LiveRooms:Rooms});
+const roomCalendar=createRoute({getParentRoute:()=>root,path:'/room-calendar',component:LiveRoomCalendar});
 const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/front-desk',component:FrontDesk}),
  createRoute({getParentRoute:()=>root,path:'/reservation-demand',component:LiveReservationDemand}),
@@ -51,7 +53,7 @@ const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/reset-password',component:ResetPassword}),
  createRoute({getParentRoute:()=>root,path:'/change-password',component:ChangePassword}),
 ];
-const routeTree=root.addChildren([index,reservations,rooms,...functionalRoutes]);
+const routeTree=root.addChildren([index,reservations,rooms,roomCalendar,...functionalRoutes]);
 const router=createRouter({routeTree,defaultPreload:'intent'});
 declare module '@tanstack/react-router'{interface Register{router:typeof router}}
 const client=new QueryClient({defaultOptions:{queries:{retry:1,refetchOnWindowFocus:false}}});

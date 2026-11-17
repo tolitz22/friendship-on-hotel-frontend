@@ -73,7 +73,9 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
     <span>Current inventory block: {blockers?.activeInventoryBlockToday?'Yes':'No'} ·
      Active room-impact maintenance: {blockers?.activeRoomImpactMaintenance?'Yes':'No'} ·
      Latest turnover incomplete: {blockers?.latestTurnoverIncomplete?'Yes':'No'} ·
-     New turnover after inspection: {blockers?.newTurnoverSinceInspection?'Yes':'No'}
+     New turnover after inspection: {blockers?.newTurnoverSinceInspection?'Yes':'No'} ·
+     Outstanding housekeeping: {blockers?.unfinishedHousekeeping?'Yes':'No'} ·
+     New operational work after inspection: {blockers?.newRoomWorkSinceInspection?'Yes':'No'}
     </span>
    </div>
    {latest&&<p>Latest inspection #{latest.id}: <strong>{latest.status}</strong> ·

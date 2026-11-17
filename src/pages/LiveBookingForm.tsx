@@ -1,4 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
+import {Link} from '@tanstack/react-router';
 import type {FormEvent} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 import {AlertTriangle,CheckCircle2} from 'lucide-react';
@@ -108,8 +109,9 @@ export function LiveBookingForm(){
   setPending(null);setResult(null);setError(null);setChecked(null);
   setSelection(initialSelection());
  };
- return <Panel title="Create a real reservation (hotel administrators)">
-  <p>Creates a <strong>confirmed reservation</strong> with a nightly room-charge snapshot. It does not collect money, verify identity, assign a physical room, or issue a final tax-complete invoice.</p>
+ return <Panel title="New reservation">
+  <p className="help-copy">Complete the guest and stay details, check availability, then confirm. The reservation will be saved immediately when you select Confirm.</p>
+  <p className="help-copy">Payment, guest identity verification, physical room assignment and final taxes are separate steps.</p>
   {!admin&&<p role="status">Only an administrator of the selected hotel can submit reservations. Laravel enforces permissions independently.</p>}
   {admin&&<>
    <QueryFeedback loading={guests.isPending||types.isPending||rates.isPending}
@@ -123,7 +125,7 @@ export function LiveBookingForm(){
         <option value="">Select guest</option>
         {guests.data.data.map(item=><option key={item.id} value={item.id}>{item.firstName} {item.lastName}</option>)}
        </select>
-       <small>Showing up to 100 existing guest profiles. Use the Guest directory to find or create a guest not shown here.</small>
+       <small>Showing up to 100 existing guests. <Link to="/guests" className="text-link">Find or add a guest</Link> if the guest isn't listed.</small>
       </div>
       <div><label htmlFor="book-roomtype" className="wizard-label">Room type</label>
        <select id="book-roomtype" className="wizard-input" required value={selection.roomTypeId}
@@ -151,18 +153,19 @@ export function LiveBookingForm(){
       </option>)}
      </select>
      {!valid&&<p className="wizard-error">Select a guest, room type, active rate, and valid stay of 1–31 nights beginning today or later.</p>}
-     <button className="btn-inline" type="submit" disabled={!valid||busy}>Check live inventory and quote</button>
+     <button className="btn-primary" type="submit" disabled={!valid||busy}>Step 2 · Check availability and room subtotal</button>
     </fieldset>
    </form>}
    {checked&&<div aria-live="polite">
-    <h4>Latest preview for this guest and stay</h4>
+    <h4>Step 2 · Verify stay before booking</h4>
+    <p className="help-copy">{guest?.firstName} {guest?.lastName} · {selection.checkIn} to {selection.checkOut} · {rate?.name??'Rate pending'}</p>
     <QueryFeedback loading={availability.isPending||quote.isPending}
      error={availability.error??quote.error}/>
     {availability.isSuccess&&<p>Inventory: <strong>{availability.data.data.canBook?'Currently bookable':'No remaining capacity on every night'}</strong>. No rooms held; housekeeping readiness unverified.</p>}
     {quote.isSuccess&&<p>Room subtotal: <strong>{displayMoney(quote.data.data.roomSubtotalMinor,quote.data.data.currency)}</strong>. Taxes, fees and deposits are not calculated; this is not the final payable total.</p>}
     {samePreview&&!pending&&!result&&<button type="button" className="btn-primary"
      disabled={!ready} onClick={submit}>
-      {busy?'Submitting…':'Confirm real reservation'}
+      {busy?'Saving reservation…':'Step 3 · Confirm and create booking'}
     </button>}
     <p className="desk-preview-note"><AlertTriangle size={16}/> Final inventory and rate validation occurs again in Laravel during the booking transaction. The result may differ from this non-binding preview.</p>
    </div>}
@@ -191,7 +194,11 @@ export function LiveBookingForm(){
     <h4>Reservation confirmed by Laravel</h4>
     <p>Reference: <strong>{result.reference}</strong> · ID: {result.id} · Status: {result.status}</p>
     <p>{result.idempotentReplay?'This was a safe replay of the original successful booking.':'This request created a confirmed reservation.'} Physical room assignment, guest identity and payment remain separate.</p>
-    <button type="button" className="btn-inline" onClick={reset}>Start another booking</button>
+    <div className="task-next-step">
+     <p><strong>Next:</strong> Open the reservation in the list below to assign a physical room and handle check-in when eligible.</p>
+     <Link to="/front-desk">Review front desk queues</Link>
+    </div>
+    <button type="button" className="btn-inline" onClick={reset}>Create another booking</button>
    </div>}
   </>}
  </Panel>;

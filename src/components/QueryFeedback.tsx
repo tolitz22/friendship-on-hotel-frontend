@@ -3,6 +3,12 @@ import {ApiError} from '../api/http';
 
 export function messageForQueryError(error:Error):{title:string;action:string}{
  if(error instanceof ApiError){
+  if(error.status===404&&/route\\s+.*could not be found|route\\s+.*not found/i.test(error.message)){
+   return {
+    title:'The deployed backend is missing this API route',
+    action:'Deploy the latest Laravel main branch and clear cached routes. Confirm VITE_API_URL points to that backend, then refresh.',
+   };
+  }
   if(error.status===401||error.status===419)return{
    title:'Your session needs attention',
    action:'Sign in again before reloading this hotel information.',

@@ -51,3 +51,7 @@ The backend now exposes `GET /api/v1/hotels/{hotel}/rooms/{room}/reservation-ove
 ## Backend Phase 4 — Guest Management
 
 Backend now has a hotel-scoped guest directory and validated CRUD subset (list/view plus admin-only create/update; no delete). The wire DTO matches the existing typed frontend `Guest`, but the backend route is `/api/v1/hotels/{hotel}/guests`, not the frontend's current `/api/v1/guests`. **Frontend UI, mock data, and last completed Hotel Settings milestone remain unchanged.** Do not switch to live API mode before adding selected-hotel authentication and route mapping. See backend `docs/PHASE_4_GUESTS.md`.
+
+## Frontend Phase 5 integration implemented
+
+The frontend now has an API-mode sign-in gate, selected-hotel context, and a **live Guests page**, including authorized administrator create/edit. Guest bearer tokens are in-memory only (refresh signs out). All other PMS modules remain explicitly labeled mock previews. The final browser auth strategy, real reservations, live rates, occupancy, and operational status integrations are still pending. See frontend `docs/PHASE_5_LARAVEL_INTEGRATION.md` and backend `docs/PHASE_5_FRONTEND_INTEGRATION.md`.

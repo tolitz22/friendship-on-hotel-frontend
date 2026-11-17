@@ -28,10 +28,16 @@ if(frontend.origin===api.origin){
  throw new Error('Require separately identified frontend and API origins for this browser acceptance.');
 }
 for(const key of [
- 'PMS_STAGING_TEST_HOTEL_ID','PMS_STAGING_TEST_ROOM_TYPE_ID',
+ 'PMS_STAGING_TEST_HOTEL_ID','PMS_STAGING_TEST_HOTEL_NAME','PMS_STAGING_TEST_ROOM_TYPE_ID',
  'PMS_STAGING_TEST_RATE_PLAN_ID','PMS_STAGING_TEST_ROOM_ID',
  'PMS_STAGING_CHECKOUT_BOOKING_ID','PMS_STAGING_STAFF_EMAIL','PMS_STAGING_STAFF_PASSWORD'
-])required(key);
+ ])required(key);
+for(const key of [
+ 'PMS_STAGING_TEST_HOTEL_ID','PMS_STAGING_TEST_ROOM_TYPE_ID','PMS_STAGING_TEST_RATE_PLAN_ID',
+ 'PMS_STAGING_TEST_ROOM_ID','PMS_STAGING_CHECKOUT_BOOKING_ID'
+]){
+ if(!/^[1-9][0-9]*$/.test(required(key)))throw new Error('Invalid staging fixture ID: '+key);
+}
 
 export default defineConfig({
  testDir:'./e2e/staging-write',

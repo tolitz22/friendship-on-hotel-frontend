@@ -65,3 +65,8 @@ See `docs/API_CONTRACT.md` Phase 31 and `src/pages/LiveBookingForm.tsx`. In API 
 ## Frontend Phase 32 — Real room assignment and reservation lifecycle
 
 Read `docs/API_CONTRACT.md` Phase 32. `LiveReservationOperations` is opened from a real reservation record in API mode. Only selected-hotel administrators receive mutation controls. Laravel remains the authority for room assignment, dated maintenance blocks, check-in/out transitions and early-departure restrictions. The frontend consults the hotel-scoped room catalog and dated blocks; it does **not** assert housekeeping readiness or successful settlement. Admin confirmations are UI acknowledgements only, not persisted identity/readiness checks. The read-only booking event timeline is sourced from the new backend `GET /bookings/{booking}/history` route, not mocked. Never silently retry assignments/check-in/check-out; after ambiguous errors, refresh and verify the reservation state. Invalidate selected-hotel reservation, front-desk, inventory, room and audit caches on successful state change. Mock mode retains existing previews.
+
+
+## Frontend Phase 33 — Real housekeeping
+
+In API mode the main Housekeeping route mounts the already implemented \`LiveHousekeeping\` Laravel editor, not the mock board. See the Phase 33 section in \`docs/API_CONTRACT.md\`. Use hotel-scoped task validation, backend status/type filters, revisioned PATCH with 409 conflict reloading, and actor-attributed history. Admin and active assigned housekeeper capabilities differ. The maintenance preview is informational and can be incomplete because of pagination. Never infer room cleanliness, readiness, inventory blocks, or financial status from task completion. Preserve mock mode.

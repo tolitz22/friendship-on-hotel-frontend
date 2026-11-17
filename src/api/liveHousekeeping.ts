@@ -23,8 +23,8 @@ export interface UpdateHousekeepingInput{
  expectedRevision:number;status?:HousekeepingStatus;
  assignedTo?:string|null;assignedUserId?:string|null;dueAt?:string|null;note?:string|null;
 }
-export const listHousekeepingTasks=(page=1,perPage=50)=>getJson<HousekeepingList>(
- hotelPath('/housekeeping-tasks'),{page,per_page:perPage});
+export const listHousekeepingTasks=(page=1,perPage=50,filter:TaskFilter={})=>getJson<HousekeepingList>(
+ hotelPath('/housekeeping-tasks'),{page,per_page:perPage,status:filter.status,type:filter.type});
 export const createHousekeepingTask=(body:CreateHousekeepingInput)=>requestJson<ItemResponse<LiveHousekeepingTask>>(
  hotelPath('/housekeeping-tasks'),{method:'POST',body});
 export const updateHousekeepingTask=(id:string,body:UpdateHousekeepingInput)=>

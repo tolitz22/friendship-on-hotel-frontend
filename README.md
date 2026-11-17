@@ -94,3 +94,7 @@ With `VITE_DATA_SOURCE=api`, the app now requires staff sign-in through Laravel 
 ## Phase 6 — Real Property Catalogue
 
 In `VITE_DATA_SOURCE=api`, **Overview**, **Room Inventory**, and **Hotel Settings** now show authenticated, hotel-scoped Laravel data. They display saved property contact fields, registered room totals, room types and floors. Occupancy, maintenance, housekeeping, rates and bookings remain **unavailable**, never fabricated as live. Guests remains live from Phase 5; all other modules are explicitly labeled previews. See [Phase 6 integration](docs/PHASE_6_LIVE_CATALOG.md).
+
+## Phase 7 — Room catalogue administration
+
+In API mode, hotel administrators can create registered room types from Settings, and physical rooms from either Settings or Room Inventory. Laravel validates permissions, duplicate room numbers and room-type membership; the frontend surfaces field errors and refreshes Overview/Settings/Room Inventory counts. Existing mock screens remain available. See [Phase 7](docs/PHASE_7_CATALOG_ADMIN.md). No reservation/availability functionality is implied.

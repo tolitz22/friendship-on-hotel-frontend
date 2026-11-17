@@ -50,7 +50,7 @@ export function LiveFrontDesk(){
   <Panel title="Hotel selection required"><p role="status">Choose a hotel from your authenticated session before loading live front desk records.</p></Panel>
  </>;
  return <>
-  <Heading title="Front desk" description="Live reservation manifests from your selected hotel. Read-only: check-in, checkout, room readiness and financial settlement are not performed on this screen."/>
+  <Heading title="Front desk" description="Live reservation manifests from your selected hotel. Use the Reservations page to open administrator room assignment and check-in/out controls; this manifest remains read-only."/>
   <section className="desk-summary" aria-label="Live reservation queue totals">
    <div className="desk-stat"><LogIn size={21}/><span>Confirmed arrivals</span><strong>{count('arrivals')}</strong></div>
    <div className="desk-stat"><LogOut size={21}/><span>Scheduled departures</span><strong>{count('departures')}</strong></div>
@@ -106,7 +106,7 @@ export function LiveFrontDesk(){
    </div>}
    <div className="desk-preview-note">
     <AlertTriangle size={17}/>
-    <p>Live queue data is based on saved reservation states and the selected hotel's date. Assigned rooms are not necessarily clean or guest-ready. No check-in, check-out, payments, keys, or housekeeping actions are available here. Failed API requests never fall back to sample data.</p>
+    <p>Live queue data is based on saved reservation states and the selected hotel's date. Assigned rooms are not necessarily clean or guest-ready. Use the Reservations page to manage eligible assignments and check-in/out. No payments, keys or housekeeping actions are available here. Failed API requests never fall back to sample data.</p>
    </div>
   </Panel>
  </>;

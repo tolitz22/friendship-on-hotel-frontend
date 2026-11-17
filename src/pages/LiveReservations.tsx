@@ -53,6 +53,10 @@ export function LiveReservations(){
   requested.stay.checkOut!==inputs.checkOut);
 
  if(!hasHotel)return <>
+  <Heading title="Reservations" description="Select an authorized hotel to see its bookings."/>
+  <Panel title="Choose a property"><p role="status">Select your hotel from the authenticated workspace before creating or managing reservations.</p></Panel>
+ </>;
+ return <>
   <Heading title="Reservations" description="Create a confirmed booking or manage an existing stay. Your hotel is selected in the header."/>
   <div className="workflow-intro" aria-label="Booking workflow steps">
    <div className="workflow-step"><strong>1</strong><span>Select guest and dates</span></div>

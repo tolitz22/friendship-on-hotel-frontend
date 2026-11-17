@@ -14,6 +14,9 @@ const pagination=z.object({
 });
 const record=z.object({
  id,hotelId:id,reference:z.string(),roomTypeId:id,
+ guestName:z.string().nullable().optional(),
+ roomTypeName:z.string().nullable().optional(),
+ assignedRoomNumber:z.string().nullable().optional(),
  assignedRoomId:id.nullable(),
  checkIn:day,checkOut:day,
  lifecycleState:z.string().nullable(),

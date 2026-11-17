@@ -138,3 +138,7 @@ In API mode, staff can request reset emails, redeem reset links, and change thei
 ## Phase 17 — Optional Cookie-Based Staff Sessions
 
 Set `VITE_AUTH_MODE=cookie` only when the Laravel API has `SPA_SESSION_ENABLED=true` and trusted same-site domains configured. Cookie mode initializes Sanctum CSRF, sends credentialed API calls with an XSRF header, and restores staff identity after refresh without storing a bearer token in JS. Existing `VITE_AUTH_MODE=bearer` is preserved. See [Phase 17](docs/PHASE_17_SANCTUM_SPA_SESSIONS.md). This is not a production verification signoff.
+
+## Phase 18 — Email Invitations and Staff Onboarding
+
+The API-mode **Hotel staff** screen can email invitations to new employees and list/revoke pending invitations. New staff accept `/accept-invitation?token=...` and choose their own password; only then is a hotel membership created. Existing users continue through the **Attach an existing account** form. See [Phase 18](docs/PHASE_18_STAFF_INVITATIONS.md).

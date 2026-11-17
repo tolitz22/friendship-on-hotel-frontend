@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import {useLiveManifest} from '../api/liveFrontDesk';
 import {readSession} from '../api/session';
+import {useHotelAuth} from '../components/AuthProvider';
+import {selectedRole} from '../features/workspaces/roleNavigation';
 import type {ManifestKind,ManifestEntry} from '../api/liveFrontDesk';
 import {recommendedDeskAction,pageAttentionCount} from '../features/front-desk/deskActions';
 import {Heading,Panel,Status} from '../components/ui';
@@ -30,6 +32,8 @@ export function LiveFrontDesk(){
  const [search,setSearch]=useState('');
  const client=useQueryClient();
  const {hotelId}=readSession();
+ const {user}=useHotelAuth();
+ const admin=selectedRole(user?.hotels,hotelId)==='admin';
  const arrivals=useLiveManifest(date,'arrivals',pageByKind.arrivals);
  const departures=useLiveManifest(date,'departures',pageByKind.departures);
  const inHouse=useLiveManifest(date,'in_house',pageByKind.in_house);
@@ -57,7 +61,7 @@ export function LiveFrontDesk(){
    <Heading title="Front desk" description="Your daily arrival, departure and room-assignment workspace."/>
    <div className="fdc-heading-actions">
     <button type="button" className="btn-inline" onClick={refresh}><RefreshCw size={15}/> Refresh</button>
-    <Link to="/reservations" className="btn-primary"><Plus size={16}/> New reservation</Link>
+    {admin&&<Link to="/reservations" className="btn-primary"><Plus size={16}/> New reservation</Link>}
    </div>
   </div>
   <div className="fdc-date-strip">
@@ -125,11 +129,11 @@ export function LiveFrontDesk(){
        <small>Status</small><Status value={statusLabel(row.status)}/>
       </div>
       <div className="fdc-guest-actions">
-       <Link to="/reservations" search={{booking:row.id,...(action.kind==='view'?{}:{deskAction:action.kind})}} className="fdc-action-link">
-        {action.kind==='assign'?<BedDouble size={16}/>:action.kind==='check-in'?<LogIn size={16}/>:action.kind==='check-out'?<LogOut size={16}/>:<ClipboardCheck size={16}/>}
-        {action.label} <ArrowRight size={15}/>
+       <Link to="/reservations" search={{booking:row.id,...(!admin||action.kind==='view'?{}:{deskAction:action.kind})}} className="fdc-action-link">
+        {!admin?<ClipboardCheck size={16}/>:action.kind==='assign'?<BedDouble size={16}/>:action.kind==='check-in'?<LogIn size={16}/>:action.kind==='check-out'?<LogOut size={16}/>:<ClipboardCheck size={16}/>} 
+        {admin?action.label:'View reservation'} <ArrowRight size={15}/>
        </Link>
-       <span>{action.hint}</span>
+       <span>{admin?action.hint:'Read-only staff review. Contact a manager for changes.'}</span>
       </div>
      </article>;
     })}

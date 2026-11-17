@@ -13,6 +13,9 @@ test('staging staff can navigate live hotel records without creating or changing
  await page.getByLabel('Password',{exact:true}).fill(password);
  await page.getByRole('button',{name:'Sign in',exact:true}).click();
 
+ // Sign-in is asynchronous; allow either immediate workspace access or
+ // the hotel chooser without checking visibility before auth has settled.
+ await expect(page.locator('.workspace-nav, .auth-hotel-list').first()).toBeVisible();
  const chooser=page.getByRole('heading',{name:'Choose a property'});
  if(await chooser.isVisible()){
   const property=page.locator('.auth-hotel-list button').first();

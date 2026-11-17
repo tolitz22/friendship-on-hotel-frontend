@@ -99,3 +99,7 @@ Laravel supports hotel admin staff listing/attachment/role updates and staff aud
 ## Phase 16 — Staff password security
 
 Backend now provides throttled password reset-email, password reset and current-password change APIs, invalidating all existing bearer tokens after credential changes. Frontend includes corresponding routes. The session architecture is still memory-only bearer authentication; production cookie sessions and CSRF must be handled as a separate coordinated milestone. See `docs/PHASE_16_STAFF_PASSWORD_SECURITY.md`.
+
+## Phase 17 — Browser session authentication
+
+An optional first-party cookie-auth mode has been added. Unlike the earlier bearer-only development mode, React can restore the Laravel session after refresh, initialize `/sanctum/csrf-cookie`, and send `X-XSRF-TOKEN` on unsafe requests. Both repositories' environment settings must match; `VITE_AUTH_MODE=bearer` remains the default. See `docs/PHASE_17_SANCTUM_SPA_SESSIONS.md`.

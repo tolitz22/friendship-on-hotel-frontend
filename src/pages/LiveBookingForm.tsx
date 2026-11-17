@@ -28,7 +28,7 @@ const displayMoney=(minor:number,currency:string)=>currency==='PHP'
  :minor.toLocaleString()+' '+currency+' minor units';
 
 /**
- * Submission is explicitly staff-admin only. A pending request is immutable:
+ * Submission requires an authorized hotel manager or receptionist. A pending request is immutable:
  * uncertain failures must be retried with identical body and idempotency key.
  */
 export function LiveBookingForm(){

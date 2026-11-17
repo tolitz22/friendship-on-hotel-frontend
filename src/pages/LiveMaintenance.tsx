@@ -3,9 +3,9 @@ import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {ClipboardList,History,Plus,RefreshCcw,ShieldAlert,Wrench,X} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {useLiveRooms} from '../api/liveCatalogQueries';
-import {createMaintenance,listMaintenance,maintenanceHistory,updateMaintenance,
+import {createMaintenance,listMaintenance,maintenanceHistory,
  type LiveWorkOrder,type MaintenancePriority,type MaintenanceStatus,type MaintenanceFilters,
- parseLiveMaintenance,parseUpdatedMaintenance,parseMaintenanceHistory,patchValidatedMaintenance,
+ parseLiveMaintenance,parseMaintenanceHistory,patchValidatedMaintenance,
  mayUpdateMaintenance} from '../api/liveMaintenance';
 import {ApiError} from '../api/http';
 import {readSession} from '../api/session';

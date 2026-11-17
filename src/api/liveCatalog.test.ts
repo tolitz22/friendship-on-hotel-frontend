@@ -67,7 +67,7 @@ describe('Phase 7 catalogue write requests',()=>{
   setSessionToken('admin-token');
   const fetchMock=vi.fn();
   vi.stubGlobal('fetch',fetchMock);
-  await expect(createLiveRoomType({name:'Suite',maxOccupancy:2})).rejects.toThrow('Choose a hotel');
+  expect(()=>createLiveRoomType({name:'Suite',maxOccupancy:2})).toThrow('Choose a hotel');
   expect(fetchMock).not.toHaveBeenCalled();
  });
 });

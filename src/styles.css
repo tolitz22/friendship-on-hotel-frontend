@@ -1219,3 +1219,35 @@
 .booking-guest-message{padding:19px 12px;margin:0;text-align:center;font-size:12px;color:var(--muted);line-height:1.6}
 .booking-guest-footer{padding:10px 14px;font-size:11px;color:var(--muted);background:var(--canvas);border-top:1px solid var(--border)}
 @media(max-width:600px){.booking-guest-popover{min-width:0}.booking-guest-results{max-height:240px}}
+
+
+/* Room Inventory: occupancy and checkout turnover are separate read-only states. */
+.inventory-status-intro{display:flex;justify-content:space-between;gap:16px;align-items:center;margin:16px 0}
+.inventory-status-intro strong{font-size:15px}
+.inventory-status-intro p{font-size:12px;color:var(--muted);margin:5px 0 0;line-height:1.5}
+.inventory-cleaning-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}
+.inventory-cleaning-summary>div{display:grid;gap:5px;border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:14px}
+.inventory-cleaning-summary small{font-size:11px;color:var(--muted)}
+.inventory-cleaning-summary strong{font-size:24px;font-weight:750;font-variant-numeric:tabular-nums}
+.inventory-operational-card{align-content:start}
+.inventory-operational-card .room-details{margin-bottom:8px}
+.inventory-condition-section{display:grid;gap:11px;padding:13px 0;border-top:1px solid var(--border);margin:3px 0 7px}
+.inventory-condition-badges{display:flex;flex-wrap:wrap;gap:6px}
+.inventory-occupancy-pill,.inventory-cleaning-pill{font-size:11px;font-weight:750;padding:6px 9px;border-radius:8px;line-height:1.35;background:var(--canvas);color:var(--text)}
+.inventory-occupancy-pill.occupied{background:#e5eefc;color:#2052a0}
+.inventory-occupancy-pill.due_for_checkout{background:#f3e8ff;color:#6b21a8}
+.inventory-occupancy-pill.vacant{background:#edf1f5;color:#334155}
+.inventory-cleaning-pill.checkout_cleaning{background:#fff1dc;color:#9a5c07}
+.inventory-cleaning-pill.cleaning_in_progress{background:#e0efff;color:#1d4ed8}
+.inventory-cleaning-pill.awaiting_inspection{background:#fef9c3;color:#854d0e}
+.inventory-cleaning-pill.ready{background:#dcfce7;color:#166534}
+.inventory-cleaning-pill.not_verified{background:#f1f5f9;color:#475569}
+.inventory-status-hint{display:flex;align-items:flex-start;gap:7px;font-size:11px;line-height:1.5;color:var(--muted);margin:0}
+.inventory-status-warning{margin:0;color:#b45309;font-size:11px;font-weight:700}
+.inventory-task-evidence{display:grid;gap:5px;border:1px solid var(--border);border-radius:10px;padding:10px;background:var(--canvas)}
+.inventory-task-evidence>span{font-size:12px}
+.inventory-task-evidence>small{font-size:11px;color:var(--muted);line-height:1.45}
+.inventory-room-action{display:inline-flex;align-items:center;gap:6px;color:var(--accent);font-size:12px;font-weight:700;margin-top:3px}
+.inventory-room-action:hover{text-decoration:underline}
+@media(max-width:900px){.inventory-cleaning-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:580px){.inventory-cleaning-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.inventory-status-intro{align-items:flex-start;flex-direction:column}.inventory-cleaning-summary strong{font-size:20px}}

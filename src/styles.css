@@ -952,3 +952,23 @@
 :root[data-theme="dark"] .ex-severity.critical{background:#4a2222;color:#ffb6b6}
 :root[data-theme="dark"] .ex-severity.attention{background:#493621;color:#ffd39e}
 :root[data-theme="dark"] .ex-severity.review{background:#1c374b;color:#b7e1ff}
+
+
+/* Phase 49: role-specific landing pages */
+.role-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin:20px 0}
+.role-summary>div{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:19px;display:grid;gap:8px;min-width:0}
+.role-summary small{font-size:12px;color:var(--muted)}
+.role-summary strong{font-size:29px;font-variant-numeric:tabular-nums;line-height:1.15}
+.role-summary span{font-size:11px;color:var(--muted);line-height:1.5}
+.role-tasks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin:18px 0}
+.role-task{display:grid;position:relative;gap:9px;align-content:start;min-width:0;min-height:158px;padding:19px;border:1px solid var(--border);border-radius:13px;background:var(--surface);color:var(--text);transition:border-color .15s,transform .15s}
+.role-task:hover{border-color:var(--accent);transform:translateY(-1px)}
+.role-task:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.role-task>svg:first-child{color:var(--accent)}
+.role-task strong{font-size:14px}
+.role-task span{font-size:12px;line-height:1.5;color:var(--muted);padding-right:15px}
+.role-task>svg:last-child{position:absolute;right:16px;bottom:16px;color:var(--accent)}
+.role-note{display:flex;align-items:flex-start;gap:10px;padding:15px 17px;border:1px solid var(--border);border-radius:10px;background:var(--canvas);font-size:12px;color:var(--muted);line-height:1.6}
+.role-note svg{flex-shrink:0;color:var(--accent)}
+@media(max-width:970px){.role-tasks{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:570px){.role-tasks{grid-template-columns:1fr}.role-summary{gap:9px}.role-summary>div{padding:14px}.role-summary strong{font-size:23px}.role-task{min-height:130px;padding:16px}}

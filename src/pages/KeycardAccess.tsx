@@ -6,6 +6,7 @@ import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {readSession} from '../api/session';
+import {useLiveRooms} from '../api/liveCatalogQueries';
 import {createKeycardRequest,keycardHistory,reviewKeycard,revokeKeycard,useKeycardAuthorizations} from '../api/keycardAuthorizations';
 import type {KeycardAuthorization,KeycardKind} from '../api/keycardAuthorizations';
 
@@ -86,6 +87,7 @@ export function KeycardAccess(){
  const [error,setError]=useState('');
  const [success,setSuccess]=useState('');
  const key=useRef<string|null>(null);
+ const rooms=useLiveRooms({page:1,perPage:100});
  const records=useKeycardAuthorizations(allowed,page,
   status==='all'?undefined:status as KeycardAuthorization['status']);
  useEffect(()=>{
@@ -127,9 +129,17 @@ export function KeycardAccess(){
       <option value="replacement">Replacement card · manager review</option>
       <option value="emergency_access">Emergency access · manager review</option>
      </select></label>
-    {kind==='emergency_access'?<label>Physical room ID
-     <input className="wizard-input" inputMode="numeric" disabled={busy} value={roomId}
-      onChange={e=>{setRoomId(e.target.value);key.current=null;}} placeholder="Room ID"/></label>
+    {kind==='emergency_access'?<label>Physical room
+     <select className="wizard-input" disabled={busy||rooms.isPending} value={roomId}
+      onChange={e=>{setRoomId(e.target.value);key.current=null;}}>
+      <option value="">Choose a room</option>
+      {rooms.data?.data.map(room=><option key={room.id} value={room.id}>
+       Room {room.number} · Floor {room.floor??'not set'}
+      </option>)}
+     </select>
+     {rooms.data?.meta.total!==undefined&&rooms.data.meta.total>100&&
+      <small>First 100 rooms listed. Contact a manager for a larger catalogue.</small>}
+    </label>
     :<label>Checked-in reservation ID
      <input className="wizard-input" inputMode="numeric" disabled={busy} value={bookingId}
       onChange={e=>{setBookingId(e.target.value);key.current=null;}} placeholder="Reservation ID"/></label>}

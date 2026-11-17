@@ -4,6 +4,7 @@ import type {FormEvent} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 import {AlertTriangle,CheckCircle2} from 'lucide-react';
 import {useGuests} from '../api/queries';
+import {useSelectedGuest} from '../api/liveSelectedGuest';
 import {useLiveAvailability,useLiveRoomQuote,useLiveRatePlans,useLiveRoomTypes,validLiveStay} from '../api/liveReservations';
 import {buildBookingPayload,createLiveBooking,makeBookingSubmission} from '../api/liveBooking';
 import type {BookingSelection,BookingSubmission,ConfirmedBooking} from '../api/liveBooking';
@@ -40,6 +41,7 @@ export function LiveBookingForm(){
  const inFlight=useRef(false);
  const client=useQueryClient();
  const guests=useGuests({perPage:100});
+ const linkedGuest=useSelectedGuest(requestedGuest??null);
  const types=useLiveRoomTypes();
  const rates=useLiveRatePlans();
  const availability=useLiveAvailability(checked);
@@ -49,7 +51,9 @@ export function LiveBookingForm(){
   setSelection(initialSelection(requestedGuest));setChecked(null);setPending(null);setResult(null);setError(null);
  },[hotelId,requestedGuest]);
  const activeRates=(rates.data?.data??[]).filter(rate=>rate.roomTypeId===selection.roomTypeId&&rate.active);
- const guest=guests.data?.data.find(item=>item.id===selection.guestId);
+ const guest=guests.data?.data.find(item=>item.id===selection.guestId)
+  ??(linkedGuest.isSuccess&&selection.guestId===requestedGuest?linkedGuest.data:undefined);
+ const selectedIsOutsidePage=!!guest&&!guests.data?.data.some(item=>item.id===guest.id);
  const rate=activeRates.find(item=>item.id===selection.ratePlanId);
  const valid=!!guest&&!!rate&&validLiveStay(selection)&&selection.checkIn>=hotelToday();
  const samePreview=checked!==null&&checked.guestId===selection.guestId
@@ -115,8 +119,10 @@ export function LiveBookingForm(){
   <p className="help-copy">Payment, guest identity verification, physical room assignment and final taxes are separate steps.</p>
   {!admin&&<p role="status">Only an administrator of the selected hotel can submit reservations. Laravel enforces permissions independently.</p>}
   {admin&&<>
-   <QueryFeedback loading={guests.isPending||types.isPending||rates.isPending}
-    error={guests.error??types.error??rates.error}/>
+   <QueryFeedback loading={guests.isPending||types.isPending||rates.isPending||(!!requestedGuest&&linkedGuest.isPending)}
+    error={guests.error??types.error??rates.error??(requestedGuest?linkedGuest.error:null)}
+    onRetry={()=>{void guests.refetch();void types.refetch();void rates.refetch();
+     if(requestedGuest)void linkedGuest.refetch();}}/>
    {guests.isSuccess&&types.isSuccess&&rates.isSuccess&&<form onSubmit={check}>
     <fieldset disabled={locked} style={{border:0,padding:0,margin:0,width:'100%'}}>
      <div className="wizard-fields">
@@ -125,10 +131,14 @@ export function LiveBookingForm(){
         onChange={e=>edit('guestId',e.target.value)}>
         <option value="">Select guest</option>
         {guests.data.data.map(item=><option key={item.id} value={item.id}>{item.firstName} {item.lastName}</option>)}
+        {selectedIsOutsidePage&&<option value={guest.id}>{guest.firstName} {guest.lastName} · Selected profile</option>}
        </select>
        <small>Showing up to 100 existing guests. <Link to="/guests" className="text-link">Find or add a guest</Link> if the guest isn't listed.</small>
-       {requestedGuest&&!guest&&guests.isSuccess&&<small role="status">
-        The selected guest is not in this first 100-profile list. Find the guest in the directory, then return here or choose a listed guest.
+       {requestedGuest&&linkedGuest.isSuccess&&selectedIsOutsidePage&&<small role="status">
+        Selected guest loaded directly from this hotel's records, outside the first 100 directory entries.
+       </small>}
+       {requestedGuest&&linkedGuest.isError&&<small role="alert">
+        The linked guest could not be verified for this hotel. Select another guest or retry loading this profile.
        </small>}
       </div>
       <div><label htmlFor="book-roomtype" className="wizard-label">Room type</label>

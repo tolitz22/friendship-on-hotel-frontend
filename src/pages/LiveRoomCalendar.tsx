@@ -9,12 +9,18 @@ import {useLiveFolioLedger} from '../api/liveFinance';
 import {useLiveRoomTypes} from '../api/liveCatalogQueries';
 import {addDays,hotelToday} from '../features/reservations/calendarDate';
 import {roomHasConflict,validRoomStay} from '../features/reservations/roomCalendarRange';
+import {projectRackBars} from '../features/reservations/roomRackLayout';
 import {Heading} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {useHotelAuth} from '../components/AuthProvider';
 
 type Mode='week'|'month';
-type Selection={room:RoomCalendarData['rooms'][number];day:string};
+type Selection={room:RoomCalendarData['rooms'][number];day:string;bookingId?:string};
+type RackEntry={
+ id:string;roomId:string;checkIn:string;checkOut:string;
+ kind:'booking'|'block';reference:string;status?:string|null;
+ guestName?:string|null;reason?:string;
+};
 const parse=(day:string)=>new Date(day+'T00:00:00Z');
 const format=(d:Date)=>d.toISOString().slice(0,10);
 const shift=(day:string,n:number)=>{const d=parse(day);d.setUTCDate(d.getUTCDate()+n);return format(d);};
@@ -51,8 +57,8 @@ export function LiveRoomCalendar(){
  const lastTriggerRef=useRef<HTMLButtonElement|null>(null);
 
  const dates=useMemo(()=>period(anchor,mode),[anchor,mode]);
- const openCell=(room:Selection['room'],day:string,end?:string)=>{
-  setSelected({room,day});setDeparture(end??addDays(day,1));
+ const openCell=(room:Selection['room'],day:string,end?:string,bookingId?:string)=>{
+  setSelected({room,day,bookingId});setDeparture(end??addDays(day,1));
  };
  const roomTypes=useLiveRoomTypes();
  const calendar=useRoomCalendar({start:dates.start,end:dates.end,page,floor,roomTypeId,search});
@@ -83,7 +89,8 @@ export function LiveRoomCalendar(){
   };
  },[selected]);
  const data=calendar.data?.data;
- const selectedBookings=selected&&data?data.bookings.filter(b=>b.roomId===selected.room.id&&b.checkIn<=selected.day&&selected.day<b.checkOut):[];
+ const selectedBookings=selected&&data?data.bookings.filter(b=>b.roomId===selected.room.id
+  &&(selected.bookingId?b.id===selected.bookingId:b.checkIn<=selected.day&&selected.day<b.checkOut)):[];
  const selectedBlocks=selected&&data?data.blocks.filter(b=>b.roomId===selected.room.id&&b.checkIn<=selected.day&&selected.day<b.checkOut):[];
  const reservation=useLiveReservationDetail(selectedBookings.length===1?selectedBookings[0].id:null);
  const folio=useLiveFolioLedger(selectedBookings.length===1?selectedBookings[0].id:'');
@@ -98,7 +105,7 @@ export function LiveRoomCalendar(){
   ?dayText(dates.start,{month:'short',day:'numeric',year:'numeric'})+' – '+dayText(shift(dates.end,-1),{month:'short',day:'numeric',year:'numeric'})
   :dayText(dates.start,{month:'long',year:'numeric'});
  return <>
-  <Heading title="Room inventory calendar" description="Click any room and date to inspect bookings, maintenance blocks, or start a reservation."/>
+  <Heading title="Room rack" description="Follow reservations across nights. Select a bar for details or an empty date to start a booking."/>
   <section className="live-room-calendar" aria-label="Room inventory calendar">
    <div className="lrc-toolbar">
     <div className="lrc-navigation">
@@ -136,7 +143,7 @@ export function LiveRoomCalendar(){
     <span><i className="lrc-dot lrc-maintenance"/> Maintenance block</span>
     <span><i className="lrc-dot lrc-conflict"/> Overlap / inspect</span>
     <span><i className="lrc-dot lrc-free"/> No assigned booking</span>
-    <span><i className="lrc-dot lrc-conflict"/> Drag across empty dates to select nights</span>
+    <span>Tip: drag across open dates to select a stay</span>
    </div>
    {data&&<div className="lrc-operations-summary" aria-label="Room schedule overview">
     <div><small>Rooms on this page</small><strong>{data.rooms.length}</strong></div>
@@ -151,60 +158,91 @@ export function LiveRoomCalendar(){
    {data&&<p className="lrc-summary">Showing {data.rooms.length} of {meta?.total??0} registered rooms. Counts for assigned stays and maintenance are limited to the visible room page; unassigned reservations are counted hotel-wide for the selected dates.</p>}
    <QueryFeedback loading={calendar.isPending} error={calendar.error} onRetry={()=>void calendar.refetch()}
     empty={calendar.isSuccess&&data?.rooms.length===0} emptyMessage="No rooms match these filters. Add rooms in Rooms & readiness."/>
-   {calendar.isSuccess&&data&&data.rooms.length>0&&<div className="lrc-scroll">
-    <div className={'lrc-matrix '+(mode==='month'?'lrc-month':'lrc-week')}
-     style={{gridTemplateColumns:'minmax(150px,180px) repeat('+dates.days.length+', minmax('+(mode==='week'?'108':'40')+'px,1fr))'}}>
-     <div className="lrc-head lrc-sticky">Room</div>
-     {dates.days.map(day=><div key={day} className={'lrc-head '+(day===hotelToday()?'lrc-today':'')}>
-      <strong>{dayText(day,{day:'numeric'})}</strong><small>{dayText(day,{weekday:'short'})}</small>
-     </div>)}
-     {data.rooms.map(room=><div className="lrc-row" key={room.id}>
-      <div className="lrc-room lrc-sticky"><strong>Room {room.number}</strong><small>{room.roomTypeName}{room.floor===null?'':' · F'+room.floor}</small></div>
-      {dates.days.map(day=>{
-       const items=data.bookings.filter(b=>b.roomId===room.id&&b.checkIn<=day&&day<b.checkOut);
-       const blocks=data.blocks.filter(b=>b.roomId===room.id&&b.checkIn<=day&&day<b.checkOut);
-       const conflict=items.length+blocks.length>1;
-       const booking=items[0];
-       const title=[
-        'Room '+room.number+' · '+day,
-        ...items.map(b=>b.reference+' ('+(b.status??'unknown')+') '+b.checkIn+' to '+b.checkOut),
-        ...blocks.map(b=>'Maintenance: '+b.reason)
-       ].join('\n');
-       const highlighted=dragPreview?.roomId===room.id&&day>=dragPreview.start&&day<=dragPreview.end;
-       return <button key={day} type="button" className={'lrc-cell lrc-clickable '+(highlighted?'lrc-range-preview ': '')+(conflict?'lrc-conflict':blocks.length?'lrc-maintenance':booking?.status==='checked_in'?'lrc-inhouse':booking?'lrc-confirmed':'lrc-free')}
-        title={title} aria-label={'Room '+room.number+' on '+day+': '+(conflict?'overlapping records':booking?booking.reference:blocks.length?'maintenance blocked':'no assigned booking')+'. View details'}
-        onPointerDown={event=>{
-         if(event.pointerType==='mouse'&&event.button===0&&day>=hotelToday()&&!booking&&!blocks.length){
-          dragOrigin.current={roomId:room.id,day};setDragPreview({roomId:room.id,start:day,end:day});
-         }
-        }}
-        onPointerEnter={event=>{
-         const start=dragOrigin.current;
-         if(event.pointerType==='mouse'&&(event.buttons&1)&&start?.roomId===room.id&&day>=start.day){
-          setDragPreview({roomId:room.id,start:start.day,end:day});
-         }
-        }}
-        onPointerUp={event=>{
-         const start=dragOrigin.current;
-         dragOrigin.current=null;
-         const end=dragPreview?.roomId===room.id?dragPreview.end:day;
-         setDragPreview(null);
-         if(start&&start.roomId===room.id&&end>start.day){
-          suppressNextClick.current=true;
+   {calendar.isSuccess&&data&&data.rooms.length>0&&<div className="lrc-scroll rack-scroll" role="region" aria-label="Scrollable room rack" tabIndex={0}>
+    <div className={'rack-timeline '+(mode==='month'?'rack-month':'rack-week')}
+     style={{'--rack-days':dates.days.length,'--rack-day-width':mode==='week'?'116px':'49px'} as React.CSSProperties}>
+     <div className="rack-header">
+      <div className="rack-room-head rack-sticky">Room / type</div>
+      {dates.days.map(day=><div key={day}
+       className={'rack-date-head '+(day===hotelToday()?'rack-today':'')+(parse(day).getUTCDay()===0||parse(day).getUTCDay()===6?' rack-weekend':'')}>
+       <strong>{dayText(day,{day:'numeric'})}</strong>
+       <small>{dayText(day,{weekday:'short'})}</small>
+      </div>)}
+     </div>
+     {data.rooms.map(room=>{
+      const entries:RackEntry[]=[
+       ...data.bookings.filter(b=>b.roomId===room.id).map(b=>({
+        ...b,id:'b-'+b.id,kind:'booking' as const,
+       })),
+       ...data.blocks.filter(b=>b.roomId===room.id).map(b=>({
+        ...b,id:'m-'+b.id,kind:'block' as const,reference:b.reason,
+       })),
+      ];
+      const bars=projectRackBars(entries,{start:dates.start,end:dates.end});
+      const rowHeight=Math.max(60,12+(Math.max(0,...bars.map(b=>b.lane))+1)*33);
+      return <div className="rack-room-row" key={room.id} aria-label={'Room '+room.number}>
+       <div className="rack-room-name rack-sticky" style={{gridColumn:1,gridRow:1,minHeight:rowHeight}}>
+        <strong>Room {room.number}</strong>
+        <small>{room.roomTypeName}{room.floor===null?'':' · Floor '+room.floor}</small>
+       </div>
+       {dates.days.map((day,index)=>{
+        const items=data.bookings.filter(b=>b.roomId===room.id&&b.checkIn<=day&&day<b.checkOut);
+        const blocks=data.blocks.filter(b=>b.roomId===room.id&&b.checkIn<=day&&day<b.checkOut);
+        const occupied=items.length>0||blocks.length>0;
+        const highlighted=dragPreview?.roomId===room.id&&day>=dragPreview.start&&day<=dragPreview.end;
+        return <button key={day} type="button"
+         className={'rack-day '+(day===hotelToday()?'rack-current-day ':'')+(highlighted?'rack-range-preview ':'')+(occupied?'rack-occupied':'rack-empty')}
+         style={{gridColumn:index+2,gridRow:1,minHeight:rowHeight}}
+         title={occupied?'View room '+room.number+' schedule on '+day:'Choose room '+room.number+' on '+day}
+         aria-label={'Room '+room.number+' on '+day+': '+(occupied?'assigned booking or maintenance block':'no assigned booking')+'. View details'}
+         onPointerDown={event=>{
+          if(event.pointerType==='mouse'&&event.button===0&&day>=hotelToday()&&!occupied){
+           dragOrigin.current={roomId:room.id,day};setDragPreview({roomId:room.id,start:day,end:day});
+          }
+         }}
+         onPointerEnter={event=>{
+          const origin=dragOrigin.current;
+          if(event.pointerType==='mouse'&&(event.buttons&1)&&origin?.roomId===room.id&&day>=origin.day){
+           setDragPreview({roomId:room.id,start:origin.day,end:day});
+          }
+         }}
+         onPointerUp={event=>{
+          const origin=dragOrigin.current;
+          dragOrigin.current=null;
+          const through=dragPreview?.roomId===room.id?dragPreview.end:day;
+          setDragPreview(null);
+          if(origin?.roomId===room.id&&through>origin.day){
+           suppressNextClick.current=true;lastTriggerRef.current=event.currentTarget;
+           openCell(room,origin.day,addDays(through,1));
+          }
+         }}
+         onPointerCancel={()=>{dragOrigin.current=null;setDragPreview(null);}}
+         onClick={event=>{
+          if(suppressNextClick.current){suppressNextClick.current=false;return;}
+          lastTriggerRef.current=event.currentTarget;openCell(room,day);
+         }}>
+         {!occupied&&<span aria-hidden="true">+</span>}
+        </button>;
+       })}
+       {bars.map(bar=>{
+        const booking=bar.item.kind==='booking';
+        const label=booking?(bar.item.guestName||bar.item.reference):(bar.item.reason||'Maintenance');
+        const visibleDay=bar.item.checkIn<dates.start?dates.start:bar.item.checkIn;
+        return <button type="button" key={bar.item.id}
+         className={'rack-booking-bar '+(booking?(bar.item.status==='checked_in'?'rack-bar-inhouse':'rack-bar-reserved'):'rack-bar-block')+(bar.overlap?' rack-bar-conflict':'')}
+         style={{gridColumn:bar.startColumn+' / span '+bar.span,gridRow:1,alignSelf:'start',marginTop:7+bar.lane*33}}
+         title={label+' · '+bar.item.checkIn+' to '+bar.item.checkOut+(bar.overlap?' · Overlapping records!':'')}
+         aria-label={(booking?'Open booking ':'Inspect maintenance ')+label+' in room '+room.number+' from '+bar.item.checkIn+' to '+bar.item.checkOut}
+         onClick={event=>{
           lastTriggerRef.current=event.currentTarget;
-          openCell(room,start.day,addDays(end,1));
-         }
-        }}
-        onPointerCancel={()=>{dragOrigin.current=null;setDragPreview(null);}}
-        onClick={event=>{
-         if(suppressNextClick.current){suppressNextClick.current=false;return;}
-         lastTriggerRef.current=event.currentTarget;openCell(room,day);
-        }}>
-        <span className="lrc-cell-content">{booking?(mode==='week'?booking.reference:'●'):blocks.length?(mode==='week'?'Blocked':'×'):(mode==='week'?'+':'·')}</span>
-        {conflict&&<span className="lrc-warning" aria-label="Overlapping records">!</span>}
-       </button>;
-      })}
-     </div>)}
+          openCell(room,visibleDay,undefined,booking?bar.item.id.slice(2):undefined);
+         }}>
+         <span className="rack-bar-label">{bar.clippedStart?'‹ ':''}{label}{bar.clippedEnd?' ›':''}</span>
+         {bar.overlap&&<span className="rack-bar-warning" aria-label="Overlapping records">!</span>}
+        </button>;
+       })}
+      </div>;
+     })}
     </div>
    </div>}
    {meta&&meta.totalPages>1&&<div className="lrc-pagination">
@@ -212,14 +250,14 @@ export function LiveRoomCalendar(){
     <button className="btn-inline" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>Previous rooms</button>
     <button className="btn-inline" disabled={page>=meta.totalPages} onClick={()=>setPage(p=>p+1)}>Next rooms</button>
    </div>}
-   <p className="lrc-note"><CalendarDays size={14}/> Tip: Drag across future empty dates in the same room to select several nights, or choose checkout in the popup. Read-only schedule of assigned reservations and maintenance blocks. Checkout dates are exclusive. Empty cells do not prove room readiness, physical occupancy, or sellable availability. Use Reservations for booking changes and Rooms & readiness for inspections.</p>
+   <p className="lrc-note"><CalendarDays size={14}/> Click a reservation bar to open the booking drawer. Drag across empty dates for a multi-night stay. Read-only schedule of assigned reservations and maintenance blocks. Checkout dates are exclusive. Empty cells do not prove room readiness, physical occupancy, or sellable availability. Use Reservations for booking changes and Rooms & readiness for inspections.</p>
   </section>
    {selected&&createPortal(
-    <div className="lrc-modal-backdrop" style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(8,12,22,.76)',display:'flex',alignItems:'center',justifyContent:'center',padding:16,backdropFilter:'blur(3px)'}}
+    <div className="lrc-modal-backdrop" style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(8,12,22,.76)',display:'flex',alignItems:'stretch',justifyContent:'flex-end',padding:0,backdropFilter:'blur(3px)'}}
      role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setSelected(null);}}>
      <section id="lrc-room-dialog" className="lrc-modal" role="dialog" aria-modal="true"
       aria-labelledby="lrc-details-title" aria-describedby="lrc-details-context"
-      style={{width:'min(100%,520px)',maxHeight:'min(88vh,800px)',overflowY:'auto',borderRadius:18,background:'var(--surface)',color:'var(--text)',border:'1px solid var(--border)',boxShadow:'0 24px 70px rgba(0,0,0,.42)'}}>
+      style={{width:'min(100%,460px)',height:'100%',maxHeight:'100vh',overflowY:'auto',borderRadius:0,background:'var(--surface)',color:'var(--text)',border:'1px solid var(--border)',boxShadow:'0 24px 70px rgba(0,0,0,.42)'}}>
       <header className="lrc-modal-header" style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:15,padding:'22px 24px 18px',borderBottom:'1px solid var(--border)'}}>
        <div>
         <span className="lrc-modal-eyebrow">ROOM SCHEDULE · {selected.day}</span>

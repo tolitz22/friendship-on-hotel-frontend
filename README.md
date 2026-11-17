@@ -134,3 +134,7 @@ In API mode, hotel administrators now have a **Hotel staff** directory to attach
 ## Phase 16 — Password Recovery and Account Security
 
 In API mode, staff can request reset emails, redeem reset links, and change their own password from **Change password**. Password changes revoke all backend tokens and sign the browser out. The original memory-only bearer authentication remains for development, pending a separate production-ready Sanctum cookie/CSRF setup. See [Phase 16](docs/PHASE_16_STAFF_PASSWORD_SECURITY.md).
+
+## Phase 17 — Optional Cookie-Based Staff Sessions
+
+Set `VITE_AUTH_MODE=cookie` only when the Laravel API has `SPA_SESSION_ENABLED=true` and trusted same-site domains configured. Cookie mode initializes Sanctum CSRF, sends credentialed API calls with an XSRF header, and restores staff identity after refresh without storing a bearer token in JS. Existing `VITE_AUTH_MODE=bearer` is preserved. See [Phase 17](docs/PHASE_17_SANCTUM_SPA_SESSIONS.md). This is not a production verification signoff.

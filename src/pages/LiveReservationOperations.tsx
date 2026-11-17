@@ -10,6 +10,7 @@ import {
 } from '../api/liveReservationOperations';
 import type {Operation} from '../api/liveReservationOperations';
 import {readSession} from '../api/session';
+import {ApiError} from '../api/http';
 import {useReadinessPolicy} from '../api/readinessEnforcementPolicy';
 import {useLiveReadiness} from '../api/liveRoomReadiness';
 import {useBookingTurnover} from '../api/liveBookingTurnover';
@@ -123,6 +124,13 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
    // Do not misreport a committed write as failed because a cache refresh failed.
    void refresh(targetHotel).catch(()=>{});
   }catch(cause){
+   if(cause instanceof ApiError&&cause.status===409){
+    // Display new room conflicts after another staff member acts.
+    void Promise.all([
+     client.invalidateQueries({queryKey:['live','room-choices',targetHotel,record.id]}),
+     client.invalidateQueries({queryKey:['live','reservation-detail',targetHotel,record.id]}),
+    ]).catch(()=>{});
+   }
    if(readSession().hotelId===targetHotel)
     setError(cause instanceof Error?cause.message:'The operation result could not be confirmed. Refresh hotel records before retrying.');
   }finally{inFlight.current=false;setBusy(false);}

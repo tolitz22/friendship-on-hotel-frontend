@@ -23,9 +23,13 @@ export function QuickGuestDialog({onClose,onCreated}:{
  const [fields,setFields]=useState<Record<string,string[]>>({});
  const firstInput=useRef<HTMLInputElement>(null);
  useEffect(()=>{
+  const previouslyFocused=document.activeElement as HTMLElement|null;
   firstInput.current?.focus();
   const previous=document.body.style.overflow;
   document.body.style.overflow='hidden';
+  return ()=>{document.body.style.overflow=previous;previouslyFocused?.focus();};
+ },[]);
+ useEffect(()=>{
   const onKey=(event:KeyboardEvent)=>{
    if(event.key==='Escape'&&!busy)onClose();
    if(event.key==='Tab'){
@@ -38,7 +42,7 @@ export function QuickGuestDialog({onClose,onCreated}:{
    }
   };
   window.addEventListener('keydown',onKey);
-  return ()=>{document.body.style.overflow=previous;window.removeEventListener('keydown',onKey);};
+  return ()=>window.removeEventListener('keydown',onKey);
  },[busy,onClose]);
  async function submit(event:FormEvent){
   event.preventDefault();
@@ -58,7 +62,10 @@ export function QuickGuestDialog({onClose,onCreated}:{
    onCreated(response.data);
   }catch(cause){
    setError(cause instanceof Error?cause.message:'Unable to register guest.');
-   if(cause instanceof ApiError)setFields(cause.fieldErrors??{});
+   if(cause instanceof ApiError){
+    setFields(cause.fieldErrors??{});
+    if(cause.status===0||cause.status>=500)setError('Result uncertain. Check the Guest Directory before trying again to avoid duplicate profiles.');
+   }
   }finally{setBusy(false);}
  }
  const input=(name:string,field:string,required:boolean,value:string,set:(v:string)=>void,type='text')=>

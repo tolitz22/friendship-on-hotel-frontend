@@ -30,8 +30,8 @@ export const createHousekeepingTask=(body:CreateHousekeepingInput)=>requestJson<
 export const updateHousekeepingTask=(id:string,body:UpdateHousekeepingInput)=>
  requestJson<ItemResponse<LiveHousekeepingTask>>(
  hotelPath('/housekeeping-tasks/'+encodeURIComponent(id)),{method:'PATCH',body});
-export const getHousekeepingHistory=(id:string)=>getJson<CollectionResponse<HousekeepingEvent>>(
- hotelPath('/housekeeping-tasks/'+encodeURIComponent(id)+'/history'));
+export const getHousekeepingHistory=(id:string,page=1)=>getJson<CollectionResponse<HousekeepingEvent>>(
+ hotelPath('/housekeeping-tasks/'+encodeURIComponent(id)+'/history'),{page,per_page:20});
 
 
 // Phase 33 validated queries and cautious revisioned transitions.

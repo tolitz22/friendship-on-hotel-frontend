@@ -1,6 +1,6 @@
 import {afterEach,describe,expect,it,vi} from 'vitest';
 import {clearSession,setSessionHotel,setSessionToken} from './session';
-import {attachHotelStaff,listHotelStaff,updateHotelStaff} from './liveStaff';
+import {attachHotelStaff,getHotelStaffHistory,listHotelStaff,updateHotelStaff} from './liveStaff';
 import {updateHousekeepingTask} from './liveHousekeeping';
 import {updateMaintenance} from './liveMaintenance';
 
@@ -52,6 +52,14 @@ describe('Phase 15 hotel staff and scoped task updates',()=>{
   const [url,opts]=fetchMock.mock.calls[0] as [string,RequestInit];
   expect(new URL(url).pathname).toBe('/api/v1/hotels/17/maintenance-work-orders/2');
   expect(JSON.parse(opts.body as string)).toEqual({expectedRevision:1,status:'in_progress',note:'On site'});
+ });
+ it('loads scoped membership audit history',async()=>{
+  setSessionToken('admin-token');setSessionHotel('17');
+  const fetchMock=vi.fn().mockResolvedValue({ok:true,json:async()=>({data:[],meta:{page:1,total:0}})});
+  vi.stubGlobal('fetch',fetchMock);
+  await getHotelStaffHistory();
+  expect(new URL(fetchMock.mock.calls[0][0] as string).pathname)
+   .toBe('/api/v1/hotels/17/staff/history');
  });
  it('propagates staff access denials instead of showing demo data',async()=>{
   setSessionToken('staff-token');setSessionHotel('17');

@@ -29,6 +29,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const canOperate=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&(h.role==='admin'||h.role==='front_desk'));
  const manager=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const [roomPage,setRoomPage]=useState(1);
+ const [showRoomPicker,setShowRoomPicker]=useState(false);
  const [historyPage,setHistoryPage]=useState(1);
  const [roomId,setRoomId]=useState('');
  const [acknowledged,setAcknowledged]=useState(false);
@@ -40,7 +41,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const assignmentRef=useRef<HTMLElement>(null);
  const lifecycleRef=useRef<HTMLElement>(null);
  const client=useQueryClient();
- const roomChoices=useLiveRoomChoices(record,roomPage,canOperate);
+ const roomChoices=useLiveRoomChoices(record,roomPage,canOperate&&showRoomPicker);
  const history=useLiveReservationHistory(record,historyPage);
  const readinessPolicy=useReadinessPolicy();
  const readiness=useLiveReadiness(record.assignedRoomId);
@@ -66,6 +67,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
 
  useEffect(()=>{
   setRoomPage(1);setHistoryPage(1);setRoomId('');setAcknowledged(false);
+  setShowRoomPicker(!record.assignedRoomId||deskAction==='assign');
   setSuccess('');setError('');
  },[hotelId,record.id,record.lifecycleState,record.assignedRoomId]);
  useEffect(()=>{
@@ -164,13 +166,33 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
     ?'Room '+record.assignedRoomNumber
     :record.assignedRoomId?'Room #'+record.assignedRoomId:'Not assigned yet'}</strong></div>
   </div>
+  <div className="reservation-next-step" role="status">
+   <div><strong>What happens next?</strong>
+    <p>{record.lifecycleState==='confirmed'
+      ?record.assignedRoomId
+       ?'Room assigned. Review guest identity and room readiness, then complete check-in when allowed.'
+       :'Assign a physical room first. Check-in is unavailable until a room is assigned.'
+      :record.lifecycleState==='checked_in'
+       ?'Guest is checked in. Review checkout eligibility and complete departure when due.'
+       :record.lifecycleState==='checked_out'
+        ?'Stay completed. Follow up with housekeeping turnover and review the audit history when needed.'
+        :'This booking is not active. Use audit history or manager exceptions for further review.'}</p>
+   </div>
+  </div>
   {!canOperate&&<p role="status">Only authorized front-desk staff and hotel managers can assign rooms or change a reservation lifecycle. Laravel enforces permissions.</p>}
   {canOperate&&<>
-   {record.lifecycleState==='confirmed'&&<section ref={assignmentRef}
+   {record.lifecycleState==='confirmed'&&<>
+    {record.assignedRoomId&&!showRoomPicker&&<div className="reservation-room-compact">
+     <div><strong>Room {record.assignedRoomNumber??'#'+record.assignedRoomId} is assigned</strong>
+      <p className="desk-muted">Continue to check-in below. Need a different room?</p></div>
+     <button type="button" className="btn-inline" onClick={()=>setShowRoomPicker(true)}>
+      Change assigned room</button>
+    </div>}
+    {showRoomPicker&&<section ref={assignmentRef}
     className={'reservation-room-picker'+(deskAction==='assign'?' fdc-target-operation':'')}
     aria-label="Choose a physical room">
     <div className="desk-tools">
-     <div><h4>1 · Choose the guest's room</h4>
+     <div><h4>{record.assignedRoomId?'Change the assigned room':'Step 1 · Assign a room'}</h4>
       <p className="desk-muted">Only rooms of the booked type are shown. Availability is checked for the entire stay.</p></div>
      <button type="button" className="btn-inline" disabled={busy||roomChoices.isFetching}
       onClick={()=>void roomChoices.refetch()}>Refresh choices</button>
@@ -228,9 +250,10 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
     <p className="desk-muted">These choices are advisory and do not hold inventory or certify room readiness.
      The backend rechecks all conflicts when you save.</p>
    </section>}
+   </>}
    <section ref={lifecycleRef} className={deskAction==='check-in'||deskAction==='check-out'?'fdc-target-operation':''}>
-    <h4>2 · Guest stay actions</h4>
-    <p>Hotel calendar day used for the interface: {hotelDate}. Laravel checks the hotel's authoritative local date and current reservation state again before saving.</p>
+    <h4>{record.lifecycleState==='checked_in'?'Complete guest departure':'Step 2 · Guest arrival and check-in'}</h4>
+    <p className="desk-muted">Hotel-local day: {hotelDate}. The server confirms dates, booking status, and authorization when you save.</p>
     {record.lifecycleState==='confirmed'&&<p>{record.assignedRoomId===null?'A room must be assigned before check-in.':'A room is assigned. Check guest identity and room readiness independently before check-in.'}</p>}
     {record.lifecycleState==='confirmed'&&<>
      <QueryFeedback loading={readinessPolicy.isPending} error={readinessPolicy.error}/>

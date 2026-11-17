@@ -25,7 +25,7 @@ describe('Phase 12 structural reservation simulation',()=>{
  it('refuses to run without a selected property',async()=>{
   setSessionToken('staff-token');
   const fetchMock=vi.fn();vi.stubGlobal('fetch',fetchMock);
-  await expect(getReservationSimulation('9','2026-11-20','2026-11-24')).rejects.toThrow('Choose a hotel');
+  expect(()=>getReservationSimulation('9','2026-11-20','2026-11-24')).toThrow('Choose a hotel');
   expect(fetchMock).not.toHaveBeenCalled();
  });
  it('surfaces validation errors and does not return sample data after an API failure',async()=>{

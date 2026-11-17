@@ -638,3 +638,37 @@
 :root[data-theme="dark"] .lrc-cell.lrc-maintenance{background:#4c2828;color:#ffd4c9}
 :root[data-theme="dark"] .lrc-cell.lrc-conflict{background:#5b252e;color:#ffd4d8}
 @media(max-width:760px){.lrc-toolbar,.lrc-filters{padding:12px}.lrc-legend{padding:10px}}
+
+
+/* Room calendar interactive detail surfaces */
+.lrc-clickable{cursor:pointer;font:inherit;appearance:none;width:100%;border-top:0;border-left:0;border-radius:0}
+.lrc-clickable:hover{box-shadow:inset 0 0 0 2px var(--accent);filter:brightness(.97)}
+.lrc-clickable:focus-visible{z-index:1;outline:3px solid var(--accent);outline-offset:-3px}
+.lrc-clickable.lrc-free:hover{background:var(--canvas)}
+.lrc-cell-content{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;font-weight:700}
+.lrc-modal-backdrop{position:fixed;inset:0;z-index:70;background:#0a0c15a8;display:flex;align-items:center;justify-content:center;padding:18px}
+.lrc-modal{background:var(--surface);color:var(--text);border-radius:17px;border:1px solid var(--border);width:min(540px,100%);max-height:min(90vh,800px);overflow:auto;box-shadow:0 22px 70px #0005}
+.lrc-modal-header{display:flex;justify-content:space-between;gap:16px;padding:24px 25px 19px;border-bottom:1px solid var(--border)}
+.lrc-modal-eyebrow{font-size:10px;color:var(--accent);letter-spacing:1.2px;font-weight:800}
+.lrc-modal-header h2{font-size:23px;margin:6px 0}
+.lrc-modal-header p{font-size:12px;color:var(--muted);margin:0;line-height:1.6}
+.lrc-modal-close{align-self:flex-start;display:flex;align-items:center;padding:8px}
+.lrc-modal-body{padding:20px 25px;display:grid;gap:18px}
+.lrc-modal-state{display:flex;gap:13px;padding:16px;border:1px solid var(--border);border-radius:11px;background:var(--canvas)}
+.lrc-modal-state svg{color:var(--accent);flex-shrink:0}
+.lrc-modal-state strong{font-size:13px}
+.lrc-modal-state p,.lrc-modal-hint,.lrc-modal-extra{font-size:12px;color:var(--muted);line-height:1.6;margin:7px 0 0}
+.lrc-modal-section{display:grid;gap:10px}
+.lrc-modal-section h3{font-size:13px;margin:0 0 3px}
+.lrc-modal-booking,.lrc-modal-block{background:var(--canvas);border:1px solid var(--border);border-radius:10px;padding:15px}
+.lrc-modal-line{display:flex;gap:9px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.lrc-modal-line strong,.lrc-modal-block strong{font-size:13px}
+.lrc-modal-line span{color:var(--muted);font-size:11px;text-transform:capitalize}
+.lrc-modal-booking p,.lrc-modal-block p{font-size:12px;color:var(--muted);margin:8px 0}
+.lrc-modal-action{display:inline-flex;gap:6px;align-items:center;color:var(--accent);font-size:12px;font-weight:700;margin-top:8px}
+.lrc-modal-warning{display:flex;gap:9px;align-items:flex-start;color:#bd3744;font-size:12px;margin:0}
+.lrc-modal-warning svg,.lrc-modal-hint svg{flex-shrink:0}
+.lrc-modal-hint{display:flex;align-items:flex-start;gap:9px;padding:12px;background:var(--canvas);border-radius:8px;margin:0}
+.lrc-modal-footer{padding:16px 25px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
+.lrc-modal-footer a{display:inline-flex;align-items:center;gap:8px}
+@media(max-width:540px){.lrc-modal-header,.lrc-modal-body,.lrc-modal-footer{padding:16px}.lrc-modal-footer a{flex:1;justify-content:center}}

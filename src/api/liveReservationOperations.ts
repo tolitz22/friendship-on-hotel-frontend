@@ -57,6 +57,43 @@ export function useLiveReservationHistory(record:LiveRecord|null,page:number){
  });
 }
 
+const choiceSchema=z.object({
+ data:z.array(z.object({
+  id,number:z.string(),floor:z.number().int().nonnegative().nullable(),
+  roomTypeId:id,status:z.enum(['available','unavailable']),
+  reason:z.enum(['maintenance_block','reservation_conflict']).nullable(),
+  current:z.boolean(),
+ })),
+ meta:z.object({
+  hotelId:id,bookingId:id,roomTypeId:id,
+  checkIn:z.iso.date(),checkOut:z.iso.date(),
+  page:z.number().int().positive(),perPage:z.number().int().positive(),
+  total:z.number().int().nonnegative(),totalPages:z.number().int().nonnegative(),
+  advisoryOnly:z.literal(true),readinessVerified:z.literal(false),
+ }),
+});
+export function parseRoomChoices(raw:unknown,hotelId:string,record:LiveRecord){
+ const choices=choiceSchema.parse(raw);
+ if(choices.meta.hotelId!==hotelId||choices.meta.bookingId!==record.id
+  ||choices.meta.roomTypeId!==record.roomTypeId
+  ||choices.meta.checkIn!==record.checkIn||choices.meta.checkOut!==record.checkOut
+  ||choices.data.some(room=>room.roomTypeId!==record.roomTypeId))
+  throw new Error('Room choices are stale or belong to another hotel or stay.');
+ return choices;
+}
+export function useLiveRoomChoices(record:LiveRecord|null,page:number,enabled:boolean){
+ const {hotelId}=readSession();
+ return useQuery({
+  queryKey:['live','room-choices',hotelId,record?.id,record?.checkIn,record?.checkOut,page],
+  enabled:!!hotelId&&!!record&&enabled&&record.lifecycleState==='confirmed',
+  queryFn:async()=>parseRoomChoices(await getJson<unknown>(
+   hotelPath('/bookings/'+encodeURIComponent(record!.id)+'/room-choices'),
+   {page,per_page:24},
+  ),hotelId!,record!),
+  staleTime:0,retry:false,
+ });
+}
+
 const assignSchema=z.object({data:z.object({
  bookingId:id,roomId:id,unchanged:z.boolean(),
 })});

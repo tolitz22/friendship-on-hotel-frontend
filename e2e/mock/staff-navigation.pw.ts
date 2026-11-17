@@ -27,6 +27,15 @@ test.describe('staff workspace navigation in mock preview',()=>{
   await expect(page.getByRole('textbox',{name:'Search rooms'})).toBeVisible();
   await expect(page.getByRole('combobox',{name:'Floor'})).toBeVisible();
  });
+ test('opens a simulated booking as a clearly non-persistent preview',async({page})=>{
+  await page.goto('/reservations');
+  await page.getByRole('button',{name:'Preview new booking'}).click();
+  const dialog=page.getByRole('dialog',{name:'New reservation preview'});
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText('No reservation will be created or saved.')).toBeVisible();
+  await dialog.getByRole('button',{name:'Close booking wizard'}).click();
+  await expect(dialog).toHaveCount(0);
+ });
  test('allows opening and closing navigation on a narrow screen',async({page,isMobile})=>{
   test.skip(!isMobile,'Mobile navigation behavior is validated on the narrow viewport.');
   await page.goto('/front-desk');

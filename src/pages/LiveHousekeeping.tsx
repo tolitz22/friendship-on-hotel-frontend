@@ -5,9 +5,11 @@ import {useHotelAuth} from '../components/AuthProvider';
 import {useLiveRooms} from '../api/liveCatalogQueries';
 import {
  createHousekeepingTask,getHousekeepingHistory,listHousekeepingTasks,updateHousekeepingTask,
- type LiveHousekeepingTask,type HousekeepingStatus,type HousekeepingType,
+ type LiveHousekeepingTask,type HousekeepingStatus,type HousekeepingType,type TaskFilter,
+ parseLiveHousekeeping,parseUpdatedHousekeeping,
 } from '../api/liveHousekeeping';
 import {ApiError} from '../api/http';
+import {readSession} from '../api/session';
 import {listHotelStaff} from '../api/liveStaff';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
@@ -31,7 +33,16 @@ export function LiveHousekeeping(){
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin});
  const client=useQueryClient();
  const [page,setPage]=useState(1);
- const tasks=useQuery({queryKey:['live-housekeeping',hotelId,page],queryFn:()=>listHousekeepingTasks(page)});
+ const [statusFilter,setStatusFilter]=useState<HousekeepingStatus|''>('');
+ const [typeFilter,setTypeFilter]=useState<HousekeepingType|''>('');
+ const [textFilter,setTextFilter]=useState('');
+ const filter:TaskFilter={...(statusFilter?{status:statusFilter}:{}),...(typeFilter?{type:typeFilter}:{})};
+ const tasks=useQuery({
+  queryKey:['live-housekeeping',hotelId,page,statusFilter,typeFilter],
+  enabled:!!hotelId,
+  queryFn:async()=>parseLiveHousekeeping(await listHousekeepingTasks(page,20,filter),hotelId!),
+  retry:false,
+ });
  const rooms=useLiveRooms({page:1,perPage:100});
  const [selected,setSelected]=useState<LiveHousekeepingTask|null>(null);
  const [form,setForm]=useState<FormState|null>(null);
@@ -46,6 +57,7 @@ export function LiveHousekeeping(){
  });
  useEffect(()=>{
   setPage(1);setSelected(null);setForm(null);setError('');setHistoryOpen(false);
+  setTextFilter('');setStatusFilter('');setTypeFilter('');
  },[hotelId]);
  const openCreate=()=>{setSelected(null);setForm(empty());setError('');setFieldErrors({});setHistoryOpen(false);};
  const openEdit=(task:LiveHousekeepingTask)=>{
@@ -60,18 +72,23 @@ export function LiveHousekeeping(){
   if(!(admin||assigned)||!form||saving)return;
   setSaving(true);setError('');setFieldErrors({});
   try{
-   if(selected)await updateHousekeepingTask(selected.id,admin?{
+   if(selected)parseUpdatedHousekeeping(await updateHousekeepingTask(selected.id,admin?{
     expectedRevision:selected.revision,status:form.status,
     assignedTo:form.assignedTo.trim()||null,assignedUserId:form.assignedUserId||null,
     dueAt:formatDue(form.dueAt),note:form.note.trim()||null,
-   }:{expectedRevision:selected.revision,status:form.status,note:form.note.trim()||null});
+   }:{expectedRevision:selected.revision,status:form.status,note:form.note.trim()||null}),hotelId!,selected.id);
    else await createHousekeepingTask({
     roomId:form.roomId,type:form.type,assignedTo:form.assignedTo.trim()||null,
     assignedUserId:form.assignedUserId||null,dueAt:formatDue(form.dueAt),note:form.note.trim()||null,
    });
-   await client.invalidateQueries({queryKey:['live-housekeeping',hotelId]});
-   await client.invalidateQueries({queryKey:['housekeeping-history',hotelId]});
+   if(readSession().hotelId!==hotelId)return;
    setPage(1);close();
+   // Failed cache refresh must not make an already committed update look failed.
+   void Promise.all([
+    client.invalidateQueries({queryKey:['live-housekeeping',hotelId]}),
+    client.invalidateQueries({queryKey:['housekeeping-history',hotelId]}),
+    client.invalidateQueries({queryKey:['live','front-desk','manifest',hotelId]}),
+   ]).catch(()=>{});
   }catch(caught){
    if(caught instanceof ApiError){
     setFieldErrors(caught.fieldErrors??{});
@@ -80,6 +97,9 @@ export function LiveHousekeeping(){
   }finally{setSaving(false);}
  }
  const data=tasks.data?.data??[];
+ const matchText=textFilter.trim().toLocaleLowerCase();
+ const filtered=data.filter(task=>!matchText||[task.roomNumber,task.type,task.status,task.assignedTo??'',task.id]
+  .some(value=>value.toLocaleLowerCase().includes(matchText)));
  const canUpdate=(task:LiveHousekeepingTask)=>admin||(role==='housekeeping'&&task.assignedUserId===user?.id);
  const maySave=admin||(!!selected&&canUpdate(selected));
  return <>
@@ -93,8 +113,23 @@ export function LiveHousekeeping(){
    <div><History size={20}/><span>All saved tasks</span><strong>{tasks.data?.meta.total??'—'}</strong></div>
   </div>
   <Panel title="Cleaning tasks" action={<button type="button" className="btn-inline" onClick={()=>void tasks.refetch()}><RefreshCcw size={15}/> Refresh</button>}>
-   <QueryFeedback loading={tasks.isPending} error={tasks.error} empty={!!tasks.data&&data.length===0}/>
-   {data.length>0&&<div className="mnt-order-grid">{data.map(task=><article className="mnt-order" key={task.id}>
+   <div className="hk-toolbar">
+    <label>Status <select aria-label="Filter saved task status" value={statusFilter}
+     onChange={e=>{setStatusFilter(e.target.value as HousekeepingStatus|'');setPage(1);close();}}>
+      <option value="">All statuses</option>
+      {(['todo','in_progress','done'] as const).map(status=><option key={status} value={status}>{status.replaceAll('_',' ')}</option>)}
+    </select></label>
+    <label>Task type <select aria-label="Filter saved task type" value={typeFilter}
+     onChange={e=>{setTypeFilter(e.target.value as HousekeepingType|'');setPage(1);close();}}>
+      <option value="">All types</option>
+      {taskTypes.map(type=><option key={type} value={type}>{type.replaceAll('_',' ')}</option>)}
+    </select></label>
+    <label>Search current page <input aria-label="Search current task page" value={textFilter}
+     onChange={e=>setTextFilter(e.target.value)}/></label>
+   </div>
+   <p className="hk-notice">Status and task type filters run on Laravel. Text search filters the current page only. Counts describe the visible page, not all hotel rooms.</p>
+   <QueryFeedback loading={tasks.isPending} error={tasks.error} empty={!!tasks.data&&filtered.length===0}/>
+   {filtered.length>0&&<div className="mnt-order-grid">{filtered.map(task=><article className="mnt-order" key={task.id}>
     <div className="mnt-order-top"><strong>HK-{task.id}</strong><span className="status">{task.status.replaceAll('_',' ')}</span></div>
     <h3>Room {task.roomNumber}</h3>
     <p>{task.type.replaceAll('_',' ')} · Assigned: {task.assignedUserId?(admin?staff.data?.data.find(m=>m.userId===task.assignedUserId)?.name??('Staff #'+task.assignedUserId):task.assignedUserId===user?.id?'You':'Linked staff #'+task.assignedUserId):task.assignedTo??'Unassigned'}</p>

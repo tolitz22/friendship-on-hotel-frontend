@@ -43,7 +43,7 @@ describe('Phase 10 hotel-scoped policy drafts',()=>{
   expect(new URL(fetchMock.mock.calls[0][0] as string).pathname)
    .toBe('/api/v1/hotels/3/reservation-policy-draft/history');
   setSessionHotel(null);
-  await expect(getReservationPolicyHistory()).rejects.toThrow('Choose a hotel');
+  expect(()=>getReservationPolicyHistory()).toThrow('Choose a hotel');
  });
 });
 

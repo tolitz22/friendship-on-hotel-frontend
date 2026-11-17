@@ -104,10 +104,9 @@ export function OccupancyVerification(){
   setSaving(true);setError('');setMessage('');
   try{
    // Local hotel date is the same basis as the existing front desk date helper.
-   const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
-   const part=(type:string)=>parts.find(value=>value.type===type)?.value??'';
-   const now=part('year')+'-'+part('month')+'-'+part('day');
-   await assignOccupancy(hotelId,{roomId,assignedUserId:assignee,inspectionDate:now});
+   const hotelDate=checks.data?.meta.hotelDate;
+   if(!hotelDate)throw new Error('Load the hotel verification list before assigning inspections.');
+   await assignOccupancy(hotelId,{roomId,assignedUserId:assignee,inspectionDate:hotelDate});
    if(readSession().hotelId!==hotelId)return;
    setMessage('Daily check assigned.');setRoomId('');setAssignee('');refresh();
   }catch(e){setError(e instanceof Error?e.message:'Unable to assign room check.');}

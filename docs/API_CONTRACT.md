@@ -97,3 +97,24 @@ No frontend mutation flow for rate policies, payments, adjustments or refunds ha
 The implemented Laravel endpoint is `GET /hotels/{hotel}/front-desk/manifest` with `date`, `kind=arrivals|departures|in_house`, `page` and `per_page`. The frontend now uses it in API mode via `src/api/liveFrontDesk.ts` and `src/pages/LiveFrontDesk.tsx`. Unlike the earlier hypothetical `/front-desk/board` response, the real manifest provides a **paginated flat list** of reservation identity, nullable guest name/assigned room, dates and lifecycle status, plus `determinesHousekeepingReadiness:false`. The mock board contract stays available solely in mock mode.
 
 In API mode the Front Desk page has three independent live queues, property-scoped query keys, pagination and local search of the current page. There is no API-to-mock fallback and no live check-in or checkout mutation. Other modules still follow their explicit mock/live split. See `docs/FRONT_DESK.md` for precise behavior.
+
+
+## Frontend Phase 30 — Live reservation records, availability and rate quote preview
+
+With `VITE_DATA_SOURCE=api`, `src/pages/Reservations.tsx` renders `LiveReservations`; mock mode continues to use the original calendar, reservation detail and non-persistent booking wizard. `src/api/liveReservations.ts` validates these **implemented** Laravel hotel-scoped read endpoints using Zod:
+
+```http
+GET /hotels/{hotel}/reservation-records?page=1&per_page=20
+GET /hotels/{hotel}/room-types
+GET /hotels/{hotel}/rate-plans
+GET /hotels/{hotel}/room-type-availability?roomTypeId=...&checkIn=YYYY-MM-DD&checkOut=YYYY-MM-DD
+GET /hotels/{hotel}/room-quotes?roomTypeId=...&ratePlanId=...&checkIn=YYYY-MM-DD&checkOut=YYYY-MM-DD
+```
+
+The reservation list is **structural** and paginated: `id`, `hotelId`, `reference`, `roomTypeId`, nullable `assignedRoomId`, date range, nullable/legacy `lifecycleState`. It does NOT contain a guest name, price, room name or booking eligibility. Do not map it to the richer demo `Reservation` type or show the old mock calendar in live mode. Local search filters only the currently loaded page, and server totals are displayed.
+
+Availability returns dated physical-room capacity, reserved and maintenance-blocked counts and a momentary `canBook` for the entire stay. It is **not a room hold**, does not certify housekeeping, and may change before booking creation. The quote returns a fixed-rate **room subtotal only**, never final payable amount or paid balance; taxes, fees, deposits and discount computation are excluded. The UI explicitly warns about these limitations. Quote and inventory are separate requests, so one may fail while the other succeeds.
+
+All queries use the selected authenticated hotel ID in their TanStack Query keys; invalid responses and HTTP failures are exposed rather than falling back to mock data. The preview is read-only: there is **no live booking submission, cancellation, payment, rate edit, or check-in/out action**.
+
+Tests: `src/api/liveReservations.test.ts` covers schema validity, per-hotel identity, stay range, nightly blocks, quote identity and nonfinal financial flags. Validate with `npm ci && npm run typecheck && npm test && npm run build`, plus a real browser session against the migrated Laravel backend. Actual CI/test success is not confirmed in this repository write session.

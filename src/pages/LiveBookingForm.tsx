@@ -4,6 +4,7 @@ import type {FormEvent} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {AlertTriangle,CheckCircle2,UserPlus,CalendarDays,BedDouble,ArrowRight,ArrowLeft,ShieldCheck,RefreshCw} from 'lucide-react';
 import {QuickGuestDialog} from '../components/QuickGuestDialog';
+import {BookingGuestPicker} from '../components/BookingGuestPicker';
 import type {Guest} from '../api/types';
 import {useGuests} from '../api/queries';
 import {getLiveRooms} from '../api/liveCatalog';
@@ -98,7 +99,6 @@ export function LiveBookingForm(){
  const guest=guests.data?.data.find(item=>item.id===selection.guestId)
   ??(createdGuest?.id===selection.guestId?createdGuest:undefined)
   ??(linkedGuest.isSuccess&&usingLinkedGuest?linkedGuest.data:undefined);
- const selectedIsOutsidePage=!!guest&&!guests.data?.data.some(item=>item.id===guest.id);
  const rate=activeRates.find(item=>item.id===selection.ratePlanId);
  const valid=!!guest&&!!rate&&validLiveStay(selection)&&selection.checkIn>=hotelToday();
  const samePreview=checked!==null&&checked.guestId===selection.guestId
@@ -207,13 +207,9 @@ export function LiveBookingForm(){
        <div className="rb-section">
         <div className="rb-section-heading"><div><span className="rb-section-number">1</span><h4>Guest</h4></div>
          {admin&&<button type="button" className="rb-add-guest" disabled={locked} onClick={()=>setShowQuickGuest(true)}><UserPlus size={15}/> Add new guest</button>}</div>
-        <label htmlFor="book-guest" className="rb-label">Select a guest</label>
-        <select id="book-guest" className="wizard-input" required value={selection.guestId}
-         onChange={event=>edit('guestId',event.target.value)}>
-         <option value="">Choose a guest…</option>
-         {guests.data.data.map(item=><option key={item.id} value={item.id}>{item.firstName} {item.lastName}</option>)}
-         {selectedIsOutsidePage&&guest&&<option value={guest.id}>{guest.firstName} {guest.lastName} · Selected guest</option>}
-        </select>
+        <span className="rb-label" id="book-guest-label">Select a guest</span>
+        <BookingGuestPicker key={hotelId??'none'} value={selection.guestId}
+         selectedGuest={guest} disabled={locked} onChange={id=>edit('guestId',id)}/>
         {usingLinkedGuest&&linkedGuest.isError&&<small role="alert">Could not verify this guest. Select another guest.</small>}
         <p className="rb-hint">Don't see the guest? <Link to="/guests">Search guest directory</Link> or ask a manager to add a new guest.</p>
        </div>

@@ -13,6 +13,7 @@ import {readSession} from '../api/session';
 import {ApiError} from '../api/http';
 import {useReadinessPolicy} from '../api/readinessEnforcementPolicy';
 import {useLiveReadiness} from '../api/liveRoomReadiness';
+import {useBookingTurnover} from '../api/liveBookingTurnover';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
@@ -38,6 +39,7 @@ export function LiveReservationOperations({record,onClose}:{
  const history=useLiveReservationHistory(record,historyPage);
  const readinessPolicy=useReadinessPolicy();
  const readiness=useLiveReadiness(record.assignedRoomId);
+ const turnover=useBookingTurnover(record.id,record.lifecycleState==='checked_out');
  const room=rooms.data?.data.find(r=>r.id===roomId);
  const activeBlock=blocks.data
   ?hasActiveStayBlock(blocks.data.data,record):false;
@@ -61,6 +63,7 @@ export function LiveReservationOperations({record,onClose}:{
   await Promise.all([
    client.invalidateQueries({queryKey:['live','reservation-records',hotel]}),
    client.invalidateQueries({queryKey:['live','reservation-detail',hotel,record.id]}),
+   client.invalidateQueries({queryKey:['live','booking-turnover',hotel,record.id]}),
    client.invalidateQueries({queryKey:['live','front-desk','manifest',hotel]}),
    client.invalidateQueries({queryKey:['live','availability',hotel]}),
    client.invalidateQueries({queryKey:['live','assignable-rooms',hotel]}),
@@ -208,8 +211,14 @@ export function LiveReservationOperations({record,onClose}:{
    </div>}
   </section>
   {record.lifecycleState==='checked_out'&&<div className="task-next-step">
-   <p><strong>Next step: housekeeping turnover.</strong> Checkout creates a cleaning task in Laravel. Open the queue to assign or complete work; task completion does not independently verify room readiness.</p>
-   <Link to="/housekeeping">Open cleaning tasks <ArrowRight size={15}/></Link>
+   <p><strong>Next step: housekeeping turnover.</strong> Open the cleaning task created by checkout. Task completion does not independently certify room readiness.</p>
+   <QueryFeedback loading={turnover.isPending} error={turnover.error}
+    onRetry={()=>void turnover.refetch()}/>
+   {turnover.data?.task
+    ?<Link to="/housekeeping" search={{task:turnover.data.task.id}}>
+      Open checkout task #{turnover.data.task.id} <ArrowRight size={15}/>
+     </Link>
+    :<Link to="/housekeeping">Open cleaning queue <ArrowRight size={15}/></Link>}
   </div>}
   {error&&<p role="alert" className="auth-error"><AlertTriangle size={16}/> {
    error

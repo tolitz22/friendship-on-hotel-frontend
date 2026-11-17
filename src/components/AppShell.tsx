@@ -6,6 +6,7 @@ import {dataMode} from '../api';
 import {useHotelAuth} from './AuthProvider';
 import {StaffSignIn} from './StaffSignIn';
 import {HotelChooser} from './HotelChooser';
+import {selectedRole,navigationForRole} from '../features/workspaces/roleNavigation';
 
 const daily=[
  {to:'/' as const,label:'Overview',icon:LayoutDashboard},
@@ -48,7 +49,9 @@ export function AppShell(){
  const [showAdvanced,setShowAdvanced]=useState(false);
  const pathname=useRouterState({select:s=>s.location.pathname});
  const current=all.find(item=>item.to===pathname)?.label??'Overview';
- const admin=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
+ const role=selectedRole(user?.hotels,hotelId);
+ const workspace=navigationForRole(role);
+ const admin=role==='admin';
  useEffect(()=>{setOpen(false);},[pathname,hotelId]);
  if(dataMode==='api'&&!user&&['/forgot-password','/reset-password','/accept-invitation'].includes(pathname))return <Outlet/>;
  if(dataMode==='api'&&pending&&!user)
@@ -59,7 +62,10 @@ export function AppShell(){
 
  const renderNav=(items:readonly NavItem[])=>items
   .filter(item=>dataMode==='api'||!['/change-password','/staff'].includes(item.to))
-  .filter(item=>!['/staff','/operational-exceptions'].includes(item.to)||admin)
+  .filter(item=>dataMode!=='api'||(
+   items===daily?workspace.daily.includes(item.to):
+   items===administration?workspace.management.includes(item.to):
+   workspace.advanced.includes(item.to)))
   .map(({to,label,icon:Icon})=><Link key={to} to={to} activeOptions={{exact:true}}
    aria-current={pathname===to?'page':undefined}
    className={'nav-link'+(pathname===to?' active':'')}>
@@ -74,11 +80,11 @@ export function AppShell(){
     <button className="close-mobile" aria-label="Close menu" onClick={()=>setOpen(false)}><X size={20}/></button>
    </div>
    <nav aria-label="Hotel workspace navigation" className="workspace-nav">
-    <p className="nav-heading">DAILY OPERATIONS</p>
+    <p className="nav-heading">{dataMode==='api'?workspace.label.toUpperCase()+' WORKSPACE':'DAILY OPERATIONS'}</p>
     {renderNav(daily)}
-    <p className="nav-heading nav-section">MANAGEMENT</p>
+    <p className="nav-heading nav-section">{admin||dataMode==='mock'?'MANAGEMENT':'ACCOUNT'}</p>
     {renderNav(administration)}
-    {dataMode==='api'&&<>
+    {dataMode==='api'&&workspace.advanced.length>0&&<>
      <button type="button" className="nav-link nav-expand" aria-expanded={showAdvanced||advanced.some(item=>item.to===pathname)}
       onClick={()=>setShowAdvanced(v=>!v)}>
       <ChevronDown size={17} className={showAdvanced?'nav-chevron-open':''}/>
@@ -91,7 +97,7 @@ export function AppShell(){
    </nav>
    <div className="sidebar-footer"><div className="avatar">FO</div>
     <div><strong>{dataMode==='api'?user?.name:'Demo workspace'}</strong>
-     <span>{dataMode==='api'?'Staff workspace':'Design preview only'}</span>
+     <span>{dataMode==='api'?workspace.label+' workspace':'Design preview only'}</span>
     </div>
    </div>
   </aside>
@@ -119,11 +125,13 @@ export function AppShell(){
    </header>
    {dataMode==='api'&&<div className="workflow-shortcuts" aria-label="Quick actions">
     <span>QUICK ACTIONS</span>
-    <Link to="/front-desk">Today's front desk <ArrowRight size={13}/></Link>
-    <Link to="/reservations">Manage bookings <ArrowRight size={13}/></Link>
-    <Link to="/room-calendar">Room calendar <ArrowRight size={13}/></Link>
-    <Link to="/housekeeping">Cleaning tasks <ArrowRight size={13}/></Link>
+    {(role==='admin'||role==='front_desk')&&<Link to="/front-desk">Today's front desk <ArrowRight size={13}/></Link>}
+    {role==='admin'&&<Link to="/reservations">Manage bookings <ArrowRight size={13}/></Link>}
+    {(role==='admin'||role==='front_desk')&&<Link to="/room-calendar">Room calendar <ArrowRight size={13}/></Link>}
+    {(role==='admin'||role==='housekeeping'||role==='maintenance')&&<Link to="/housekeeping">Cleaning tasks <ArrowRight size={13}/></Link>}
     <Link to="/rooms">Room readiness <ArrowRight size={13}/></Link>
+    {role==='maintenance'&&<Link to="/maintenance">Work orders <ArrowRight size={13}/></Link>}
+    {admin&&<Link to="/operational-exceptions">Exceptions & audit <ArrowRight size={13}/></Link>}
    </div>}
    <div className="page-content"><Outlet/></div>
   </main>

@@ -454,3 +454,11 @@
 .catalog-field-error{font-size:12px;color:#cf4439;margin:12px 0 0}
 .guest-modal .guest-fields select{border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface);color:var(--text);font-weight:400;min-width:0}
 @media(max-width:620px){.catalog-actions{width:100%}.catalog-actions button{flex:1}}
+
+/* Phase 8 catalogue edit audit history */
+.catalog-audit-section{border-top:1px solid var(--border);margin-top:20px;padding-top:16px}
+.catalog-audit-section>button{display:inline-flex;align-items:center;gap:8px}
+.catalog-audit-events{margin-top:12px;max-height:240px;overflow-y:auto}
+.catalog-audit-events article{padding:11px 0;border-bottom:1px solid var(--border);font-size:12px;overflow-wrap:anywhere}
+.catalog-audit-events article strong{font-size:12px}
+.catalog-audit-events article p{margin:4px 0;color:var(--muted)}

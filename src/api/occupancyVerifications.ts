@@ -17,7 +17,7 @@ const item=z.object({
  reviewedAt:z.string().nullable(),createdAt:z.string(),
 });
 const list=z.object({data:z.array(item),meta:z.object({page:z.number().int().positive(),
- perPage:z.number().int().positive(),total:z.number().int().nonnegative(),totalPages:z.number().int().nonnegative()})});
+ perPage:z.number().int().positive(),total:z.number().int().nonnegative(),totalPages:z.number().int().nonnegative(),hotelDate:z.iso.date()})});
 export type OccupancyVerification=z.infer<typeof item>;
 export function parseOccupancyList(value:unknown,hotelId:string){
  const result=list.parse(value);

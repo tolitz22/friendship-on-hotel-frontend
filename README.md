@@ -130,3 +130,7 @@ In `VITE_DATA_SOURCE=api`, Housekeeping now reads and manages real Laravel room-
 ## Phase 15 — Hotel Staff and Linked Task Permissions
 
 In API mode, hotel administrators now have a **Hotel staff** directory to attach existing accounts, choose roles, activate/deactivate memberships and review audit history. Admins can assign actual user accounts on maintenance and housekeeping tasks; assigned staff can update only their own task status and notes. Legacy free-text assignees never grant permission. Mock mode remains unchanged. See [Phase 15](docs/PHASE_15_STAFF_PERMISSIONS.md).
+
+## Phase 16 — Password Recovery and Account Security
+
+In API mode, staff can request reset emails, redeem reset links, and change their own password from **Change password**. Password changes revoke all backend tokens and sign the browser out. The original memory-only bearer authentication remains for development, pending a separate production-ready Sanctum cookie/CSRF setup. See [Phase 16](docs/PHASE_16_STAFF_PASSWORD_SECURITY.md).

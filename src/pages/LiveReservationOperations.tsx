@@ -67,6 +67,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  async function refresh(hotel:string){
   await Promise.all([
    client.invalidateQueries({queryKey:['live','reservation-records',hotel]}),
+   client.invalidateQueries({queryKey:['live','room-calendar',hotel]}),
    client.invalidateQueries({queryKey:['live','reservation-detail',hotel,record.id]}),
    client.invalidateQueries({queryKey:['live','booking-turnover',hotel,record.id]}),
    client.invalidateQueries({queryKey:['live','front-desk','manifest',hotel]}),

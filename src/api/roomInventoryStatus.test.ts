@@ -4,9 +4,10 @@ import {cleaningLabel,occupancyLabel,parseRoomInventoryStatus} from './roomInven
 const item={
  roomId:'10',roomNumber:'201',occupancy:'vacant',activeStayId:null,
  cleaning:'checkout_cleaning',turnoverTaskId:'56',turnoverStatus:'todo',
- assignedHousekeeperId:null,cleanedById:null,cleanedAt:null,
- inspectionId:null,inspectionStatus:null,inspectedById:null,inspectedAt:null,
- reviewedById:null,reviewedAt:null,advisoryReady:false,
+ assignedHousekeeperId:null,assignedHousekeeperName:null,
+ cleanedById:null,cleanedByName:null,cleanedAt:null,
+ inspectionId:null,inspectionStatus:null,inspectedById:null,inspectedByName:null,inspectedAt:null,
+ reviewedById:null,reviewedByName:null,reviewedAt:null,advisoryReady:false,
  maintenanceBlocked:false,inventoryBlockedToday:false,
 } as const;
 const response={data:[item],meta:{

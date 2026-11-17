@@ -152,3 +152,45 @@ npm run build
 Against a migrated Laravel test/staging backend, confirm admin creation, backend 403 for nonadmins, 409 for no inventory, 404 for wrong-property guest/rate, identical retry (one reservation/folio), conflict on a reused key with different fields, property switch, network timeout after server commit, and subsequent inventory/manifest updates. The current GitHub write environment has **not run** the frontend test/build suite or cross-service browser acceptance tests.
 
 **Still excluded:** taxes, final payable amount, real money handling, refunds, guest identity verification, room assignment, automated check-in/out, housekeeping readiness and user-facing customer booking.
+
+
+## Frontend Phase 32 — Room assignment, lifecycle operations and real audit history
+
+In `VITE_DATA_SOURCE=api`, the saved reservation list can open `LiveReservationOperations` for a selected real structural reservation. The existing mock-mode reservation calendar/detail/wizard are unchanged. The frontend uses `src/api/liveReservationOperations.ts` with Zod-validated, hotel-scoped calls to these **implemented** Laravel endpoints:
+
+```http
+GET   /hotels/{hotel}/rooms?page=1&per_page=100
+GET   /hotels/{hotel}/inventory-blocks?roomId=123&per_page=100
+PATCH /hotels/{hotel}/bookings/{booking}/assign-room
+POST  /hotels/{hotel}/bookings/{booking}/check-in
+POST  /hotels/{hotel}/bookings/{booking}/check-out
+GET   /hotels/{hotel}/bookings/{booking}/history?page=1&per_page=20
+```
+
+The last `/history` read-only endpoint is a **small Phase 32 backend support addition** (`ReservationHistoryController`); it returns scoped booking events in descending event-ID order, with event type, previous/new state, actor ID, recorded timestamp, and paging metadata. It does not claim readiness, transaction settlement, or a complete financial history. Backend test: `ReservationHistoryPhase32Test`.
+
+Only the selected hotel's authenticated admins see mutation controls. Laravel `hotel.admin` remains authoritative; the history read requires an active hotel member. Staff select a physical room from the server-side paginated room catalogue filtered locally to the booking's room type. Room-block history is also consulted; incomplete block pagination prevents assignment from this UI, and overlapping active blocks disable the button. **Neither list guarantees eligibility**; Laravel rechecks assignment collisions and current room blocks in its transaction. Physical room assignment can be changed for `confirmed` reservations only.
+
+Check-in requires an assigned room and hotel-calendar date within the scheduled stay, excluding departure. Check-out requires `checked_in` and hotel-calendar date on or after checkout. The UI requires a staff acknowledgement for identity/room-readiness or departure follow-up; this acknowledgement is **not stored or verified by the backend**. Laravel rechecks status, assignment, collisions, block dates and hotel-local timing; these are the authoritative rules. Successful checkout creates a `checkout_clean` housekeeping task **on the backend**, but task completion, maintenance readiness, guest identity and monetary settlement remain separate workflows.
+
+The UI validates hotel/booking/room/status identities on mutation responses, never retries irreversible mutations automatically, shows API/409/403 errors, and refreshes reservation records, front desk manifests, inventory, rooms and history after successful operations. A cache refresh failure never implies a committed operation failed. The frontend suppresses results after a property switch and never quietly falls back to demo records.
+
+### Verification
+
+```bash
+# frontend
+git pull origin main
+npm ci
+npm run typecheck
+npm test
+npm run build
+
+# backend
+git pull origin main
+php artisan test --filter=ReservationHistoryPhase32Test
+php artisan test
+```
+
+Use an isolated migrated backend and authorized member/admin accounts. Test full room catalogues, real room conflicts, overlapping maintenance blocks, 409 stale-state errors, early checkout, duplicate check-in, property switches and the resulting turnover task. **Tests/build and browser acceptance have not been confirmed passing in this environment.**
+
+**Still outside Phase 32:** audit filtering by a specific actor and financial charge/refund ledger, verified housekeeping readiness, guest ID workflow, early checkout settlement/amendments, physical key distribution, and public booking.

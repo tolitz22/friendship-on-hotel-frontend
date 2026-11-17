@@ -1,6 +1,6 @@
 import type {ReactNode} from 'react';
 import {useMemo,useState} from 'react';
-import {Activity,BarChart3,BedDouble,CalendarDays,ClipboardCheck,Download,Wallet,Wrench} from 'lucide-react';
+import {Activity,BedDouble,CalendarDays,ClipboardCheck,Download,Wallet,Wrench} from 'lucide-react';
 import {useReports} from '../api/queries';
 import {DemoNotice,Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
@@ -57,7 +57,7 @@ export function Reports(){
    <div className="report-metrics">
     <Metric title="Arriving reservations" value={String(data.totalArrivals)} subtitle="Check-in within selected dates" icon={<CalendarDays size={19}/>}/>
     <Metric title="Booking value" value={peso(data.bookingValueMinor)} subtitle="Non-cancelled arrivals; NOT revenue" icon={<Wallet size={19}/>}/>
-    <Metric title="Rooms occupied" value={String(data.roomSnapshot.occupied)+' / '+data.roomSnapshot.total} subtitle={'Snapshot: '+dateLabel(q.data.meta.roomSnapshotAsOf)} icon={<BedDouble size={19}/>}/>
+    <Metric title="Rooms occupied" value={String(data.roomSnapshot.occupied)+' / '+data.roomSnapshot.total} subtitle={'Snapshot: '+dateLabel(q.data?.meta.roomSnapshotAsOf??'')} icon={<BedDouble size={19}/>}/>
     <Metric title="Maintenance reported" value={String(data.maintenance.reported)} subtitle="Work orders opened in date range" icon={<Wrench size={19}/>}/>
    </div>
    <div className="report-panels">

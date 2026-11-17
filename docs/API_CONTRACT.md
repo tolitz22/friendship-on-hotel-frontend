@@ -194,3 +194,35 @@ php artisan test
 Use an isolated migrated backend and authorized member/admin accounts. Test full room catalogues, real room conflicts, overlapping maintenance blocks, 409 stale-state errors, early checkout, duplicate check-in, property switches and the resulting turnover task. **Tests/build and browser acceptance have not been confirmed passing in this environment.**
 
 **Still outside Phase 32:** audit filtering by a specific actor and financial charge/refund ledger, verified housekeeping readiness, guest ID workflow, early checkout settlement/amendments, physical key distribution, and public booking.
+
+
+## Frontend Phase 33 — Live housekeeping and checkout turnover
+
+In API mode, the Housekeeping page now renders the already-existing Laravel-connected \`LiveHousekeeping\` component; mock mode retains its original simulated board. Live task creation, assignment to eligible housekeeping staff, revisioned status updates, notes, task history and checkout-generated \`checkout_clean\` tasks are now accessible through the main navigation.
+
+Hotel-scoped backend routes:
+
+\`\`\`http
+GET /hotels/{hotel}/housekeeping-tasks?page=1&per_page=20&status=todo&type=checkout_clean
+POST /hotels/{hotel}/housekeeping-tasks
+PATCH /hotels/{hotel}/housekeeping-tasks/{task}
+GET /hotels/{hotel}/housekeeping-tasks/{task}/history?page=1&per_page=20
+GET /hotels/{hotel}/maintenance-work-orders?page=1&per_page=100
+\`\`\`
+
+\`liveHousekeeping.ts\` validates actual task responses, tenant ID, revision and \`determinesRoomReadiness:false\` using Zod. Backend filtering supports task status/type, and text search operates on the current page only. Task history now supports server pagination, with actor IDs and timestamps. Administrators can create and manage tasks; active assigned housekeeping employees can change their own task status/note only. Laravel enforces permissions and \`expectedRevision\`; 409 conflicts require reloading current task state, not overwriting another employee. A successful write is not treated as failed just because the cache could not refresh.
+
+The live editor also reads first-page maintenance work orders for the selected room. If the total exceeds the first 100 orders, the UI warns the list is incomplete. A maintenance \`affectsRoom\` flag does NOT create an inventory block, and absence of a work-order match does NOT verify readiness.
+
+Finishing a cleaning task does **not** certify housekeeping inspection, guest safety, available inventory or room readiness; it never changes reservation state, active inventory blocks or payments. Checkout already creates a linked \`checkout_clean\` task in Laravel.
+
+Verification (not yet performed in this environment):
+\`\`\`bash
+git pull origin main
+npm ci
+npm run typecheck
+npm test
+npm run build
+\`\`\`
+
+Browser acceptance should test admin vs assigned housekeeping member, revision conflict between tabs, cross-hotel scope, server filters, pagination, maintenance warning, and checkout-created turnover. Next: live Maintenance workflow activation and explicit audited physical-room readiness policy.

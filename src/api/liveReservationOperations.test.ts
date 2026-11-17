@@ -1,7 +1,7 @@
 import {describe,expect,it} from 'vitest';
 import {
  allowedOperation,hasActiveStayBlock,parseAssignment,parseBlocks,parseHistory,
- parseRooms,parseTransition,
+ parseRooms,parseRoomChoices,parseTransition,
 } from './liveReservationOperations';
 import type {LiveRecord} from './liveReservations';
 
@@ -34,6 +34,25 @@ const history={
 };
 
 describe('Phase 32 room assignment and lifecycle contracts',()=>{
+
+ it('accepts scoped, paged room choices and refuses cross-booking or stale-night advice',()=>{
+  const choices={
+   data:[
+    {id:'11',number:'101',floor:1,roomTypeId:'7',status:'available',reason:null,current:false},
+    {id:'12',number:'102',floor:1,roomTypeId:'7',status:'unavailable',reason:'reservation_conflict',current:false},
+    {id:'13',number:'103',floor:1,roomTypeId:'7',status:'unavailable',reason:'maintenance_block',current:false},
+   ],
+   meta:{hotelId:'4',bookingId:'33',roomTypeId:'7',roomTypeName:'Standard',
+    currentRoomNumber:null,checkIn:'2026-12-10',checkOut:'2026-12-12',
+    page:1,perPage:24,total:3,totalPages:1,advisoryOnly:true,readinessVerified:false},
+  };
+  expect(parseRoomChoices(choices,'4',booking).data[0].status).toBe('available');
+  expect(()=>parseRoomChoices({...choices,meta:{...choices.meta,hotelId:'5'}},'4',booking)).toThrow(/stale/);
+  expect(()=>parseRoomChoices({...choices,meta:{...choices.meta,bookingId:'99'}},'4',booking)).toThrow(/stale/);
+  expect(()=>parseRoomChoices({...choices,meta:{...choices.meta,checkOut:'2026-12-13'}},'4',booking)).toThrow(/stale/);
+  expect(()=>parseRoomChoices({...choices,data:[{...choices.data[0],roomTypeId:'8'}]},'4',booking)).toThrow(/stale/);
+  expect(()=>parseRoomChoices({...choices,meta:{...choices.meta,readinessVerified:true}},'4',booking)).toThrow();
+ });
  it('filters physical rooms by room type and rejects another hotel',()=>{
   const parsed=parseRooms(rooms,'4','7');
   expect(parsed.data.map(r=>r.id)).toEqual(['1']);

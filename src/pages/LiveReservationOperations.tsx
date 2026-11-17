@@ -2,7 +2,7 @@ import {useEffect,useRef,useState} from 'react';
 import type {FormEvent} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 import {Link} from '@tanstack/react-router';
-import {AlertTriangle,CheckCircle2,ArrowRight,ClipboardCheck,DoorOpen,DoorClosed,BedDouble,KeyRound} from 'lucide-react';
+import {AlertTriangle,CheckCircle2,ArrowRight,ClipboardCheck,DoorOpen,DoorClosed,BedDouble} from 'lucide-react';
 import type {LiveRecord} from '../api/liveReservations';
 import {
  allowedOperation,assignLiveRoom,transitionLiveStay,
@@ -265,15 +265,6 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
     <p className="desk-muted">Acknowledgement is a UI confirmation only; the backend does not store independent identity/readiness attestations. Payments and refunds are not changed by these actions.</p>
    </section>
   </>}
-  {canOperate&&record.lifecycleState==='checked_in'&&record.assignedRoomId&&
-   <div className="task-next-step">
-    <KeyRound size={17}/>
-    <div><strong>Guest keycard authorization</strong>
-     <p className="desk-muted">Record a simulated keycard request for this checked-in reservation. No card is encoded.</p>
-     <Link to="/keycard-access" search={{booking:record.id}} className="btn-inline">
-      Open keycard requests <ArrowRight size={15}/></Link>
-    </div>
-   </div>}
   {(canOperate||manager)&&<details className="workflow-disclosure reservation-secondary-detail">
    <summary>Manager exceptions · Cancellation and date change requests</summary>
    <ReservationApprovalRequests key={hotelId+'-'+record.id}

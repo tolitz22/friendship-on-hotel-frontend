@@ -106,3 +106,7 @@ Admin users can now edit room numbers/floors/types from Room Inventory and room 
 ## Phase 9 — Reservation Demand Diagnostic
 
 In API mode, the sidebar now has a **Demand diagnostic** view for read-only, per-night room-type counts of stored Laravel reservation records. It is explicitly **not** an occupancy, sellable-availability, or booking API. Reservations and other operational screens remain mock previews. See [Phase 9](docs/PHASE_9_RESERVATION_DEMAND.md).
+
+## Phase 10 — Reservation Policy Drafts
+
+API mode now includes a **Booking policies** screen. Administrators can save versioned, hotel-scoped draft choices for inventory unit, room assignment, status consumption, pending holds, maintenance, overbooking, cancellations and rate policy. Revision conflicts return 409 and prior snapshots are available for review. **These decisions are not approved or effective for bookings, even if every choice is filled in.** No reservation mutation endpoint has been enabled. See [Phase 10](docs/PHASE_10_POLICY_DRAFTS.md).

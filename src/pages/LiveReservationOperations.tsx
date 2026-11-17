@@ -17,6 +17,7 @@ import {useBookingTurnover} from '../api/liveBookingTurnover';
 import {useHotelAuth} from '../components/AuthProvider';
 import {ReservationApprovalRequests} from '../components/ReservationApprovalRequests';
 import {EarlyCheckInRequest} from '../components/EarlyCheckInRequest';
+import {ReservationSpecialRequests} from '../components/ReservationSpecialRequests';
 import {Status} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {hotelToday} from '../features/reservations/calendarDate';
@@ -368,6 +369,13 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
   <section className="stay-secondary-area" aria-label="Additional reservation actions">
    <h3>More options &amp; history</h3>
    <p>Use these when you need to change the booking or review previous activity.</p>
+   <details className="stay-secondary-disclosure">
+    <summary>Special requests <span>Guest instructions and needs</span></summary>
+    <div className="stay-secondary-content">
+     <ReservationSpecialRequests bookingId={record.id}
+      canEdit={canOperate&&!isFinished}/>
+    </div>
+   </details>
    {(canOperate||manager)&&<details className="stay-secondary-disclosure">
     <summary>Cancellation or date change request <span>Manager approval required</span></summary>
     <div className="stay-secondary-content"><ReservationApprovalRequests

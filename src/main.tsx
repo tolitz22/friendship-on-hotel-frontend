@@ -26,7 +26,7 @@ import {Settings} from './pages/Settings';import './styles.css';
 const root=createRootRoute({component:AppShell});
 const index=createRoute({getParentRoute:()=>root,path:'/',component:dataMode==='api'?LiveDashboard:Dashboard});
 const reservations=createRoute({getParentRoute:()=>root,path:'/reservations',
- validateSearch:(value:Record<string,unknown>)=>({
+ validateSearch:(value:Record<string,unknown>):{booking?:string;guest?:string}=>({
   booking:typeof value.booking==='string'&&/^[1-9][0-9]*$/.test(value.booking)?value.booking:undefined,
   guest:typeof value.guest==='string'&&/^[1-9][0-9]*$/.test(value.guest)?value.guest:undefined,
  }),component:Reservations});
@@ -39,7 +39,7 @@ const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/guests',component:Guests}),
  createRoute({getParentRoute:()=>root,path:'/billing',component:Billing}),
  createRoute({getParentRoute:()=>root,path:'/housekeeping',
-  validateSearch:(value:Record<string,unknown>)=>({
+  validateSearch:(value:Record<string,unknown>):{task?:string}=>({
    task:typeof value.task==='string'&&/^[1-9][0-9]*$/.test(value.task)?value.task:undefined,
   }),component:dataMode==='api'?LiveHousekeeping:Housekeeping}),
  createRoute({getParentRoute:()=>root,path:'/maintenance',component:dataMode==='api'?LiveMaintenance:Maintenance}),

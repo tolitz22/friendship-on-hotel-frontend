@@ -103,3 +103,7 @@ Backend now provides throttled password reset-email, password reset and current-
 ## Phase 17 — Browser session authentication
 
 An optional first-party cookie-auth mode has been added. Unlike the earlier bearer-only development mode, React can restore the Laravel session after refresh, initialize `/sanctum/csrf-cookie`, and send `X-XSRF-TOKEN` on unsafe requests. Both repositories' environment settings must match; `VITE_AUTH_MODE=bearer` remains the default. See `docs/PHASE_17_SANCTUM_SPA_SESSIONS.md`.
+
+## Phase 18 — Staff invitations
+
+Laravel now supports one-use hashed hotel staff invitation tokens with 48-hour expiry, recipient password setup, and administrator revoke/list APIs. This requires the new `staff_invitations` migration and backend mail transport configuration. Existing-user attachments remain separate. See `docs/PHASE_18_STAFF_INVITATIONS.md`.

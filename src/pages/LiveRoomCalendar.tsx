@@ -92,7 +92,14 @@ export function LiveRoomCalendar(){
  const data=calendar.data?.data;
  const selectedBookings=selected&&data?data.bookings.filter(b=>b.roomId===selected.room.id
   &&(selected.bookingId?b.id===selected.bookingId:b.checkIn<=selected.day&&selected.day<b.checkOut)):[];
- const selectedBlocks=selected&&data?data.blocks.filter(b=>b.roomId===selected.room.id&&b.checkIn<=selected.day&&selected.day<b.checkOut):[];
+ const activeBooking=selected?.bookingId&&data
+  ?data.bookings.find(b=>b.id===selected.bookingId&&b.roomId===selected.room.id):undefined;
+ const selectedBlocks=selected&&data?data.blocks.filter(b=>b.roomId===selected.room.id
+  &&(activeBooking?b.checkIn<activeBooking.checkOut&&b.checkOut>activeBooking.checkIn
+   :b.checkIn<=selected.day&&selected.day<b.checkOut)):[];
+ const overlappingBookings=activeBooking&&data?data.bookings.filter(b=>
+  b.roomId===activeBooking.roomId&&b.id!==activeBooking.id
+  &&b.checkIn<activeBooking.checkOut&&b.checkOut>activeBooking.checkIn):[];
  const reservation=useLiveReservationDetail(selectedBookings.length===1?selectedBookings[0].id:null);
  const folio=useLiveFolioLedger(selectedBookings.length===1?selectedBookings[0].id:'');
  const meta=calendar.data?.meta;
@@ -318,7 +325,12 @@ export function LiveRoomCalendar(){
          <p>{dayText(block.checkIn,{month:'short',day:'numeric'})} – {dayText(block.checkOut,{month:'short',day:'numeric'})}</p>
         </div>)}
        </div>}
-       {selectedBookings.length+selectedBlocks.length>1&&<p className="lrc-modal-warning"><AlertTriangle size={17}/> Multiple assignments or blocks overlap. Review before changing inventory.</p>}
+       {(selectedBookings.length+selectedBlocks.length>1||overlappingBookings.length>0)&&
+        <div className="lrc-modal-warning" role="alert"><AlertTriangle size={17}/>
+         <div>Overlapping booking or maintenance records detected. Review before changing inventory.
+          {overlappingBookings.map(b=><p key={b.id}>{b.reference}: {b.checkIn} – {b.checkOut}</p>)}
+         </div>
+        </div>}
        {selected.day>=hotelToday()&&selectedBookings.length===0&&selectedBlocks.length===0&&<div className="lrc-stay-picker">
         <label htmlFor="room-departure">Check-out date</label>
         <input id="room-departure" type="date" value={departure}

@@ -91,3 +91,7 @@ API mode now renders `LiveMaintenance` with real Laravel work-order records, adm
 ## Phase 14 — Housekeeping live integration
 
 API-mode Housekeeping now uses Laravel tasks with revisioned admin changes and event history, preserving the earlier mock board only in mock mode. No room-readiness or occupancy side effect exists. See `docs/PHASE_14_LIVE_HOUSEKEEPING.md`.
+
+## Phase 15 — Hotel staff memberships
+
+Laravel supports hotel admin staff listing/attachment/role updates and staff audit records. Linked assignee IDs, not free-text names, grant restricted housekeeping/maintenance task status+note PATCH access. A new migration adds assignee user IDs and staff membership audit events. See `docs/PHASE_15_STAFF_PERMISSIONS.md`.

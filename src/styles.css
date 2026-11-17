@@ -1305,3 +1305,21 @@
 .special-request-form{display:grid;justify-items:start;gap:12px;padding:15px;background:var(--canvas);border:1px solid var(--border);border-radius:12px}
 .special-request-form label{display:grid;gap:6px;font-size:12px;font-weight:650;width:100%}
 .special-request-form textarea,.special-request-form select{max-width:100%;width:100%}
+
+
+/* Immutable manager review of a completed business day: never a financial close */
+.night-review-panel{display:grid;gap:15px;border:1px solid var(--border);border-radius:13px;padding:18px;margin:20px 0;background:var(--surface)}
+.night-review-header{display:flex;align-items:flex-start;gap:10px}
+.night-review-header>svg{flex-shrink:0;color:var(--accent)}
+.night-review-header h3{font-size:15px;margin:0 0 5px}
+.night-review-header p{font-size:12px;color:var(--muted);line-height:1.5;margin:0}
+.night-review-note{display:grid;gap:8px;font-size:12px;font-weight:650}
+.night-review-note textarea{width:100%}
+.night-review-ack{display:flex;align-items:flex-start;gap:10px;font-size:12px;line-height:1.6;color:var(--text)}
+.night-review-ack input{margin-top:4px;flex-shrink:0}
+.night-review-panel>.btn-primary{justify-self:start}
+.night-review-record{display:grid;gap:10px;border:1px solid #b6dfc6;border-radius:12px;padding:14px;background:#f1fcf4;color:#165d35}
+.night-review-record strong{display:flex;align-items:center;gap:9px;font-size:14px}
+.night-review-record p{margin:0;font-size:12px;line-height:1.6}
+.night-review-record small{font-size:11px;overflow-wrap:anywhere}
+@media(max-width:560px){.night-review-panel{padding:13px}.night-review-panel>.btn-primary{width:100%;justify-self:stretch}}

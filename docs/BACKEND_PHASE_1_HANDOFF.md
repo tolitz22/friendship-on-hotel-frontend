@@ -43,3 +43,7 @@ See backend `docs/RESERVATION_DOMAIN.md` and `docs/PHASE_2.md` for scope and inv
 ## Database compatibility decision (2026-11-17)
 
 The backend now targets both **MySQL 8.4 LTS (InnoDB)** and **PostgreSQL 16+**, selectable through the backend `DB_CONNECTION` environment setting. See backend `docs/DATABASE_COMPATIBILITY.md`. The React frontend is database-independent and stays in mock mode until contracts and authentication are reconciled. No frontend data flow or UI milestone has changed.
+
+## Backend Phase 3 read-only conflict reporting
+
+The backend now exposes `GET /api/v1/hotels/{hotel}/rooms/{room}/reservation-overlaps?from=YYYY-MM-DD&to=YYYY-MM-DD` for scoped structural overlap diagnostics. This is NOT a room availability endpoint, does not handle unassigned bookings or holds, and creates no reservations. The frontend is unchanged from the Hotel Settings & Configuration milestone, and `VITE_DATA_SOURCE=mock` remains the development mode. See backend `docs/PHASE_3.md`.

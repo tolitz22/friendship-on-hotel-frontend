@@ -10,7 +10,6 @@ import {
 } from '../api/liveReservationOperations';
 import type {Operation} from '../api/liveReservationOperations';
 import {readSession} from '../api/session';
-import {ApiError} from '../api/http';
 import {useReadinessPolicy} from '../api/readinessEnforcementPolicy';
 import {useLiveReadiness} from '../api/liveRoomReadiness';
 import {useBookingTurnover} from '../api/liveBookingTurnover';

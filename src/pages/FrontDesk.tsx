@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {LiveFrontDesk} from './LiveFrontDesk';
 import {Link} from '@tanstack/react-router';
 import {ArrowLeft,ArrowRight,BedDouble,CalendarDays,LogIn,LogOut,Search,Users,AlertTriangle} from 'lucide-react';
 import {useFrontDeskBoard} from '../api/queries';
@@ -12,7 +13,7 @@ import type {FrontDeskEntry} from '../api/types';
 import type {DeskOperation} from '../features/front-desk/operations';
 
 type QueueName='arrivals'|'departures'|'inHouse';
-export function FrontDesk(){
+function MockFrontDesk(){
  const [date,setDate]=useState(hotelToday);
  const [queue,setQueue]=useState<QueueName>('arrivals');
  const [search,setSearch]=useState('');
@@ -44,4 +45,9 @@ export function FrontDesk(){
  </Panel>
  {operation&&<OperationPreview key={operation.entry.reservation.id+'-'+operation.operation} entry={operation.entry} operation={operation.operation} onClose={()=>setOperation(null)}/>}
  </>;
+}
+
+
+export function FrontDesk(){
+ return dataMode==='api'?<LiveFrontDesk/>:<MockFrontDesk/>;
 }

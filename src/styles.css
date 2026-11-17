@@ -487,3 +487,6 @@
 .maintenance-checkbox input{width:17px;height:17px;accent-color:var(--accent);flex-shrink:0}
 .maintenance-history-event{padding:11px 0;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px;font-size:12px}
 .maintenance-history-event small,.maintenance-history-event p{color:var(--muted);margin:0}
+
+/* Phase 14 live housekeeping forms */
+.guest-modal .guest-fields textarea{border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface);color:var(--text);font:inherit;resize:vertical}

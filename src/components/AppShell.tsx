@@ -3,7 +3,6 @@ import {LayoutDashboard,CalendarDays,BedDouble,Users,Wallet,ClipboardCheck,Wrenc
 import {useEffect,useState} from 'react';
 import {useTheme} from './ThemeProvider';
 import {dataMode} from '../api';
-import {isCookieAuth} from '../api/http';
 import {useHotelAuth} from './AuthProvider';
 import {StaffSignIn} from './StaffSignIn';
 import {HotelChooser} from './HotelChooser';

@@ -75,3 +75,8 @@ In API mode the main Housekeeping route mounts the already implemented \`LiveHou
 ## Frontend Phase 34 — Live maintenance and readiness boundary
 
 \`src/pages/Maintenance.tsx\` now selects \`LiveMaintenance\` in API mode while preserving the mock board in mock mode. See \`docs/API_CONTRACT.md\` Phase 34. Validate hotel-scoped maintenance responses, use backend status/priority filters, enforce \`expectedRevision\`, surface 409 conflicts and show auditable paginated work-order events. Admins and assigned maintenance employees have different mutation rights; Laravel remains authoritative. \`affectsRoom\` is a flag, **not** an inventory block or room-readiness approval. No automatic check-in, release, room clean status or booking eligibility changes arise from maintenance completion.
+
+
+## Frontend Phase 35 — Audited room inspection (advisory only)
+
+The real Rooms catalogue mounts in API mode and shows \`RoomReadinessPanel\` on a selected physical room. See frontend \`docs/API_CONTRACT.md\` Phase 35 and backend \`docs/PHASE_35_ROOM_READINESS.md\`. The backend records an explicit physical checklist, independent administrator approval, current blockers and append-only events. Do not infer readiness from a housekeeping completion or resolved work order. Phase 35 reports \`enforcedAtCheckIn:false\` and \`inventoryGuaranteed:false\`; never label the approval a safe room assignment, final inventory availability, or verified check-in authorization. Browser writes must check hotel identity and revision and require a fresh backend view after uncertain results.

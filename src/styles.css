@@ -672,3 +672,8 @@
 .lrc-modal-footer{padding:16px 25px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
 .lrc-modal-footer a{display:inline-flex;align-items:center;gap:8px}
 @media(max-width:540px){.lrc-modal-header,.lrc-modal-body,.lrc-modal-footer{padding:16px}.lrc-modal-footer a{flex:1;justify-content:center}}
+
+/* Room-calendar → reservation contextual handoff */
+.calendar-booking-context{display:grid;gap:6px;background:var(--canvas);border:1px solid var(--border);border-left:3px solid var(--accent);padding:13px 15px;border-radius:9px;margin:12px 0 16px;font-size:12px}
+.calendar-booking-context>strong{font-size:13px}
+.calendar-booking-context p{margin:0;line-height:1.55;color:var(--muted)}

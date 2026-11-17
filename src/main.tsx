@@ -9,6 +9,7 @@ import {LiveRooms} from './pages/LiveRooms';
 import {LiveSettings} from './pages/LiveSettings';
 import {LiveReservationDemand} from './pages/LiveReservationDemand';
 import {LiveReservationPolicy} from './pages/LiveReservationPolicy';
+import {LiveReservationSimulation} from './pages/LiveReservationSimulation';
 import {dataMode} from './api';import {Reservations} from './pages/Reservations';import {Rooms} from './pages/Rooms';
 import {Guests} from './pages/Guests';
 import {Housekeeping} from './pages/Housekeeping';
@@ -25,6 +26,7 @@ const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/front-desk',component:FrontDesk}),
  createRoute({getParentRoute:()=>root,path:'/reservation-demand',component:LiveReservationDemand}),
  createRoute({getParentRoute:()=>root,path:'/reservation-policy',component:LiveReservationPolicy}),
+ createRoute({getParentRoute:()=>root,path:'/reservation-simulation',component:LiveReservationSimulation}),
  createRoute({getParentRoute:()=>root,path:'/guests',component:Guests}),
  createRoute({getParentRoute:()=>root,path:'/billing',component:Billing}),
  createRoute({getParentRoute:()=>root,path:'/housekeeping',component:Housekeeping}),

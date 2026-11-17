@@ -6,7 +6,7 @@ import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {ApiError} from '../api/http';
 import {
- getReservationPolicyDraft,getReservationPolicyHistory,updateReservationPolicyDraft,
+ getReservationPolicyDraft,getReservationPolicyHistory,getReservationPolicyReadiness,updateReservationPolicyDraft,
  POLICY_FIELDS,type PolicyField,type PolicyDecisions,
 } from '../api/reservationPolicy';
 
@@ -16,6 +16,7 @@ export function LiveReservationPolicy(){
  const admin=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const queryClient=useQueryClient();
  const query=useQuery({queryKey:['reservation-policy',hotelId],queryFn:getReservationPolicyDraft});
+ const readiness=useQuery({queryKey:['reservation-policy-readiness',hotelId],queryFn:getReservationPolicyReadiness});
  const [choices,setChoices]=useState<PolicyDecisions|null>(null);
  const [saving,setSaving]=useState(false);
  const [error,setError]=useState('');
@@ -46,6 +47,7 @@ export function LiveReservationPolicy(){
    await updateReservationPolicyDraft(draft.revision,changed);
    await queryClient.invalidateQueries({queryKey:['reservation-policy',hotelId]});
    await queryClient.invalidateQueries({queryKey:['reservation-policy-history',hotelId]});
+   await queryClient.invalidateQueries({queryKey:['reservation-policy-readiness',hotelId]});
    setNotice('Draft saved. These decisions do not activate bookings.');
   }catch(caught){
    const message=caught instanceof Error?caught.message:'Could not save draft.';
@@ -82,6 +84,19 @@ export function LiveReservationPolicy(){
       {admin&&<button type="submit" className="btn-primary" disabled={saving||!modified}><Save size={16}/>{saving?'Saving…':'Save draft'}</button>}
      </div>
     </form>
+   </Panel>
+   <Panel title="Implementation readiness checks">
+    <p className="guest-info">This is an advisory report about the <strong>saved revision</strong>, not unsaved changes. No policy is approved for bookings.</p>
+    <QueryFeedback loading={readiness.isPending} error={readiness.error}/>
+    {readiness.data&&<>
+      <p className="guest-info">Saved revision {readiness.data.data.draftRevision} · {readiness.data.data.configurationComplete?'All initial choices filled in':'Initial choices incomplete'} · Booking activation: <strong>Disabled</strong></p>
+      <div className="policy-readiness-list">
+       {readiness.data.data.issues.map(issue=><div key={issue.code} className="policy-readiness-item">
+        <strong>{issue.category.replaceAll('_',' ')}</strong>
+        <p>{issue.message}</p>
+       </div>)}
+      </div>
+    </>}
    </Panel>
    {admin&&<Panel title="Draft revision history">
     <button type="button" className="btn-inline" onClick={()=>setHistoryOpen(value=>!value)}><History size={16}/>{historyOpen?'Hide history':'View history'}</button>

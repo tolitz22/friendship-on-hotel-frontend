@@ -24,15 +24,18 @@ test('staging staff can navigate live hotel records without creating or changing
 
  // These are all GET-only smoke assertions. Never click new booking,
  // room assignment, readiness policy, guest editing, or checkout controls.
- for(const [route,heading] of [
-  ['/guests','Guest directory'],
-  ['/front-desk','Front desk'],
-  ['/reservations','Reservations'],
-  ['/rooms','Rooms'],
-  ['/housekeeping','Housekeeping'],
-  ['/maintenance','Maintenance'],
+ const navigation=page.getByRole('navigation',{name:'Hotel workspace navigation'});
+ for(const [linkName,route,heading] of [
+  ['Guests','/guests','Guest directory'],
+  ['Front desk','/front-desk','Front desk'],
+  ['Reservations','/reservations','Reservations'],
+  ['Rooms & readiness','/rooms','Rooms'],
+  ['Housekeeping','/housekeeping','Housekeeping'],
+  ['Maintenance','/maintenance','Maintenance'],
  ] as const){
-  await page.goto(route);
+  // Route through TanStack Router to preserve an in-memory bearer session.
+  await navigation.getByRole('link',{name:linkName,exact:true}).click();
+  await expect(page).toHaveURL(new RegExp(route.replace('/','\\/')+'(?:\\?|$)'));
   await expect(page.getByRole('heading',{name:heading,exact:true}).first()).toBeVisible();
   await expect(page.getByText('DESIGN PREVIEW')).toHaveCount(0);
   await expect(page.getByText('Unable to load this information')).toHaveCount(0);

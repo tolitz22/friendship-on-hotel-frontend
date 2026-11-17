@@ -81,18 +81,18 @@ test('real React guest → booking → room assignment → check-in and Laravel 
  await page.locator('#book-checkin').fill(today());
  await page.locator('#book-checkout').fill(tomorrow());
  await page.locator('#book-rate').selectOption(env('PMS_STAGING_TEST_RATE_PLAN_ID'));
- await page.getByRole('button',{name:'Step 2 · Check availability and room subtotal'}).click();
- await expect(page.getByText('Currently bookable')).toBeVisible();
- await expect(page.getByText('Room subtotal:',{exact:false})).toBeVisible();
+ await page.getByRole('button',{name:'Check availability'}).click();
+ await expect(page.getByText('Available',{exact:true})).toBeVisible();
+ await expect(page.getByText('Room subtotal',{exact:true})).toBeVisible();
  const bookingPost=page.waitForResponse(response=>matching('/bookings','POST')(response));
- await page.getByRole('button',{name:'Step 3 · Confirm and create booking'}).click();
+ await page.getByRole('button',{name:'Confirm reservation'}).click();
  const booked=await bookingPost;
  expect(booked.status()).toBe(201);
  const booking=await booked.json() as {data:{id:string;reference:string;status:string}};
  expect(booking.data.status).toBe('confirmed');
- await expect(page.getByText('Reservation confirmed by Laravel')).toBeVisible();
+ await expect(page.getByText('Reservation confirmed')).toBeVisible();
 
- await page.getByRole('link',{name:'Open this booking and assign a room'}).click();
+ await page.getByRole('link',{name:'Assign room'}).click();
  await expect(page.getByText('Selected booking · #'+booking.data.id)).toBeVisible();
  await page.locator('#operation-room').selectOption(env('PMS_STAGING_TEST_ROOM_ID'));
  const assignment=page.waitForResponse(response=>matching('/bookings/'+booking.data.id+'/assign-room','PATCH')(response));
@@ -232,14 +232,14 @@ test('room calendar multi-night booking and inline synthetic guest registration'
  await expect(page.locator('#book-guest')).toHaveValue(guest.data.id);
 
  await page.locator('#book-rate').selectOption(env('PMS_STAGING_TEST_RATE_PLAN_ID'));
- await page.getByRole('button',{name:'Step 2 · Check availability and room subtotal'}).click();
- await expect(page.getByText('Currently bookable')).toBeVisible();
+ await page.getByRole('button',{name:'Check availability'}).click();
+ await expect(page.getByText('Available',{exact:true})).toBeVisible();
  const bookingPost=page.waitForResponse(response=>matching('/bookings','POST')(response));
- await page.getByRole('button',{name:'Step 3 · Confirm and create booking'}).click();
+ await page.getByRole('button',{name:'Confirm reservation'}).click();
  const bookingResponse=await bookingPost;
  expect(bookingResponse.status()).toBe(201);
  const booking=await bookingResponse.json() as {data:{id:string;reference:string}};
- await page.getByRole('link',{name:'Open this booking and assign a room'}).click();
+ await page.getByRole('link',{name:'Assign room'}).click();
  await expect(page.locator('#operation-room')).toHaveValue(env('PMS_STAGING_TEST_ROOM_ID'));
  const assigned=page.waitForResponse(response=>matching('/bookings/'+booking.data.id+'/assign-room','PATCH')(response));
  await page.getByRole('button',{name:'Assign selected room'}).click();

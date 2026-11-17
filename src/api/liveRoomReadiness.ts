@@ -24,7 +24,7 @@ const readiness=z.object({data:z.object({
   newTurnoverSinceInspection:z.boolean(),
  }),
  advisoryReady:z.boolean(),
- enforcedAtCheckIn:z.literal(false),
+ enforcedAtCheckIn:z.boolean(),
  inventoryGuaranteed:z.literal(false),
 })});
 const events=z.object({

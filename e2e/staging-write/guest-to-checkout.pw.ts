@@ -221,9 +221,9 @@ test('room calendar multi-night booking and inline synthetic guest registration'
  await page.getByRole('button',{name:'New guest'}).click();
  const guestDialog=page.getByRole('dialog',{name:'Register a guest'});
  await expect(guestDialog).toBeVisible();
- await guestDialog.getByText('First name').locator('input').fill('Synthetic');
- await guestDialog.getByText('Last name').locator('input').fill(guestLastName);
- await guestDialog.getByText('Email (optional)').locator('input').fill('phase44-'+suffix+'@example.test');
+ await guestDialog.getByLabel('First name').fill('Synthetic');
+ await guestDialog.getByLabel('Last name').fill(guestLastName);
+ await guestDialog.getByLabel('Email (optional)').fill('phase44-'+suffix+'@example.test');
  const guestPost=page.waitForResponse(response=>matching('/guests','POST')(response));
  await guestDialog.getByRole('button',{name:'Save and select guest'}).click();
  const guestResponse=await guestPost;

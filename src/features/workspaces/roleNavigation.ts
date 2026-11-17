@@ -11,7 +11,7 @@ const allManagement:WorkspacePath[]=['/reports','/operational-exceptions','/mana
 const allAdvanced:WorkspacePath[]=['/reservation-demand','/reservation-policy','/reservation-simulation'];
 const roleNav:Record<HotelRole,{daily:WorkspacePath[];management:WorkspacePath[];advanced:WorkspacePath[];label:string}>={
  admin:{daily:allDaily,management:allManagement,advanced:allAdvanced,label:'Manager'},
- front_desk:{daily:['/','/front-desk','/reservations','/room-calendar','/rooms','/guests','/billing','/cashier-shifts','/keycard-access'],
+ front_desk:{daily:['/','/front-desk','/reservations','/room-calendar','/rooms','/guests','/billing','/cashier-shifts'],
   management:['/change-password'],advanced:[],label:'Reception'},
  housekeeping:{daily:['/','/housekeeping','/rooms','/maintenance','/occupancy-verification'],
   management:['/change-password'],advanced:[],label:'Housekeeping'},

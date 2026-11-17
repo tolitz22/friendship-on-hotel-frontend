@@ -26,7 +26,8 @@ describe('Phase 49 hotel role workspaces',()=>{
   expect(navigationForRole('admin').management).toContain('/operational-exceptions');
  });
  it('shows only supported administrative actions',()=>{
-  expect(canDisplayAction('front_desk','new_reservation')).toBe(false);
+  expect(canDisplayAction('front_desk','new_reservation')).toBe(true);
+  expect(canDisplayAction('front_desk','assign_room')).toBe(true);
   expect(canDisplayAction('housekeeping','assign_room')).toBe(false);
   expect(canDisplayAction('maintenance','manage_staff')).toBe(false);
   expect(canDisplayAction('housekeeping','update_assigned_housekeeping')).toBe(true);

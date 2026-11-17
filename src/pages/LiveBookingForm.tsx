@@ -35,6 +35,7 @@ export function LiveBookingForm(){
  const {user,hotelId}=useHotelAuth();
  const {guest:requestedGuest,room:requestedRoomId,roomNumber:requestedRoomNumber,checkIn:requestedDay,checkOut:requestedOut}=useSearch({from:'/reservations'});
  const admin=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
+ const canBook=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&(h.role==='admin'||h.role==='front_desk'));
  const [selection,setSelection]=useState<BookingSelection>(()=>initialSelection(requestedGuest,requestedDay,requestedOut));
  const [checked,setChecked]=useState<BookingSelection|null>(null);
  const [pending,setPending]=useState<BookingSubmission|null>(null);
@@ -103,7 +104,7 @@ export function LiveBookingForm(){
  const samePreview=checked!==null&&checked.guestId===selection.guestId
   &&checked.roomTypeId===selection.roomTypeId&&checked.ratePlanId===selection.ratePlanId
   &&checked.checkIn===selection.checkIn&&checked.checkOut===selection.checkOut;
- const ready=admin&&valid&&samePreview
+ const ready=canBook&&valid&&samePreview
   &&availability.isSuccess&&availability.data.data.canBook
   &&quote.isSuccess&&quote.data.data.roomTypeId===selection.roomTypeId
   &&quote.data.data.ratePlanId===selection.ratePlanId&&!pending&&!result&&!busy;
@@ -124,7 +125,7 @@ export function LiveBookingForm(){
  };
  const check=(event:FormEvent<HTMLFormElement>)=>{
   event.preventDefault();
-  if(!valid||!admin||locked)return;
+  if(!valid||!canBook||locked)return;
   setError(null);
   setChecked({...selection});
  };
@@ -194,8 +195,8 @@ export function LiveBookingForm(){
     <small>Room preference only. Physical assignment happens after booking.</small>
    </div>
   </div>}
-  {!admin&&<p role="status" className="rb-notice">An administrator of this hotel is required to create reservations.</p>}
-  {admin&&<>
+  {!canBook&&<p role="status" className="rb-notice">An authorized hotel receptionist or manager is required to create reservations.</p>}
+  {canBook&&<>
    <QueryFeedback loading={guests.isPending||types.isPending||rates.isPending||(usingLinkedGuest&&linkedGuest.isPending)}
     error={guests.error??types.error??rates.error??(usingLinkedGuest?linkedGuest.error:null)}
     onRetry={()=>{void guests.refetch();void types.refetch();void rates.refetch();if(usingLinkedGuest)void linkedGuest.refetch();}}/>
@@ -205,7 +206,7 @@ export function LiveBookingForm(){
       <fieldset disabled={locked} className="rb-fieldset">
        <div className="rb-section">
         <div className="rb-section-heading"><div><span className="rb-section-number">1</span><h4>Guest</h4></div>
-         <button type="button" className="rb-add-guest" disabled={locked} onClick={()=>setShowQuickGuest(true)}><UserPlus size={15}/> Add new guest</button></div>
+         {admin&&<button type="button" className="rb-add-guest" disabled={locked} onClick={()=>setShowQuickGuest(true)}><UserPlus size={15}/> Add new guest</button>}</div>
         <label htmlFor="book-guest" className="rb-label">Select a guest</label>
         <select id="book-guest" className="wizard-input" required value={selection.guestId}
          onChange={event=>edit('guestId',event.target.value)}>
@@ -214,7 +215,7 @@ export function LiveBookingForm(){
          {selectedIsOutsidePage&&guest&&<option value={guest.id}>{guest.firstName} {guest.lastName} · Selected guest</option>}
         </select>
         {usingLinkedGuest&&linkedGuest.isError&&<small role="alert">Could not verify this guest. Select another guest.</small>}
-        <p className="rb-hint">Don't see the guest? <Link to="/guests">Search guest directory</Link> or add a new one above.</p>
+        <p className="rb-hint">Don't see the guest? <Link to="/guests">Search guest directory</Link> or ask a manager to add a new guest.</p>
        </div>
        <div className="rb-section">
         <div className="rb-section-heading"><div><span className="rb-section-number">2</span><h4>Stay dates</h4></div>

@@ -22,6 +22,8 @@ const readiness=z.object({data:z.object({
   activeRoomImpactMaintenance:z.boolean(),
   latestTurnoverIncomplete:z.boolean(),
   newTurnoverSinceInspection:z.boolean(),
+  unfinishedHousekeeping:z.boolean(),
+  newRoomWorkSinceInspection:z.boolean(),
  }),
  advisoryReady:z.boolean(),
  enforcedAtCheckIn:z.boolean(),

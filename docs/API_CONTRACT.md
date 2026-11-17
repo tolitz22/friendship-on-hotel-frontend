@@ -290,3 +290,24 @@ npm run build
 \`\`\`
 
 Backend: \`php artisan migrate && php artisan test --filter=RoomReadinessPhase35Test\`. Both suites and browser acceptance remain unverified in this remote commit session.
+
+
+## Frontend Phase 36 — Opt-in check-in room-readiness gate
+
+The Rooms page now includes \`ReadinessEnforcementPanel\` for the selected authenticated hotel. A hotel administrator may turn mandatory check-in readiness on/off only with an explicit written reason, a confirmation acknowledgement and the **current policy revision**. Laravel checks the revision and permissions, and writes an actor-attributed audit event. The policy is **disabled by default**. Property members can read the policy/history; they cannot change it.
+
+New typed frontend adapter: \`src/api/readinessEnforcementPolicy.ts\` with TanStack Query hotel-scoped keys and strict Zod parsing.
+
+\`\`\`http
+GET /api/v1/hotels/{hotel}/readiness/enforcement-policy
+GET /api/v1/hotels/{hotel}/readiness/enforcement-policy/history?page=1
+PATCH /api/v1/hotels/{hotel}/readiness/enforcement-policy
+\`\`\`
+
+\`src/api/liveRoomReadiness.ts\` now parses the actual boolean \`enforcedAtCheckIn\` instead of assuming false. The room assessment includes \`unfinishedHousekeeping\` and \`newRoomWorkSinceInspection\`, along with the older maintenance, block and turnover flags. \`RoomReadinessPanel\` explains the resulting status and **does not** claim bank/identity verification or guaranteed inventory.
+
+\`LiveReservationOperations\` checks the hotel's policy before enabling Check-in. If enforcement is active, the selected physical room also needs a fresh approved readiness response without blockers. When the policy read fails, the frontend prevents check-in rather than assuming enforcement is off. Laravel re-checks **under the hotel-wide transaction lock**, so the browser status is informational only and cannot bypass the rule.
+
+**Safety:** Enabling can block existing arrivals. Run a real staging rollout, inspect rooms, verify assignments/housekeeping/maintenance, and pass the backend concurrency tests before enabling in production. The coarse hotel-wide database lock serializes readiness-sensitive writes and needs performance/load validation. The policy may be disabled again by an authorized admin using the latest revision and an audit reason; do not modify migrations to roll back behavior.
+
+Tests: \`src/api/readinessEnforcementPolicy.test.ts\`, plus revised \`liveRoomReadiness.test.ts\`. Test/build/browser results have **not** been verified by this remote GitHub edit. See backend \`docs/PHASE_36_TRANSACTIONAL_READINESS_ENFORCEMENT.md\` for rollback, migration and race-test procedures.

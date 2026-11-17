@@ -39,7 +39,7 @@ function ApprovalCard({item,hotelId}:{item:Approval;hotelId:string}){
   finally{setBusy(false);}
  }
  return <article className="ex-record">
-  <div className="desk-tools"><strong>Request #{item.id} · {item.action==='cancel_booking'?'Cancel reservation':'Change stay dates'}</strong>
+  <div className="desk-tools"><strong>Request #{item.id} · {item.action==='cancel_booking'?'Cancel reservation':item.action==='early_check_in'?'Early guest check-in':'Change stay dates'}</strong>
    <span className="table-count">{item.status.toUpperCase()}</span></div>
   <p><Link to="/reservations" search={{booking:item.bookingId}}>Reservation #{item.bookingId}</Link>
    {' · '}Requested by staff #{item.requestedBy} · {item.createdAt}</p>
@@ -47,7 +47,7 @@ function ApprovalCard({item,hotelId}:{item:Approval;hotelId:string}){
   <p><strong>Recorded booking:</strong> {item.snapshot.checkIn} → {item.snapshot.checkOut}
    {' · '}{item.snapshot.status} · Room {item.snapshot.assignedRoomId??'unassigned'}</p>
   {item.action==='amend_dates'&&<p><strong>Requested dates:</strong> {item.payload.checkIn} → {item.payload.checkOut}</p>}
-  <p className="desk-muted">Expires: {item.expiresAt}. Approval executes the existing booking policy immediately; it is not a financial refund or a readiness override.</p>
+  <p className="desk-muted">Expires: {item.expiresAt}. For early check-in, approval immediately records the guest as checked in and an early-arrival audit record. Room availability, readiness and date rules are rechecked; payment is not changed.</p>
   {item.status==='pending'&&<>
    <label className="wizard-label" htmlFor={'review-note-'+item.id}>Manager decision note</label>
    <textarea id={'review-note-'+item.id} className="wizard-input" rows={2} maxLength={1000}
@@ -55,7 +55,7 @@ function ApprovalCard({item,hotelId}:{item:Approval;hotelId:string}){
    <label className="wizard-label">
     <input type="checkbox" checked={confirmed} disabled={busy}
      onChange={e=>setConfirmed(e.target.checked)}/>
-    I reviewed the request, source reservation, guest instructions and possible financial impact.
+    I independently confirmed the request, guest identity, assigned room, readiness and potential additional-night charges.
    </label>
    <div className="desk-tools">
     <button type="button" className="btn-primary" disabled={busy||!confirmed}
@@ -109,6 +109,6 @@ export function ManagerApprovals(){
      <button type="button" className="btn-inline" disabled={page>=approvals.data.meta.totalPages} onClick={()=>setPage(p=>p+1)}>Next</button>
     </div></div>}
   </Panel>
-  <p className="desk-preview-note"><AlertTriangle size={16}/> Approving does not bypass the hotel's date, readiness or inventory policies. Payments and refunds remain on their separate manager-only flows.</p>
+  <p className="desk-preview-note"><AlertTriangle size={16}/> An approved early check-in is recorded as an exception to the scheduled arrival date. It still requires an available, ready room. Payments and refunds remain on their separate manager-only flows.</p>
  </>;
 }

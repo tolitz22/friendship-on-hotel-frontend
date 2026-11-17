@@ -5,7 +5,7 @@ import {AlertTriangle,CheckCircle2} from 'lucide-react';
 import type {LiveRecord} from '../api/liveReservations';
 import {
  allowedOperation,assignLiveRoom,hasActiveStayBlock,transitionLiveStay,
- useLiveAssignableRooms,useLiveRoomBlocks,
+ useLiveAssignableRooms,useLiveRoomBlocks,useLiveReservationHistory,
 } from '../api/liveReservationOperations';
 import type {Operation} from '../api/liveReservationOperations';
 import {readSession} from '../api/session';
@@ -22,6 +22,7 @@ export function LiveReservationOperations({record,onClose}:{
  const {hotelId,user}=useHotelAuth();
  const admin=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const [roomPage,setRoomPage]=useState(1);
+ const [historyPage,setHistoryPage]=useState(1);
  const [roomId,setRoomId]=useState('');
  const [acknowledged,setAcknowledged]=useState(false);
  const [busy,setBusy]=useState(false);
@@ -31,6 +32,7 @@ export function LiveReservationOperations({record,onClose}:{
  const client=useQueryClient();
  const rooms=useLiveAssignableRooms(record,roomPage,admin);
  const blocks=useLiveRoomBlocks(roomId||null,admin);
+ const history=useLiveReservationHistory(record,historyPage);
  const room=rooms.data?.data.find(r=>r.id===roomId);
  const activeBlock=blocks.data
   ?hasActiveStayBlock(blocks.data.data,record):false;
@@ -43,7 +45,7 @@ export function LiveReservationOperations({record,onClose}:{
  const canCheckOut=admin&&allowedOperation(record,'check-out',hotelDate)&&acknowledged&&!busy;
 
  useEffect(()=>{
-  setRoomPage(1);setRoomId('');setAcknowledged(false);
+  setRoomPage(1);setHistoryPage(1);setRoomId('');setAcknowledged(false);
   setSuccess('');setError('');
  },[hotelId,record.id,record.lifecycleState,record.assignedRoomId]);
  async function refresh(hotel:string){
@@ -53,6 +55,7 @@ export function LiveReservationOperations({record,onClose}:{
    client.invalidateQueries({queryKey:['live','availability',hotel]}),
    client.invalidateQueries({queryKey:['live','assignable-rooms',hotel]}),
    client.invalidateQueries({queryKey:['live','room-blocks',hotel]}),
+   client.invalidateQueries({queryKey:['live','reservation-history',hotel,record.id]}),
   ]);
  }
  async function perform(action:'assign'|Operation,event?:FormEvent){
@@ -147,6 +150,30 @@ export function LiveReservationOperations({record,onClose}:{
     <p className="desk-muted">Acknowledgement is a UI confirmation only; the backend does not store independent identity/readiness attestations. Payments and refunds are not changed by these actions.</p>
    </section>
   </>}
+  <section aria-label="Reservation change history">
+   <h4>Recorded reservation history</h4>
+   <p>These are Laravel reservation events and actor IDs, not proof of room readiness, guest verification or financial settlement.</p>
+   <QueryFeedback loading={history.isPending} error={history.error}
+    empty={history.isSuccess&&history.data.data.length===0}/>
+   {history.isSuccess&&history.data.data.length>0&&<div className="table-scroll">
+    <table><thead><tr><th>Event</th><th>Previous state</th><th>New state</th><th>Actor ID</th><th>Recorded at</th></tr></thead>
+     <tbody>{history.data.data.map(event=><tr key={event.id}>
+      <td>{event.eventType.replaceAll('_',' ')}</td>
+      <td>{event.oldState??'—'}</td><td>{event.newState??'—'}</td>
+      <td>{event.actorId}</td><td>{event.createdAt}</td>
+     </tr>)}</tbody>
+    </table>
+   </div>}
+   {history.isSuccess&&<div className="desk-tools">
+    <span>History page {history.data.meta.page} of {Math.max(1,history.data.meta.totalPages)}</span>
+    <div className="desk-date-nav">
+     <button type="button" className="btn-inline" disabled={historyPage<=1}
+      onClick={()=>setHistoryPage(p=>Math.max(1,p-1))}>Previous events</button>
+     <button type="button" className="btn-inline" disabled={historyPage>=history.data.meta.totalPages}
+      onClick={()=>setHistoryPage(p=>p+1)}>Next events</button>
+    </div>
+   </div>}
+  </section>
   {error&&<p role="alert" className="auth-error"><AlertTriangle size={16}/> {
    error
   } Check refreshed records before retrying—especially after a network timeout.</p>}

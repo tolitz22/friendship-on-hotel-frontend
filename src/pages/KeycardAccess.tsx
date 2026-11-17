@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {AlertTriangle,KeyRound,RefreshCw,ShieldCheck} from 'lucide-react';
-import {Link} from '@tanstack/react-router';
+import {Link,useSearch} from '@tanstack/react-router';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
@@ -70,6 +70,7 @@ function KeycardRow({item,manager,onChanged}:{item:KeycardAuthorization;manager:
 }
 
 export function KeycardAccess(){
+ const {booking:prefilledBooking}=useSearch({from:'/keycard-access'});
  const {hotelId,user}=useHotelAuth();
  const role=user?.hotels.find(h=>h.id===hotelId)?.role;
  const manager=role==='admin';
@@ -88,9 +89,9 @@ export function KeycardAccess(){
  const records=useKeycardAuthorizations(allowed,page,
   status==='all'?undefined:status as KeycardAuthorization['status']);
  useEffect(()=>{
-  setKind('initial');setBookingId('');setRoomId('');setReason('');setPage(1);
+  setKind('initial');setBookingId(prefilledBooking??'');setRoomId('');setReason('');setPage(1);
   setStatus('all');setError('');setSuccess('');key.current=null;
- },[hotelId]);
+ },[hotelId,prefilledBooking]);
  const refresh=()=>{if(hotelId)void client.invalidateQueries({queryKey:['live','keycard-authorizations',hotelId]});};
  const valid=reason.trim().length>=10&&(kind==='emergency_access'
   ?/^[1-9]\d*$/.test(roomId):/^[1-9]\d*$/.test(bookingId));

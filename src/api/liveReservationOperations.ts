@@ -77,22 +77,22 @@ export function parseTransition(value:unknown,record:LiveRecord,operation:Operat
  return result;
 }
 
-export function useLiveAssignableRooms(record:LiveRecord|null,page:number){
+export function useLiveAssignableRooms(record:LiveRecord|null,page:number,admin:boolean){
  const {hotelId}=readSession();
  return useQuery({
   queryKey:['live','assignable-rooms',hotelId,record?.roomTypeId,page],
-  enabled:!!hotelId&&!!record&&record.lifecycleState==='confirmed',
+  enabled:!!hotelId&&admin&&!!record&&record.lifecycleState==='confirmed',
   queryFn:async()=>parseRooms(await getJson<unknown>(hotelPath('/rooms'),{
    page,per_page:100,
   }),hotelId!,record!.roomTypeId),
   retry:false,
  });
 }
-export function useLiveRoomBlocks(roomId:string|null){
+export function useLiveRoomBlocks(roomId:string|null,admin:boolean){
  const {hotelId}=readSession();
  return useQuery({
   queryKey:['live','room-blocks',hotelId,roomId],
-  enabled:!!hotelId&&!!roomId,
+  enabled:!!hotelId&&admin&&!!roomId,
   queryFn:async()=>parseBlocks(await getJson<unknown>(hotelPath('/inventory-blocks'),{
    roomId:roomId!,per_page:100,
   }),roomId!),

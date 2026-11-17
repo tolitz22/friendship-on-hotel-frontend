@@ -27,7 +27,7 @@ const root=createRootRoute({component:AppShell});
 const index=createRoute({getParentRoute:()=>root,path:'/',component:dataMode==='api'?LiveDashboard:Dashboard});
 const reservations=createRoute({getParentRoute:()=>root,path:'/reservations',
  validateSearch:(value:Record<string,unknown>)=>({
-  booking:typeof value.booking==='string'&&/^[1-9]\\d*$/.test(value.booking)?value.booking:undefined,
+  booking:typeof value.booking==='string'&&/^[1-9][0-9]*$/.test(value.booking)?value.booking:undefined,
  }),component:Reservations});
 const rooms=createRoute({getParentRoute:()=>root,path:'/rooms',component:dataMode==='api'?LiveRooms:Rooms});
 const functionalRoutes=[

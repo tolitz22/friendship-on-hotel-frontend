@@ -199,7 +199,7 @@ export function LiveBookingForm(){
     <p>Reference: <strong>{result.reference}</strong> · ID: {result.id} · Status: {result.status}</p>
     <p>{result.idempotentReplay?'This was a safe replay of the original successful booking.':'This request created a confirmed reservation.'} Physical room assignment, guest identity and payment remain separate.</p>
     <div className="task-next-step">
-     <p><strong>Next:</strong> Open the reservation in the list below to assign a physical room and handle check-in when eligible.</p>
+     <p><strong>Next:</strong> Open this saved booking directly to assign a physical room and manage check-in when eligible.</p>
      <Link to="/reservations" search={{booking:result.id}}>
       Open this booking and assign a room
      </Link>

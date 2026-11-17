@@ -38,7 +38,10 @@ const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/reservation-simulation',component:LiveReservationSimulation}),
  createRoute({getParentRoute:()=>root,path:'/guests',component:Guests}),
  createRoute({getParentRoute:()=>root,path:'/billing',component:Billing}),
- createRoute({getParentRoute:()=>root,path:'/housekeeping',component:dataMode==='api'?LiveHousekeeping:Housekeeping}),
+ createRoute({getParentRoute:()=>root,path:'/housekeeping',
+  validateSearch:(value:Record<string,unknown>)=>({
+   task:typeof value.task==='string'&&/^[1-9][0-9]*$/.test(value.task)?value.task:undefined,
+  }),component:dataMode==='api'?LiveHousekeeping:Housekeeping}),
  createRoute({getParentRoute:()=>root,path:'/maintenance',component:dataMode==='api'?LiveMaintenance:Maintenance}),
  createRoute({getParentRoute:()=>root,path:'/reports',component:Reports}),
  createRoute({getParentRoute:()=>root,path:'/settings',component:dataMode==='api'?LiveSettings:Settings}),

@@ -95,7 +95,9 @@ export function LiveFrontDesk(){
       <td>{row.assignedRoomId===null
        ?<span className="desk-attention"><AlertTriangle size={14}/> Assign a room before check-in</span>
        :<span className="desk-muted">Verify guest identity and room readiness</span>}
-       <Link to="/reservations" className="cell-note">Open reservation workspace</Link></td>
+       <Link to="/reservations" search={{booking:row.id}} className="inline-task-link">
+        Manage this booking <ArrowRight size={14}/>
+       </Link></td>
      </tr>)}</tbody>
     </table>
    </div>}

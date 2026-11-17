@@ -1,12 +1,13 @@
 import {useEffect,useState,type FormEvent} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
+import {useNavigate,useSearch} from '@tanstack/react-router';
 import {ClipboardCheck,History,Plus,RefreshCcw,ShieldAlert,X} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {useLiveRooms} from '../api/liveCatalogQueries';
 import {
  createHousekeepingTask,getHousekeepingHistory,listHousekeepingTasks,updateHousekeepingTask,
  type LiveHousekeepingTask,type HousekeepingStatus,type HousekeepingType,type TaskFilter,
- parseLiveHousekeeping,parseUpdatedHousekeeping,
+ parseLiveHousekeeping,parseUpdatedHousekeeping,useDirectHousekeepingTask,
 } from '../api/liveHousekeeping';
 import {ApiError} from '../api/http';
 import {readSession} from '../api/session';
@@ -29,6 +30,9 @@ const fromTask=(task:LiveHousekeepingTask):FormState=>({
 const formatDue=(value:string)=>value.trim()===''?null:value.replace('T',' ')+':00';
 export function LiveHousekeeping(){
  const {hotelId,user}=useHotelAuth();
+ const {task:linkedTaskId}=useSearch({from:'/housekeeping'});
+ const navigate=useNavigate();
+ const directTask=useDirectHousekeepingTask(linkedTaskId??null);
  const role=user?.hotels.find(h=>h.id===hotelId)?.role;
  const admin=role==='admin';
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin});
@@ -65,11 +69,19 @@ export function LiveHousekeeping(){
   setPage(1);setSelected(null);setForm(null);setError('');setHistoryOpen(false);setHistoryPage(1);
   setTextFilter('');setStatusFilter('');setTypeFilter('');
  },[hotelId]);
+ useEffect(()=>{
+  if(!linkedTaskId||!directTask.data)return;
+  setSelected(directTask.data);setForm(fromTask(directTask.data));setError('');
+  setFieldErrors({});setHistoryOpen(false);setHistoryPage(1);
+ },[linkedTaskId,directTask.data,hotelId]);
  const openCreate=()=>{setSelected(null);setForm(empty());setError('');setFieldErrors({});setHistoryOpen(false);setHistoryPage(1);};
  const openEdit=(task:LiveHousekeepingTask)=>{
   setSelected(task);setForm(fromTask(task));setError('');setFieldErrors({});setHistoryOpen(false);setHistoryPage(1);
  };
- const close=()=>{setSelected(null);setForm(null);setError('');setHistoryOpen(false);};
+ const close=()=>{
+  setSelected(null);setForm(null);setError('');setHistoryOpen(false);
+  if(linkedTaskId)void navigate({to:'/housekeeping',search:{task:undefined}});
+ };
  const change=<K extends keyof FormState>(key:K,value:FormState[K])=>
   setForm(current=>current?{...current,[key]:value}:current);
  async function save(e:FormEvent<HTMLFormElement>){
@@ -95,6 +107,8 @@ export function LiveHousekeeping(){
     client.invalidateQueries({queryKey:['housekeeping-history',hotelId]}),
     client.invalidateQueries({queryKey:['live','front-desk','manifest',hotelId]}),
     client.invalidateQueries({queryKey:['live','readiness-dashboard',hotelId]}),
+    client.invalidateQueries({queryKey:['live','room-readiness',hotelId]}),
+    client.invalidateQueries({queryKey:['live','housekeeping-direct-task',hotelId]}),
    ]).catch(()=>{});
   }catch(caught){
    if(caught instanceof ApiError){
@@ -110,6 +124,11 @@ export function LiveHousekeeping(){
  const canUpdate=(task:LiveHousekeepingTask)=>admin||(role==='housekeeping'&&task.assignedUserId===user?.id);
  const maySave=admin||(!!selected&&canUpdate(selected));
  return <>
+  {linkedTaskId&&<section aria-label="Direct checkout cleaning task">
+   <p className="help-copy">Opening cleaning task #{linkedTaskId} from its saved checkout record.</p>
+   <QueryFeedback loading={directTask.isPending} error={directTask.error}
+    onRetry={()=>void directTask.refetch()}/>
+  </section>}
   <div className="notice"><strong>Live housekeeping tasks</strong> · Cleaning assignments and completion are stored in Laravel. Completing a task does not set room readiness, block reservations, or change occupancy.</div>
   <Heading title="Housekeeping" description="Property-scoped cleaning tasks with revision tracking and recorded history" action={admin?
    <button type="button" className="btn-primary" onClick={openCreate}><Plus size={16}/> Create task</button>:undefined}/>

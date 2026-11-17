@@ -100,6 +100,8 @@ export function LiveMaintenance(){
     queryClient.invalidateQueries({queryKey:['live','room-readiness',hotelId]}),
    ]).catch(()=>{});
   }catch(caught){
+   // Do not show a previous property's late failure in the selected hotel.
+   if(readSession().hotelId!==hotelId)return;
    if(caught instanceof ApiError){
     setFieldErrors(caught.fieldErrors??{});
     setError(caught.status===409?'This ticket changed. Close it and reopen the latest record before saving.':caught.message);

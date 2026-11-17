@@ -3,11 +3,11 @@ import type {StaffHotel} from '../../api/auth';
 export type HotelRole='admin'|'front_desk'|'housekeeping'|'maintenance';
 export type WorkspacePath='/'|'/front-desk'|'/reservations'|'/room-calendar'|
  '/rooms'|'/guests'|'/housekeeping'|'/maintenance'|'/billing'|
- '/reports'|'/operational-exceptions'|'/settings'|'/staff'|
+ '/reports'|'/operational-exceptions'|'/manager-approvals'|'/settings'|'/staff'|
  '/change-password'|'/reservation-demand'|'/reservation-policy'|'/reservation-simulation';
 
 const allDaily:WorkspacePath[]=['/','/front-desk','/reservations','/room-calendar','/rooms','/guests','/housekeeping','/maintenance','/billing'];
-const allManagement:WorkspacePath[]=['/reports','/operational-exceptions','/settings','/staff','/change-password'];
+const allManagement:WorkspacePath[]=['/reports','/operational-exceptions','/manager-approvals','/settings','/staff','/change-password'];
 const allAdvanced:WorkspacePath[]=['/reservation-demand','/reservation-policy','/reservation-simulation'];
 const roleNav:Record<HotelRole,{daily:WorkspacePath[];management:WorkspacePath[];advanced:WorkspacePath[];label:string}>={
  admin:{daily:allDaily,management:allManagement,advanced:allAdvanced,label:'Manager'},

@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect,useState} from 'react';
 import {BedDouble,Filter,Search,Plus} from 'lucide-react';
 import {useLiveCatalogSummary,useLiveRooms,useLiveRoomTypes} from '../api/liveCatalogQueries';
 import {CatalogCreateDialog} from '../components/CatalogCreateDialog';
@@ -11,6 +11,7 @@ export function LiveRooms(){
  const admin=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const roomTypes=useLiveRoomTypes();
  const [showCreate,setShowCreate]=useState(false);
+ useEffect(()=>setShowCreate(false),[hotelId]);
  const [floor,setFloor]=useState('all');
  const [search,setSearch]=useState('');
  const [page,setPage]=useState(1);

@@ -44,6 +44,8 @@ export function LiveBookingForm(){
  const [showQuickGuest,setShowQuickGuest]=useState(false);
  const [createdGuest,setCreatedGuest]=useState<Guest|null>(null);
  const inFlight=useRef(false);
+ const reviewHeadingRef=useRef<HTMLHeadingElement>(null);
+ const completeHeadingRef=useRef<HTMLHeadingElement>(null);
  const pendingByHotel=useRef(new Map<string,BookingSubmission>());
  const client=useQueryClient();
  const guests=useGuests({perPage:100});
@@ -107,6 +109,10 @@ export function LiveBookingForm(){
   &&quote.data.data.ratePlanId===selection.ratePlanId&&!pending&&!result&&!busy;
  const locked=!!pending||!!result||busy;
  const stage=result?'complete':checked&&samePreview?'review':'details';
+ useEffect(()=>{
+  if(stage==='review')reviewHeadingRef.current?.scrollIntoView({behavior:'smooth',block:'start'});
+  if(stage==='complete')completeHeadingRef.current?.scrollIntoView({behavior:'smooth',block:'start'});
+ },[stage]);
  const nights=validLiveStay(selection)?Math.round((Date.parse(selection.checkOut+'T00:00:00Z')-Date.parse(selection.checkIn+'T00:00:00Z'))/86400000):0;
  const canReview=valid&&!locked;
  const estimate=rate&&nights>0?rate.nightlyMinor*nights:null;
@@ -269,7 +275,7 @@ export function LiveBookingForm(){
     </aside>
    </div>}
    {checked&&samePreview&&!result&&<section className="rb-review" aria-label="Review and confirm reservation" aria-live="polite">
-    <div className="rb-review-heading"><div><span className="rb-eyebrow">STEP 2 OF 3</span><h4>Review reservation</h4>
+    <div className="rb-review-heading"><div><span className="rb-eyebrow">STEP 2 OF 3</span><h4 ref={reviewHeadingRef} tabIndex={-1}>Review reservation</h4>
      <p>Confirm the guest and stay before creating the booking.</p></div>
      <span className={'rb-availability '+(availability.isSuccess&&availability.data.data.canBook?'available':'')}>
       {availability.isPending?'Checking…':availability.isSuccess?(availability.data.data.canBook?'Available':'Unavailable'):'Not verified'}
@@ -299,7 +305,7 @@ export function LiveBookingForm(){
    </div></div>}
    {result&&<section className="rb-complete" role="status">
     <CheckCircle2 size={36}/><span className="rb-eyebrow">BOOKING CREATED</span>
-    <h4>Reservation confirmed</h4><p><strong>{result.reference}</strong> · {result.checkIn} to {result.checkOut}</p>
+    <h4 ref={completeHeadingRef} tabIndex={-1}>Reservation confirmed</h4><p><strong>{result.reference}</strong> · {result.checkIn} to {result.checkOut}</p>
     <p>Next, assign a physical room and complete the arrival process.</p>
     <div className="rb-complete-actions">
      <Link className="btn-primary" to="/reservations" search={{booking:result.id,...(suggestedRoom&&result.roomTypeId===suggestedRoom.roomTypeId?{room:suggestedRoom.id,roomNumber:suggestedRoom.number}:{})}}>Assign room <ArrowRight size={16}/></Link>

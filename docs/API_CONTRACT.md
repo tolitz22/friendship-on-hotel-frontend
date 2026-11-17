@@ -77,3 +77,16 @@ See [Hotel Settings contract](SETTINGS.md). In mock mode property form changes a
 - `POST /hotels/{hotel}/guests` and `PATCH /hotels/{hotel}/guests/{guest}` for authorized admins
 
 The earlier `/guests` row in the proposed endpoint table is superseded for API mode by these scoped URLs. No other existing proposed endpoint may be assumed to be live. See [Phase 5](PHASE_5_LARAVEL_INTEGRATION.md).
+
+
+## Phase 26: Read-only live folio lookup in API-mode Billing
+
+In `VITE_DATA_SOURCE=api`, Billing renders **a distinct live lookup** for a manually supplied priced reservation ID using `src/api/liveFinance.ts` and the existing selected-hotel in-memory/cookie session. The endpoint is:
+
+```http
+GET /hotels/{hotel}/bookings/{booking}/folio-ledger
+```
+
+It returns the backend's `summary` containing `roomSubtotalMinor`, `additionalDebitsMinor`, `creditsMinor`, `pendingReviewPaymentsMinor`, `staffConfirmedPaymentsMinor`, `provisionalDifferenceMinor`, `finalPayableTotalKnown:false`, `bankOrGatewayVerified:false`, and `isSettled:false`. This is **not** a legally payable or verified settlement amount. Loading and failure states are visible; no silent fixture fallback occurs. The existing `listFolios` table **remains sample/demo** because the Laravel backend does not provide the same full list contract.
+
+No frontend mutation flow for rate policies, payments, adjustments or refunds has been enabled. Their backend Phase 26 routes are for authenticated administrator use only and remain provisional. See the backend `docs/PHASE_26_FINANCE_POLICY_AND_REFUNDS.md`.

@@ -43,9 +43,9 @@ function checkHotel(hotelId:string){
 
 export function parseRooms(value:unknown,hotelId:string,roomTypeId:string){
  const result=roomsSchema.parse(value);
- if(result.data.some(r=>r.hotelId!==hotelId||r.roomTypeId!==roomTypeId))
-  throw new Error('The server returned rooms from another hotel or room type.');
- return result;
+ if(result.data.some(r=>r.hotelId!==hotelId))
+  throw new Error('The server returned rooms from another hotel.');
+ return {...result,data:result.data.filter(r=>r.roomTypeId===roomTypeId)};
 }
 export function parseBlocks(value:unknown,roomId:string){
  const result=blocksSchema.parse(value);

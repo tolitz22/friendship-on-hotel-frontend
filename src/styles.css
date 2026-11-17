@@ -464,3 +464,11 @@
 .catalog-audit-events article p{margin:4px 0;color:var(--muted)}
 
 .demand-form{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}.demand-form label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600}.demand-form input{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px}.demand-form button{display:flex;align-items:center;gap:8px;padding:11px 15px}.demand-summary{margin:18px 0;display:flex;align-items:center;gap:14px;font-size:13px;color:var(--muted)}.demand-summary strong{font-size:28px;color:var(--text)}.demand-warning{display:flex;gap:12px;align-items:flex-start;margin:20px 0;padding:16px;border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--muted)}.demand-warning svg{flex-shrink:0;color:var(--accent)}.demand-warning strong{display:block;color:var(--text);margin-bottom:7px}.demand-warning p{margin:5px 0}
+
+/* Phase 10 policy draft planning */
+.policy-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:14px 0}
+.policy-grid label{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:650}
+.policy-grid select{width:100%;background:var(--surface);color:var(--text);padding:11px;border:1px solid var(--border);border-radius:8px}
+.policy-history-entry{display:flex;flex-direction:column;gap:5px;border-bottom:1px solid var(--border);padding:13px 0;font-size:12px;color:var(--muted)}
+.policy-history-entry strong{color:var(--text)}.policy-history-entry p{margin:0}
+@media(max-width:640px){.policy-grid{grid-template-columns:1fr}}

@@ -25,7 +25,10 @@ import {Reports} from './pages/Reports';
 import {Settings} from './pages/Settings';import './styles.css';
 const root=createRootRoute({component:AppShell});
 const index=createRoute({getParentRoute:()=>root,path:'/',component:dataMode==='api'?LiveDashboard:Dashboard});
-const reservations=createRoute({getParentRoute:()=>root,path:'/reservations',component:Reservations});
+const reservations=createRoute({getParentRoute:()=>root,path:'/reservations',
+ validateSearch:(value:Record<string,unknown>)=>({
+  booking:typeof value.booking==='string'&&/^[1-9]\\d*$/.test(value.booking)?value.booking:undefined,
+ }),component:Reservations});
 const rooms=createRoute({getParentRoute:()=>root,path:'/rooms',component:dataMode==='api'?LiveRooms:Rooms});
 const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/front-desk',component:FrontDesk}),

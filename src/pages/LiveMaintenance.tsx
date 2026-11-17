@@ -11,7 +11,6 @@ import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 
 const priorities:MaintenancePriority[]=['low','medium','high','urgent'];
-const statuses:MaintenanceStatus[]=['open','in_progress','resolved','closed'];
 const transitions:Record<MaintenanceStatus,MaintenanceStatus[]>={
  open:['in_progress','resolved'],in_progress:['resolved'],resolved:['closed'],closed:[]
 };
@@ -107,7 +106,7 @@ export function LiveMaintenance(){
     <div className="mnt-order-top"><strong>WO-{o.id}</strong><span className={'mnt-priority mnt-priority-'+o.priority}>{o.priority}</span></div>
     <h3>{o.title}</h3><p>{o.description}</p>
     <div className="mnt-order-tags"><span className="status">{o.status.replaceAll('_',' ')}</span><span>Room {o.roomNumber}</span></div>
-    <div className="mnt-order-info"><span>Assigned to</span><strong>{o.assignedTo??'Unassigned'}</strong></div>
+    <div className="mnt-order-info"><span>Assigned to</span><strong>{o.assignedUserId?(admin?staff.data?.data.find(m=>m.userId===o.assignedUserId)?.name??('Staff #'+o.assignedUserId):o.assignedUserId===user?.id?'You':'Linked staff #'+o.assignedUserId):o.assignedTo??'Unassigned'}</strong></div>
     <div className="mnt-order-info"><span>Revision</span><strong>{o.revision}</strong></div>
     {o.affectsRoom&&<p className="mnt-warning"><ShieldAlert size={15}/> Room impact noted; inventory not blocked</p>}
     <button type="button" className="btn-inline mnt-review" onClick={()=>openEdit(o)}>{canUpdate(o)?'Manage ticket':'View ticket'} <ClipboardList size={15}/></button>

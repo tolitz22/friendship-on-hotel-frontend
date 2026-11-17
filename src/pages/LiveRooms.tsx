@@ -132,18 +132,18 @@ export function LiveRooms(){
       {info.inventoryBlockedToday&&<p className="inventory-status-warning">Inventory block active today.</p>}
       {info.turnoverTaskId&&<div className="inventory-task-evidence">
        <span>Cleaning task <strong>HK-{info.turnoverTaskId}</strong></span>
-       {info.assignedHousekeeperId&&<small>Assigned staff #{info.assignedHousekeeperId}</small>}
+       {info.assignedHousekeeperId&&<small>Assigned: {info.assignedHousekeeperName??'Staff #'+info.assignedHousekeeperId}</small>}
        {info.cleanedAt&&<small>Completed {info.cleanedAt}
-        {info.cleanedById?' · by staff #'+info.cleanedById:''}</small>}
+        {info.cleanedById?' · by '+(info.cleanedByName??'staff #'+info.cleanedById):''}</small>}
        <Link to="/housekeeping" search={{task:info.turnoverTaskId}}
         className="inventory-room-action">Open checkout cleaning task <ArrowRight size={14}/></Link>
       </div>}
       {info.inspectionId&&<div className="inventory-task-evidence">
        <span>Inspection <strong>#{info.inspectionId}</strong>
         {' · '}{info.inspectionStatus??'unknown'}</span>
-       {info.inspectedById&&<small>Inspected by staff #{info.inspectedById}
+       {info.inspectedById&&<small>Inspected by {info.inspectedByName??'staff #'+info.inspectedById}
         {info.inspectedAt?' · '+info.inspectedAt:''}</small>}
-       {info.reviewedById&&<small>Reviewed by staff #{info.reviewedById}
+       {info.reviewedById&&<small>Reviewed by {info.reviewedByName??'staff #'+info.reviewedById}
         {info.reviewedAt?' · '+info.reviewedAt:''}</small>}
       </div>}
      </div>}

@@ -214,11 +214,13 @@ export function LiveReservationOperations({record,onClose}:{
    <p><strong>Next step: housekeeping turnover.</strong> Open the cleaning task created by checkout. Task completion does not independently certify room readiness.</p>
    <QueryFeedback loading={turnover.isPending} error={turnover.error}
     onRetry={()=>void turnover.refetch()}/>
-   {turnover.data?.task
+   {turnover.isSuccess&&(turnover.data.task
     ?<Link to="/housekeeping" search={{task:turnover.data.task.id}}>
       Open checkout task #{turnover.data.task.id} <ArrowRight size={15}/>
      </Link>
-    :<Link to="/housekeeping">Open cleaning queue <ArrowRight size={15}/></Link>}
+    :<p role="status">No linked cleaning task was returned. Review the task queue or ask an administrator to investigate the checkout.</p>)}
+   {turnover.isSuccess&&!turnover.data.task&&
+    <Link to="/housekeeping">Review the cleaning queue <ArrowRight size={15}/></Link>}
   </div>}
   {error&&<p role="alert" className="auth-error"><AlertTriangle size={16}/> {
    error

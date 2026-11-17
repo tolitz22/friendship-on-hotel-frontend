@@ -20,3 +20,14 @@ export const getHotelStaffHistory=()=>getJson<{
  data:StaffMembershipEvent[];
  meta:{page:number;perPage:number;total:number;totalPages:number};
 }>(hotelPath('/staff/history'));
+
+export interface StaffInvitation{
+ id:string;email:string;name:string;role:StaffRole;expiresAt:string;
+ acceptedAt:string|null;revokedAt:string|null;createdAt:string;
+}
+export const listStaffInvitations=()=>getJson<{data:StaffInvitation[]}>(hotelPath('/staff/invitations'));
+export const inviteNewStaff=(email:string,name:string,role:StaffRole)=>
+ requestJson<{data:{id:string;email:string;expiresInHours:number};message:string}>(
+  hotelPath('/staff/invitations'),{method:'POST',body:{email,name,role}});
+export const revokeStaffInvitation=(id:string)=>
+ requestJson<{message:string}>(hotelPath('/staff/invitations/'+encodeURIComponent(id)+'/revoke'),{method:'PATCH'});

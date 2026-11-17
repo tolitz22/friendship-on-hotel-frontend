@@ -39,6 +39,7 @@ export function LiveBookingForm(){
  const [error,setError]=useState<Error|null>(null);
  const [busy,setBusy]=useState(false);
  const inFlight=useRef(false);
+ const pendingByHotel=useRef(new Map<string,BookingSubmission>());
  const client=useQueryClient();
  const guests=useGuests({perPage:100});
  const linkedGuest=useSelectedGuest(requestedGuest??null);
@@ -48,7 +49,11 @@ export function LiveBookingForm(){
  const quote=useLiveRoomQuote(checked,checked?.ratePlanId??'');
 
  useEffect(()=>{
-  setSelection(initialSelection(requestedGuest));setChecked(null);setPending(null);setResult(null);setError(null);
+  setSelection(initialSelection(requestedGuest));setChecked(null);
+  // Retain an uncertain booking request when switching away and back to its
+  // hotel. Replaying the original key is safer than generating a duplicate.
+  setPending(hotelId?pendingByHotel.current.get(hotelId)??null:null);
+  setResult(null);setError(null);
  },[hotelId,requestedGuest]);
  const activeRates=(rates.data?.data??[]).filter(rate=>rate.roomTypeId===selection.roomTypeId&&rate.active);
  const usingLinkedGuest=!!requestedGuest&&selection.guestId===requestedGuest;
@@ -86,6 +91,7 @@ export function LiveBookingForm(){
    // A property switch may occur while the network request is in flight.
    // Never show another property's confirmation in the newly selected hotel.
    if(readSession().hotelId!==submission.hotelId)return;
+   pendingByHotel.current.delete(submission.hotelId);
    setResult(confirmed);setPending(null);
    // The backend has already confirmed this booking. Cache refresh failures
    // must not turn a successful submission into an ambiguous retry.
@@ -111,12 +117,14 @@ export function LiveBookingForm(){
   try{buildBookingPayload(submission);}catch(cause){
    setError(cause instanceof Error?cause:new Error('Invalid booking inputs.'));return;
   }
+  pendingByHotel.current.set(hotelId,submission);
   setPending(submission);
   void send(submission);
  };
  const retry=()=>{if(pending&&!busy)void send(pending);};
  const reset=()=>{
   if(busy)return;
+  if(hotelId)pendingByHotel.current.delete(hotelId);
   setPending(null);setResult(null);setError(null);setChecked(null);
   setSelection(initialSelection(requestedGuest));
  };

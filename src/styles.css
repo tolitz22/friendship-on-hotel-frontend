@@ -443,3 +443,5 @@
 .guest-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
 @media(max-width:860px){.hotel-context-select select{max-width:140px}}
 @media(max-width:600px){.auth-card{padding:22px}.guest-fields{grid-template-columns:1fr}.topbar-actions{gap:8px}.hotel-context-select select{max-width:100px}}
+
+.live-property-summary{padding:6px 0 15px;font-size:13px;line-height:1.7;color:var(--text)}.live-property-summary h3{font-size:16px;margin:0 0 7px}.live-property-summary p{margin:4px 0;color:var(--muted)}.live-property-summary strong{color:var(--text)}

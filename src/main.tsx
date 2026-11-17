@@ -5,6 +5,9 @@ import {AppShell} from './components/AppShell';
 import {AuthProvider} from './components/AuthProvider';import {ThemeProvider} from './components/ThemeProvider';
 import {Dashboard} from './pages/Dashboard';
 import {LiveDashboard} from './pages/LiveDashboard';
+import {RoleHome} from './pages/RoleHome';
+import {useHotelAuth} from './components/AuthProvider';
+import {selectedRole} from './features/workspaces/roleNavigation';
 import {LiveRooms} from './pages/LiveRooms';
 import {LiveRoomCalendar} from './pages/LiveRoomCalendar';
 import {OperationalExceptions} from './pages/OperationalExceptions';
@@ -26,7 +29,10 @@ import {LiveMaintenance} from './pages/LiveMaintenance';
 import {Reports} from './pages/Reports';
 import {Settings} from './pages/Settings';import './styles.css';
 const root=createRootRoute({component:AppShell});
-const index=createRoute({getParentRoute:()=>root,path:'/',component:dataMode==='api'?LiveDashboard:Dashboard});
+function Home(){const {user,hotelId}=useHotelAuth();
+ return selectedRole(user?.hotels,hotelId)==='admin'?<LiveDashboard/>:<RoleHome/>;
+}
+const index=createRoute({getParentRoute:()=>root,path:'/',component:dataMode==='api'?Home:Dashboard});
 const reservations=createRoute({getParentRoute:()=>root,path:'/reservations',
  validateSearch:(value:Record<string,unknown>):{booking?:string;guest?:string;room?:string;roomNumber?:string;checkIn?:string;checkOut?:string;deskAction?:'assign'|'check-in'|'check-out'}=>({
   booking:typeof value.booking==='string'&&/^[1-9][0-9]*$/.test(value.booking)?value.booking:undefined,

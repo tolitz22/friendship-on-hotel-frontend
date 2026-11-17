@@ -32,6 +32,18 @@ describe('Phase 51 approval response safety',()=>{
   expect(result.data[0].status).toBe('pending');
   expect(result.data[0].snapshot.checkIn).toBe('2026-12-10');
  });
+ it('accepts existing Laravel empty-array payloads on cancellations and early check-in',()=>{
+  for(const action of ['cancel_booking','early_check_in'] as const){
+   const legacy={...row,action,payload:[]};
+   const parsed=parseApprovals({...data,data:[legacy]},'1','12');
+   expect(parsed.data[0].payload).toEqual({});
+   expect(parsed.data[0].action).toBe(action);
+  }
+ });
+ it('continues rejecting malformed nonempty array payloads and invalid date values',()=>{
+  expect(()=>parseApprovals({...data,data:[{...row,payload:['unexpected']}]},'1')).toThrow();
+  expect(()=>parseApprovals({...data,data:[{...row,payload:{checkIn:12}}]},'1')).toThrow();
+ });
  it('rejects unknown statuses, malformed IDs and missing review metadata',()=>{
   expect(()=>parseApprovals({...data,data:[{...row,status:'secretly_approved'}]},'1')).toThrow();
   expect(()=>parseApprovals({...data,data:[{...row,hotelId:'abc'}]},'1')).toThrow();

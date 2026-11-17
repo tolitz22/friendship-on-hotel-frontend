@@ -13,9 +13,13 @@ const tokenMode=process.env.PMS_STAGING_AUTH_MODE==='token';
 type FolioSummary={bankOrGatewayVerified:boolean;isSettled:boolean;staffConfirmedPaymentsMinor:number};
 const matching=(path:string,method:string)=> (response:{url():string;request():{method():string}})=>
  response.url().startsWith(apiBase+path)&&response.request().method()===method;
-const today=()=>new Intl.DateTimeFormat('en-CA',{
- timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit',
-}).format(new Date());
+const today=()=>{
+ const parts=new Intl.DateTimeFormat('en-US',{
+  timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit',
+ }).formatToParts(new Date());
+ const value=(key:string)=>parts.find(part=>part.type===key)!.value;
+ return value('year')+'-'+value('month')+'-'+value('day');
+};
 const tomorrow=()=>{
  const parts=today().split('-').map(Number);
  return new Date(Date.UTC(parts[0],parts[1]-1,parts[2]+1)).toISOString().slice(0,10);
@@ -71,7 +75,7 @@ test('real React guest → booking → room assignment → check-in and Laravel 
  expect(guestPayload.data.id).toMatch(/^[1-9]\d*$/);
 
  await page.getByRole('navigation',{name:'Hotel workspace navigation'}).getByRole('link',{name:'Reservations'}).click();
- await expect(page.getByRole('heading',{name:'Reservations'})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Reservations'}).first()).toBeVisible();
  await page.locator('#book-guest').selectOption(guestPayload.data.id);
  await page.locator('#book-roomtype').selectOption(env('PMS_STAGING_TEST_ROOM_TYPE_ID'));
  await page.locator('#book-checkin').fill(today());

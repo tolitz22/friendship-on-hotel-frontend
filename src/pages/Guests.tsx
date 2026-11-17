@@ -1,4 +1,4 @@
-import {useState,type FormEvent} from 'react';
+import {useEffect,useState,type FormEvent} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 import {Search,Users,Pencil,Plus,RotateCcw} from 'lucide-react';
 import {useGuests} from '../api/queries';
@@ -29,6 +29,8 @@ export function Guests(){
  const [saving,setSaving]=useState(false);
  const [formError,setFormError]=useState('');
  const [fieldErrors,setFieldErrors]=useState<Record<string,string[]>>({});
+ // A property switch must not leave a different hotel's guest profile in the editor.
+ useEffect(()=>{setDraft(null);setEditing(null);setFormError('');setFieldErrors({});setSearch('');setPage(1);},[hotelId]);
  const openCreate=()=>{setEditing(null);setDraft(emptyDraft());setFormError('');setFieldErrors({});};
  const openEdit=(guest:Guest)=>{setEditing(guest);setDraft(fromGuest(guest));setFormError('');setFieldErrors({});};
  const close=()=>{setDraft(null);setFormError('');setFieldErrors({});};

@@ -309,7 +309,7 @@ export function LiveBookingForm(){
     <h4 ref={completeHeadingRef} tabIndex={-1}>Reservation confirmed</h4><p><strong>{result.reference}</strong> · {result.checkIn} to {result.checkOut}</p>
     <p>Next, assign a physical room and complete the arrival process.</p>
     <div className="rb-complete-actions">
-     <Link className="btn-primary" to="/reservations" search={{booking:result.id,...(suggestedRoom&&result.roomTypeId===suggestedRoom.roomTypeId?{room:suggestedRoom.id,roomNumber:suggestedRoom.number}:{})}}>Assign room <ArrowRight size={16}/></Link>
+     <Link className="btn-primary" to="/reservations" search={{booking:result.id,...(suggestedRoom&&result.roomTypeId===suggestedRoom.roomTypeId?{room:suggestedRoom.id,roomNumber:suggestedRoom.number}:{})}}>Manage booking · Assign room <ArrowRight size={16}/></Link>
      <button type="button" className="btn-inline" onClick={reset}>New reservation</button>
     </div>
    </section>}

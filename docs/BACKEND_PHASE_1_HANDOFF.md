@@ -59,3 +59,7 @@ The frontend now has an API-mode sign-in gate, selected-hotel context, and a **l
 ## Phase 6 live property catalogue
 
 API mode now uses Laravel for Overview (registered physical room count, type/floor counts and selected property), Room Inventory (catalogue list + validated room/floor filtering), and Settings (read-only saved contact details, types and floors). **No occupancy, vacant/dirty room, rate, booking, or operational summary values are presented as live.** Existing mock components are still available in mock mode. Backend provides `/api/v1/hotels/{hotel}/catalog-summary`. See `docs/PHASE_6_LIVE_CATALOG.md`.
+
+## Phase 7 administration continuity
+
+Live API mode now supports admin-only room type and physical room **creation**, from Settings and Room Inventory, using existing Laravel POST endpoints. The shared room catalogue summary and lists refresh after successful creation. No edit, delete, inventory availability, reservation create, occupancy or operational status API has been added; mock components are preserved. See `docs/PHASE_7_CATALOG_ADMIN.md`.

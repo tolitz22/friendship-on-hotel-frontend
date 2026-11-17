@@ -1,5 +1,5 @@
 import {Link,Outlet,useRouterState} from '@tanstack/react-router';
-import {LayoutDashboard,CalendarDays,CalendarRange,BedDouble,Users,Wallet,ClipboardCheck,Wrench,ChartNoAxesCombined,Settings,Bell,Sun,Moon,Menu,X,Hotel,LogOut,ArrowRight,ChevronDown,ShieldCheck} from 'lucide-react';
+import {LayoutDashboard,CalendarDays,CalendarRange,BedDouble,Users,Wallet,ClipboardCheck,Wrench,ChartNoAxesCombined,Settings,Bell,Sun,Moon,Menu,X,Hotel,LogOut,ArrowRight,ChevronDown,ShieldCheck,ShieldAlert} from 'lucide-react';
 import {useEffect,useState} from 'react';
 import {useTheme} from './ThemeProvider';
 import {dataMode} from '../api';
@@ -20,6 +20,7 @@ const daily=[
 ];
 const administration=[
  {to:'/reports' as const,label:'Reports',icon:ChartNoAxesCombined},
+ {to:'/operational-exceptions' as const,label:'Exceptions & audit',icon:ShieldAlert},
  {to:'/settings' as const,label:'Hotel settings',icon:Settings},
  {to:'/staff' as const,label:'Staff access',icon:Users},
  {to:'/change-password' as const,label:'Account security',icon:ShieldCheck},
@@ -58,7 +59,7 @@ export function AppShell(){
 
  const renderNav=(items:readonly NavItem[])=>items
   .filter(item=>dataMode==='api'||!['/change-password','/staff'].includes(item.to))
-  .filter(item=>item.to!=='/staff'||admin)
+  .filter(item=>!['/staff','/operational-exceptions'].includes(item.to)||admin)
   .map(({to,label,icon:Icon})=><Link key={to} to={to} activeOptions={{exact:true}}
    aria-current={pathname===to?'page':undefined}
    className={'nav-link'+(pathname===to?' active':'')}>

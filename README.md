@@ -126,3 +126,7 @@ In `VITE_DATA_SOURCE=api`, Maintenance now uses real hotel-scoped Laravel work o
 ## Phase 14 — Live Housekeeping
 
 In `VITE_DATA_SOURCE=api`, Housekeeping now reads and manages real Laravel room-linked cleaning tasks. Active hotel admins can create/update tasks; members can inspect status and history. The mock Housekeeping screen is preserved in mock mode. Finishing cleaning does not change availability or occupancy. See [Phase 14](docs/PHASE_14_LIVE_HOUSEKEEPING.md).
+
+## Phase 15 — Hotel Staff and Linked Task Permissions
+
+In API mode, hotel administrators now have a **Hotel staff** directory to attach existing accounts, choose roles, activate/deactivate memberships and review audit history. Admins can assign actual user accounts on maintenance and housekeeping tasks; assigned staff can update only their own task status and notes. Legacy free-text assignees never grant permission. Mock mode remains unchanged. See [Phase 15](docs/PHASE_15_STAFF_PERMISSIONS.md).

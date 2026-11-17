@@ -66,3 +66,14 @@ See [maintenance board](MAINTENANCE.md). Technician and status changes are local
 See [Reports and Analytics](REPORTS.md) for definitions of date-filtered arrival bookings versus present-state room/folio snapshots.
 
 See [Hotel Settings contract](SETTINGS.md). In mock mode property form changes are only local previews; room types and staff permissions are read-only. There are no live update endpoints.
+
+## Phase 5 integration status
+
+`VITE_DATA_SOURCE=api` now supports **login + hotel selection + live guest records only**. The other `HotelDataSource` methods are deliberately bound to explicit mock previews for this interim phase. Live Guests uses property-scoped routes:
+
+- `POST /auth/login` (not on `HotelDataSource`)
+- `GET /auth/me` and `POST /auth/logout`
+- `GET /hotels/{hotel}/guests` with `search`, `page`, `per_page`
+- `POST /hotels/{hotel}/guests` and `PATCH /hotels/{hotel}/guests/{guest}` for authorized admins
+
+The earlier `/guests` row in the proposed endpoint table is superseded for API mode by these scoped URLs. No other existing proposed endpoint may be assumed to be live. See [Phase 5](PHASE_5_LARAVEL_INTEGRATION.md).

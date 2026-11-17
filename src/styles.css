@@ -1293,3 +1293,15 @@
 .guest-history-row small{color:var(--muted);font-size:11px}
 .guest-history-row a{color:var(--accent);font-size:12px;font-weight:700}
 @media(max-width:650px){.guest-history-header{align-items:flex-start;flex-direction:column}.guest-history-row{grid-template-columns:1fr;gap:8px}}
+
+
+/* Append-only reservation special requests */
+.special-request-workspace{display:grid;gap:13px}
+.special-request-workspace h4{display:flex;align-items:center;gap:8px;margin:0;font-size:14px}
+.special-request-item{display:grid;gap:6px;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--canvas)}
+.special-request-item strong{font-size:12px}
+.special-request-item p{font-size:12px;line-height:1.55;margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.special-request-item small{font-size:11px;color:var(--muted)}
+.special-request-form{display:grid;justify-items:start;gap:12px;padding:15px;background:var(--canvas);border:1px solid var(--border);border-radius:12px}
+.special-request-form label{display:grid;gap:6px;font-size:12px;font-weight:650;width:100%}
+.special-request-form textarea,.special-request-form select{max-width:100%;width:100%}

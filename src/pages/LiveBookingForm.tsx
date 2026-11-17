@@ -1,9 +1,10 @@
 import {useEffect,useRef,useState} from 'react';
 import {Link,useSearch} from '@tanstack/react-router';
 import type {FormEvent} from 'react';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {AlertTriangle,CheckCircle2} from 'lucide-react';
 import {useGuests} from '../api/queries';
+import {getLiveRooms} from '../api/liveCatalog';
 import {useSelectedGuest} from '../api/liveSelectedGuest';
 import {useLiveAvailability,useLiveRoomQuote,useLiveRatePlans,useLiveRoomTypes,validLiveStay} from '../api/liveReservations';
 import {buildBookingPayload,createLiveBooking,makeBookingSubmission} from '../api/liveBooking';
@@ -15,8 +16,8 @@ import {Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {addDays,hotelToday} from '../features/reservations/calendarDate';
 
-const initialSelection=(guestId=''):BookingSelection=>{
- const checkIn=addDays(hotelToday(),1);
+const initialSelection=(guestId='',requestedDay?:string):BookingSelection=>{
+ const checkIn=requestedDay&&requestedDay>=hotelToday()?requestedDay:addDays(hotelToday(),1);
  return {guestId,roomTypeId:'',ratePlanId:'',checkIn,checkOut:addDays(checkIn,1)};
 };
 
@@ -30,9 +31,9 @@ const displayMoney=(minor:number,currency:string)=>currency==='PHP'
  */
 export function LiveBookingForm(){
  const {user,hotelId}=useHotelAuth();
- const {guest:requestedGuest}=useSearch({from:'/reservations'});
+ const {guest:requestedGuest,room:requestedRoomId,roomNumber:requestedRoomNumber,checkIn:requestedDay}=useSearch({from:'/reservations'});
  const admin=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
- const [selection,setSelection]=useState<BookingSelection>(()=>initialSelection(requestedGuest));
+ const [selection,setSelection]=useState<BookingSelection>(()=>initialSelection(requestedGuest,requestedDay));
  const [checked,setChecked]=useState<BookingSelection|null>(null);
  const [pending,setPending]=useState<BookingSubmission|null>(null);
  const [result,setResult]=useState<ConfirmedBooking|null>(null);
@@ -45,16 +46,38 @@ export function LiveBookingForm(){
  const linkedGuest=useSelectedGuest(requestedGuest??null);
  const types=useLiveRoomTypes();
  const rates=useLiveRatePlans();
+ // Treat URL hints as untrusted. Verify the physical room and property against
+ // Laravel before prefilling the room type or proposing an assignment.
+ const selectedRoomQuery=useQuery({
+  queryKey:['live','calendar-booking-room',hotelId,requestedRoomId,requestedRoomNumber],
+  enabled:!!hotelId&&!!requestedRoomId&&!!requestedRoomNumber,
+  retry:false,
+  queryFn:async()=>{
+   const response=await getLiveRooms({search:requestedRoomNumber!,page:1,perPage:100});
+   const match=response.data.find(room=>room.id===requestedRoomId
+    &&room.number===requestedRoomNumber&&room.hotelId===hotelId);
+   if(!match)throw new Error('Selected room no longer matches this hotel. Reopen it from the room calendar.');
+   return match;
+  },
+ });
+ const suggestedRoom=selectedRoomQuery.data??null;
  const availability=useLiveAvailability(checked);
  const quote=useLiveRoomQuote(checked,checked?.ratePlanId??'');
 
  useEffect(()=>{
-  setSelection(initialSelection(requestedGuest));setChecked(null);
+  setSelection(initialSelection(requestedGuest,requestedDay));setChecked(null);
   // Retain an uncertain booking request when switching away and back to its
   // hotel. Replaying the original key is safer than generating a duplicate.
   setPending(hotelId?pendingByHotel.current.get(hotelId)??null:null);
   setResult(null);setError(null);
- },[hotelId,requestedGuest]);
+ },[hotelId,requestedGuest,requestedDay,requestedRoomId]);
+ useEffect(()=>{
+  if(!suggestedRoom||pending||result||busy)return;
+  setSelection(previous=>previous.roomTypeId===suggestedRoom.roomTypeId?previous:{
+   ...previous,roomTypeId:suggestedRoom.roomTypeId,ratePlanId:'',
+  });
+  setChecked(null);
+ },[suggestedRoom?.id,hotelId]);
  const activeRates=(rates.data?.data??[]).filter(rate=>rate.roomTypeId===selection.roomTypeId&&rate.active);
  const usingLinkedGuest=!!requestedGuest&&selection.guestId===requestedGuest;
  const guest=guests.data?.data.find(item=>item.id===selection.guestId)
@@ -131,6 +154,13 @@ export function LiveBookingForm(){
  return <Panel title="New reservation">
   <p className="help-copy">Complete the guest and stay details, check availability, then confirm. The reservation will be saved immediately when you select Confirm.</p>
   <p className="help-copy">Payment, guest identity verification, physical room assignment and final taxes are separate steps.</p>
+  {requestedRoomId&&<div className="calendar-booking-context" role="status">
+   <strong>From room calendar</strong>
+   {selectedRoomQuery.isPending&&<p>Verifying selected room with Laravel…</p>}
+   {selectedRoomQuery.isError&&<p>Could not verify the selected room for this property. You can still create a reservation without a room preference.</p>}
+   {suggestedRoom&&<p><strong>Room {suggestedRoom.number}</strong> · {suggestedRoom.roomTypeName} · Suggested arrival: {requestedDay??'Not specified'}. The room type has been selected for you. This is a preferred room, not a room hold or assignment.</p>}
+   {requestedDay&&requestedDay<hotelToday()&&<p>The selected calendar date has passed, so the form uses a future arrival date.</p>}
+  </div>}
   {!admin&&<p role="status">Only an administrator of the selected hotel can submit reservations. Laravel enforces permissions independently.</p>}
   {admin&&<>
    <QueryFeedback loading={guests.isPending||types.isPending||rates.isPending||(usingLinkedGuest&&linkedGuest.isPending)}
@@ -223,8 +253,8 @@ export function LiveBookingForm(){
     <p>Reference: <strong>{result.reference}</strong> · ID: {result.id} · Status: {result.status}</p>
     <p>{result.idempotentReplay?'This was a safe replay of the original successful booking.':'This request created a confirmed reservation.'} Physical room assignment, guest identity and payment remain separate.</p>
     <div className="task-next-step">
-     <p><strong>Next:</strong> Open this saved booking directly to assign a physical room and manage check-in when eligible.</p>
-     <Link to="/reservations" search={{booking:result.id}}>
+     <p><strong>Next:</strong> Open this saved booking to {suggestedRoom?'verify and assign your preferred Room '+suggestedRoom.number:'assign a physical room'} and manage check-in when eligible.</p>
+     <Link to="/reservations" search={{booking:result.id,...(suggestedRoom?{room:suggestedRoom.id,roomNumber:suggestedRoom.number}:{})}}>
       Open this booking and assign a room
      </Link>
      <Link to="/front-desk">Front desk queues</Link>

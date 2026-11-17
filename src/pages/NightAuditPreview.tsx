@@ -45,6 +45,12 @@ export function NightAuditPreview(){
      <input type="date" className="wizard-input" value={date} max={data?.hotelDate??hotelToday()}
       onChange={e=>setDate(e.target.value)}/>
     </label>
+    <button type="button" className="btn-inline" onClick={()=>{
+     const current=data?.hotelDate??hotelToday();
+     const utc=new Date(current+'T00:00:00Z');
+     utc.setUTCDate(utc.getUTCDate()-1);
+     setDate(utc.toISOString().slice(0,10));
+    }}>Review yesterday</button>
     <button type="button" className="btn-inline" onClick={()=>void query.refetch()}>
      <RefreshCw size={16}/> Refresh preflight
     </button>

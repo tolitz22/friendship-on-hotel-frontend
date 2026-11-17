@@ -7,6 +7,7 @@ import {Dashboard} from './pages/Dashboard';
 import {LiveDashboard} from './pages/LiveDashboard';
 import {LiveRooms} from './pages/LiveRooms';
 import {LiveSettings} from './pages/LiveSettings';
+import {LiveReservationDemand} from './pages/LiveReservationDemand';
 import {dataMode} from './api';import {Reservations} from './pages/Reservations';import {Rooms} from './pages/Rooms';
 import {Guests} from './pages/Guests';
 import {Housekeeping} from './pages/Housekeeping';
@@ -21,6 +22,7 @@ const reservations=createRoute({getParentRoute:()=>root,path:'/reservations',com
 const rooms=createRoute({getParentRoute:()=>root,path:'/rooms',component:dataMode==='api'?LiveRooms:Rooms});
 const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/front-desk',component:FrontDesk}),
+ createRoute({getParentRoute:()=>root,path:'/reservation-demand',component:LiveReservationDemand}),
  createRoute({getParentRoute:()=>root,path:'/guests',component:Guests}),
  createRoute({getParentRoute:()=>root,path:'/billing',component:Billing}),
  createRoute({getParentRoute:()=>root,path:'/housekeeping',component:Housekeeping}),

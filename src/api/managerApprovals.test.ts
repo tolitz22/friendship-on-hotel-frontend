@@ -24,6 +24,14 @@ describe('Phase 51 approval response safety',()=>{
   expect(()=>parseApprovals(data,'2')).toThrow(/selected hotel/);
   expect(()=>parseApprovals(data,'1','13')).toThrow(/reservation/);
  });
+ it('recognizes early check-in as an explicit manager approval action',()=>{
+  const early={...row,action:'early_check_in',payload:{},
+   snapshot:{...row.snapshot,assignedRoomId:'41'}};
+  const result=parseApprovals({...data,data:[early]},'1','12');
+  expect(result.data[0].action).toBe('early_check_in');
+  expect(result.data[0].status).toBe('pending');
+  expect(result.data[0].snapshot.checkIn).toBe('2026-12-10');
+ });
  it('rejects unknown statuses, malformed IDs and missing review metadata',()=>{
   expect(()=>parseApprovals({...data,data:[{...row,status:'secretly_approved'}]},'1')).toThrow();
   expect(()=>parseApprovals({...data,data:[{...row,hotelId:'abc'}]},'1')).toThrow();

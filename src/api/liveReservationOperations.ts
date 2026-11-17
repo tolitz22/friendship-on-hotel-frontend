@@ -25,6 +25,38 @@ const blocksSchema=z.object({
  meta:z.object({page:z.number().int().positive(),perPage:z.number().int().positive(),
  total:z.number().int().nonnegative(),totalPages:z.number().int().nonnegative()}),
 });
+const historySchema=z.object({
+ data:z.array(z.object({
+  id,reservationId:id,eventType:z.string(),
+  oldState:z.string().nullable(),newState:z.string().nullable(),
+  actorId:id,createdAt:z.string(),
+ })),
+ meta:z.object({
+  page:z.number().int().positive(),perPage:z.number().int().positive(),
+  total:z.number().int().nonnegative(),totalPages:z.number().int().nonnegative(),
+  hotelId:id,reservationId:id,
+ }),
+});
+export function parseHistory(value:unknown,hotelId:string,bookingId:string){
+ const result=historySchema.parse(value);
+ if(result.meta.hotelId!==hotelId||result.meta.reservationId!==bookingId
+  ||result.data.some(row=>row.reservationId!==bookingId))
+  throw new Error('Reservation history was returned for another hotel or booking.');
+ return result;
+}
+export function useLiveReservationHistory(record:LiveRecord|null,page:number){
+ const {hotelId}=readSession();
+ return useQuery({
+  queryKey:['live','reservation-history',hotelId,record?.id,page],
+  enabled:!!hotelId&&!!record,
+  queryFn:async()=>parseHistory(await getJson<unknown>(
+   hotelPath('/bookings/'+encodeURIComponent(record!.id)+'/history'),
+   {page,per_page:20}
+  ),hotelId!,record!.id),
+  retry:false,
+ });
+}
+
 const assignSchema=z.object({data:z.object({
  bookingId:id,roomId:id,unchanged:z.boolean(),
 })});

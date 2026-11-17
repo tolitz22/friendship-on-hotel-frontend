@@ -80,3 +80,8 @@ In API mode the main Housekeeping route mounts the already implemented \`LiveHou
 ## Frontend Phase 35 — Audited room inspection (advisory only)
 
 The real Rooms catalogue mounts in API mode and shows \`RoomReadinessPanel\` on a selected physical room. See frontend \`docs/API_CONTRACT.md\` Phase 35 and backend \`docs/PHASE_35_ROOM_READINESS.md\`. The backend records an explicit physical checklist, independent administrator approval, current blockers and append-only events. Do not infer readiness from a housekeeping completion or resolved work order. Phase 35 reports \`enforcedAtCheckIn:false\` and \`inventoryGuaranteed:false\`; never label the approval a safe room assignment, final inventory availability, or verified check-in authorization. Browser writes must check hotel identity and revision and require a fresh backend view after uncertain results.
+
+
+## Frontend Phase 36 — Enforced readiness is opt-in
+
+See frontend \`docs/API_CONTRACT.md\` Phase 36 and backend \`docs/PHASE_36_TRANSACTIONAL_READINESS_ENFORCEMENT.md\`. The hotel administrator can explicitly enable or disable the room-readiness check-in gate using a revision-checked, audited policy. Never infer enforcement is off when the policy cannot load. When enforcement is enabled, \`LiveReservationOperations\` requires current room readiness before enabling Check-in, but Laravel remains authoritative under a hotel-level transaction lock. The latest room inspection is invalidated by new housekeeping, room-impact work, blocks or checkout turnover even if resolved. This policy **does not** verify identity, payment, or future inventory. Do not recommend production activation without multi-process concurrency validation.

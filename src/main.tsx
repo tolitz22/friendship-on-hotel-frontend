@@ -7,6 +7,7 @@ import {Dashboard} from './pages/Dashboard';
 import {LiveDashboard} from './pages/LiveDashboard';
 import {LiveRooms} from './pages/LiveRooms';
 import {LiveRoomCalendar} from './pages/LiveRoomCalendar';
+import {OperationalExceptions} from './pages/OperationalExceptions';
 import {LiveSettings} from './pages/LiveSettings';
 import {LiveStaff} from './pages/LiveStaff';
 import {AcceptInvitation} from './pages/AcceptInvitation';
@@ -40,6 +41,7 @@ const rooms=createRoute({getParentRoute:()=>root,path:'/rooms',component:dataMod
 const roomCalendar=createRoute({getParentRoute:()=>root,path:'/room-calendar',component:LiveRoomCalendar});
 const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/front-desk',component:FrontDesk}),
+ createRoute({getParentRoute:()=>root,path:'/operational-exceptions',component:OperationalExceptions}),
  createRoute({getParentRoute:()=>root,path:'/reservation-demand',component:LiveReservationDemand}),
  createRoute({getParentRoute:()=>root,path:'/reservation-policy',component:LiveReservationPolicy}),
  createRoute({getParentRoute:()=>root,path:'/reservation-simulation',component:LiveReservationSimulation}),

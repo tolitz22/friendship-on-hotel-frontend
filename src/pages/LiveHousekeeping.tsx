@@ -115,6 +115,7 @@ export function LiveHousekeeping(){
     client.invalidateQueries({queryKey:['housekeeping-history',hotelId]}),
     client.invalidateQueries({queryKey:['live','front-desk','manifest',hotelId]}),
     client.invalidateQueries({queryKey:['live','readiness-dashboard',hotelId]}),
+    client.invalidateQueries({queryKey:['live','room-inventory-status',hotelId]}),
     client.invalidateQueries({queryKey:['live','room-readiness',hotelId]}),
     client.invalidateQueries({queryKey:['live','housekeeping-direct-task',hotelId]}),
    ]).catch(()=>{});

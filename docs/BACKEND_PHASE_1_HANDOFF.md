@@ -71,3 +71,7 @@ In API mode, authenticated admins can edit room numbers, floors and safe type as
 ## Phase 9 read-only reservation demand
 
 Backend adds `/api/v1/hotels/{hotel}/reservation-demand`; frontend API mode adds a Demand diagnostic sidebar view without replacing the preview reservation calendar/wizard. The report is structural only, ignores lifecycle filtering and does not determine availability. No real booking create endpoint exists. See `docs/PHASE_9_RESERVATION_DEMAND.md`.
+
+## Phase 10 — Booking policy draft planning
+
+Frontend API mode has a new Booking policies screen backed by versioned, hotel-scoped Laravel policy drafts. Administrators can edit decisions and review revision history; no draft ever activates bookings. Reservation calendar/wizard remains mock; Demand diagnostic remains non-availability. See `docs/PHASE_10_POLICY_DRAFTS.md`.

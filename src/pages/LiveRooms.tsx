@@ -5,6 +5,7 @@ import {CatalogCreateDialog} from '../components/CatalogCreateDialog';
 import {CatalogEditDialog} from '../components/CatalogEditDialog';
 import {RoomReadinessPanel} from '../components/RoomReadinessPanel';
 import {ReadinessEnforcementPanel} from '../components/ReadinessEnforcementPanel';
+import {ReadinessDashboardPanel} from '../components/ReadinessDashboardPanel';
 import type {LiveRoom} from '../api/liveCatalog';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading} from '../components/ui';
@@ -48,6 +49,7 @@ export function LiveRooms(){
  {rooms.data&&<div className="guest-pagination"><span>Page {rooms.data.meta.page} of {Math.max(1,totalPages)}</span><div>
  <button className="btn-inline" disabled={page<=1} onClick={()=>setPage(p=>Math.max(1,p-1))}>Previous</button>
  <button className="btn-inline" disabled={page>=totalPages} onClick={()=>setPage(p=>p+1)}>Next</button></div></div>}
+ <ReadinessDashboardPanel/>
  <ReadinessEnforcementPanel/>
  {readinessRoom&&<RoomReadinessPanel key={hotelId+'-'+readinessRoom.id} room={readinessRoom} onClose={()=>setReadinessRoom(null)}/>}
  {editingRoom&&admin&&<CatalogEditDialog key={'edit-'+hotelId+'-'+editingRoom.id} target={{kind:'room',record:editingRoom}} roomTypes={roomTypes.data?.data??[]} onClose={()=>setEditingRoom(null)} onSaved={()=>setEditingRoom(null)}/>}

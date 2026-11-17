@@ -1,5 +1,6 @@
 import {useQuery} from '@tanstack/react-query';
-import {hotelApi} from './index';import type {BookingQuoteRequest,CalendarParams,ListParams,ReportQuery} from './types';
+import {hotelApi,dataMode} from './index';
+import {readSession} from './session';import type {BookingQuoteRequest,CalendarParams,ListParams,ReportQuery} from './types';
 export const queryKeys={
  hotelSettings:['hotel','settings'] as const,
  reports:(p:ReportQuery)=>['reports','summary',p] as const,
@@ -29,6 +30,6 @@ export const useRoomTimeline=(p:CalendarParams)=>useQuery({queryKey:queryKeys.ro
 export const useReservationCalendar=(p:CalendarParams)=>useQuery({queryKey:queryKeys.reservationCalendar(p),queryFn:()=>hotelApi.getReservationCalendar(p)});
 export const useReservations=(p:ListParams={})=>useQuery({queryKey:queryKeys.reservations(p),queryFn:()=>hotelApi.listReservations(p)});
 export const useRooms=(p:ListParams&{floor?:number}={})=>useQuery({queryKey:queryKeys.rooms(p),queryFn:()=>hotelApi.listRooms(p)});
-export const useGuests=(p:ListParams={})=>useQuery({queryKey:queryKeys.guests(p),queryFn:()=>hotelApi.listGuests(p)});
+export const useGuests=(p:ListParams={})=>useQuery({queryKey:[...queryKeys.guests(p),dataMode==='api'?readSession().hotelId:'mock'],queryFn:()=>hotelApi.listGuests(p)});
 export const useHousekeeping=(p:ListParams={})=>useQuery({queryKey:queryKeys.housekeeping(p),queryFn:()=>hotelApi.listHousekeeping(p)});
 export const useFolios=(p:ListParams={})=>useQuery({queryKey:queryKeys.folios(p),queryFn:()=>hotelApi.listFolios(p)});

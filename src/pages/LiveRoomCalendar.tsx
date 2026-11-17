@@ -1,11 +1,12 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {Link} from '@tanstack/react-router';
+import {useQueryClient} from '@tanstack/react-query';
 import {CalendarDays,ChevronLeft,ChevronRight,RotateCw,Search,X,ArrowUpRight,Info,BedDouble,AlertTriangle} from 'lucide-react';
 import {useRoomCalendar,type RoomCalendarData} from '../api/liveRoomCalendar';
 import {useLiveReservationDetail} from '../api/liveReservations';
 import {useLiveRoomTypes} from '../api/liveCatalogQueries';
-import {hotelToday} from '../features/reservations/calendarDate';
+import {addDays,hotelToday} from '../features/reservations/calendarDate';
 import {Heading} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {useHotelAuth} from '../components/AuthProvider';
@@ -39,14 +40,22 @@ export function LiveRoomCalendar(){
  const [roomTypeId,setRoomTypeId]=useState('');
  const [search,setSearch]=useState('');
  const [selected,setSelected]=useState<Selection|null>(null);
+ const [departure,setDeparture]=useState('');
+ const [dragPreview,setDragPreview]=useState<{roomId:string;start:string;end:string}|null>(null);
+ const dragOrigin=useRef<{roomId:string;day:string}|null>(null);
+ const suppressNextClick=useRef(false);
+ const client=useQueryClient();
  const closeRef=useRef<HTMLButtonElement>(null);
  const lastTriggerRef=useRef<HTMLButtonElement|null>(null);
 
  const dates=useMemo(()=>period(anchor,mode),[anchor,mode]);
+ const openCell=(room:Selection['room'],day:string,end?:string)=>{
+  setSelected({room,day});setDeparture(end??addDays(day,1));
+ };
  const roomTypes=useLiveRoomTypes();
  const calendar=useRoomCalendar({start:dates.start,end:dates.end,page,floor,roomTypeId,search});
  useEffect(()=>{setPage(1);setFloor('all');setRoomTypeId('');setSearch('');setSelected(null);},[hotelId]);
- useEffect(()=>{setSelected(null);},[mode,anchor,page,floor,roomTypeId,search]);
+ useEffect(()=>{setSelected(null);setDragPreview(null);dragOrigin.current=null;},[mode,anchor,page,floor,roomTypeId,search]);
  useEffect(()=>{
   if(!selected)return;
   const originalOverflow=document.body.style.overflow;
@@ -76,7 +85,13 @@ export function LiveRoomCalendar(){
  const selectedBlocks=selected&&data?data.blocks.filter(b=>b.roomId===selected.room.id&&b.checkIn<=selected.day&&selected.day<b.checkOut):[];
  const reservation=useLiveReservationDetail(selectedBookings.length===1?selectedBookings[0].id:null);
  const meta=calendar.data?.meta;
- const canStartBooking=!!selected&&selected.day>=hotelToday()&&selectedBookings.length===0&&selectedBlocks.length===0;
+ const rangeValid=!!selected&&departure>selected.day&&departure<=addDays(selected.day,31);
+ const rangeConflict=!!selected&&!!data&&(
+  data.bookings.some(b=>b.roomId===selected.room.id&&b.checkIn<departure&&b.checkOut>selected.day)
+  ||data.blocks.some(b=>b.roomId===selected.room.id&&b.checkIn<departure&&b.checkOut>selected.day)
+ );
+ const extendsOutsideVisible=!!selected&&departure>dates.end;
+ const canStartBooking=!!selected&&selected.day>=hotelToday()&&rangeValid&&!rangeConflict;
  const periodLabel=mode==='week'
   ?dayText(dates.start,{month:'short',day:'numeric',year:'numeric'})+' – '+dayText(shift(dates.end,-1),{month:'short',day:'numeric',year:'numeric'})
   :dayText(dates.start,{month:'long',year:'numeric'});
@@ -111,7 +126,7 @@ export function LiveRoomCalendar(){
     </label>
     <label className="lrc-search"><Search size={16}/><input aria-label="Search room number" value={search}
      onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder="Room number"/></label>
-    <button type="button" className="btn-inline" onClick={()=>void calendar.refetch()}><RotateCw size={14}/> Refresh</button>
+    <button type="button" className="btn-inline" onClick={()=>void Promise.all([calendar.refetch(),client.invalidateQueries({queryKey:['live','reservation-detail',hotelId]})])}><RotateCw size={14}/> Refresh</button>
    </div>
    <div className="lrc-legend">
     <span><i className="lrc-dot lrc-confirmed"/> Reserved</span>
@@ -119,6 +134,7 @@ export function LiveRoomCalendar(){
     <span><i className="lrc-dot lrc-maintenance"/> Maintenance block</span>
     <span><i className="lrc-dot lrc-conflict"/> Overlap / inspect</span>
     <span><i className="lrc-dot lrc-free"/> No assigned booking</span>
+    <span><i className="lrc-dot lrc-conflict"/> Drag across empty dates to select nights</span>
    </div>
    {data&&<p className="lrc-summary">{meta?.total??0} registered rooms · {data.unassignedBookings} unassigned booking(s) in period. Unassigned bookings do not appear on individual room rows.</p>}
    <QueryFeedback loading={calendar.isPending} error={calendar.error} onRetry={()=>void calendar.refetch()}
@@ -142,9 +158,36 @@ export function LiveRoomCalendar(){
         ...items.map(b=>b.reference+' ('+(b.status??'unknown')+') '+b.checkIn+' to '+b.checkOut),
         ...blocks.map(b=>'Maintenance: '+b.reason)
        ].join('\n');
-       return <button key={day} type="button" className={'lrc-cell lrc-clickable '+(conflict?'lrc-conflict':blocks.length?'lrc-maintenance':booking?.status==='checked_in'?'lrc-inhouse':booking?'lrc-confirmed':'lrc-free')}
+       const highlighted=dragPreview?.roomId===room.id&&day>=dragPreview.start&&day<=dragPreview.end;
+       return <button key={day} type="button" className={'lrc-cell lrc-clickable '+(highlighted?'lrc-range-preview ': '')+(conflict?'lrc-conflict':blocks.length?'lrc-maintenance':booking?.status==='checked_in'?'lrc-inhouse':booking?'lrc-confirmed':'lrc-free')}
         title={title} aria-label={'Room '+room.number+' on '+day+': '+(conflict?'overlapping records':booking?booking.reference:blocks.length?'maintenance blocked':'no assigned booking')+'. View details'}
-        onClick={event=>{lastTriggerRef.current=event.currentTarget;setSelected({room,day});}}>
+        onPointerDown={event=>{
+         if(event.pointerType==='mouse'&&event.button===0&&day>=hotelToday()&&!booking&&!blocks.length){
+          dragOrigin.current={roomId:room.id,day};setDragPreview({roomId:room.id,start:day,end:day});
+         }
+        }}
+        onPointerEnter={event=>{
+         const start=dragOrigin.current;
+         if(event.pointerType==='mouse'&&(event.buttons&1)&&start?.roomId===room.id&&day>=start.day){
+          setDragPreview({roomId:room.id,start:start.day,end:day});
+         }
+        }}
+        onPointerUp={event=>{
+         const start=dragOrigin.current;
+         dragOrigin.current=null;
+         const end=dragPreview?.roomId===room.id?dragPreview.end:day;
+         setDragPreview(null);
+         if(start&&start.roomId===room.id&&end>start.day){
+          suppressNextClick.current=true;
+          lastTriggerRef.current=event.currentTarget;
+          openCell(room,start.day,addDays(end,1));
+         }
+        }}
+        onPointerCancel={()=>{dragOrigin.current=null;setDragPreview(null);}}
+        onClick={event=>{
+         if(suppressNextClick.current){suppressNextClick.current=false;return;}
+         lastTriggerRef.current=event.currentTarget;openCell(room,day);
+        }}>
         <span className="lrc-cell-content">{booking?(mode==='week'?booking.reference:'●'):blocks.length?(mode==='week'?'Blocked':'×'):(mode==='week'?'+':'·')}</span>
         {conflict&&<span className="lrc-warning" aria-label="Overlapping records">!</span>}
        </button>;
@@ -157,7 +200,7 @@ export function LiveRoomCalendar(){
     <button className="btn-inline" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>Previous rooms</button>
     <button className="btn-inline" disabled={page>=meta.totalPages} onClick={()=>setPage(p=>p+1)}>Next rooms</button>
    </div>}
-   <p className="lrc-note"><CalendarDays size={14}/> Read-only schedule of assigned reservations and maintenance blocks. Checkout dates are exclusive. Empty cells do not prove room readiness, physical occupancy, or sellable availability. Use Reservations for booking changes and Rooms & readiness for inspections.</p>
+   <p className="lrc-note"><CalendarDays size={14}/> Tip: Drag across future empty dates in the same room to select several nights, or choose checkout in the popup. Read-only schedule of assigned reservations and maintenance blocks. Checkout dates are exclusive. Empty cells do not prove room readiness, physical occupancy, or sellable availability. Use Reservations for booking changes and Rooms & readiness for inspections.</p>
   </section>
    {selected&&createPortal(
     <div className="lrc-modal-backdrop" style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(8,12,22,.76)',display:'flex',alignItems:'center',justifyContent:'center',padding:16,backdropFilter:'blur(3px)'}}
@@ -209,6 +252,15 @@ export function LiveRoomCalendar(){
         </div>)}
        </div>}
        {selectedBookings.length+selectedBlocks.length>1&&<p className="lrc-modal-warning"><AlertTriangle size={17}/> Multiple assignments or blocks overlap. Review before changing inventory.</p>}
+       {selected.day>=hotelToday()&&selectedBookings.length===0&&selectedBlocks.length===0&&<div className="lrc-stay-picker">
+        <label htmlFor="room-departure">Check-out date</label>
+        <input id="room-departure" type="date" value={departure}
+         min={addDays(selected.day,1)} max={addDays(selected.day,31)}
+         onChange={event=>setDeparture(event.target.value)}/>
+        <small>{rangeValid?(Date.parse(departure+'T00:00:00Z')-Date.parse(selected.day+'T00:00:00Z'))/86400000+' night(s)':'Choose 1–31 nights after arrival'}</small>
+        {rangeConflict&&<p role="alert" className="lrc-modal-warning">This room already has a booking or maintenance block overlapping your chosen dates. Choose another range.</p>}
+        {extendsOutsideVisible&&<p className="help-copy">Part of this stay is outside the displayed calendar. Final availability must be checked when booking.</p>}
+       </div>}
        {canStartBooking&&<div className="lrc-modal-tip">
         <CalendarDays size={18}/><div><strong>Start a reservation for this date</strong>
          <p>We'll carry this room and check-in date to the booking form. You'll choose a guest and rate before confirming.</p>
@@ -221,7 +273,7 @@ export function LiveRoomCalendar(){
       <footer className="lrc-modal-footer" style={{display:'flex',justifyContent:'flex-end',alignItems:'center',gap:10,padding:'16px 24px',borderTop:'1px solid var(--border)',flexWrap:'wrap'}}>
        <button type="button" className="btn-inline" onClick={()=>setSelected(null)}>Close</button>
        {canStartBooking
-        ?<Link to="/reservations" search={{room:selected.room.id,roomNumber:selected.room.number,checkIn:selected.day}}
+        ?<Link to="/reservations" search={{room:selected.room.id,roomNumber:selected.room.number,checkIn:selected.day,checkOut:departure}}
            className="btn-primary" onClick={()=>setSelected(null)}>Create reservation <ArrowUpRight size={16}/></Link>
         :<Link to="/reservations" className="btn-primary" onClick={()=>setSelected(null)}>View reservations <ArrowUpRight size={16}/></Link>}
       </footer>

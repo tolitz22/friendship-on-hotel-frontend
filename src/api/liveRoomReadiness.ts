@@ -21,6 +21,7 @@ const readiness=z.object({data:z.object({
   activeInventoryBlockToday:z.boolean(),
   activeRoomImpactMaintenance:z.boolean(),
   latestTurnoverIncomplete:z.boolean(),
+  newTurnoverSinceInspection:z.boolean(),
  }),
  advisoryReady:z.boolean(),
  enforcedAtCheckIn:z.literal(false),
@@ -43,8 +44,8 @@ export type InspectionInput={
 export type ReviewInput={expectedRevision:number;decision:'approve'|'reject';note:string};
 export function parseReadiness(value:unknown,hotelId:string,roomId:string){
  const data=readiness.parse(value).data;
- if(data.hotelId!==hotelId||data.roomId!==roomId||data.inspection?.roomId!==undefined
-  &&data.inspection.roomId!==roomId)
+ if(data.hotelId!==hotelId||data.roomId!==roomId
+  ||(data.inspection!==null&&data.inspection.roomId!==roomId))
   throw new Error('Room-readiness response does not match the selected hotel or room.');
  if(data.advisoryReady&&(
   data.inspection?.status!=='approved'||Object.values(data.blockers).some(Boolean)))

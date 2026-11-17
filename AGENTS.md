@@ -50,3 +50,8 @@ Read `docs/PHASE_5_LARAVEL_INTEGRATION.md`. In API mode, staff must sign in and 
 ## Frontend Phase 29 — Real Front Desk manifest in API mode
 
 Read `docs/FRONT_DESK.md` Phase 29 section. `src/pages/FrontDesk.tsx` renders the mock component in `mock` mode but a separate `LiveFrontDesk` component in `api` mode. `src/api/liveFrontDesk.ts` validates the actual Laravel selected-hotel manifest payload using Zod; each kind uses server pagination and reports counts from server metadata. Never invent missing room type, prices, guest or housekeeping readiness. All live check-in/checkout, room assignment, payment, and housekeeping actions are still disabled. Do not silently fall back to fixture data on errors. Include hotel ID in query keys and reset pagination on date changes.
+
+
+## Frontend Phase 30 — Live read-only Reservations
+
+Read `docs/API_CONTRACT.md` Phase 30. In API mode `src/pages/Reservations.tsx` selects `LiveReservations` with validated real hotel-scoped structural reservations, rate plans, room types, dated availability and separate room subtotal quotes. Do not reuse mock calendar/detail/wizard types for live records, do not assume guest names/room readiness, and never show room subtotal as a final payable amount. Query keys include hotel and stay/rate IDs. Date range 1–31 nights, no room held, all mutations disabled. Mock mode keeps the original screens. Preserve no-fallback error behavior.

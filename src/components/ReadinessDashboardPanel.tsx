@@ -49,7 +49,8 @@ export function ReadinessDashboardPanel(){
    <button className="btn-inline" type="button" disabled={query.isFetching}
     onClick={()=>void query.refetch()}><RefreshCw size={16}/> Refresh report</button>
   </div>
-  <QueryFeedback loading={query.isPending} error={query.error}/>
+  <QueryFeedback loading={query.isPending} error={query.error}
+   onRetry={()=>void query.refetch()}/>
   {data&&meta&&<>
    <p role="status">As of hotel date <strong>{data.asOfHotelDate}</strong> · Upcoming arrivals through (exclusive) <strong>{data.arrivalWindowEndExclusive}</strong> · Mandatory check-in inspection <strong>{data.enforceAtCheckIn?'Enabled':'Disabled'}</strong>.</p>
    <div className="hk-headline">

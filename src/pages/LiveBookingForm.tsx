@@ -51,8 +51,9 @@ export function LiveBookingForm(){
   setSelection(initialSelection(requestedGuest));setChecked(null);setPending(null);setResult(null);setError(null);
  },[hotelId,requestedGuest]);
  const activeRates=(rates.data?.data??[]).filter(rate=>rate.roomTypeId===selection.roomTypeId&&rate.active);
+ const usingLinkedGuest=!!requestedGuest&&selection.guestId===requestedGuest;
  const guest=guests.data?.data.find(item=>item.id===selection.guestId)
-  ??(linkedGuest.isSuccess&&selection.guestId===requestedGuest?linkedGuest.data:undefined);
+  ??(linkedGuest.isSuccess&&usingLinkedGuest?linkedGuest.data:undefined);
  const selectedIsOutsidePage=!!guest&&!guests.data?.data.some(item=>item.id===guest.id);
  const rate=activeRates.find(item=>item.id===selection.ratePlanId);
  const valid=!!guest&&!!rate&&validLiveStay(selection)&&selection.checkIn>=hotelToday();
@@ -124,10 +125,10 @@ export function LiveBookingForm(){
   <p className="help-copy">Payment, guest identity verification, physical room assignment and final taxes are separate steps.</p>
   {!admin&&<p role="status">Only an administrator of the selected hotel can submit reservations. Laravel enforces permissions independently.</p>}
   {admin&&<>
-   <QueryFeedback loading={guests.isPending||types.isPending||rates.isPending||(!!requestedGuest&&linkedGuest.isPending)}
-    error={guests.error??types.error??rates.error??(requestedGuest?linkedGuest.error:null)}
+   <QueryFeedback loading={guests.isPending||types.isPending||rates.isPending||(usingLinkedGuest&&linkedGuest.isPending)}
+    error={guests.error??types.error??rates.error??(usingLinkedGuest?linkedGuest.error:null)}
     onRetry={()=>{void guests.refetch();void types.refetch();void rates.refetch();
-     if(requestedGuest)void linkedGuest.refetch();}}/>
+     if(usingLinkedGuest)void linkedGuest.refetch();}}/>
    {guests.isSuccess&&types.isSuccess&&rates.isSuccess&&<form onSubmit={check}>
     <fieldset disabled={locked} style={{border:0,padding:0,margin:0,width:'100%'}}>
      <div className="wizard-fields">
@@ -139,10 +140,10 @@ export function LiveBookingForm(){
         {selectedIsOutsidePage&&<option value={guest.id}>{guest.firstName} {guest.lastName} · Selected profile</option>}
        </select>
        <small>Showing up to 100 existing guests. <Link to="/guests" className="text-link">Find or add a guest</Link> if the guest isn't listed.</small>
-       {requestedGuest&&linkedGuest.isSuccess&&selectedIsOutsidePage&&<small role="status">
+       {usingLinkedGuest&&linkedGuest.isSuccess&&selectedIsOutsidePage&&<small role="status">
         Selected guest loaded directly from this hotel's records, outside the first 100 directory entries.
        </small>}
-       {requestedGuest&&linkedGuest.isError&&<small role="alert">
+       {usingLinkedGuest&&linkedGuest.isError&&<small role="alert">
         The linked guest could not be verified for this hotel. Select another guest or retry loading this profile.
        </small>}
       </div>

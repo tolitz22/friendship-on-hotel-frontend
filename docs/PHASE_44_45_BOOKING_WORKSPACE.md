@@ -14,8 +14,8 @@
 - Calendar provides a page-scoped operational snapshot: displayed rooms, assigned reservations, in-house records, active maintenance blocks and a hotel-wide unassigned-reservations alert for the date period. Counts are not occupancy certification.
 - The calendar refreshes every 30 seconds while the page is active, and its cached data is invalidated after booking creation, physical room assignment, and check-in/out. A manual Refresh action is always available.
 - Occupied-cell popup shows the guest's name (from a hotel-scoped Laravel JOIN, when present), booking reference, stay duration, arrival/departure dates and booking status.
-- Occupied-cell popup links to **Manage booking** and **View folio**. The live Billing page accepts a validated reservation-ID link and loads the hotel-scoped folio automatically; no copy/paste required.
-- A new GitHub Actions quality workflow runs `npm run build` and `npm test` on pushes and PRs.
+- Occupied-cell popup shows a provisional financial-evidence snapshot (staff-confirmed and pending payment evidence) when a priced folio exists, explicitly not proof of settlement. It links to **Manage booking** and **View folio**. The live Billing page accepts a validated reservation-ID link and loads the hotel-scoped folio automatically; no copy/paste required.
+- A new GitHub Actions quality workflow runs `npm run build` and `npm test` on pushes and PRs. The opt-in protected Playwright write suite now includes a synthetic calendar-to-inline-guest booking test.
 
 ## Acceptance checks
 

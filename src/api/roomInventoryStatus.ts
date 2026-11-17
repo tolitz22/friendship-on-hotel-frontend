@@ -14,12 +14,15 @@ const roomStatus=z.object({
  ]),
  turnoverTaskId:optionalId,
  turnoverStatus:z.enum(['todo','in_progress','done']).nullable(),
- assignedHousekeeperId:optionalId,cleanedById:optionalId,
+ assignedHousekeeperId:optionalId,assignedHousekeeperName:z.string().nullable(),
+ cleanedById:optionalId,cleanedByName:z.string().nullable(),
  cleanedAt:z.string().nullable(),
  inspectionId:optionalId,
  inspectionStatus:z.enum(['submitted','approved','rejected']).nullable(),
- inspectedById:optionalId,inspectedAt:z.string().nullable(),
- reviewedById:optionalId,reviewedAt:z.string().nullable(),
+ inspectedById:optionalId,inspectedByName:z.string().nullable(),
+ inspectedAt:z.string().nullable(),
+ reviewedById:optionalId,reviewedByName:z.string().nullable(),
+ reviewedAt:z.string().nullable(),
  advisoryReady:z.boolean(),maintenanceBlocked:z.boolean(),inventoryBlockedToday:z.boolean(),
 });
 const response=z.object({

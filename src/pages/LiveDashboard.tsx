@@ -1,4 +1,4 @@
-import {BedDouble,Layers3,Building2,ArrowRight,ShieldAlert} from 'lucide-react';
+import {BedDouble,Layers3,Building2,ArrowRight,ShieldAlert,CalendarPlus,ClipboardCheck,Hotel,UserRound} from 'lucide-react';
 import {Link} from '@tanstack/react-router';
 import {useLiveCatalogSummary,useLiveProperty} from '../api/liveCatalogQueries';
 import {Heading,Panel,Stat} from '../components/ui';
@@ -9,9 +9,28 @@ export function LiveDashboard(){
  const property=useLiveProperty();
  const data=catalog.data?.data;
  return <>
- <div className="notice"><strong>Live property catalogue</strong> · Only registered room counts, room types and floors are verified. Occupancy and reservation metrics are not available yet.</div>
- <Heading title="Hotel overview" description="Live Laravel property catalogue · No simulated occupancy or booking numbers"/>
- <QueryFeedback loading={catalog.isPending||property.isPending} error={catalog.error??property.error}/>
+ <Heading title="Hotel overview" description="Start your daily hotel work here. Live room catalogue totals are shown below; booking and housekeeping tasks are in their dedicated screens."/>
+ <section className="overview-task-grid" aria-label="Start a hotel task">
+  <Link to="/front-desk" className="overview-task">
+   <Hotel size={22} aria-hidden="true"/><strong>Today's front desk</strong>
+   <span>Review arrivals, departures and in-house stays</span><ArrowRight size={17} aria-hidden="true"/>
+  </Link>
+  <Link to="/reservations" className="overview-task">
+   <CalendarPlus size={22} aria-hidden="true"/><strong>Create a reservation</strong>
+   <span>Choose a guest, rate and stay, then confirm</span><ArrowRight size={17} aria-hidden="true"/>
+  </Link>
+  <Link to="/housekeeping" className="overview-task">
+   <ClipboardCheck size={22} aria-hidden="true"/><strong>Cleaning tasks</strong>
+   <span>Work through checkout turnover and inspections</span><ArrowRight size={17} aria-hidden="true"/>
+  </Link>
+  <Link to="/guests" className="overview-task">
+   <UserRound size={22} aria-hidden="true"/><strong>Guest directory</strong>
+   <span>Find or register a guest before booking</span><ArrowRight size={17} aria-hidden="true"/>
+  </Link>
+ </section>
+ <p className="help-copy">Overview counts below represent registered rooms and room types, not occupancy or available-night inventory.</p>
+ <QueryFeedback loading={catalog.isPending||property.isPending} error={catalog.error??property.error}
+  onRetry={()=>{void catalog.refetch();void property.refetch();}}/>
  {data&&<div className="stats-grid">
   <Stat label="Registered rooms" value={String(data.totalRooms)} detail="Live physical room records" icon={<BedDouble size={20}/>}/>
   <Stat label="Room types" value={String(data.totalRoomTypes)} detail="Live registered categories" icon={<Layers3 size={20}/>}/>
@@ -30,7 +49,7 @@ export function LiveDashboard(){
   <p>Currency: {property.data.data.currency}</p>
   <Link to="/settings" className="text-link">View settings <ArrowRight size={16}/></Link>
  </div>}
- <p className="panel-footnote">Check-in/out, housekeeping, availability and recent bookings are not connected to the database.</p>
+ <p className="panel-footnote">Daily booking and housekeeping work is available in the dedicated live screens. Occupancy totals are not calculated in this catalogue overview.</p>
  </Panel>
  </div>
  </>;

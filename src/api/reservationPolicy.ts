@@ -35,3 +35,16 @@ export const updateReservationPolicyDraft=(expectedRevision:number,decisions:Par
  });
 export const getReservationPolicyHistory=()=>getJson<CollectionResponse<PolicyRevision>>(
  hotelPath('/reservation-policy-draft/history'));
+
+export interface PolicyReadinessIssue{
+ code:string;category:string;field:string|null;message:string;
+}
+export interface PolicyReadiness{
+ hotelId:string;draftRevision:number;configurationComplete:boolean;
+ missingFields:PolicyField[];readyForImplementation:false;
+ readyForBookings:false;approved:false;issues:PolicyReadinessIssue[];
+ explanation:string;
+}
+export const getReservationPolicyReadiness=()=>getJson<{
+ data:PolicyReadiness;meta:{diagnosticOnly:true;effectiveForBookings:false}
+}>(hotelPath('/reservation-policy-readiness'));

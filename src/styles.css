@@ -729,3 +729,11 @@
 @media(max-width:600px){.lrc-operations-summary{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px}.lrc-operations-summary strong{font-size:18px}}
 
 @media(max-width:600px){.qg-backdrop{align-items:flex-end!important;padding:0!important}}
+
+
+.lrc-folio-preview{background:var(--canvas);border:1px solid var(--border);border-radius:11px;padding:13px;display:grid;gap:9px}
+.lrc-folio-preview>strong{font-size:12px}
+.lrc-folio-preview>div{display:flex;justify-content:space-between;gap:15px;font-size:11px;color:var(--muted)}
+.lrc-folio-preview b{color:var(--text);font-variant-numeric:tabular-nums}
+.lrc-folio-preview p{font-size:10px;color:var(--muted);margin:0;line-height:1.55}
+.lrc-booking-actions{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:6px}

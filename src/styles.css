@@ -568,3 +568,12 @@
 @media(max-width:1100px){.overview-task-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.overview-task-grid{grid-template-columns:1fr}.overview-task{min-height:120px}}
 @media(prefers-reduced-motion:reduce){.overview-task:hover{transform:none}.loading-spin{animation:none}}
+
+
+/* Phase 38 room workspace */
+.room-workspace-tabs{margin-bottom:18px;max-width:100%;flex-wrap:wrap}
+.room-workspace-tabs button{min-height:42px}
+.room-card>.btn-primary{margin-top:18px;width:100%;justify-content:center}
+.room-card>.guest-edit-button{margin-top:10px}
+.workflow-disclosure>summary>span{display:inline-flex;align-items:center;gap:9px}
+@media(max-width:600px){.room-workspace-tabs{display:flex;width:100%}.room-workspace-tabs button{flex:1;justify-content:center}}

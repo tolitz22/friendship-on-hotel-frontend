@@ -20,6 +20,11 @@ const record=z.object({
  assignedRoomId:id.nullable(),
  checkIn:day,checkOut:day,
  lifecycleState:z.string().nullable(),
+ earlyCheckIn:z.object({
+  scheduledCheckIn:day,actualCheckInDate:day,actualCheckedInAt:z.string(),
+  approvalRequestId:id,requestedBy:id,approvedBy:id,checkedInBy:id,
+  reason:z.string(),managerNote:z.string(),
+ }).nullable().optional(),
 });
 const recordsSchema=z.object({
  data:z.array(record),

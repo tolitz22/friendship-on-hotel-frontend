@@ -490,3 +490,9 @@
 
 /* Phase 14 live housekeeping forms */
 .guest-modal .guest-fields textarea{border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface);color:var(--text);font:inherit;resize:vertical}
+
+/* Phase 15 staff membership controls */
+.staff-add-form{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.staff-add-form label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;flex:1;min-width:175px}
+.staff-add-form input,.staff-add-form select{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;min-height:42px}
+.staff-add-form button{min-height:42px;display:inline-flex;align-items:center;gap:6px}

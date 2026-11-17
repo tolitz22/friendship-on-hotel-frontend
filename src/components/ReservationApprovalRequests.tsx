@@ -26,7 +26,7 @@ export function ReservationApprovalRequests({record,canRequest,manager}:{
  const requests=useApprovalRequests({enabled:canRequest||manager,bookingId:record.id});
  const changed=()=>{submission.current=null;setError('');setSuccess('');};
  const valid=reason.trim().length>=10&&reason.trim().length<=1000&&(
-  action==='cancel_booking'||(checkIn<checkOut&&!!checkIn&&!!checkOut)
+  action!=='amend_dates'||(checkIn<checkOut&&!!checkIn&&!!checkOut)
  );
  async function submit(){
   if(!hotelId||!canRequest||busy||!valid||record.lifecycleState!=='confirmed')return;
@@ -46,17 +46,18 @@ export function ReservationApprovalRequests({record,canRequest,manager}:{
     setError(cause instanceof Error?cause.message:'Request outcome uncertain. Check the request list before retrying the same submission.');
   }finally{setBusy(false);}
  }
- return <section aria-label="Manager approval requests" className="ex-panel">
+ return <section aria-label="Manager approval requests" className="stay-approval-panel">
   <div className="desk-tools">
    <h4><ClipboardCheck size={17}/> Manager approval requests</h4>
    {manager&&<Link to="/manager-approvals" className="text-link">Open manager inbox</Link>}
   </div>
-  <p className="desk-muted">Staff can request cancellation or pre-arrival date changes for unpriced confirmed bookings. Only a different manager can approve and execute. Financial refunds and priced reservations use other workflows.</p>
+  <p className="desk-muted">Request cancellation, date changes, or a day-early check-in. Early check-in requires a different manager's approval and is recorded separately. Cancellation and date changes have additional finance restrictions.</p>
   {canRequest&&record.lifecycleState==='confirmed'&&<div>
    <label htmlFor="approval-action" className="wizard-label">Requested exception</label>
    <select id="approval-action" className="wizard-input" value={action} disabled={busy}
     onChange={e=>{setAction(e.target.value as ApprovalAction);changed();}}>
     <option value="cancel_booking">Cancel booking</option>
+    <option value="early_check_in">Early check-in (manager approval)</option>
     <option value="amend_dates">Change check-in / check-out dates</option>
    </select>
    {action==='amend_dates'&&<div className="wizard-fields">
@@ -75,12 +76,12 @@ export function ReservationApprovalRequests({record,canRequest,manager}:{
   {error&&<p role="alert" className="auth-error"><AlertTriangle size={16}/>{error}
    {' '}If the result is uncertain, retry the same request without editing the fields.</p>}
   {success&&<p role="status">{success}</p>}
-  <h4>Recorded requests</h4>
+  <h4 className="stay-approval-subheading">Request history</h4>
   <QueryFeedback loading={requests.isPending} error={requests.error}
    empty={requests.isSuccess&&requests.data.data.length===0}
    onRetry={()=>void requests.refetch()}/>
   {requests.data?.data.map(request=><article key={request.id} className="ex-record">
-   <p><strong>#{request.id} · {request.action==='cancel_booking'?'Cancellation':'Date change'}</strong>
+   <p><strong>#{request.id} · {request.action==='cancel_booking'?'Cancellation':request.action==='early_check_in'?'Early check-in':'Date change'}</strong>
     {' · '}{request.status}</p>
    <p className="desk-muted">{request.reason}</p>
    {request.action==='amend_dates'&&<p>Requested stay: {request.payload.checkIn} → {request.payload.checkOut}</p>}

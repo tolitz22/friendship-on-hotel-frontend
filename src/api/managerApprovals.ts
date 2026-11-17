@@ -8,7 +8,14 @@ const approval=z.object({
  id,hotelId:id,bookingId:id,requestedBy:id,reviewedBy:id.nullable(),executedBy:id.nullable(),
  action:z.enum(['cancel_booking','amend_dates','early_check_in']),
  status:z.enum(['pending','rejected','executed']),
- reason:z.string(),payload:z.object({checkIn:z.string(),checkOut:z.string()}).partial(),
+ reason:z.string(),
+ // Older Laravel deployments serialize an empty associative payload as [].
+ // Accept ONLY the empty legacy representation; malformed nonempty arrays
+ // remain invalid rather than silently hiding approval request data.
+ payload:z.preprocess(
+  raw=>Array.isArray(raw)&&raw.length===0?{}:raw,
+  z.object({checkIn:z.string(),checkOut:z.string()}).partial(),
+ ),
  snapshot:z.object({checkIn:z.string(),checkOut:z.string(),status:z.string(),
   roomTypeId:id,assignedRoomId:id.nullable()}),
  reviewNote:z.string().nullable(),

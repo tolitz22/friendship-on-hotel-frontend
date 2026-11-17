@@ -552,3 +552,19 @@
 @media(max-width:760px){.workflow-shortcuts{gap:7px;padding:11px 15px}.workflow-shortcuts>span{width:100%}.workflow-step{min-width:130px}.nav-section{margin-top:12px!important}}
 @media(max-width:480px){.workflow-shortcuts a{font-size:11px;padding:7px 9px}.topbar-actions{flex-wrap:wrap;justify-content:flex-end}.workflow-disclosure>summary{padding:14px}}
 @media(prefers-reduced-motion:reduce){.nav-expand svg,.workflow-shortcuts a{transition:none}}
+
+
+/* Staff task launchpad */
+.overview-task-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:0 0 22px}
+.overview-task{display:grid;grid-template-columns:1fr auto;align-items:start;gap:10px;padding:19px;background:var(--surface);border:1px solid var(--border);border-radius:13px;min-height:155px}
+.overview-task>svg:first-child{grid-column:1/-1;color:var(--accent)}
+.overview-task strong{font-size:15px;grid-column:1}
+.overview-task span{grid-column:1/-1;font-size:12px;line-height:1.45;color:var(--muted)}
+.overview-task>svg:last-child{grid-column:2;grid-row:2;color:var(--accent)}
+.overview-task:hover{border-color:var(--accent);box-shadow:0 4px 16px #0000000d;transform:translateY(-1px)}
+.overview-task:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.loading-spin{animation:loading-rotate 1s linear infinite}
+@keyframes loading-rotate{to{transform:rotate(360deg)}}
+@media(max-width:1100px){.overview-task-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.overview-task-grid{grid-template-columns:1fr}.overview-task{min-height:120px}}
+@media(prefers-reduced-motion:reduce){.overview-task:hover{transform:none}.loading-spin{animation:none}}

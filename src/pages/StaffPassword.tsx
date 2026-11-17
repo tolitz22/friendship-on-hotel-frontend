@@ -1,4 +1,4 @@
-import {useState,type FormEvent} from 'react';
+import {useEffect,useState,type FormEvent} from 'react';
 import {Link} from '@tanstack/react-router';
 import {changeStaffPassword,requestPasswordReset,resetStaffPassword} from '../api/auth';
 import {useHotelAuth} from '../components/AuthProvider';
@@ -39,10 +39,16 @@ export function ForgotPassword(){
 }
 
 export function ResetPassword(){
- const query=new URLSearchParams(window.location.search);
- const token=query.get('token')??'';
- const initialEmail=query.get('email')??'';
- const [email,setEmail]=useState(initialEmail);
+ const [link]=useState(()=>{
+  const query=new URLSearchParams(window.location.search);
+  return {token:query.get('token')??'',email:query.get('email')??''};
+ });
+ const token=link.token;
+ const [email,setEmail]=useState(link.email);
+ // Do not leave a one-use reset token in the address bar or browser history.
+ useEffect(()=>{
+  if(link.token)window.history.replaceState(window.history.state,'',window.location.pathname);
+ },[link.token]);
  const [password,setPassword]=useState('');
  const [confirmation,setConfirmation]=useState('');
  const [pending,setPending]=useState(false);

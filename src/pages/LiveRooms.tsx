@@ -72,7 +72,7 @@ export function LiveRooms(){
     {canSeeStay&&<button type="button" className="btn-inline" disabled={operationStatus.isFetching}
      onClick={()=>void operationStatus.refetch()}><RefreshCw size={15}/> Refresh room status</button>}
    </div>
-   {canSeeStay&&<div className="inventory-cleaning-summary" aria-label="Cleaning status on visible page">
+   {canSeeStay&&operationStatus.data&&<div className="inventory-cleaning-summary" aria-label="Cleaning status on visible page">
     <div><small>Checkout cleaning</small><strong>{currentCounts.checkout}</strong></div>
     <div><small>Cleaning now</small><strong>{currentCounts.cleaning}</strong></div>
     <div><small>Awaiting inspection</small><strong>{currentCounts.inspection}</strong></div>
@@ -120,7 +120,7 @@ export function LiveRooms(){
        <span className={'inventory-occupancy-pill '+info.occupancy}>
         {occupancyLabel(info.occupancy)}</span>
        <span className={'inventory-cleaning-pill '+info.cleaning}>
-        {cleaningLabel(info.cleaning)}</span>
+        {info.cleaning==='ready'&&info.occupancy==='vacant'?'Ready for check-in':cleaningLabel(info.cleaning)}</span>
       </div>
       {info.occupancy==='due_for_checkout'&&<p className="inventory-status-hint">
        <Clock3 size={14}/> Guest is still checked in. Checkout cleaning starts after actual departure.</p>}

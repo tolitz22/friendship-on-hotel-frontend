@@ -1,6 +1,6 @@
 import {useEffect,useState,type FormEvent} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
-import {ClipboardList,History,Save,ShieldAlert} from 'lucide-react';
+import {ClipboardList,History,Save,ShieldAlert,RefreshCcw} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
@@ -64,7 +64,7 @@ export function LiveReservationPolicy(){
     <div><ShieldAlert size={19}/><span>Booking activation</span><strong>Disabled</strong></div>
     <div><ClipboardList size={19}/><span>Decisions selected</span><strong>{fields.filter(f=>choices[f]!==null).length} / {fields.length}</strong></div>
    </div>
-   <Panel title="Business-rule decisions">
+   <Panel title="Business-rule decisions" action={<button type="button" className="btn-inline" disabled={saving} onClick={()=>void query.refetch()}><RefreshCcw size={15}/> Reload saved draft</button>}>
     <form onSubmit={e=>void save(e)}>
      <div className="policy-grid">
       {fields.map(field=><label key={field}>{POLICY_FIELDS[field].title}

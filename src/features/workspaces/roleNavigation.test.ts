@@ -26,6 +26,10 @@ describe('Phase 49 hotel role workspaces',()=>{
   expect(navigationForRole('admin').management).toContain('/operational-exceptions');
   expect(navigationForRole('admin').management).toContain('/manager-approvals');
   expect(navigationForRole('admin').daily).toContain('/cashier-shifts');
+  expect(navigationForRole('admin').daily).toContain('/occupancy-verification');
+  expect(navigationForRole('housekeeping').daily).toContain('/occupancy-verification');
+  expect(navigationForRole('front_desk').daily).not.toContain('/occupancy-verification');
+  expect(navigationForRole('maintenance').daily).not.toContain('/occupancy-verification');
   expect(navigationForRole('front_desk').daily).toContain('/cashier-shifts');
   expect(navigationForRole('housekeeping').daily).not.toContain('/cashier-shifts');
   expect(navigationForRole('maintenance').daily).not.toContain('/cashier-shifts');

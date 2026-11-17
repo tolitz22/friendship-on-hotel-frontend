@@ -8,6 +8,7 @@ import {LiveDashboard} from './pages/LiveDashboard';
 import {LiveRooms} from './pages/LiveRooms';
 import {LiveSettings} from './pages/LiveSettings';
 import {LiveStaff} from './pages/LiveStaff';
+import {ForgotPassword,ResetPassword,ChangePassword} from './pages/StaffPassword';
 import {LiveReservationDemand} from './pages/LiveReservationDemand';
 import {LiveReservationPolicy} from './pages/LiveReservationPolicy';
 import {LiveReservationSimulation} from './pages/LiveReservationSimulation';
@@ -37,6 +38,9 @@ const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/reports',component:Reports}),
  createRoute({getParentRoute:()=>root,path:'/settings',component:dataMode==='api'?LiveSettings:Settings}),
  createRoute({getParentRoute:()=>root,path:'/staff',component:LiveStaff}),
+ createRoute({getParentRoute:()=>root,path:'/forgot-password',component:ForgotPassword}),
+ createRoute({getParentRoute:()=>root,path:'/reset-password',component:ResetPassword}),
+ createRoute({getParentRoute:()=>root,path:'/change-password',component:ChangePassword}),
 ];
 const routeTree=root.addChildren([index,reservations,rooms,...functionalRoutes]);
 const router=createRouter({routeTree,defaultPreload:'intent'});

@@ -23,7 +23,8 @@ const price=(minor:number,currency:string)=>currency==='PHP'
  :new Intl.NumberFormat('en-US').format(minor)+' '+currency+' minor units';
 
 export function LiveReservations(){
- const {hotelId}=useHotelAuth();
+ const {hotelId,user}=useHotelAuth();
+ const admin=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const [selectedRecordId,setSelectedRecordId]=useState<string|null>(null);
  const [page,setPage]=useState(1);
  useEffect(()=>{setSelectedRecordId(null);setPage(1);},[hotelId]);
@@ -57,13 +58,13 @@ export function LiveReservations(){
   <Panel title="Choose a property"><p role="status">Select your hotel from the authenticated workspace before creating or managing reservations.</p></Panel>
  </>;
  return <>
-  <Heading title="Reservations" description="Create a confirmed booking or manage an existing stay. Your hotel is selected in the header."/>
-  <div className="workflow-intro" aria-label="Booking workflow steps">
+  <Heading title="Reservations" description="Manage existing stays and, if authorized, create confirmed reservations. Your hotel is selected in the header."/>
+  {admin&&<div className="workflow-intro" aria-label="Booking workflow steps">
    <div className="workflow-step"><strong>1</strong><span>Select guest and dates</span></div>
    <div className="workflow-step"><strong>2</strong><span>Review current capacity and subtotal</span></div>
    <div className="workflow-step"><strong>3</strong><span>Confirm the booking in Laravel</span></div>
-  </div>
-  <LiveBookingForm/>
+  </div>}
+  {admin&&<LiveBookingForm/>}
   <details className="workflow-disclosure" open>
    <summary>Existing bookings · Find a reservation and manage its stay</summary>
   <Panel title="Saved reservation records" action={<span className="table-count">{pagination?.total??'—'} records</span>}>

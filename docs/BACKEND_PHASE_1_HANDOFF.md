@@ -87,3 +87,7 @@ Backend now exposes a GET-only property-scoped proposed-stay overlap report and 
 ## Phase 13 live maintenance
 
 API mode now renders `LiveMaintenance` with real Laravel work-order records, admin creation, revision-checked edits and event history. Original mock Maintenance remains in mock mode. The backend has no approved inventory block/availability behavior for work-order room impact. See `docs/PHASE_13_LIVE_MAINTENANCE.md`.
+
+## Phase 14 — Housekeeping live integration
+
+API-mode Housekeeping now uses Laravel tasks with revisioned admin changes and event history, preserving the earlier mock board only in mock mode. No room-readiness or occupancy side effect exists. See `docs/PHASE_14_LIVE_HOUSEKEEPING.md`.

@@ -38,6 +38,21 @@ export function useCashierShifts(enabled:boolean,page=1,status?:CashierShift['st
   retry:false,
  });
 }
+export function useCashierShiftDetails(enabled:boolean,shiftId:string){
+ const {hotelId}=readSession();
+ return useQuery({
+  queryKey:['live','cashier-shift-detail',hotelId,shiftId],
+  enabled:enabled&&!!hotelId&&!!shiftId,
+  queryFn:async()=>{
+   const result=z.object({data:shift}).parse(await getJson<unknown>(
+    hotelPath('/cashier-shifts/'+encodeURIComponent(shiftId)))).data;
+   if(result.hotelId!==hotelId||result.id!==shiftId)
+    throw new Error('Cashier shift detail came from another hotel or drawer.');
+   return result;
+  },
+  retry:false,
+ });
+}
 export async function openCashierShift(hotelId:string,openingFloatMinor:number){
  if(readSession().hotelId!==hotelId)throw new Error('Property changed.');
  const data=z.object({data:shift}).parse(await requestJson<unknown>(hotelPath('/cashier-shifts'),{

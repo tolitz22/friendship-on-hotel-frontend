@@ -31,7 +31,7 @@ export function LiveReservations(){
  const selectedRecordId=routeSearch.booking??null;
  const detail=useLiveReservationDetail(selectedRecordId);
  const openBooking=(booking:string)=>void navigation({to:'/reservations',search:{booking}});
- const closeBooking=()=>void navigation({to:'/reservations',search:{booking:undefined}});
+ const closeBooking=()=>void navigation({to:'/reservations',search:{}});
  const [page,setPage]=useState(1);
  useEffect(()=>{setPage(1);},[hotelId]);
  const [search,setSearch]=useState('');
@@ -78,7 +78,8 @@ export function LiveReservations(){
    <QueryFeedback loading={detail.isPending} error={detail.error}
     onRetry={()=>void detail.refetch()}/>
    {selectedRecord&&<LiveReservationOperations key={hotelId+'-'+selectedRecord.id}
-    record={selectedRecord} onClose={closeBooking}/>}
+    record={selectedRecord} preferredRoomId={routeSearch.room??null}
+    preferredRoomNumber={routeSearch.roomNumber??null} onClose={closeBooking}/>}
   </section>}
   {admin&&!selectedRecordId&&<LiveBookingForm/>}
   <details className="workflow-disclosure" open={!selectedRecordId} key={selectedRecordId?'selected':'all'}>

@@ -340,3 +340,15 @@ npm run build
 \`\`\`
 
 See backend \`docs/PHASE_37_READINESS_MONITORING.md\` for reporting limits and the required MySQL/PostgreSQL lock-contention and race-test runbook.
+
+## Phase 39 — Single-record Front Desk handoff
+
+The real Reservations route supports validated numeric search parameters: booking ID and optional guest ID. The guest ID preselects an existing guest in the create-booking form when visible in its first 100 loaded records; the booking ID takes precedence by opening an exact saved reservation via the following hotel-scoped endpoint:
+
+GET /api/v1/hotels/{hotel}/reservation-records/{booking}
+
+The response is {data: LiveRecord}, using the existing structural reservation schema. It is read-only, authenticated as an active hotel member, and subject to the backend hotel relation lookup. Invalid, missing or cross-hotel IDs never fall back to sample data. The new frontend adapter validates the exact returned hotel and booking IDs before displaying operations. TanStack Query keys include selected hotel and booking ID.
+
+Front Desk manifest rows now link directly to their booking, and a successful booking confirmation links straight to that newly saved record. The reservation operations panel refreshes the exact booking cache after assignment/check-in/out, and checked-out reservations link to the existing Housekeeping queue for turnover. This is a navigation/UX connection; it neither bypasses backend authorization nor automatically approves readiness, verifies guest identity, or records payments.
+
+See docs/PHASE_39_CONNECTED_STAFF_JOURNEY.md. Backend feature test: DirectReservationWorkflowPhase39Test. Frontend contract test: directReservationWorkflow.test.ts. Tests and browser flow remain unverified.

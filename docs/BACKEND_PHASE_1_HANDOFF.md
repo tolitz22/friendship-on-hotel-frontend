@@ -75,3 +75,7 @@ Backend adds `/api/v1/hotels/{hotel}/reservation-demand`; frontend API mode adds
 ## Phase 10 — Booking policy draft planning
 
 Frontend API mode has a new Booking policies screen backed by versioned, hotel-scoped Laravel policy drafts. Administrators can edit decisions and review revision history; no draft ever activates bookings. Reservation calendar/wizard remains mock; Demand diagnostic remains non-availability. See `docs/PHASE_10_POLICY_DRAFTS.md`.
+
+## Phase 11 — Advisory policy readiness
+
+API mode Booking policies now displays the persisted policy draft's read-only readiness analysis, including unresolved implementation rules. This is not activation and no changes are made to the preview booking wizard. See `docs/PHASE_11_POLICY_READINESS.md`.

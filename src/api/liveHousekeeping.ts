@@ -118,3 +118,17 @@ export async function patchLiveHousekeeping(hotelId:string,task:LiveHousekeeping
  const result=await updateHousekeepingTask(task.id,update);
  return parseUpdatedHousekeeping(result,hotelId,task.id);
 }
+
+
+/** Load one housekeeping task even if it is outside the current task page. */
+export function useDirectHousekeepingTask(taskId:string|null){
+ const {hotelId}=readSession();
+ return useQuery({
+  queryKey:['live','housekeeping-direct-task',hotelId,taskId],
+  enabled:!!hotelId&&!!taskId&&idSchema.safeParse(taskId).success,
+  queryFn:async()=>parseUpdatedHousekeeping(await getJson<unknown>(
+   hotelPath('/housekeeping-tasks/'+encodeURIComponent(taskId!))
+  ),hotelId!,taskId!),
+  retry:false,staleTime:0,
+ });
+}

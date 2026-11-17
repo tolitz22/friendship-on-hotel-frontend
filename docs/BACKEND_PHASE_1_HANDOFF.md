@@ -79,3 +79,7 @@ Frontend API mode has a new Booking policies screen backed by versioned, hotel-s
 ## Phase 11 — Advisory policy readiness
 
 API mode Booking policies now displays the persisted policy draft's read-only readiness analysis, including unresolved implementation rules. This is not activation and no changes are made to the preview booking wizard. See `docs/PHASE_11_POLICY_READINESS.md`.
+
+## Phase 12 — Structural stay simulation
+
+Backend now exposes a GET-only property-scoped proposed-stay overlap report and the frontend exposes it through Stay simulator in API mode. No reservation create or occupancy functionality has been added; prior mock Reservations are preserved. See `docs/PHASE_12_RESERVATION_SIMULATION.md`.

@@ -10,6 +10,7 @@ const hotelId=env('PMS_STAGING_TEST_HOTEL_ID');
 const apiOrigin=new URL(env('PMS_STAGING_API_URL')).origin;
 const apiBase=apiOrigin+'/api/v1/hotels/'+hotelId;
 const tokenMode=process.env.PMS_STAGING_AUTH_MODE==='token';
+type FolioSummary={bankOrGatewayVerified:boolean;isSettled:boolean;staffConfirmedPaymentsMinor:number};
 const matching=(path:string,method:string)=> (response:{url():string;request():{method():string}})=>
  response.url().startsWith(apiBase+path)&&response.request().method()===method;
 const today=()=>new Intl.DateTimeFormat('en-CA',{
@@ -105,9 +106,7 @@ test('real React guest → booking → room assignment → check-in and Laravel 
  // This confirms an actual authenticated browser-to-Laravel write.
  // A staff confirmation is NOT proof of bank/gateway settlement.
  const paymentPath=apiBase+'/bookings/'+booking.data.id;
- let result:{status:string;reviewStatus:string;summary:{
-  bankOrGatewayVerified:boolean;isSettled:boolean;staffConfirmedPaymentsMinor:number
- }};
+ let result:{status:string;reviewStatus:string;summary:FolioSummary};
  if(tokenMode){
   if(!bearerToken)throw new Error('No staging bearer token captured from login.');
   const headers={Authorization:'Bearer '+bearerToken,Accept:'application/json'};
@@ -124,7 +123,7 @@ test('real React guest → booking → room assignment → check-in and Laravel 
   const reviewed=await review.json() as {data:{status:string}};
   const ledger=await page.request.get(paymentPath+'/folio-ledger',{headers});
   expect(ledger.status()).toBe(200);
-  const body=await ledger.json() as {data:{summary:typeof result.summary}};
+  const body=await ledger.json() as {data:{summary:FolioSummary}};
   result={status:payment.data.status,reviewStatus:reviewed.data.status,summary:body.data.summary};
  }else{
   result=await page.evaluate(async(input)=>{
@@ -167,10 +166,14 @@ test('deployed React checks out a pre-seeded due synthetic stay and exposes turn
  // This is distinct from the arrival-today booking above; no server clock bypass.
  const bookingId=env('PMS_STAGING_CHECKOUT_BOOKING_ID');
  await page.getByRole('navigation',{name:'Hotel workspace navigation'}).getByRole('link',{name:'Reservations'}).click();
- await page.getByRole('button',{name:'Manage reservation',exact:false}).filter({hasText:bookingId}).count().catch(()=>0);
- // Navigate client-side through the displayed reservation record to preserve token authentication.
- const open=page.locator('button.reservation-reference-button[aria-label^="Manage reservation "]');
+ // Navigate the existing SPA records without reloading, which would clear memory-only tokens.
  const row=page.locator('tr').filter({has:page.getByText('Record #'+bookingId,{exact:true})});
+ for(let index=0;index<30&&await row.count()===0;index++){
+  const next=page.getByRole('button',{name:'Next page'});
+  if(!await next.isEnabled())break;
+  await next.click();
+ }
+ await expect(row).toHaveCount(1);
  await row.locator('button.reservation-reference-button').click();
  await expect(page.getByText('Selected booking · #'+bookingId)).toBeVisible();
  await expect(page.getByRole('button',{name:'Confirm guest check-out'})).toBeVisible();

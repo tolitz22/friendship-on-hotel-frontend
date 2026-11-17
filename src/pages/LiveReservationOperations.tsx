@@ -16,6 +16,7 @@ import {useLiveReadiness} from '../api/liveRoomReadiness';
 import {useBookingTurnover} from '../api/liveBookingTurnover';
 import {useHotelAuth} from '../components/AuthProvider';
 import {ReservationApprovalRequests} from '../components/ReservationApprovalRequests';
+import {EarlyCheckInRequest} from '../components/EarlyCheckInRequest';
 import {Status} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {hotelToday} from '../features/reservations/calendarDate';
@@ -167,6 +168,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
     <div className="stay-heading-line">
      <h2>{record.guestName?.trim()||'Guest details unavailable'}</h2>
      <Status value={statusLabel(record.lifecycleState??'unknown')}/>
+     {record.earlyCheckIn&&<span className="stay-early-chip">Early check-in recorded</span>}
     </div>
     <div className="stay-heading-meta">
      <span><CalendarDays size={16}/> {dateLabel(record.checkIn)} – {dateLabel(record.checkOut)}</span>
@@ -235,8 +237,12 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
        onClick={()=>void perform(isConfirmed?'check-in':'check-out')}>
        {busy?'Saving…':actionLabel} <ArrowRight size={17}/>
       </button>
-      {blockedReason&&<span className="stay-blocked-hint">{blockedReason}</span>}
+      {blockedReason&&<span className="stay-blocked-hint">{isConfirmed&&record.checkIn>hotelDate
+       ?'Normal check-in opens '+dateLabel(record.checkIn)+'.'
+       :blockedReason}</span>}}
      </div>
+     {isConfirmed&&record.checkIn>hotelDate&&
+      <EarlyCheckInRequest key={record.id+'-'+hotelId} record={record} today={hotelDate}/>}
      {lastOperation!==null&&lastOperation!=='assign'&&error&&
       <p role="alert" className="stay-feedback-error"><AlertTriangle size={16}/>{error}</p>}
      {lastOperation!==null&&lastOperation!=='assign'&&success&&
@@ -341,6 +347,16 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
       <div><small>Check-in</small><strong>{dateLabel(record.checkIn)}</strong></div>
       <div><small>Check-out</small><strong>{dateLabel(record.checkOut)}</strong></div>
      </div>
+     {record.earlyCheckIn&&<div className="stay-facts-item stay-early-record">
+      <small>EARLY CHECK-IN · AUDITED</small>
+      <strong>Actual arrival: {record.earlyCheckIn.actualCheckInDate}</strong>
+      <span>Originally booked: {record.earlyCheckIn.scheduledCheckIn}</span>
+      <span>Recorded at: {record.earlyCheckIn.actualCheckedInAt}</span>
+      <span>Approved by manager #{record.earlyCheckIn.approvedBy}</span>
+      <span>Approval #{record.earlyCheckIn.approvalRequestId}</span>
+      <span>Reason: {record.earlyCheckIn.reason}</span>
+      <span>Manager note: {record.earlyCheckIn.managerNote}</span>
+     </div>}
      <div className="stay-facts-item"><small>Reservation reference</small><strong>{record.reference}</strong></div>
     </section>
     <div className="stay-side-tip"><ShieldCheck size={17}/>

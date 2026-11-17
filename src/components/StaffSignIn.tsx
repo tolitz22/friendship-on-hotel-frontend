@@ -25,6 +25,6 @@ export function StaffSignIn(){
   </form>
   <p className="auth-footnote"><Link to="/forgot-password">Forgot your password?</Link></p>
   <p className="auth-footnote"><LockKeyhole size={14}/>{isCookieAuth()?'Your browser uses a Laravel HttpOnly session cookie. Use HTTPS for deployments.':'Access token kept only in memory. Refreshing the page signs you out. Use HTTPS outside localhost.'}</p>
-  <p className="auth-footnote">Reservations, payments, and operational workflows are not live.</p>
+  <p className="auth-footnote">Bookings, front desk and housekeeping use your selected hotel's Laravel records. Payment settlement and some management previews remain separate.</p>
  </div></div>;
 }

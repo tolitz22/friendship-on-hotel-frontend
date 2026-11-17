@@ -118,3 +118,7 @@ The live Booking policies screen now shows the latest saved policy draft's readi
 ## Phase 12 — Stay Simulator
 
 API mode adds a **Stay simulator** sidebar page for non-mutating inspection of proposed physical-room dates against real Laravel structural reservation records. Neither zero overlaps nor a completed diagnostic authorizes bookings; existing Reservations remains a mock preview. See [Phase 12](docs/PHASE_12_RESERVATION_SIMULATION.md).
+
+## Phase 13 — Live Maintenance Work Orders
+
+In `VITE_DATA_SOURCE=api`, Maintenance now uses real hotel-scoped Laravel work orders instead of sample records. Hotel admins can create/update tickets, and authorized staff can read status history. Changes use revision checks and transactional audit events. **Room-impact flags do not block inventory or modify reservations.** The previous Maintenance mock is preserved when `VITE_DATA_SOURCE=mock`. See [Phase 13](docs/PHASE_13_LIVE_MAINTENANCE.md).

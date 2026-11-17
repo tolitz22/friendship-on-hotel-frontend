@@ -1,6 +1,6 @@
 import {afterEach,describe,expect,it,vi} from 'vitest';
 import {clearSession,setSessionHotel,setSessionToken} from './session';
-import {createLiveRoom,createLiveRoomType,getLiveCatalogSummary,getLiveProperty,getLiveRooms} from './liveCatalog';
+import {createLiveRoom,createLiveRoomType,getCatalogAudit,getLiveCatalogSummary,getLiveProperty,getLiveRooms,updateLiveRoom,updateLiveRoomType} from './liveCatalog';
 
 afterEach(()=>{clearSession();vi.unstubAllGlobals();});
 
@@ -69,5 +69,50 @@ describe('Phase 7 catalogue write requests',()=>{
   vi.stubGlobal('fetch',fetchMock);
   await expect(createLiveRoomType({name:'Suite',maxOccupancy:2})).rejects.toThrow('Choose a hotel');
   expect(fetchMock).not.toHaveBeenCalled();
+ });
+});
+
+describe('Phase 8 audited catalogue edit transport',()=>{
+ it('patches a room number and nullable floor within the selected hotel',async()=>{
+  setSessionToken('admin');setSessionHotel('14');
+  const fetchMock=vi.fn().mockResolvedValue({ok:true,json:async()=>({data:{id:'7',number:'208'}})});
+  vi.stubGlobal('fetch',fetchMock);
+  await updateLiveRoom('7',{number:'208',floor:null});
+  const [url,init]=fetchMock.mock.calls[0] as [string,RequestInit];
+  expect(new URL(url).pathname).toBe('/api/v1/hotels/14/rooms/7');
+  expect(init.method).toBe('PATCH');
+  expect(JSON.parse(init.body as string)).toEqual({number:'208',floor:null});
+  expect((init.headers as Record<string,string>).Authorization).toBe('Bearer admin');
+ });
+ it('edits a room type through the scoped endpoint',async()=>{
+  setSessionToken('admin');setSessionHotel('6');
+  const fetchMock=vi.fn().mockResolvedValue({ok:true,json:async()=>({data:{id:'9'}})});
+  vi.stubGlobal('fetch',fetchMock);
+  await updateLiveRoomType('9',{name:'Deluxe Plus',maxOccupancy:3});
+  const [url,init]=fetchMock.mock.calls[0] as [string,RequestInit];
+  expect(new URL(url).pathname).toBe('/api/v1/hotels/6/room-types/9');
+  expect(JSON.parse(init.body as string)).toEqual({name:'Deluxe Plus',maxOccupancy:3});
+ });
+ it('fetches the current hotel audit records for one subject',async()=>{
+  setSessionToken('admin');setSessionHotel('4');
+  const fetchMock=vi.fn().mockResolvedValue({ok:true,json:async()=>({data:[],meta:{}})});
+  vi.stubGlobal('fetch',fetchMock);
+  await getCatalogAudit('room_type','3');
+  const url=new URL(fetchMock.mock.calls[0][0] as string);
+  expect(url.pathname).toBe('/api/v1/hotels/4/catalog-audit');
+  expect(url.searchParams.get('subjectType')).toBe('room_type');
+  expect(url.searchParams.get('subjectId')).toBe('3');
+ });
+ it('propagates reservation-linked edit conflicts instead of concealing them',async()=>{
+  setSessionToken('admin');setSessionHotel('4');
+  vi.stubGlobal('fetch',vi.fn().mockResolvedValue({
+   ok:false,status:422,json:async()=>({
+    message:'Capacity cannot be changed',
+    errors:{maxOccupancy:['Room type has existing reservation records.']},
+   }),
+  }));
+  await expect(updateLiveRoomType('3',{maxOccupancy:5})).rejects.toMatchObject({
+   status:422,fieldErrors:{maxOccupancy:['Room type has existing reservation records.']},
+  });
  });
 });

@@ -229,11 +229,13 @@ export function LiveRoomCalendar(){
        {selectedBookings.length>0&&<div className="lrc-modal-section">
         <h3>Reservations ({selectedBookings.length})</h3>
         {selectedBookings.map(booking=><div key={booking.id} className="lrc-modal-booking">
-         <div className="lrc-modal-line"><strong>{booking.reference}</strong>
+         <div className="lrc-modal-line"><strong>{booking.guestName??booking.reference}</strong>
           <span>{booking.status?.replaceAll('_',' ')??'Status unknown'}</span>
          </div>
+         {booking.guestName&&<p className="lrc-modal-guest-ref">Booking: {booking.reference}</p>}
          <p><strong>Arrival:</strong> {dayText(booking.checkIn,{month:'short',day:'numeric',year:'numeric'})}</p>
          <p><strong>Departure:</strong> {dayText(booking.checkOut,{month:'short',day:'numeric',year:'numeric'})}</p>
+         <p><strong>Stay:</strong> {(Date.parse(booking.checkOut+'T00:00:00Z')-Date.parse(booking.checkIn+'T00:00:00Z'))/86400000} night(s)</p>
          <Link to="/reservations" search={{booking:booking.id}} className="lrc-modal-action" onClick={()=>setSelected(null)}>
           Manage this booking <ArrowUpRight size={15}/>
          </Link>
@@ -241,7 +243,7 @@ export function LiveRoomCalendar(){
         {selectedBookings.length===1&&<div className="lrc-modal-extra" aria-live="polite">
          {reservation.isPending&&<p>Refreshing reservation status…</p>}
          {reservation.isError&&<p>Current status could not be verified. Open the reservation for the latest details.</p>}
-         {reservation.data&&<p>Verified status: <strong>{reservation.data.lifecycleState?.replaceAll('_',' ')??'Unknown'}</strong></p>}
+         {reservation.data&&<p>Verified status: <strong>{reservation.data.lifecycleState?.replaceAll('_',' ')??'Unknown'}</strong> · Room {selected.room.number}</p>}
         </div>}
        </div>}
        {selectedBlocks.length>0&&<div className="lrc-modal-section">

@@ -65,6 +65,7 @@ export function LiveReservationOperations({record,onClose}:{
    client.invalidateQueries({queryKey:['live','room-blocks',hotel]}),
    client.invalidateQueries({queryKey:['live','room-readiness',hotel]}),
    client.invalidateQueries({queryKey:['live','readiness-policy',hotel]}),
+   client.invalidateQueries({queryKey:['live','readiness-dashboard',hotel]}),
    client.invalidateQueries({queryKey:['live','reservation-history',hotel,record.id]}),
   ]);
  }

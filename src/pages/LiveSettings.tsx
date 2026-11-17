@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect,useState} from 'react';
 import {Building2,BedDouble,ShieldAlert,Plus} from 'lucide-react';
 import {useLiveCatalogSummary,useLiveProperty,useLiveRoomTypes} from '../api/liveCatalogQueries';
 import {CatalogCreateDialog,type CatalogCreateMode} from '../components/CatalogCreateDialog';
@@ -9,6 +9,7 @@ import {QueryFeedback} from '../components/QueryFeedback';
 export function LiveSettings(){
  const {hotelId,user}=useHotelAuth();
  const [createMode,setCreateMode]=useState<CatalogCreateMode|null>(null);
+ useEffect(()=>setCreateMode(null),[hotelId]);
  const admin=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const roomTypes=useLiveRoomTypes();
  const property=useLiveProperty();

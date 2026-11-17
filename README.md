@@ -122,3 +122,7 @@ API mode adds a **Stay simulator** sidebar page for non-mutating inspection of p
 ## Phase 13 — Live Maintenance Work Orders
 
 In `VITE_DATA_SOURCE=api`, Maintenance now uses real hotel-scoped Laravel work orders instead of sample records. Hotel admins can create/update tickets, and authorized staff can read status history. Changes use revision checks and transactional audit events. **Room-impact flags do not block inventory or modify reservations.** The previous Maintenance mock is preserved when `VITE_DATA_SOURCE=mock`. See [Phase 13](docs/PHASE_13_LIVE_MAINTENANCE.md).
+
+## Phase 14 — Live Housekeeping
+
+In `VITE_DATA_SOURCE=api`, Housekeeping now reads and manages real Laravel room-linked cleaning tasks. Active hotel admins can create/update tasks; members can inspect status and history. The mock Housekeeping screen is preserved in mock mode. Finishing cleaning does not change availability or occupancy. See [Phase 14](docs/PHASE_14_LIVE_HOUSEKEEPING.md).

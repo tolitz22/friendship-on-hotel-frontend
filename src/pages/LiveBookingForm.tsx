@@ -86,6 +86,7 @@ export function LiveBookingForm(){
     client.invalidateQueries({queryKey:['live','reservation-records',submission.hotelId]}),
     client.invalidateQueries({queryKey:['live','availability',submission.hotelId]}),
     client.invalidateQueries({queryKey:['live','front-desk','manifest',submission.hotelId]}),
+    client.invalidateQueries({queryKey:['live','readiness-dashboard',submission.hotelId]}),
    ]).catch(()=>{});
   }catch(cause){
    setError(cause instanceof Error?cause:new Error('The booking result could not be confirmed.'));

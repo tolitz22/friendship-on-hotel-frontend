@@ -86,3 +86,7 @@ Navigate to Reports to explore check-in-based booking counts, maintenance report
 ## Settings milestone
 
 Open Settings for property details, sample room type/floor configuration, operational preferences and sample staff-role labels. In mock mode you can edit property contact fields and operational times, validate the preview and reset to defaults. Nothing is persisted. Room types and roles are read-only. See [SETTINGS.md](docs/SETTINGS.md).
+
+## Phase 5 — Laravel staff authentication and live Guests
+
+With `VITE_DATA_SOURCE=api`, the app now requires staff sign-in through Laravel and a selected hotel membership. The **Guests** page becomes live with hotel-scoped list/search, pagination and administrator create/edit actions; all other PMS pages remain explicitly labeled **MOCK PREVIEW**. No live booking or financial mutation exists. Access tokens are kept in JS memory only and lost on refresh; this developer integration is not the final production browser authentication strategy. See [Phase 5 setup, security and API contracts](docs/PHASE_5_LARAVEL_INTEGRATION.md).

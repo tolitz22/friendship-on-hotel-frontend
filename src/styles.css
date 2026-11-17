@@ -1151,3 +1151,39 @@
 @media(max-width:1080px){.stay-detail-grid{grid-template-columns:minmax(0,1fr) 280px}}
 @media(max-width:810px){.stay-detail-grid{grid-template-columns:1fr}.stay-side-column{grid-row:1}.stay-facts-card{padding:16px}.stay-facts-card .stay-facts-item{padding:10px 0}.stay-side-tip{display:none}.stay-action-card{padding:20px}}
 @media(max-width:560px){.stay-detail-header{flex-direction:column;align-items:flex-start;gap:14px}.stay-heading-line h2{font-size:25px}.stay-heading-meta{gap:10px}.stay-room-choices{grid-template-columns:1fr}.stay-action-card,.stay-room-section{padding:17px}.stay-action-top{gap:10px}.stay-section-icon{width:38px;height:38px;flex-basis:38px}.stay-section-heading{align-items:flex-start;flex-direction:column}.stay-submit-btn{width:100%}.stay-action-footer{align-items:stretch;flex-direction:column}.stay-room-save{align-items:stretch;flex-direction:column}.stay-room-save .btn-primary{width:100%}.stay-secondary-disclosure summary{align-items:flex-start;flex-direction:column;gap:6px}}
+
+
+/* Early arrival: distinct exception controls, not another full booking form. */
+.stay-early-request{display:flex;align-items:flex-start;gap:15px;border:1px solid #e5d0aa;background:linear-gradient(115deg,#fffaf1,#fffdf9);border-radius:14px;padding:17px;margin:0}
+.stay-early-request-icon{width:40px;height:40px;flex:0 0 40px;display:grid;place-items:center;color:#a76b0a;background:#ffebcc;border-radius:12px}
+.stay-early-request-content{min-width:0;display:grid;justify-items:start;gap:10px;flex:1}
+.stay-early-request-content>strong{font-size:14px;color:#5f4319}
+.stay-early-request-content>p{margin:0;color:#66563e;font-size:12px;line-height:1.6}
+.stay-early-request-content .stay-early-pending{display:inline-flex;align-items:center;gap:7px;padding:9px 11px;background:#eff8f1;border-radius:9px;color:#17663a}
+.stay-early-hint{font-size:12px}
+.stay-early-form{display:grid;gap:11px;width:100%;padding-top:8px}
+.stay-early-form>label{font-size:12px;font-weight:700}
+.stay-early-form>small{font-size:11px;color:#66563e;line-height:1.6}
+.stay-early-form-actions{display:flex;flex-wrap:wrap;gap:9px}
+.stay-early-form-actions .btn-primary{font-size:12px}
+.stay-early-inbox{font-size:11px;color:#81590f;text-decoration:underline;text-underline-offset:3px}
+.stay-early-chip{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;background:#fff0d7;color:#935c0a;font-size:11px;font-weight:800}
+.stay-early-record{background:#fff8ea;margin:8px -10px;border:1px solid #ebd5ae;border-radius:10px;padding:13px!important}
+.stay-early-record small{color:#9a6210;font-weight:800;letter-spacing:.08em}
+.stay-early-record span{font-size:11px;color:var(--muted);line-height:1.6}
+.stay-approval-panel{display:grid;gap:15px;padding:6px 0}
+.stay-approval-panel .desk-tools h4{margin:0;display:flex;align-items:center;gap:8px;font-size:15px}
+.stay-approval-panel .desk-muted{line-height:1.6;font-size:12px}
+.stay-approval-panel .wizard-input{max-width:100%;width:100%}
+.stay-approval-panel .wizard-label{font-size:12px;font-weight:700;margin-top:10px}
+.stay-approval-panel .ex-record{border:1px solid var(--border);border-radius:10px;padding:13px;margin:0;display:grid;gap:6px}
+.stay-approval-panel .ex-record p{margin:0;font-size:12px;line-height:1.6}
+.stay-approval-subheading{font-size:13px;margin:8px 0 0}
+.stay-review-card{border:1px solid var(--border);border-radius:14px;padding:20px;margin:0 0 12px;background:var(--surface);display:grid;gap:12px}
+.stay-review-card p{margin:0;font-size:12px;line-height:1.6}
+.stay-review-card .wizard-input{width:100%}
+.stay-review-card .desk-tools>strong{font-size:15px}
+.stay-review-card .desk-tools small{font-weight:500;color:var(--muted)}
+.stay-review-early{border-left:4px solid #d78a20}
+.stay-early-inbox-tip{background:#fffaf1;border:1px solid #edd5b0;border-radius:10px;padding:10px 12px;color:#855714}
+@media(max-width:600px){.stay-early-request{padding:12px;gap:10px}.stay-early-request-icon{height:34px;width:34px;flex-basis:34px}.stay-early-form-actions{flex-direction:column}.stay-early-form-actions button{width:100%;justify-content:center}.stay-review-card{padding:14px}}

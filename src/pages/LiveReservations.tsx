@@ -74,7 +74,7 @@ export function LiveReservations(){
     onRetry={()=>void detail.refetch()}/>
    {selectedRecord&&<LiveReservationOperations key={hotelId+'-'+selectedRecord.id}
     record={selectedRecord} preferredRoomId={routeSearch.room??null}
-    preferredRoomNumber={routeSearch.roomNumber??null} onClose={closeBooking}/>}
+    preferredRoomNumber={routeSearch.roomNumber??null} deskAction={routeSearch.deskAction??null} onClose={closeBooking}/>}
   </section>}
   {admin&&!selectedRecordId&&<LiveBookingForm/>}
   <details className="workflow-disclosure" open={!selectedRecordId} key={selectedRecordId?'selected':'all'}>

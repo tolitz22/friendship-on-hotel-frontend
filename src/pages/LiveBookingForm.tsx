@@ -95,8 +95,13 @@ export function LiveBookingForm(){
     client.invalidateQueries({queryKey:['live','readiness-dashboard',submission.hotelId]}),
    ]).catch(()=>{});
   }catch(cause){
-   setError(cause instanceof Error?cause:new Error('The booking result could not be confirmed.'));
-   // Keep pending submission intact. Network/5xx may have committed on server.
+   // A late response from the previous property must not label the current
+   // hotel's new booking form as failed.
+   if(readSession().hotelId===submission.hotelId){
+    setError(cause instanceof Error?cause:new Error('The booking result could not be confirmed.'));
+   }
+   // Keep the same pending idempotency key for retries within this property.
+   // If the property changes, reconcile the old submission in its own hotel.
   }finally{inFlight.current=false;setBusy(false);}
  }
  const submit=()=>{

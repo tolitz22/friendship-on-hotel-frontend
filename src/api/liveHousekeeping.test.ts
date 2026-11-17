@@ -50,7 +50,7 @@ describe('Phase 14 live housekeeping API',()=>{
   expect(new URL(fetchMock.mock.calls[0][0] as string).pathname)
    .toBe('/api/v1/hotels/4/housekeeping-tasks/7/history');
   setSessionHotel(null);
-  await expect(getHousekeepingHistory('7')).rejects.toThrow('Choose a hotel');
+  expect(()=>getHousekeepingHistory('7')).toThrow('Choose a hotel');
  });
 });
 

@@ -16,6 +16,7 @@ import {Housekeeping} from './pages/Housekeeping';
 import {Billing} from './pages/Billing';
 import {FrontDesk} from './pages/FrontDesk';
 import {Maintenance} from './pages/Maintenance';
+import {LiveMaintenance} from './pages/LiveMaintenance';
 import {Reports} from './pages/Reports';
 import {Settings} from './pages/Settings';import './styles.css';
 const root=createRootRoute({component:AppShell});
@@ -30,7 +31,7 @@ const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/guests',component:Guests}),
  createRoute({getParentRoute:()=>root,path:'/billing',component:Billing}),
  createRoute({getParentRoute:()=>root,path:'/housekeeping',component:Housekeeping}),
- createRoute({getParentRoute:()=>root,path:'/maintenance',component:Maintenance}),
+ createRoute({getParentRoute:()=>root,path:'/maintenance',component:dataMode==='api'?LiveMaintenance:Maintenance}),
  createRoute({getParentRoute:()=>root,path:'/reports',component:Reports}),
  createRoute({getParentRoute:()=>root,path:'/settings',component:dataMode==='api'?LiveSettings:Settings}),
 ];

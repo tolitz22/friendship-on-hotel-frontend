@@ -40,6 +40,7 @@ type NavItem=(typeof all)[number];
 export function experienceForPath(pathname:string,mode:typeof dataMode){
  if(mode==='mock')return 'DESIGN PREVIEW';
  if(pathname==='/reservation-simulation')return 'SIMULATION · NO WRITES';
+ if(pathname==='/keycard-access')return 'MOCK KEYCARDS · NO HARDWARE';
  if(pathname==='/reservation-policy')return 'POLICY DRAFT';
  if(pathname==='/reservation-demand')return 'DIAGNOSTIC';
  if(pathname==='/reports')return 'PREVIEW REPORT';

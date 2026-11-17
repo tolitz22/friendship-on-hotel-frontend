@@ -6,7 +6,7 @@ export type MaintenancePriority='low'|'medium'|'high'|'urgent';
 export type MaintenanceStatus='open'|'in_progress'|'resolved'|'closed';
 export interface LiveWorkOrder{
  id:string;hotelId:string;roomId:string;roomNumber:string;title:string;description:string;
- priority:MaintenancePriority;status:MaintenanceStatus;assignedTo:string|null;affectsRoom:boolean;
+ priority:MaintenancePriority;status:MaintenanceStatus;assignedTo:string|null;assignedUserId:string|null;affectsRoom:boolean;
  revision:number;reportedAt:string;resolvedAt:string|null;
 }
 export interface MaintenanceEvent{
@@ -15,11 +15,11 @@ export interface MaintenanceEvent{
 }
 export interface CreateMaintenanceInput{
  roomId:string;title:string;description:string;priority:MaintenancePriority;
- assignedTo:string|null;affectsRoom:boolean;note?:string|null;
+ assignedTo:string|null;assignedUserId?:string|null;affectsRoom:boolean;note?:string|null;
 }
 export interface UpdateMaintenanceInput{
  expectedRevision:number;status?:MaintenanceStatus;priority?:MaintenancePriority;
- assignedTo?:string|null;affectsRoom?:boolean;note?:string|null;
+ assignedTo?:string|null;assignedUserId?:string|null;affectsRoom?:boolean;note?:string|null;
 }
 export type MaintenanceList=CollectionResponse<LiveWorkOrder>&{
  meta:CollectionResponse<LiveWorkOrder>['meta']&{affectsRoomDoesNotBlockInventory:true};

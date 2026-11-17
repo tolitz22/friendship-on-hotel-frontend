@@ -972,3 +972,32 @@
 .role-note svg{flex-shrink:0;color:var(--accent)}
 @media(max-width:970px){.role-tasks{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:570px){.role-tasks{grid-template-columns:1fr}.role-summary{gap:9px}.role-summary>div{padding:14px}.role-summary strong{font-size:23px}.role-task{min-height:130px;padding:16px}}
+
+
+/* Reservation detail · guided, conflict-aware room assignment */
+.reservation-room-picker{padding:20px;border:1px solid var(--border);border-radius:14px;background:var(--surface);display:grid;gap:15px;margin:18px 0}
+.reservation-room-picker h4{font-size:17px;margin:0 0 5px}
+.reservation-room-picker .desk-muted{line-height:1.55;margin:0}
+.reservation-selection-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.reservation-selection-summary>div{padding:13px 15px;background:var(--canvas);border:1px solid var(--border);border-radius:10px;min-width:0;display:grid;gap:6px}
+.reservation-selection-summary small{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.reservation-selection-summary strong{font-size:13px;overflow-wrap:anywhere}
+.reservation-room-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;max-height:365px;overflow:auto;align-content:start}
+.reservation-room-option{display:flex;align-items:center;gap:10px;min-height:78px;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--canvas);cursor:pointer;transition:border-color .16s,box-shadow .16s}
+.reservation-room-option input{accent-color:var(--accent);flex-shrink:0}
+.reservation-room-option span:nth-child(2){display:grid;gap:4px;min-width:0}
+.reservation-room-option strong{font-size:14px}
+.reservation-room-option small{font-size:11px;color:var(--muted)}
+.reservation-room-option-status{margin-left:auto;text-align:right;color:var(--accent);font-size:11px;font-weight:700}
+.reservation-room-option.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.reservation-room-option.unavailable{opacity:.65;cursor:not-allowed}
+.reservation-room-option.unavailable .reservation-room-option-status{color:var(--muted)}
+.reservation-room-option:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.reservation-assignment-footer{display:flex;justify-content:space-between;align-items:center;gap:16px;border-top:1px solid var(--border);padding-top:14px}
+.reservation-assignment-footer p{color:var(--muted);font-size:12px;line-height:1.5;margin:0}
+.reservation-assignment-footer .btn-primary{flex-shrink:0}
+.reservation-secondary-detail{margin:18px 0}
+.reservation-secondary-detail>summary{cursor:pointer;font-weight:700}
+.reservation-secondary-detail>section{margin-top:12px}
+@media(max-width:750px){.reservation-selection-summary{grid-template-columns:1fr}.reservation-room-options{grid-template-columns:repeat(2,minmax(0,1fr))}.reservation-assignment-footer{align-items:stretch;flex-direction:column}.reservation-assignment-footer .btn-primary{width:100%}}
+@media(max-width:480px){.reservation-room-options{grid-template-columns:1fr}.reservation-room-picker{padding:13px}.reservation-room-option{min-height:68px}}

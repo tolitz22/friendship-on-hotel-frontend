@@ -37,6 +37,7 @@ export function ReadinessEnforcementPanel(){
     client.invalidateQueries({queryKey:['live','readiness-policy',capturedHotel]}),
     client.invalidateQueries({queryKey:['live','readiness-policy-history',capturedHotel]}),
     client.invalidateQueries({queryKey:['live','room-readiness',capturedHotel]}),
+    client.invalidateQueries({queryKey:['live','readiness-dashboard',capturedHotel]}),
    ]).catch(()=>{});
   }catch(e){
    if(readSession().hotelId===capturedHotel)

@@ -352,3 +352,11 @@ The response is {data: LiveRecord}, using the existing structural reservation sc
 Front Desk manifest rows now link directly to their booking, and a successful booking confirmation links straight to that newly saved record. The reservation operations panel refreshes the exact booking cache after assignment/check-in/out, and checked-out reservations link to the existing Housekeeping queue for turnover. This is a navigation/UX connection; it neither bypasses backend authorization nor automatically approves readiness, verifies guest identity, or records payments.
 
 See docs/PHASE_39_CONNECTED_STAFF_JOURNEY.md. Backend feature test: DirectReservationWorkflowPhase39Test. Frontend contract test: directReservationWorkflow.test.ts. Tests and browser flow remain unverified.
+
+## Frontend Phase 40 — Precise guest and checkout task handoff
+
+GET /api/v1/hotels/{hotel}/guests/{guest} — existing member-readable scoped profile endpoint, now used by the booking form when navigated from a guest directory row. The response must match both expected hotel and guest IDs. Guest profiles beyond the first 100 results are included as a selected option, not silently substituted.
+
+GET /api/v1/hotels/{hotel}/bookings/{booking}/turnover — new member-readable checkout task lookup returning nullable task information plus determinesRoomReadiness:false. It never modifies the booking or creates a task. On a checked-out reservation, the frontend navigates to /housekeeping?task=<numeric ID>; that route calls the existing GET /housekeeping-tasks/{task} and verifies exact hotel/task identity, independent of task-list pagination. Task edits remain subject to backend role/revision rules. A missing or unauthorized task is shown as an error, not replaced with sample records. Housekeeping and maintenance mutations also invalidate room-readiness queries.
+
+See docs/PHASE_40_EXACT_RECORD_RELIABILITY.md for local test commands and acceptance. PHP, TypeScript, Vitest and real browser QA results have not been verified by this remote commit session.

@@ -246,9 +246,14 @@ export function LiveRoomCalendar(){
          <p><strong>Arrival:</strong> {dayText(booking.checkIn,{month:'short',day:'numeric',year:'numeric'})}</p>
          <p><strong>Departure:</strong> {dayText(booking.checkOut,{month:'short',day:'numeric',year:'numeric'})}</p>
          <p><strong>Stay:</strong> {(Date.parse(booking.checkOut+'T00:00:00Z')-Date.parse(booking.checkIn+'T00:00:00Z'))/86400000} night(s)</p>
-         <Link to="/reservations" search={{booking:booking.id}} className="lrc-modal-action" onClick={()=>setSelected(null)}>
-          Manage this booking <ArrowUpRight size={15}/>
-         </Link>
+         <div className="lrc-booking-actions">
+          <Link to="/reservations" search={{booking:booking.id}} className="lrc-modal-action" onClick={()=>setSelected(null)}>
+           Manage booking <ArrowUpRight size={15}/>
+          </Link>
+          <Link to="/billing" search={{booking:booking.id}} className="lrc-modal-action" onClick={()=>setSelected(null)}>
+           View folio <ArrowUpRight size={15}/>
+          </Link>
+         </div>
         </div>)}
         {selectedBookings.length===1&&<div className="lrc-modal-extra" aria-live="polite">
          {reservation.isPending&&<p>Refreshing reservation status…</p>}

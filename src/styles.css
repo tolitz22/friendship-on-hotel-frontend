@@ -677,3 +677,16 @@
 .calendar-booking-context{display:grid;gap:6px;background:var(--canvas);border:1px solid var(--border);border-left:3px solid var(--accent);padding:13px 15px;border-radius:9px;margin:12px 0 16px;font-size:12px}
 .calendar-booking-context>strong{font-size:13px}
 .calendar-booking-context p{margin:0;line-height:1.55;color:var(--muted)}
+
+/* Calendar details: adaptive room inspection / booking dialog */
+.lrc-modal-tip{display:flex;align-items:flex-start;gap:12px;background:color-mix(in srgb,var(--accent) 9%,var(--surface));border:1px solid color-mix(in srgb,var(--accent) 24%,var(--border));border-radius:11px;padding:15px}
+.lrc-modal-tip svg{color:var(--accent);flex-shrink:0}
+.lrc-modal-tip strong{display:block;font-size:13px;margin-bottom:5px}
+.lrc-modal-tip p{font-size:12px;color:var(--muted);line-height:1.6;margin:0}
+.lrc-modal .lrc-modal-footer .btn-primary{display:inline-flex;align-items:center;gap:8px;justify-content:center;min-height:41px}
+.lrc-modal .lrc-modal-footer .btn-inline{min-height:41px}
+.lrc-modal .lrc-modal-state p{margin-top:7px}
+.lrc-clickable.lrc-free .lrc-cell-content{opacity:.4;font-size:15px}
+.lrc-clickable.lrc-free:hover .lrc-cell-content{opacity:1;color:var(--accent)}
+.lrc-cell.lrc-inhouse .lrc-cell-content,.lrc-cell.lrc-confirmed .lrc-cell-content{font-size:11px}
+@media(max-width:540px){.lrc-modal-backdrop{align-items:flex-end!important;padding:0!important}.lrc-modal{width:100%!important;max-height:92vh!important;border-radius:20px 20px 0 0!important}.lrc-modal-footer .btn-primary{flex:1}}

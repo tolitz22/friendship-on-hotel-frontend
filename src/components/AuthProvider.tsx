@@ -20,7 +20,7 @@ export function AuthProvider({children}:{children:ReactNode}){
  const cookieMode=dataMode==='api'&&isCookieAuth();
  const [user,setUser]=useState<StaffProfile|null>(null);
  const [hotelId,setHotelId]=useState<string|null>(null);
- const [pending,setPending]=useState(cookieMode);
+ const [pending,setPending]=useState(cookieMode||(!cookieMode&&dataMode==='api'&&!!readSession().token));
 
  useEffect(()=>{
   if(!cookieMode)return;
@@ -30,20 +30,22 @@ export function AuthProvider({children}:{children:ReactNode}){
   return ()=>onSpaSessionExpired(null);
  },[cookieMode,queryClient]);
 
- // The browser owns the HttpOnly Laravel session cookie. After a refresh,
- // recover identity from /auth/me instead of storing tokens in JS storage.
+ // Cookie mode restores identity via HttpOnly cookies. Opt-in bearer
+ // mode restores a tab-scoped token, but always validates it with Laravel
+ // before displaying any authenticated PMS content.
  useEffect(()=>{
-  if(!cookieMode)return;
+  if(dataMode!=='api'||(!cookieMode&&!readSession().token))return;
   let cancelled=false;
   const restore=async()=>{
    try{
     const profile=(await fetchStaffProfile()).data;
     if(cancelled)return;
     setUser(profile);
-    if(profile.hotels.length===1){
-     setSessionHotel(profile.hotels[0].id);
-     setHotelId(profile.hotels[0].id);
-    }
+    const previousHotel=readSession().hotelId;
+    const authorized=profile.hotels.find(h=>h.id===previousHotel);
+    const selected=authorized?.id??(profile.hotels.length===1?profile.hotels[0].id:null);
+    setSessionHotel(selected);
+    setHotelId(selected);
    }catch{
     if(!cancelled){clearSession();setUser(null);setHotelId(null);}
    }finally{

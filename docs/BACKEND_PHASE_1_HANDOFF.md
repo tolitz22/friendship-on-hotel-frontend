@@ -67,3 +67,7 @@ Live API mode now supports admin-only room type and physical room **creation**, 
 ## Phase 8 — Admin catalogue edits
 
 In API mode, authenticated admins can edit room numbers, floors and safe type assignments from Room Inventory; room type names and safe capacities from Settings. Server writes are audited per record and refresh the shared catalogue. Referenced inventory assignments and capacities are blocked as described in `docs/PHASE_8_CATALOG_EDITS.md`. No booking engine or occupancy API is enabled. The previous mock UI remains preserved.
+
+## Phase 9 read-only reservation demand
+
+Backend adds `/api/v1/hotels/{hotel}/reservation-demand`; frontend API mode adds a Demand diagnostic sidebar view without replacing the preview reservation calendar/wizard. The report is structural only, ignores lifecycle filtering and does not determine availability. No real booking create endpoint exists. See `docs/PHASE_9_RESERVATION_DEMAND.md`.

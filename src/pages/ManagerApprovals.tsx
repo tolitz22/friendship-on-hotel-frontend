@@ -22,7 +22,7 @@ function ApprovalCard({item,hotelId}:{item:Approval;hotelId:string}){
   retry:false,
  });
  async function decide(decision:'approve'|'reject'){
-  if(busy||item.status!=='pending'||(decision==='approve'&&!confirmed)
+  if(busy||item.status!=='pending'||(decision==='approve'&&(!confirmed||(item.action==='early_check_in'&&note.trim().length<10)))
    ||(decision==='reject'&&!note.trim()))return;
   setBusy(true);setError('');
   try{
@@ -38,8 +38,8 @@ function ApprovalCard({item,hotelId}:{item:Approval;hotelId:string}){
   }catch(cause){setError(cause instanceof Error?cause.message:'Review result unknown. Refresh before retrying.');}
   finally{setBusy(false);}
  }
- return <article className="ex-record">
-  <div className="desk-tools"><strong>Request #{item.id} · {item.action==='cancel_booking'?'Cancel reservation':item.action==='early_check_in'?'Early guest check-in':'Change stay dates'}</strong>
+ return <article className={'stay-review-card'+(item.action==='early_check_in'?' stay-review-early':'')}>
+  <div className="desk-tools"><strong>{item.action==='cancel_booking'?'Cancel reservation':item.action==='early_check_in'?'Early check-in · Manager review':'Change stay dates'} <small>#{item.id}</small></strong>
    <span className="table-count">{item.status.toUpperCase()}</span></div>
   <p><Link to="/reservations" search={{booking:item.bookingId}}>Reservation #{item.bookingId}</Link>
    {' · '}Requested by staff #{item.requestedBy} · {item.createdAt}</p>
@@ -51,15 +51,16 @@ function ApprovalCard({item,hotelId}:{item:Approval;hotelId:string}){
   {item.status==='pending'&&<>
    <label className="wizard-label" htmlFor={'review-note-'+item.id}>Manager decision note</label>
    <textarea id={'review-note-'+item.id} className="wizard-input" rows={2} maxLength={1000}
-    value={note} onChange={e=>setNote(e.target.value)} disabled={busy} placeholder="Reason for decision (required for rejection)"/>
+    value={note} onChange={e=>setNote(e.target.value)} disabled={busy} placeholder={item.action==='early_check_in'?'Describe verified guest arrival, room readiness and pricing follow-up':'Reason for decision (required for rejection)'}/>
+   {item.action==='early_check_in'&&<p className="stay-early-inbox-tip">Approving immediately records the guest as checked in early. The original scheduled dates remain on the booking.</p>}
    <label className="wizard-label">
     <input type="checkbox" checked={confirmed} disabled={busy}
      onChange={e=>setConfirmed(e.target.checked)}/>
     I independently confirmed the request, guest identity, assigned room, readiness and potential additional-night charges.
    </label>
    <div className="desk-tools">
-    <button type="button" className="btn-primary" disabled={busy||!confirmed}
-     onClick={()=>void decide('approve')}>{busy?'Reviewing…':'Approve and execute'}</button>
+    <button type="button" className="btn-primary" disabled={busy||!confirmed||(item.action==='early_check_in'&&note.trim().length<10)}
+     onClick={()=>void decide('approve')}>{busy?'Reviewing…':item.action==='early_check_in'?'Approve & check in early':'Approve and execute'}</button>
     <button type="button" className="btn-inline" disabled={busy||!note.trim()}
      onClick={()=>void decide('reject')}>Reject request</button>
    </div>

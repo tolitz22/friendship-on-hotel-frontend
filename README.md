@@ -114,3 +114,7 @@ API mode now includes a **Booking policies** screen. Administrators can save ver
 ## Phase 11 — Booking Policy Readiness
 
 The live Booking policies screen now shows the latest saved policy draft's readiness issues and implementation blockers. It remains an advisory planning feature, not booking activation. See [Phase 11](docs/PHASE_11_POLICY_READINESS.md).
+
+## Phase 12 — Stay Simulator
+
+API mode adds a **Stay simulator** sidebar page for non-mutating inspection of proposed physical-room dates against real Laravel structural reservation records. Neither zero overlaps nor a completed diagnostic authorizes bookings; existing Reservations remains a mock preview. See [Phase 12](docs/PHASE_12_RESERVATION_SIMULATION.md).

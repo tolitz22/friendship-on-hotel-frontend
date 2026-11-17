@@ -1,7 +1,7 @@
 import {useEffect,useState,type FormEvent} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
-import {Plus,ShieldCheck,History} from 'lucide-react';
-import {attachHotelStaff,getHotelStaffHistory,listHotelStaff,updateHotelStaff,type StaffRole} from '../api/liveStaff';
+import {Plus,ShieldCheck,History,Mail,RefreshCcw} from 'lucide-react';
+import {attachHotelStaff,getHotelStaffHistory,listHotelStaff,updateHotelStaff,inviteNewStaff,listStaffInvitations,revokeStaffInvitation,type StaffRole} from '../api/liveStaff';
 import {ApiError} from '../api/http';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
@@ -13,6 +13,10 @@ export function LiveStaff(){
  const admin=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const client=useQueryClient();
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin});
+ const invitations=useQuery({queryKey:['staff-invitations',hotelId],queryFn:listStaffInvitations,enabled:admin});
+ const [inviteName,setInviteName]=useState('');
+ const [inviteEmail,setInviteEmail]=useState('');
+ const [inviteRole,setInviteRole]=useState<StaffRole>('housekeeping');
  const [email,setEmail]=useState('');
  const [role,setRole]=useState<StaffRole>('housekeeping');
  const [saving,setSaving]=useState<string|null>(null);
@@ -20,7 +24,7 @@ export function LiveStaff(){
  const [notice,setNotice]=useState('');
  const [historyOpen,setHistoryOpen]=useState(false);
  const history=useQuery({queryKey:['hotel-staff-history',hotelId],queryFn:getHotelStaffHistory,enabled:admin&&historyOpen});
- useEffect(()=>{setEmail('');setError('');setNotice('');setHistoryOpen(false);},[hotelId]);
+ useEffect(()=>{setEmail('');setInviteEmail('');setInviteName('');setError('');setNotice('');setHistoryOpen(false);},[hotelId]);
  async function attach(e:FormEvent<HTMLFormElement>){
   e.preventDefault();if(!admin||saving)return;
   setSaving('attach');setError('');setNotice('');
@@ -43,10 +47,55 @@ export function LiveStaff(){
   }catch(e){setError(e instanceof ApiError?e.message:e instanceof Error?e.message:'Unable to update staff.');}
   finally{setSaving(null);}
  }
+ async function sendInvitation(e:FormEvent<HTMLFormElement>){
+  e.preventDefault();if(!admin||saving)return;
+  setSaving('invite');setError('');setNotice('');
+  try{
+   await inviteNewStaff(inviteEmail.trim(),inviteName.trim(),inviteRole);
+   await client.invalidateQueries({queryKey:['staff-invitations',hotelId]});
+   setInviteEmail('');setInviteName('');
+   setNotice('Invitation dispatched through the configured Laravel mailer. It expires after 48 hours.');
+  }catch(e){setError(e instanceof Error?e.message:'Unable to send invitation.');}
+  finally{setSaving(null);}
+ }
+ async function revokeInvitation(id:string){
+  if(!admin||saving)return;
+  setSaving('revoke-'+id);setError('');setNotice('');
+  try{
+   await revokeStaffInvitation(id);
+   await client.invalidateQueries({queryKey:['staff-invitations',hotelId]});
+   setNotice('Invitation revoked.');
+  }catch(e){setError(e instanceof Error?e.message:'Unable to revoke invitation.');}
+  finally{setSaving(null);}
+ }
  if(!admin)return <><Heading title="Hotel staff" description="Administrator access required"/><p className="notice">Only active hotel administrators can manage staff memberships.</p></>;
  return <>
-  <div className="notice"><strong>Existing accounts only</strong> · Staff must already have a Laravel user account. This page does not send invitations, create passwords or register new users.</div>
+  <div className="notice"><strong>Staff onboarding</strong> · Invite new employees by email so they choose their own password. For someone with an existing account, use the separate membership form below.</div>
   <Heading title="Hotel staff" description="Manage property memberships and operational roles without sharing administrator credentials"/>
+  <Panel title="Invite a new employee">
+   <form className="staff-add-form" onSubmit={e=>void sendInvitation(e)}>
+    <label>Full name<input required minLength={2} maxLength={120} value={inviteName} onChange={e=>setInviteName(e.target.value)}/></label>
+    <label>Email<input required type="email" maxLength={255} value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)}/></label>
+    <label>Hotel role<select value={inviteRole} onChange={e=>setInviteRole(e.target.value as StaffRole)}>
+     {roles.map(r=><option value={r} key={r}>{r.replaceAll('_',' ')}</option>)}
+    </select></label>
+    <button className="btn-primary" disabled={saving!==null} type="submit"><Mail size={16}/> Send invitation</button>
+   </form>
+   <p className="guest-info">New accounts only. The recipient must use the emailed link within 48 hours. The role is granted only after acceptance.</p>
+  </Panel>
+  <Panel title="Sent invitations" action={<button type="button" className="btn-inline" onClick={()=>void invitations.refetch()}><RefreshCcw size={15}/> Refresh</button>}>
+   <QueryFeedback loading={invitations.isPending} error={invitations.error} empty={invitations.data?.data.length===0}/>
+   {invitations.data&&<div className="table-scroll"><table><thead><tr><th>Recipient</th><th>Role</th><th>Status</th><th></th></tr></thead><tbody>
+    {invitations.data.data.map(item=>{
+     const pending=!item.acceptedAt&&!item.revokedAt&&new Date(item.expiresAt).getTime()>Date.now();
+     const status=item.acceptedAt?'Accepted':item.revokedAt?'Revoked':pending?'Pending':'Expired';
+     return <tr key={item.id}><td><strong>{item.name}</strong><div className="guest-info">{item.email}</div></td>
+      <td>{item.role.replaceAll('_',' ')}</td><td>{status}</td>
+      <td>{pending&&<button type="button" className="btn-inline" disabled={saving!==null} onClick={()=>void revokeInvitation(item.id)}>Revoke</button>}</td>
+     </tr>;
+    })}
+   </tbody></table></div>}
+  </Panel>
   <Panel title="Attach an existing account">
    <form className="staff-add-form" onSubmit={e=>void attach(e)}>
     <label>Email address<input type="email" required maxLength={255} value={email} onChange={e=>setEmail(e.target.value)} placeholder="staff@example.com"/></label>

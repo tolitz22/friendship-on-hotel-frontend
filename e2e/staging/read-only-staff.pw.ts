@@ -41,6 +41,9 @@ test('staging staff can navigate live hotel records without creating or changing
   await expect(page).toHaveURL(new RegExp(route.replace('/','\\/')+'(?:\\?|$)'));
   await expect(page.getByRole('heading',{name:heading,exact:true}).first()).toBeVisible();
   await expect(page.getByText('DESIGN PREVIEW')).toHaveCount(0);
-  await expect(page.getByText('Unable to load this information')).toHaveCount(0);
+  // Wait for any currently rendered record loading indication to settle,
+  // then fail on the shared API error state rather than merely checking headings.
+  await expect(page.getByText('Loading hotel records…')).toHaveCount(0);
+  await expect(page.locator('.query-feedback.error')).toHaveCount(0);
  }
 });

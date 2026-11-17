@@ -13,6 +13,7 @@ import {LiveReservationSimulation} from './pages/LiveReservationSimulation';
 import {dataMode} from './api';import {Reservations} from './pages/Reservations';import {Rooms} from './pages/Rooms';
 import {Guests} from './pages/Guests';
 import {Housekeeping} from './pages/Housekeeping';
+import {LiveHousekeeping} from './pages/LiveHousekeeping';
 import {Billing} from './pages/Billing';
 import {FrontDesk} from './pages/FrontDesk';
 import {Maintenance} from './pages/Maintenance';
@@ -30,7 +31,7 @@ const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/reservation-simulation',component:LiveReservationSimulation}),
  createRoute({getParentRoute:()=>root,path:'/guests',component:Guests}),
  createRoute({getParentRoute:()=>root,path:'/billing',component:Billing}),
- createRoute({getParentRoute:()=>root,path:'/housekeeping',component:Housekeeping}),
+ createRoute({getParentRoute:()=>root,path:'/housekeeping',component:dataMode==='api'?LiveHousekeeping:Housekeeping}),
  createRoute({getParentRoute:()=>root,path:'/maintenance',component:dataMode==='api'?LiveMaintenance:Maintenance}),
  createRoute({getParentRoute:()=>root,path:'/reports',component:Reports}),
  createRoute({getParentRoute:()=>root,path:'/settings',component:dataMode==='api'?LiveSettings:Settings}),

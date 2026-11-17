@@ -41,3 +41,7 @@ Read `docs/REPORTS.md`. All reporting data is mock/read-only at this stage; dist
 ## Settings milestone
 
 Follow `docs/SETTINGS.md`. The Settings page uses `useHotelSettings()` and local validation only; do not add server-side configuration changes or permissions based on sample role labels. Confirm property identity, timezone, inventory schema, and RBAC through discovery before implementing Laravel update endpoints.
+
+## Phase 5 Laravel integration
+
+Read `docs/PHASE_5_LARAVEL_INTEGRATION.md`. In API mode, staff must sign in and choose an authorized hotel; only Guests uses Laravel. Other modules remain explicitly labeled mock previews. Never silently fall back to fixtures when live guest requests fail, or persist bearer tokens to browser localStorage/sessionStorage. Do not treat the current in-memory token flow as production browser authentication. Preserve all existing mocked PMS screens and do not add booking writes until inventory rules are approved.

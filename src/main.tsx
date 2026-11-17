@@ -7,6 +7,7 @@ import {Dashboard} from './pages/Dashboard';
 import {LiveDashboard} from './pages/LiveDashboard';
 import {LiveRooms} from './pages/LiveRooms';
 import {LiveSettings} from './pages/LiveSettings';
+import {LiveStaff} from './pages/LiveStaff';
 import {LiveReservationDemand} from './pages/LiveReservationDemand';
 import {LiveReservationPolicy} from './pages/LiveReservationPolicy';
 import {LiveReservationSimulation} from './pages/LiveReservationSimulation';
@@ -35,6 +36,7 @@ const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/maintenance',component:dataMode==='api'?LiveMaintenance:Maintenance}),
  createRoute({getParentRoute:()=>root,path:'/reports',component:Reports}),
  createRoute({getParentRoute:()=>root,path:'/settings',component:dataMode==='api'?LiveSettings:Settings}),
+ createRoute({getParentRoute:()=>root,path:'/staff',component:LiveStaff}),
 ];
 const routeTree=root.addChildren([index,reservations,rooms,...functionalRoutes]);
 const router=createRouter({routeTree,defaultPreload:'intent'});

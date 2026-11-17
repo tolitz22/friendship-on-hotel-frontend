@@ -50,5 +50,8 @@ export function useLiveManifest(date:string,kind:ManifestKind,page:number,perPag
    {date,kind,page,per_page:perPage}
   ),date,kind),
   retry:false,
+  staleTime:0,
+  refetchInterval:30000,
+  refetchIntervalInBackground:false,
  });
 }

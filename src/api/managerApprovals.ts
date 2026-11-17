@@ -6,7 +6,7 @@ import {hotelPath,readSession} from './session';
 const id=z.string().regex(/^[1-9]\d*$/);
 const approval=z.object({
  id,hotelId:id,bookingId:id,requestedBy:id,reviewedBy:id.nullable(),executedBy:id.nullable(),
- action:z.enum(['cancel_booking','amend_dates']),
+ action:z.enum(['cancel_booking','amend_dates','early_check_in']),
  status:z.enum(['pending','rejected','executed']),
  reason:z.string(),payload:z.object({checkIn:z.string(),checkOut:z.string()}).partial(),
  snapshot:z.object({checkIn:z.string(),checkOut:z.string(),status:z.string(),

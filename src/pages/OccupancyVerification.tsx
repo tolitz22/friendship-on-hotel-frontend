@@ -1,5 +1,6 @@
 import {useEffect,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
+import {Link} from '@tanstack/react-router';
 import {AlertTriangle,ClipboardCheck,RefreshCw,ShieldCheck} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
@@ -118,6 +119,9 @@ export function OccupancyVerification(){
   <Heading title="Independent occupancy verification" description={manager
    ?'Assign physical room checks and investigate mismatches against recorded check-ins.'
    :'Record an independent, factual room observation on each assigned check.'}/>
+  {manager&&<div className="desk-tools"><Link to="/occupancy-coverage" className="btn-inline">
+   View daily occupancy coverage and discrepancies
+  </Link></div>}
   {manager&&<Panel title="Assign a room inspection">
    <p>One independent observation per room per hotel-local date. Assign an active housekeeping staff member, not the front desk.</p>
    <div className="wizard-fields">

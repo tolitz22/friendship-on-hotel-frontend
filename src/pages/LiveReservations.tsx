@@ -36,14 +36,19 @@ export function LiveReservations(){
  const [view,setView]=useState<'manage'|'new'>('manage');
  const [filter,setFilter]=useState<'all'|'needs_room'|'arrivals'|'in_house'|'completed'>('all');
  const [search,setSearch]=useState('');
+ const [appliedSearch,setAppliedSearch]=useState('');
  useEffect(()=>{
-  setPage(1);setFilter('all');setSearch('');
+  const timer=window.setTimeout(()=>{setAppliedSearch(search.trim());setPage(1);},300);
+  return ()=>window.clearTimeout(timer);
+ },[search]);
+ useEffect(()=>{
+  setPage(1);setFilter('all');setSearch('');setAppliedSearch('');
   setView(routeSearch.mode==='new'||!!routeSearch.guest||!!routeSearch.room?'new':'manage');
  },[hotelId,routeSearch.mode,routeSearch.guest,routeSearch.room]);
  const [inputs,setInputs]=useState<LiveStay>(initialStay);
  const [rateId,setRateId]=useState('');
  const [requested,setRequested]=useState<{stay:LiveStay;rateId:string}|null>(null);
- const records=useLiveReservationRecords(page);
+ const records=useLiveReservationRecords(page,appliedSearch,filter);
  const types=useLiveRoomTypes();
  const rates=useLiveRatePlans();
  const availability=useLiveAvailability(requested?.stay??null);
@@ -55,23 +60,7 @@ export function LiveReservations(){
  const chosenRate=activeRates.find(rate=>rate.id===rateId);
  const rows=records.data?.data??[];
  const selectedRecord=detail.data??null;
- const term=search.trim().toLocaleLowerCase();
- const filtered=rows.filter(record=>{
-  const matches=!term||[record.reference,record.id,record.guestName??'',record.assignedRoomNumber??'',
-   record.roomTypeName??'',record.lifecycleState??''].some(value=>value.toLocaleLowerCase().includes(term));
-  if(!matches)return false;
-  if(filter==='needs_room')return record.lifecycleState==='confirmed'&&!record.assignedRoomId;
-  if(filter==='arrivals')return record.lifecycleState==='confirmed';
-  if(filter==='in_house')return record.lifecycleState==='checked_in';
-  if(filter==='completed')return record.lifecycleState==='checked_out'||record.lifecycleState==='cancelled';
-  return true;
- });
- const visibleCounts={
-  needs_room:rows.filter(r=>r.lifecycleState==='confirmed'&&!r.assignedRoomId).length,
-  arrivals:rows.filter(r=>r.lifecycleState==='confirmed').length,
-  in_house:rows.filter(r=>r.lifecycleState==='checked_in').length,
-  completed:rows.filter(r=>r.lifecycleState==='checked_out'||r.lifecycleState==='cancelled').length,
- };
+ const filtered=rows;
  const nextAction=(record:typeof rows[number])=>record.lifecycleState==='confirmed'
   ?record.assignedRoomId?'Review arrival':'Assign a room'
   :record.lifecycleState==='checked_in'?'Manage in-house stay'
@@ -107,7 +96,7 @@ export function LiveReservations(){
      {canOperate&&<button type="button" aria-pressed={view==='new'} className={view==='new'?'selected':''}
       onClick={()=>setView('new')}><Plus size={16}/> New booking</button>}
     </div>
-    <span className="table-count">{pagination?.total??'—'} saved reservations</span>
+    <span className="table-count">{pagination?.total??'—'} matching reservations</span>
    </div>
    {view==='new'&&canOperate?<LiveBookingForm/>:<Panel title="Find and manage a reservation"
     action={<button type="button" className="btn-inline" onClick={()=>void records.refetch()}>
@@ -115,24 +104,22 @@ export function LiveReservations(){
     <div className="reservation-filter-layout">
      <label className="search-box"><Search size={17}/>
       <input value={search} onChange={e=>setSearch(e.target.value)}
-       aria-label="Find booking on current page" placeholder="Guest, booking reference, or room number"/>
+       aria-label="Search all reservations" placeholder="Guest, booking reference, or room number"/>
      </label>
      <div className="reservation-filter-tabs" role="group" aria-label="Reservation status filter">
       {([
        ['all','All'],['needs_room','Needs room'],['arrivals','Confirmed'],['in_house','In house'],['completed','Completed'],
       ] as const).map(([value,label])=><button type="button" key={value}
        aria-pressed={filter===value} className={filter===value?'selected':''}
-       onClick={()=>setFilter(value)}>{label}
-       {value!=='all'&&<small>{visibleCounts[value]}</small>}</button>)}
+       onClick={()=>{setFilter(value);setPage(1);}}>{label}</button>)}
      </div>
     </div>
-    <p className="desk-muted">Search and counts cover this page of {pagination?.total??0} total bookings.
-     Use next/previous to browse more. These are not hotel-wide totals.</p>
+    <p className="desk-muted">Search and status filters run across the selected hotel's reservation records. Results are paginated.</p>
     <QueryFeedback loading={records.isPending} error={records.error}
      onRetry={()=>void records.refetch()}
      empty={records.isSuccess&&filtered.length===0}
-     emptyMessage={term||filter!=='all'
-      ?'No matching bookings on this page. Change the filter or browse another page.'
+     emptyMessage={appliedSearch||filter!=='all'
+      ?'No matching bookings. Clear the search or change the filter.'
       :'No bookings yet. Use New booking to register the first reservation.'}/>
     {filtered.length>0&&<div className="reservation-manage-list">
      {filtered.map(record=><article className="reservation-manage-card" key={record.id}>

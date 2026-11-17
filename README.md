@@ -110,3 +110,7 @@ In API mode, the sidebar now has a **Demand diagnostic** view for read-only, per
 ## Phase 10 — Reservation Policy Drafts
 
 API mode now includes a **Booking policies** screen. Administrators can save versioned, hotel-scoped draft choices for inventory unit, room assignment, status consumption, pending holds, maintenance, overbooking, cancellations and rate policy. Revision conflicts return 409 and prior snapshots are available for review. **These decisions are not approved or effective for bookings, even if every choice is filled in.** No reservation mutation endpoint has been enabled. See [Phase 10](docs/PHASE_10_POLICY_DRAFTS.md).
+
+## Phase 11 — Booking Policy Readiness
+
+The live Booking policies screen now shows the latest saved policy draft's readiness issues and implementation blockers. It remains an advisory planning feature, not booking activation. See [Phase 11](docs/PHASE_11_POLICY_READINESS.md).

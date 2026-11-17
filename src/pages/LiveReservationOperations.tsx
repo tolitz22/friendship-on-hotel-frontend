@@ -19,8 +19,9 @@ import {QueryFeedback} from '../components/QueryFeedback';
 import {hotelToday} from '../features/reservations/calendarDate';
 import {dateLabel,statusLabel} from '../lib/format';
 
-export function LiveReservationOperations({record,onClose,preferredRoomId,preferredRoomNumber}:{
+export function LiveReservationOperations({record,onClose,preferredRoomId,preferredRoomNumber,deskAction}:{
  record:LiveRecord;onClose:()=>void;preferredRoomId?:string|null;preferredRoomNumber?:string|null;
+ deskAction?:'assign'|'check-in'|'check-out'|null;
 }){
  const {hotelId,user}=useHotelAuth();
  const admin=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
@@ -32,6 +33,8 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const [success,setSuccess]=useState('');
  const [error,setError]=useState('');
  const inFlight=useRef(false);
+ const assignmentRef=useRef<HTMLElement>(null);
+ const lifecycleRef=useRef<HTMLElement>(null);
  const client=useQueryClient();
  const rooms=useLiveAssignableRooms(record,roomPage,admin);
  const blocks=useLiveRoomBlocks(roomId||null,admin);
@@ -64,6 +67,18 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
    &&item.number===preferredRoomNumber&&item.roomTypeId===record.roomTypeId);
   if(verified)setRoomId(verified.id);
  },[preferredRoomId,preferredRoomNumber,rooms.data,record.roomTypeId,roomId]);
+ useEffect(()=>{
+  // A front desk shortcut highlights the relevant guarded operation;
+  // never execute an assignment or lifecycle transition on navigation.
+  if(!deskAction)return;
+  const eligible=deskAction==='assign'
+   ?record.lifecycleState==='confirmed'&&!record.assignedRoomId
+   :deskAction==='check-in'?record.lifecycleState==='confirmed'
+   :record.lifecycleState==='checked_in';
+  if(!eligible)return;
+  const section=deskAction==='assign'?assignmentRef.current:lifecycleRef.current;
+  section?.scrollIntoView({behavior:'smooth',block:'start'});
+ },[deskAction,record.id,record.lifecycleState,record.assignedRoomId]);
  async function refresh(hotel:string){
   await Promise.all([
    client.invalidateQueries({queryKey:['live','reservation-records',hotel]}),
@@ -112,6 +127,9 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
    <p><strong>{record.reference}</strong> · {dateLabel(record.checkIn)} – {dateLabel(record.checkOut)} · {statusLabel(record.lifecycleState??'unknown')}</p>
    <button type="button" className="btn-inline" disabled={busy} onClick={onClose}>Close</button>
   </div>
+  {deskAction&&<p role="status" className="fdc-operation-hint">
+   Opened from Front Desk. Review this reservation and complete the required checks before saving any changes.
+  </p>}
   <div className="frontdesk-journey" aria-label="Reservation progress">
    <div className="frontdesk-stage"><BedDouble size={17}/><span>Booked</span><strong>Confirmed</strong></div>
    <div className="frontdesk-stage"><DoorOpen size={17}/><span>Physical room</span><strong>{record.assignedRoomId?'Assigned':'Unassigned'}</strong></div>
@@ -127,7 +145,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
   <p className="help-copy">Reservation #{record.id} · Room type #{record.roomTypeId} · Assigned room: {record.assignedRoomId??'None'}.</p>
   {!admin&&<p role="status">Only administrators of the selected hotel can assign rooms or change a reservation lifecycle. The backend enforces permissions.</p>}
   {admin&&<>
-   {record.lifecycleState==='confirmed'&&<section>
+   {record.lifecycleState==='confirmed'&&<section ref={assignmentRef} className={deskAction==='assign'?'fdc-target-operation':''}>
     <h4>Assign a physical room</h4>
     {preferredRoomId&&<p role="status" className="calendar-booking-context">Preferred room from calendar: {preferredRoomNumber??'Selected room'}. We only preselect it when Laravel returns a matching room. Assignment is still subject to block and availability checks.</p>}
     <p>Rooms are filtered by matching room type. This is not proof of cleanliness, occupancy readiness, or freedom from future conflicts: Laravel performs the final block and assignment checks.</p>
@@ -160,7 +178,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
     <button type="button" className="btn-primary" disabled={!canAssign}
      onClick={()=>void perform('assign')}>{busy?'Saving…':'Assign selected room'}</button>
    </section>}
-   <section>
+   <section ref={lifecycleRef} className={deskAction==='check-in'||deskAction==='check-out'?'fdc-target-operation':''}>
     <h4>Front desk lifecycle</h4>
     <p>Hotel calendar day used for the interface: {hotelDate}. Laravel checks the hotel's authoritative local date and current reservation state again before saving.</p>
     {record.lifecycleState==='confirmed'&&<p>{record.assignedRoomId===null?'A room must be assigned before check-in.':'A room is assigned. Check guest identity and room readiness independently before check-in.'}</p>}

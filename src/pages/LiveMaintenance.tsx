@@ -96,6 +96,7 @@ export function LiveMaintenance(){
     queryClient.invalidateQueries({queryKey:['live-maintenance',hotelId]}),
     queryClient.invalidateQueries({queryKey:['maintenance-history',hotelId]}),
     queryClient.invalidateQueries({queryKey:['live','maintenance-for-housekeeping',hotelId]}),
+    queryClient.invalidateQueries({queryKey:['live','readiness-dashboard',hotelId]}),
    ]).catch(()=>{});
   }catch(caught){
    if(caught instanceof ApiError){

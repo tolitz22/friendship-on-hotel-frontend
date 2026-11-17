@@ -83,3 +83,7 @@ API mode Booking policies now displays the persisted policy draft's read-only re
 ## Phase 12 — Structural stay simulation
 
 Backend now exposes a GET-only property-scoped proposed-stay overlap report and the frontend exposes it through Stay simulator in API mode. No reservation create or occupancy functionality has been added; prior mock Reservations are preserved. See `docs/PHASE_12_RESERVATION_SIMULATION.md`.
+
+## Phase 13 live maintenance
+
+API mode now renders `LiveMaintenance` with real Laravel work-order records, admin creation, revision-checked edits and event history. Original mock Maintenance remains in mock mode. The backend has no approved inventory block/availability behavior for work-order room impact. See `docs/PHASE_13_LIVE_MAINTENANCE.md`.

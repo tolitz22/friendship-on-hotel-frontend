@@ -50,8 +50,8 @@ export function AppShell(){
  const admin=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  useEffect(()=>{setOpen(false);},[pathname,hotelId]);
  if(dataMode==='api'&&!user&&['/forgot-password','/reset-password','/accept-invitation'].includes(pathname))return <Outlet/>;
- if(dataMode==='api'&&pending&&!user&&isCookieAuth())
-  return <div className="auth-shell"><div className="auth-card"><p role="status">Checking your secure staff session…</p></div></div>;
+ if(dataMode==='api'&&pending&&!user)
+  return <div className="auth-shell"><div className="auth-card"><p role="status">Checking your staff session…</p></div></div>;
  if(dataMode==='api'&&!user)return <StaffSignIn/>;
  if(dataMode==='api'&&user&&!hotelId&&pathname==='/change-password')return <Outlet/>;
  if(dataMode==='api'&&!hotelId)return <HotelChooser/>;

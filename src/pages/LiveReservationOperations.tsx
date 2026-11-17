@@ -14,6 +14,7 @@ import {useReadinessPolicy} from '../api/readinessEnforcementPolicy';
 import {useLiveReadiness} from '../api/liveRoomReadiness';
 import {useBookingTurnover} from '../api/liveBookingTurnover';
 import {useHotelAuth} from '../components/AuthProvider';
+import {ReservationApprovalRequests} from '../components/ReservationApprovalRequests';
 import {Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {hotelToday} from '../features/reservations/calendarDate';
@@ -25,6 +26,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
 }){
  const {hotelId,user}=useHotelAuth();
  const canOperate=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&(h.role==='admin'||h.role==='front_desk'));
+ const manager=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const [roomPage,setRoomPage]=useState(1);
  const [historyPage,setHistoryPage]=useState(1);
  const [roomId,setRoomId]=useState('');
@@ -211,6 +213,8 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
     <p className="desk-muted">Acknowledgement is a UI confirmation only; the backend does not store independent identity/readiness attestations. Payments and refunds are not changed by these actions.</p>
    </section>
   </>}
+  {(canOperate||manager)&&<ReservationApprovalRequests key={hotelId+'-'+record.id}
+   record={record} canRequest={canOperate} manager={manager}/>}
   <section aria-label="Reservation change history">
    <h4>Recorded reservation history</h4>
    <p>These are Laravel reservation events and actor IDs, not proof of room readiness, guest verification or financial settlement.</p>

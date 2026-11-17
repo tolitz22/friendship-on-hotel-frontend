@@ -7,6 +7,7 @@ import {useRoomCalendar,type RoomCalendarData} from '../api/liveRoomCalendar';
 import {useLiveReservationDetail} from '../api/liveReservations';
 import {useLiveRoomTypes} from '../api/liveCatalogQueries';
 import {addDays,hotelToday} from '../features/reservations/calendarDate';
+import {roomHasConflict,validRoomStay} from '../features/reservations/roomCalendarRange';
 import {Heading} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {useHotelAuth} from '../components/AuthProvider';
@@ -85,10 +86,9 @@ export function LiveRoomCalendar(){
  const selectedBlocks=selected&&data?data.blocks.filter(b=>b.roomId===selected.room.id&&b.checkIn<=selected.day&&selected.day<b.checkOut):[];
  const reservation=useLiveReservationDetail(selectedBookings.length===1?selectedBookings[0].id:null);
  const meta=calendar.data?.meta;
- const rangeValid=!!selected&&departure>selected.day&&departure<=addDays(selected.day,31);
- const rangeConflict=!!selected&&!!data&&(
-  data.bookings.some(b=>b.roomId===selected.room.id&&b.checkIn<departure&&b.checkOut>selected.day)
-  ||data.blocks.some(b=>b.roomId===selected.room.id&&b.checkIn<departure&&b.checkOut>selected.day)
+ const rangeValid=!!selected&&validRoomStay(selected.day,departure);
+ const rangeConflict=!!selected&&rangeValid&&!!data&&roomHasConflict(
+  selected.room.id,selected.day,departure,data.bookings,data.blocks
  );
  const extendsOutsideVisible=!!selected&&departure>dates.end;
  const canStartBooking=!!selected&&selected.day>=hotelToday()&&rangeValid&&!rangeConflict;

@@ -162,3 +162,23 @@ export function useLiveRoomQuote(stay:LiveStay|null,ratePlanId:string){
   retry:false,staleTime:0,
  });
 }
+
+
+/** Fetch one booking without relying on the currently loaded reservation page. */
+export function parseReservationDetail(value:unknown,hotelId:string,bookingId:string):LiveRecord{
+ const result=z.object({data:record}).parse(value).data;
+ if(result.hotelId!==hotelId||result.id!==bookingId)
+  throw new Error('The reservation belongs to another hotel or does not match the requested booking.');
+ return result;
+}
+export function useLiveReservationDetail(bookingId:string|null){
+ const {hotelId}=readSession();
+ return useQuery({
+  queryKey:['live','reservation-detail',hotelId,bookingId],
+  enabled:!!hotelId&&!!bookingId&&id.safeParse(bookingId).success,
+  queryFn:async()=>parseReservationDetail(await getJson<unknown>(
+   hotelPath('/reservation-records/'+encodeURIComponent(bookingId!))
+  ),hotelId!,bookingId!),
+  retry:false,staleTime:0,
+ });
+}

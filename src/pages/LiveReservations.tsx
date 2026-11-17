@@ -64,12 +64,7 @@ export function LiveReservations(){
   <Panel title="Choose a property"><p role="status">Select your hotel from the authenticated workspace before creating or managing reservations.</p></Panel>
  </>;
  return <>
-  <Heading title="Reservations" description="Manage existing stays and, if authorized, create confirmed reservations. Your hotel is selected in the header."/>
-  {admin&&<div className="workflow-intro" aria-label="Booking workflow steps">
-   <div className="workflow-step"><strong>1</strong><span>Select guest and dates</span></div>
-   <div className="workflow-step"><strong>2</strong><span>Review current capacity and subtotal</span></div>
-   <div className="workflow-step"><strong>3</strong><span>Confirm the booking in Laravel</span></div>
-  </div>}
+  <Heading title="Reservations" description="Create a booking in a few steps, or open an existing reservation to manage a stay."/>
   {selectedRecordId&&<section className="desk-selected-workflow" aria-label="Selected reservation">
    <div className="desk-tools">
     <h3>Selected booking · #{selectedRecordId}</h3>

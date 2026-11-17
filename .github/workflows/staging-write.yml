@@ -1,0 +1,46 @@
+name: Phase 43 isolated staging write acceptance
+
+# Never runs on push or pull requests. Provision and authorize a dedicated
+# synthetic hotel / disposable DB before manually dispatching.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase43-staging-write
+  cancel-in-progress: false
+
+jobs:
+  browser-write:
+    name: React to Laravel synthetic stay
+    runs-on: ubuntu-latest
+    environment: staging-write
+    timeout-minutes: 20
+    env:
+      PMS_STAGING_WRITE_ENABLED: '1'
+      PMS_STAGING_ISOLATED_DB_ACK: ${{ vars.PMS_STAGING_ISOLATED_DB_ACK }}
+      PMS_STAGING_URL: ${{ vars.PMS_STAGING_URL }}
+      PMS_STAGING_ALLOWED_HOST: ${{ vars.PMS_STAGING_ALLOWED_HOST }}
+      PMS_STAGING_API_URL: ${{ vars.PMS_STAGING_API_URL }}
+      PMS_STAGING_ALLOWED_API_HOST: ${{ vars.PMS_STAGING_ALLOWED_API_HOST }}
+      PMS_STAGING_TEST_HOTEL_ID: ${{ vars.PMS_STAGING_TEST_HOTEL_ID }}
+      PMS_STAGING_TEST_HOTEL_NAME: ${{ vars.PMS_STAGING_TEST_HOTEL_NAME }}
+      PMS_STAGING_TEST_ROOM_TYPE_ID: ${{ vars.PMS_STAGING_TEST_ROOM_TYPE_ID }}
+      PMS_STAGING_TEST_RATE_PLAN_ID: ${{ vars.PMS_STAGING_TEST_RATE_PLAN_ID }}
+      PMS_STAGING_TEST_ROOM_ID: ${{ vars.PMS_STAGING_TEST_ROOM_ID }}
+      PMS_STAGING_CHECKOUT_BOOKING_ID: ${{ vars.PMS_STAGING_CHECKOUT_BOOKING_ID }}
+      PMS_STAGING_STAFF_EMAIL: ${{ secrets.PMS_STAGING_STAFF_EMAIL }}
+      PMS_STAGING_STAFF_PASSWORD: ${{ secrets.PMS_STAGING_STAFF_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run isolated staging browser-to-Laravel acceptance
+        run: npm run test:e2e:staging:write

@@ -29,8 +29,8 @@ export function LiveReservationOperations({record,onClose}:{
  const [error,setError]=useState('');
  const inFlight=useRef(false);
  const client=useQueryClient();
- const rooms=useLiveAssignableRooms(record,roomPage);
- const blocks=useLiveRoomBlocks(roomId||null);
+ const rooms=useLiveAssignableRooms(record,roomPage,admin);
+ const blocks=useLiveRoomBlocks(roomId||null,admin);
  const room=rooms.data?.data.find(r=>r.id===roomId);
  const activeBlock=blocks.data
   ?hasActiveStayBlock(blocks.data.data,record):false;

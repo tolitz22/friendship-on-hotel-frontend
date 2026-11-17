@@ -2,7 +2,7 @@ import {createContext,useContext,useEffect,useState,type ReactNode} from 'react'
 import {useQueryClient} from '@tanstack/react-query';
 import {dataMode} from '../api';
 import {fetchStaffProfile,loginStaff,logoutStaff,type StaffProfile} from '../api/auth';
-import {isCookieAuth} from '../api/http';
+import {isCookieAuth,onSpaSessionExpired} from '../api/http';
 import {clearSession,readSession,setSessionHotel,setSessionToken} from '../api/session';
 
 interface AuthContextValue{
@@ -21,6 +21,14 @@ export function AuthProvider({children}:{children:ReactNode}){
  const [user,setUser]=useState<StaffProfile|null>(null);
  const [hotelId,setHotelId]=useState<string|null>(null);
  const [pending,setPending]=useState(cookieMode);
+
+ useEffect(()=>{
+  if(!cookieMode)return;
+  onSpaSessionExpired(()=>{
+   clearSession();queryClient.clear();setUser(null);setHotelId(null);setPending(false);
+  });
+  return ()=>onSpaSessionExpired(null);
+ },[cookieMode,queryClient]);
 
  // The browser owns the HttpOnly Laravel session cookie. After a refresh,
  // recover identity from /auth/me instead of storing tokens in JS storage.

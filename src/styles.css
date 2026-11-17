@@ -462,3 +462,5 @@
 .catalog-audit-events article{padding:11px 0;border-bottom:1px solid var(--border);font-size:12px;overflow-wrap:anywhere}
 .catalog-audit-events article strong{font-size:12px}
 .catalog-audit-events article p{margin:4px 0;color:var(--muted)}
+
+.demand-form{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}.demand-form label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600}.demand-form input{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px}.demand-form button{display:flex;align-items:center;gap:8px;padding:11px 15px}.demand-summary{margin:18px 0;display:flex;align-items:center;gap:14px;font-size:13px;color:var(--muted)}.demand-summary strong{font-size:28px;color:var(--text)}.demand-warning{display:flex;gap:12px;align-items:flex-start;margin:20px 0;padding:16px;border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--muted)}.demand-warning svg{flex-shrink:0;color:var(--accent)}.demand-warning strong{display:block;color:var(--text);margin-bottom:7px}.demand-warning p{margin:5px 0}

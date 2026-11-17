@@ -1,4 +1,5 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
+import {LiveHousekeeping} from './LiveHousekeeping';
 import {AlertTriangle,ClipboardCheck,Filter,RotateCcw,Search,UserRound,CheckCircle2,Wrench} from 'lucide-react';
 import type {DraftUpdate,TaskColumn} from '../features/housekeeping/board';
 import {applyDrafts,columns,nextStatus,roomAlerts} from '../features/housekeeping/board';
@@ -8,7 +9,7 @@ import {DemoNotice,Heading,Status} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {statusLabel} from '../lib/format';
 
-export function Housekeeping(){
+function MockHousekeeping(){
  const board=useHousekeepingBoard();
  const [search,setSearch]=useState('');
  const [floor,setFloor]=useState('all');
@@ -110,4 +111,9 @@ export function Housekeeping(){
    </section>
   </div>}
  </>;
+}
+
+
+export function Housekeeping(){
+ return dataMode==='api'?<LiveHousekeeping/>:<MockHousekeeping/>;
 }

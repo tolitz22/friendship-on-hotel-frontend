@@ -27,6 +27,10 @@ export function LiveDashboard(){
    <UserRound size={22} aria-hidden="true"/><strong>Guest directory</strong>
    <span>Find or register a guest before booking</span><ArrowRight size={17} aria-hidden="true"/>
   </Link>
+  <Link to="/operational-exceptions" className="overview-task">
+   <ShieldAlert size={22} aria-hidden="true"/><strong>Exceptions & audit</strong>
+   <span>Review booking discrepancies and payment exceptions</span><ArrowRight size={17} aria-hidden="true"/>
+  </Link>
  </section>
  <p className="help-copy">Overview counts below represent registered rooms and room types, not occupancy or available-night inventory.</p>
  <QueryFeedback loading={catalog.isPending||property.isPending} error={catalog.error??property.error}

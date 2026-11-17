@@ -115,6 +115,7 @@ export function LiveMaintenance(){
     <div className="catalog-modal-heading"><h3 id="maintenance-title">{selected?'Work order WO-'+selected.id:'Create work order'}</h3>
      <button className="icon-btn" type="button" disabled={saving} onClick={close} aria-label="Close"><X size={19}/></button></div>
     <p>{selected?'Updates are revision-checked and audited.':'Create a work order without affecting bookable inventory.'}</p>
+    {rooms.data&&rooms.data.meta.total>100&&!selected&&<p className="guest-info">This room selector shows only the first 100 registered rooms. A searchable picker is planned.</p>}
     <form onSubmit={e=>void submit(e)}>
      <div className="guest-fields">
       <label>Room<select required disabled={!!selected||!admin||saving} value={draft.roomId} onChange={e=>change('roomId',e.target.value)}>

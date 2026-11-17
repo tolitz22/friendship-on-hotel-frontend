@@ -11,6 +11,7 @@ import {DemoNotice,Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {dateLabel} from '../lib/format';
 import type {Guest} from '../api/types';
+import {GuestStayHistory} from '../components/GuestStayHistory';
 
 type GuestDraft={firstName:string;lastName:string;email:string;phone:string;nationality:string};
 const emptyDraft=():GuestDraft=>({firstName:'',lastName:'',email:'',phone:'',nationality:''});
@@ -26,12 +27,13 @@ export function Guests(){
  const query=useGuests({search,page,perPage:20});
  const queryClient=useQueryClient();
  const [editing,setEditing]=useState<Guest|null>(null);
+ const [historyGuest,setHistoryGuest]=useState<Guest|null>(null);
  const [draft,setDraft]=useState<GuestDraft|null>(null);
  const [saving,setSaving]=useState(false);
  const [formError,setFormError]=useState('');
  const [fieldErrors,setFieldErrors]=useState<Record<string,string[]>>({});
  // A property switch must not leave a different hotel's guest profile in the editor.
- useEffect(()=>{setDraft(null);setEditing(null);setFormError('');setFieldErrors({});setSearch('');setPage(1);},[hotelId]);
+ useEffect(()=>{setHistoryGuest(null);setDraft(null);setEditing(null);setFormError('');setFieldErrors({});setSearch('');setPage(1);},[hotelId]);
  const openCreate=()=>{setEditing(null);setDraft(emptyDraft());setFormError('');setFieldErrors({});};
  const openEdit=(guest:Guest)=>{setEditing(guest);setDraft(fromGuest(guest));setFormError('');setFieldErrors({});};
  const close=()=>{setDraft(null);setFormError('');setFieldErrors({});};
@@ -61,12 +63,15 @@ export function Guests(){
  <div className="table-toolbar"><label className="search-box"><Search size={17}/><input value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} aria-label="Search guests" placeholder="Search guest name or email"/></label>
  <button type="button" className="btn-inline" onClick={()=>void query.refetch()}><RotateCcw size={15}/> Refresh</button></div>
  <QueryFeedback loading={query.isPending} error={query.error} empty={query.data?.data.length===0}/>
- {query.data&&query.data.data.length>0&&<div className="table-scroll"><table><thead><tr><th>Guest</th><th>Email</th><th>Phone</th><th>Nationality</th><th>Created</th>{admin&&<th>Actions</th>}</tr></thead><tbody>{query.data.data.map(g=><tr key={g.id}><td><strong>{g.firstName} {g.lastName}</strong></td><td>{g.email??'—'}</td><td>{g.phone??'—'}</td><td>{g.nationality??'—'}</td><td>{dateLabel(g.createdAt.slice(0,10))}</td>{admin&&<td><div className="guest-inline-actions">
+ {query.data&&query.data.data.length>0&&<div className="table-scroll"><table><thead><tr><th>Guest</th><th>Email</th><th>Phone</th><th>Nationality</th><th>Created</th>{live&&<th>Stay history</th>}{admin&&<th>Actions</th>}</tr></thead><tbody>{query.data.data.map(g=><tr key={g.id}><td><strong>{g.firstName} {g.lastName}</strong></td><td>{g.email??'—'}</td><td>{g.phone??'—'}</td><td>{g.nationality??'—'}</td><td>{dateLabel(g.createdAt.slice(0,10))}</td>{live&&<td><button type="button" className="btn-inline" onClick={()=>setHistoryGuest(g)}>View stays</button></td>}{admin&&<td><div className="guest-inline-actions">
  <button type="button" className="guest-edit-button" onClick={()=>openEdit(g)}><Pencil size={14}/> Edit</button>
  {live&&<Link className="inline-task-link" to="/reservations" search={{guest:g.id}}>Create booking</Link>}
  </div></td>}</tr>)}</tbody></table></div>}
  {query.data&&<div className="guest-pagination"><span>Page {query.data.meta.page} of {Math.max(1,totalPages)}</span><div><button className="btn-inline" disabled={page<=1} onClick={()=>setPage(p=>Math.max(1,p-1))}>Previous</button><button className="btn-inline" disabled={page>=totalPages} onClick={()=>setPage(p=>p+1)}>Next</button></div></div>}
  </Panel>
+ {live&&historyGuest&&<GuestStayHistory key={hotelId+'-'+historyGuest.id}
+  guestId={historyGuest.id} name={historyGuest.firstName+' '+historyGuest.lastName}
+  onClose={()=>setHistoryGuest(null)}/>}
  {live&&!admin&&<div className="guest-info">Guest creation and editing are restricted to hotel administrators in this milestone.</div>}
  {draft&&admin&&<div className="guest-modal-backdrop" role="presentation"><section className="guest-modal" role="dialog" aria-modal="true" aria-label={editing?'Edit guest':'Add guest'}>
  <h3>{editing?'Edit guest profile':'Add guest'}</h3><p>Only the selected hotel's guest profile will be changed.</p>

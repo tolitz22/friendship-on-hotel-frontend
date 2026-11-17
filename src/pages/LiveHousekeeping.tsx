@@ -1,4 +1,4 @@
-import {useEffect,useState,type FormEvent} from 'react';
+import {useEffect,useRef,useState,type FormEvent} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {useNavigate,useSearch} from '@tanstack/react-router';
 import {ClipboardCheck,History,Plus,RefreshCcw,ShieldAlert,X} from 'lucide-react';
@@ -33,6 +33,7 @@ export function LiveHousekeeping(){
  const {task:linkedTaskId}=useSearch({from:'/housekeeping'});
  const navigate=useNavigate();
  const directTask=useDirectHousekeepingTask(linkedTaskId??null);
+ const openedLinkedTask=useRef<string|null>(null);
  const role=user?.hotels.find(h=>h.id===hotelId)?.role;
  const admin=role==='admin';
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin});
@@ -70,7 +71,14 @@ export function LiveHousekeeping(){
   setTextFilter('');setStatusFilter('');setTypeFilter('');
  },[hotelId]);
  useEffect(()=>{
-  if(!linkedTaskId||!directTask.data)return;
+  openedLinkedTask.current=null;
+ },[hotelId,linkedTaskId]);
+ useEffect(()=>{
+  if(!linkedTaskId||!hotelId||!directTask.data)return;
+  const key=hotelId+':'+linkedTaskId;
+  // A background refetch must never discard unsaved notes/assignment changes.
+  if(openedLinkedTask.current===key)return;
+  openedLinkedTask.current=key;
   setSelected(directTask.data);setForm(fromTask(directTask.data));setError('');
   setFieldErrors({});setHistoryOpen(false);setHistoryPage(1);
  },[linkedTaskId,directTask.data,hotelId]);
@@ -127,7 +135,11 @@ export function LiveHousekeeping(){
  const maySave=admin||(!!selected&&canUpdate(selected));
  return <>
   {linkedTaskId&&<section aria-label="Direct checkout cleaning task">
-   <p className="help-copy">Opening cleaning task #{linkedTaskId} from its saved checkout record.</p>
+   <div className="desk-tools">
+    <p className="help-copy">Checkout cleaning task #{linkedTaskId} · Retrieved directly from this hotel's records.</p>
+    <button type="button" className="btn-inline"
+     onClick={()=>void navigate({to:'/housekeeping',search:{task:undefined}})}>Back to task queue</button>
+   </div>
    <QueryFeedback loading={directTask.isPending} error={directTask.error}
     onRetry={()=>void directTask.refetch()}/>
   </section>}

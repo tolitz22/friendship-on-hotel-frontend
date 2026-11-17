@@ -84,6 +84,14 @@ export function LiveBookingForm(){
   setChecked(null);
  },[suggestedRoom?.id,hotelId]);
  const activeRates=(rates.data?.data??[]).filter(rate=>rate.roomTypeId===selection.roomTypeId&&rate.active);
+ useEffect(()=>{
+  if(pending||result||busy||!selection.roomTypeId||selection.ratePlanId)return;
+  const available=(rates.data?.data??[]).filter(item=>item.roomTypeId===selection.roomTypeId&&item.active);
+  if(available.length===1){
+   setSelection(previous=>previous.roomTypeId===selection.roomTypeId&&!previous.ratePlanId
+    ?{...previous,ratePlanId:available[0].id}:previous);
+  }
+ },[selection.roomTypeId,selection.ratePlanId,rates.data,hotelId,pending,result,busy]);
  const usingLinkedGuest=!!requestedGuest&&selection.guestId===requestedGuest;
  const guest=guests.data?.data.find(item=>item.id===selection.guestId)
   ??(createdGuest?.id===selection.guestId?createdGuest:undefined)
@@ -186,7 +194,7 @@ export function LiveBookingForm(){
    <QueryFeedback loading={guests.isPending||types.isPending||rates.isPending||(usingLinkedGuest&&linkedGuest.isPending)}
     error={guests.error??types.error??rates.error??(usingLinkedGuest?linkedGuest.error:null)}
     onRetry={()=>{void guests.refetch();void types.refetch();void rates.refetch();if(usingLinkedGuest)void linkedGuest.refetch();}}/>
-   {guests.isSuccess&&types.isSuccess&&rates.isSuccess&&!result&&<div className="rb-layout">
+   {guests.isSuccess&&types.isSuccess&&rates.isSuccess&&stage==='details'&&<div className="rb-layout">
     <div className="rb-main">
      <form onSubmit={check} id="reservation-booking-form">
       <fieldset disabled={locked} className="rb-fieldset">
@@ -213,7 +221,7 @@ export function LiveBookingForm(){
             const incoming=event.target.value;
             if(locked)return;
             setSelection(previous=>({...previous,checkIn:incoming,
-             checkOut:previous.checkOut<=incoming?addDays(incoming,1):previous.checkOut}));
+             checkOut:incoming&&previous.checkOut<=incoming?addDays(incoming,1):previous.checkOut}));
             setChecked(null);setError(null);
            }}/></div>
          <div><label htmlFor="book-checkout" className="rb-label">Check-out</label>

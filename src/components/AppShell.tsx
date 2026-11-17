@@ -1,5 +1,5 @@
 import {Link,Outlet,useRouterState} from '@tanstack/react-router';
-import {LayoutDashboard,CalendarDays,BedDouble,Users,Wallet,ClipboardCheck,Wrench,ChartNoAxesCombined,Settings,Bell,Sun,Moon,Menu,X,Hotel,LogOut,ArrowRight,ChevronDown,ShieldCheck} from 'lucide-react';
+import {LayoutDashboard,CalendarDays,CalendarRange,BedDouble,Users,Wallet,ClipboardCheck,Wrench,ChartNoAxesCombined,Settings,Bell,Sun,Moon,Menu,X,Hotel,LogOut,ArrowRight,ChevronDown,ShieldCheck} from 'lucide-react';
 import {useEffect,useState} from 'react';
 import {useTheme} from './ThemeProvider';
 import {dataMode} from '../api';
@@ -11,6 +11,7 @@ const daily=[
  {to:'/' as const,label:'Overview',icon:LayoutDashboard},
  {to:'/front-desk' as const,label:'Front desk',icon:Hotel},
  {to:'/reservations' as const,label:'Reservations',icon:CalendarDays},
+ {to:'/room-calendar' as const,label:'Room calendar',icon:CalendarRange},
  {to:'/rooms' as const,label:'Rooms & readiness',icon:BedDouble},
  {to:'/guests' as const,label:'Guests',icon:Users},
  {to:'/housekeeping' as const,label:'Housekeeping',icon:ClipboardCheck},
@@ -119,6 +120,7 @@ export function AppShell(){
     <span>QUICK ACTIONS</span>
     <Link to="/front-desk">Today's front desk <ArrowRight size={13}/></Link>
     <Link to="/reservations">Manage bookings <ArrowRight size={13}/></Link>
+    <Link to="/room-calendar">Room calendar <ArrowRight size={13}/></Link>
     <Link to="/housekeeping">Cleaning tasks <ArrowRight size={13}/></Link>
     <Link to="/rooms">Room readiness <ArrowRight size={13}/></Link>
    </div>}

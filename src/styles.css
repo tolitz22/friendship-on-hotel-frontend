@@ -1008,3 +1008,33 @@
 .occupancy-coverage-rows .ex-record{margin:0}
 @media(max-width:900px){.occupancy-coverage-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.occupancy-coverage-stats,.occupancy-coverage-rows{grid-template-columns:1fr}}
+
+
+/* Booking management refresh: single task at a time, readable status cards. */
+.reservation-workspace-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0 20px;flex-wrap:wrap}
+.reservation-filter-layout{display:grid;gap:14px;margin:10px 0}
+.reservation-filter-layout .search-box{width:100%;max-width:520px}
+.reservation-filter-layout .search-box input{width:100%}
+.reservation-filter-tabs{display:flex;flex-wrap:wrap;gap:7px}
+.reservation-filter-tabs button{appearance:none;border:1px solid var(--border);background:var(--canvas);border-radius:999px;padding:9px 15px;color:var(--text);cursor:pointer;font-size:12px;font-weight:650}
+.reservation-filter-tabs button:hover{border-color:var(--accent)}
+.reservation-filter-tabs button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.reservation-manage-list{display:grid;gap:12px;margin:18px 0}
+.reservation-manage-card{display:flex;justify-content:space-between;align-items:center;gap:18px;border:1px solid var(--border);background:var(--surface);padding:18px;border-radius:14px}
+.reservation-manage-primary{display:grid;gap:13px;min-width:0;flex:1}
+.reservation-manage-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.reservation-manage-heading>div{display:grid;gap:5px}
+.reservation-manage-heading strong{font-size:16px;line-height:1.3}
+.reservation-manage-heading small{color:var(--muted);font-size:12px}
+.reservation-manage-facts{display:flex;flex-wrap:wrap;gap:9px 19px;font-size:12px;color:var(--muted)}
+.reservation-manage-facts span{display:flex;align-items:center;gap:6px}
+.reservation-manage-action{display:grid;justify-items:end;gap:9px;max-width:235px;text-align:right}
+.reservation-manage-action small{font-size:12px;line-height:1.5;color:var(--muted)}
+.reservation-manage-action .btn-primary{white-space:nowrap;min-width:160px;justify-content:center}
+.reservation-next-step{background:var(--canvas);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:11px;padding:15px 17px;margin:17px 0}
+.reservation-next-step strong{font-size:14px}
+.reservation-next-step p{font-size:13px;line-height:1.6;margin:6px 0 0}
+.reservation-room-compact{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:15px 18px;border:1px solid var(--border);border-radius:12px;margin:16px 0}
+.reservation-room-compact p{margin:5px 0 0}
+@media(max-width:800px){.reservation-manage-card{flex-direction:column;align-items:stretch}.reservation-manage-action{max-width:none;justify-items:stretch;text-align:left}.reservation-manage-action .btn-primary{width:100%}.reservation-room-compact{align-items:flex-start;flex-direction:column}}
+@media(max-width:520px){.reservation-filter-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.reservation-filter-tabs button:last-child{grid-column:span 2}.reservation-manage-card{padding:13px}.reservation-manage-heading{flex-direction:column}}

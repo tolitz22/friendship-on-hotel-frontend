@@ -26,7 +26,7 @@ describe('Phase 9 structural demand transport',()=>{
  it('requires an authenticated hotel selection',async()=>{
   setSessionToken('development-token');
   const fetchMock=vi.fn();vi.stubGlobal('fetch',fetchMock);
-  await expect(getReservationDemand('2026-11-17','2026-11-20')).rejects.toThrow('Choose a hotel');
+  expect(()=>getReservationDemand('2026-11-17','2026-11-20')).toThrow('Choose a hotel');
   expect(fetchMock).not.toHaveBeenCalled();
  });
  it('propagates rejected reporting dates rather than switching to sample data',async()=>{

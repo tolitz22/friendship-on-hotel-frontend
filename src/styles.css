@@ -1038,3 +1038,11 @@
 .reservation-room-compact p{margin:5px 0 0}
 @media(max-width:800px){.reservation-manage-card{flex-direction:column;align-items:stretch}.reservation-manage-action{max-width:none;justify-items:stretch;text-align:left}.reservation-manage-action .btn-primary{width:100%}.reservation-room-compact{align-items:flex-start;flex-direction:column}}
 @media(max-width:520px){.reservation-filter-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.reservation-filter-tabs button:last-child{grid-column:span 2}.reservation-manage-card{padding:13px}.reservation-manage-heading{flex-direction:column}}
+
+
+.reservation-flow-guide{display:flex;align-items:center;gap:10px;margin:6px 0 18px;padding:13px 18px;border:1px solid var(--border);border-radius:12px;background:var(--canvas)}
+.reservation-flow-guide>span{display:grid;gap:4px;flex:1;min-width:0}
+.reservation-flow-guide strong{font-size:12px}
+.reservation-flow-guide small{font-size:11px;color:var(--muted);line-height:1.5}
+.reservation-flow-guide>svg{flex-shrink:0;color:var(--muted)}
+@media(max-width:690px){.reservation-flow-guide{align-items:flex-start;flex-direction:column}.reservation-flow-guide>svg{transform:rotate(90deg);align-self:flex-start;margin-left:10px}}

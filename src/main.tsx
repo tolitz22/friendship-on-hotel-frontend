@@ -43,7 +43,10 @@ const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/reservation-policy',component:LiveReservationPolicy}),
  createRoute({getParentRoute:()=>root,path:'/reservation-simulation',component:LiveReservationSimulation}),
  createRoute({getParentRoute:()=>root,path:'/guests',component:Guests}),
- createRoute({getParentRoute:()=>root,path:'/billing',component:Billing}),
+ createRoute({getParentRoute:()=>root,path:'/billing',
+  validateSearch:(value:Record<string,unknown>):{booking?:string}=>({
+   booking:typeof value.booking==='string'&&/^[1-9][0-9]*$/.test(value.booking)?value.booking:undefined,
+  }),component:Billing}),
  createRoute({getParentRoute:()=>root,path:'/housekeeping',
   validateSearch:(value:Record<string,unknown>):{task?:string}=>({
    task:typeof value.task==='string'&&/^[1-9][0-9]*$/.test(value.task)?value.task:undefined,

@@ -45,3 +45,8 @@ Follow `docs/SETTINGS.md`. The Settings page uses `useHotelSettings()` and local
 ## Phase 5 Laravel integration
 
 Read `docs/PHASE_5_LARAVEL_INTEGRATION.md`. In API mode, staff must sign in and choose an authorized hotel; only Guests uses Laravel. Other modules remain explicitly labeled mock previews. Never silently fall back to fixtures when live guest requests fail, or persist bearer tokens to browser localStorage/sessionStorage. Do not treat the current in-memory token flow as production browser authentication. Preserve all existing mocked PMS screens and do not add booking writes until inventory rules are approved.
+
+
+## Frontend Phase 29 — Real Front Desk manifest in API mode
+
+Read `docs/FRONT_DESK.md` Phase 29 section. `src/pages/FrontDesk.tsx` renders the mock component in `mock` mode but a separate `LiveFrontDesk` component in `api` mode. `src/api/liveFrontDesk.ts` validates the actual Laravel selected-hotel manifest payload using Zod; each kind uses server pagination and reports counts from server metadata. Never invent missing room type, prices, guest or housekeeping readiness. All live check-in/checkout, room assignment, payment, and housekeeping actions are still disabled. Do not silently fall back to fixture data on errors. Include hotel ID in query keys and reset pagination on date changes.

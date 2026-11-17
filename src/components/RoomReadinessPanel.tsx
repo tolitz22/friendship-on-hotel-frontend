@@ -46,6 +46,7 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
     client.invalidateQueries({queryKey:['live','room-readiness',at,room.id]}),
     client.invalidateQueries({queryKey:['live','room-readiness-history',at,room.id]}),
     client.invalidateQueries({queryKey:['live','readiness-dashboard',at]}),
+    client.invalidateQueries({queryKey:['live','room-inventory-status',at]}),
    ]).catch(()=>{});
   }catch(e){
    if(readSession().hotelId===at)setError(

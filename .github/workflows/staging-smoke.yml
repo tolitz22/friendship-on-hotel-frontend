@@ -1,0 +1,44 @@
+name: Read-only staging smoke
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  staging:
+    # Configure the "staging" GitHub Environment and its URL/host variables.
+    environment: staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PMS_STAGING_URL: ${{ vars.PMS_STAGING_URL }}
+      PMS_STAGING_ALLOWED_HOST: ${{ vars.PMS_STAGING_ALLOWED_HOST }}
+      PMS_STAGING_READ_ONLY: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify dedicated staging target
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const raw = process.env.PMS_STAGING_URL;
+          const allowed = process.env.PMS_STAGING_ALLOWED_HOST;
+          if (!raw || !allowed) throw new Error('Configure staging environment variables PMS_STAGING_URL and PMS_STAGING_ALLOWED_HOST');
+          const url = new URL(raw);
+          if (url.protocol !== 'https:' || url.hostname !== allowed ||
+              /(^|\\.)(www\\.)?(localhost|127\\.0\\.0\\.1)$/.test(url.hostname)) {
+            throw new Error('Dedicated HTTPS staging hostname verification failed');
+          }
+          console.log('Dedicated staging hostname verified');
+          NODE
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install exact dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Read-only staging smoke
+        run: npm run test:e2e:staging

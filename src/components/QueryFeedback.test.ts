@@ -18,6 +18,14 @@ describe('Phase 38 staff-facing failure guidance',()=>{
   expect(messageForQueryError(new ApiError(409,'CONFLICT','Outdated')).action)
    .toMatch(/reload/i);
  });
+ it('identifies stale Laravel deployments rather than suggesting repeated retries',()=>{
+  const routeMissing=new ApiError(404,'HTTP_ERROR',
+   'The route api/v1/hotels/1/approval-requests could not be found.');
+  expect(messageForQueryError(routeMissing).title).toMatch(/deployed backend/);
+  expect(messageForQueryError(routeMissing).action).toMatch(/latest Laravel main/);
+  expect(messageForQueryError(new ApiError(404,'NOT_FOUND','Booking not found')).title)
+   .not.toMatch(/missing this API route/);
+ });
  it('handles unknown parsing and unexpected errors without implying a success',()=>{
   const result=messageForQueryError(new Error('Invalid server response'));
   expect(result.title).toMatch(/unable to load/i);

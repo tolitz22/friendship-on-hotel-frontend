@@ -60,7 +60,7 @@ describe('Phase 18 hotel staff invitations',()=>{
  it('does not allow invitations without selected hotel context',async()=>{
   setSessionToken('admin-token');
   const fetchMock=vi.fn();vi.stubGlobal('fetch',fetchMock);
-  await expect(inviteNewStaff('new@example.test','Cleaner','housekeeping')).rejects.toThrow('Choose a hotel');
+  expect(()=>inviteNewStaff('new@example.test','Cleaner','housekeeping')).toThrow('Choose a hotel');
   expect(fetchMock).not.toHaveBeenCalled();
  });
 });

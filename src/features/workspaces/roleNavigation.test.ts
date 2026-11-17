@@ -24,6 +24,8 @@ describe('Phase 49 hotel role workspaces',()=>{
    expect(nav.advanced).toHaveLength(0);
   }
   expect(navigationForRole('admin').management).toContain('/operational-exceptions');
+  expect(navigationForRole('admin').management).toContain('/manager-approvals');
+  expect(navigationForRole('front_desk').management).not.toContain('/manager-approvals');
  });
  it('shows only supported administrative actions',()=>{
   expect(canDisplayAction('front_desk','new_reservation')).toBe(true);

@@ -1,7 +1,8 @@
 import {useEffect,useRef,useState} from 'react';
 import type {FormEvent} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
-import {AlertTriangle,CheckCircle2} from 'lucide-react';
+import {Link} from '@tanstack/react-router';
+import {AlertTriangle,CheckCircle2,ArrowRight,ClipboardCheck,DoorOpen,DoorClosed,BedDouble} from 'lucide-react';
 import type {LiveRecord} from '../api/liveReservations';
 import {
  allowedOperation,assignLiveRoom,hasActiveStayBlock,transitionLiveStay,
@@ -59,6 +60,7 @@ export function LiveReservationOperations({record,onClose}:{
  async function refresh(hotel:string){
   await Promise.all([
    client.invalidateQueries({queryKey:['live','reservation-records',hotel]}),
+   client.invalidateQueries({queryKey:['live','reservation-detail',hotel,record.id]}),
    client.invalidateQueries({queryKey:['live','front-desk','manifest',hotel]}),
    client.invalidateQueries({queryKey:['live','availability',hotel]}),
    client.invalidateQueries({queryKey:['live','assignable-rooms',hotel]}),
@@ -101,7 +103,19 @@ export function LiveReservationOperations({record,onClose}:{
    <p><strong>{record.reference}</strong> · {dateLabel(record.checkIn)} – {dateLabel(record.checkOut)} · {statusLabel(record.lifecycleState??'unknown')}</p>
    <button type="button" className="btn-inline" disabled={busy} onClick={onClose}>Close</button>
   </div>
-  <p>Reservation ID: {record.id} · Room type ID: {record.roomTypeId} · Assigned room: {record.assignedRoomId??'None'}</p>
+  <div className="frontdesk-journey" aria-label="Reservation progress">
+   <div className="frontdesk-stage"><BedDouble size={17}/><span>Booked</span><strong>Confirmed</strong></div>
+   <div className="frontdesk-stage"><DoorOpen size={17}/><span>Physical room</span><strong>{record.assignedRoomId?'Assigned':'Unassigned'}</strong></div>
+   <div className="frontdesk-stage"><DoorClosed size={17}/><span>Guest stay</span>
+    <strong>{record.lifecycleState==='checked_in'?'In house':
+     record.lifecycleState==='checked_out'?'Checked out':
+     record.lifecycleState==='confirmed'?'Awaiting arrival':statusLabel(record.lifecycleState??'unknown')}</strong>
+   </div>
+   <div className="frontdesk-stage"><ClipboardCheck size={17}/><span>Cleaning handoff</span>
+    <strong>{record.lifecycleState==='checked_out'?'Review tasks':'After checkout'}</strong>
+   </div>
+  </div>
+  <p className="help-copy">Reservation #{record.id} · Room type #{record.roomTypeId} · Assigned room: {record.assignedRoomId??'None'}.</p>
   {!admin&&<p role="status">Only administrators of the selected hotel can assign rooms or change a reservation lifecycle. The backend enforces permissions.</p>}
   {admin&&<>
    {record.lifecycleState==='confirmed'&&<section>
@@ -193,6 +207,10 @@ export function LiveReservationOperations({record,onClose}:{
     </div>
    </div>}
   </section>
+  {record.lifecycleState==='checked_out'&&<div className="task-next-step">
+   <p><strong>Next step: housekeeping turnover.</strong> Checkout creates a cleaning task in Laravel. Open the queue to assign or complete work; task completion does not independently verify room readiness.</p>
+   <Link to="/housekeeping">Open cleaning tasks <ArrowRight size={15}/></Link>
+  </div>}
   {error&&<p role="alert" className="auth-error"><AlertTriangle size={16}/> {
    error
   } Check refreshed records before retrying—especially after a network timeout.</p>}

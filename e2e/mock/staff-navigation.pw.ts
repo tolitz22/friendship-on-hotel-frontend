@@ -50,6 +50,16 @@ test.describe('staff workspace navigation in mock preview',()=>{
   await page.getByRole('button',{name:'Close menu'}).click();
   await expect(menu).toBeVisible();
  });
+ test('does not throw browser runtime errors while navigating daily previews',async({page})=>{
+  const errors:string[]=[];
+  page.on('pageerror',error=>errors.push(error.message));
+  await page.goto('/');
+  for(const route of ['/front-desk','/reservations','/rooms','/guests','/housekeeping']){
+   await page.goto(route);
+   await expect(page.getByText('DESIGN PREVIEW').first()).toBeVisible();
+  }
+  expect(errors).toEqual([]);
+ });
  test('changes preview theme without losing the selected page',async({page})=>{
   await page.goto('/front-desk');
   const toggle=page.getByRole('button',{name:/Switch to (dark|light) mode/});

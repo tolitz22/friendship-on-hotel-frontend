@@ -18,6 +18,7 @@ const daily=[
  {to:'/housekeeping' as const,label:'Housekeeping',icon:ClipboardCheck},
  {to:'/maintenance' as const,label:'Maintenance',icon:Wrench},
  {to:'/billing' as const,label:'Billing',icon:Wallet},
+ {to:'/cashier-shifts' as const,label:'Cashier shifts',icon:Wallet},
 ];
 const administration=[
  {to:'/reports' as const,label:'Reports',icon:ChartNoAxesCombined},
@@ -134,6 +135,7 @@ export function AppShell(){
     {role==='maintenance'&&<Link to="/maintenance">Work orders <ArrowRight size={13}/></Link>}
     {admin&&<Link to="/operational-exceptions">Exceptions & audit <ArrowRight size={13}/></Link>}
     {admin&&<Link to="/manager-approvals">Review approvals <ArrowRight size={13}/></Link>}
+    {(role==='admin'||role==='front_desk')&&<Link to="/cashier-shifts">Cash drawer <ArrowRight size={13}/></Link>}
    </div>}
    <div className="page-content"><Outlet/></div>
   </main>

@@ -3,19 +3,64 @@ on:
   push:
     branches: [main]
   pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-validation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install dependencies
-        run: npm install
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Require committed npm lockfile
+        run: test -f package-lock.json || (echo "::error::Commit package-lock.json before enabling reproducible CI"; exit 1)
+      - name: Install exact dependencies
+        run: npm ci --no-audit --no-fund
       - name: Typecheck
         run: npm run typecheck
       - name: Unit tests
         run: npm run test
       - name: Production build
         run: npm run build
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Require committed npm lockfile
+        run: test -f package-lock.json || (echo "::error::Commit package-lock.json before enabling reproducible CI"; exit 1)
+      - name: Install exact dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Mock browser acceptance (desktop and mobile)
+        run: npm run test:e2e
+        env:
+          CI: 'true'
+          VITE_DATA_SOURCE: mock
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failures
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7

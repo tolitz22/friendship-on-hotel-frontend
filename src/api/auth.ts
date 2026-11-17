@@ -38,3 +38,11 @@ export function changeStaffPassword(currentPassword:string,password:string,passw
   method:'POST',body:{currentPassword,password,password_confirmation:passwordConfirmation},
  });
 }
+
+export async function acceptStaffInvitation(token:string,password:string,passwordConfirmation:string){
+ if(isCookieAuth())await initializeSpaCsrf();
+ return requestJson<{message:string;data:{hotelId:string}}>('/auth/accept-invitation',{
+  method:'POST',authenticated:false,
+  body:{token,password,password_confirmation:passwordConfirmation},
+ });
+}

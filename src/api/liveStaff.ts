@@ -10,3 +10,13 @@ export const attachHotelStaff=(email:string,role:StaffRole)=>
  requestJson<{data:HotelStaffMember[]}>(hotelPath('/staff'),{method:'POST',body:{email,role}});
 export const updateHotelStaff=(userId:string,body:Partial<{role:StaffRole;isActive:boolean}>)=>
  requestJson<{data:HotelStaffMember[]}>(hotelPath('/staff/'+encodeURIComponent(userId)),{method:'PATCH',body});
+
+export interface StaffMembershipEvent{
+ id:string;actorId:string;targetUserId:string;action:string;
+ before:{role:StaffRole;isActive:boolean}|null;
+ after:{role:StaffRole;isActive:boolean};createdAt:string;
+}
+export const getHotelStaffHistory=()=>getJson<{
+ data:StaffMembershipEvent[];
+ meta:{page:number;perPage:number;total:number;totalPages:number};
+}>(hotelPath('/staff/history'));

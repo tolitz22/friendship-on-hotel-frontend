@@ -1,5 +1,5 @@
 import {Link,Outlet,useRouterState} from '@tanstack/react-router';
-import {LayoutDashboard,CalendarDays,CalendarRange,BedDouble,Users,Wallet,ClipboardCheck,Wrench,ChartNoAxesCombined,Settings,Bell,Sun,Moon,Menu,X,Hotel,LogOut,ArrowRight,ChevronDown,ShieldCheck,ShieldAlert,ClipboardList,KeyRound} from 'lucide-react';
+import {LayoutDashboard,CalendarDays,CalendarRange,BedDouble,Users,Wallet,ClipboardCheck,Wrench,ChartNoAxesCombined,Settings,Bell,Sun,Moon,Menu,X,Hotel,LogOut,ArrowRight,ChevronDown,ShieldCheck,ShieldAlert,ClipboardList} from 'lucide-react';
 import {useEffect,useState} from 'react';
 import {useTheme} from './ThemeProvider';
 import {dataMode} from '../api';
@@ -20,7 +20,6 @@ const daily=[
  {to:'/billing' as const,label:'Billing',icon:Wallet},
  {to:'/cashier-shifts' as const,label:'Cashier shifts',icon:Wallet},
  {to:'/occupancy-verification' as const,label:'Occupancy checks',icon:ClipboardCheck},
- {to:'/keycard-access' as const,label:'Keycard requests',icon:KeyRound},
 ];
 const administration=[
  {to:'/reports' as const,label:'Reports',icon:ChartNoAxesCombined},
@@ -40,7 +39,6 @@ type NavItem=(typeof all)[number];
 export function experienceForPath(pathname:string,mode:typeof dataMode){
  if(mode==='mock')return 'DESIGN PREVIEW';
  if(pathname==='/reservation-simulation')return 'SIMULATION · NO WRITES';
- if(pathname==='/keycard-access')return 'MOCK KEYCARDS · NO HARDWARE';
  if(pathname==='/reservation-policy')return 'POLICY DRAFT';
  if(pathname==='/reservation-demand')return 'DIAGNOSTIC';
  if(pathname==='/reports')return 'PREVIEW REPORT';
@@ -140,7 +138,6 @@ export function AppShell(){
     {admin&&<Link to="/manager-approvals">Review approvals <ArrowRight size={13}/></Link>}
     {(role==='admin'||role==='front_desk')&&<Link to="/cashier-shifts">Cash drawer <ArrowRight size={13}/></Link>}
     {(role==='admin'||role==='housekeeping')&&<Link to="/occupancy-verification">Occupancy checks <ArrowRight size={13}/></Link>}
-    {(role==='admin'||role==='front_desk')&&<Link to="/keycard-access">Keycard requests <ArrowRight size={13}/></Link>}
    </div>}
    <div className="page-content"><Outlet/></div>
   </main>

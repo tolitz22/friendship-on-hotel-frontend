@@ -1,4 +1,4 @@
-import {getJson} from './http';
+import {getJson,requestJson} from './http';
 import {hotelPath} from './session';
 import type {CollectionResponse,Id,ItemResponse} from './types';
 
@@ -21,3 +21,10 @@ export const getLiveRoomTypes=()=>getJson<{data:LiveRoomType[]}>(hotelPath('/roo
 export const getLiveRooms=(filters:LiveRoomFilters={})=>getJson<CollectionResponse<LiveRoom>>(
  hotelPath('/rooms'),{page:filters.page,per_page:filters.perPage,floor:filters.floor,search:filters.search});
 export const getLiveCatalogSummary=()=>getJson<LiveCatalogSummaryResponse>(hotelPath('/catalog-summary'));
+
+export interface CreateRoomTypeInput{name:string;maxOccupancy:number;}
+export interface CreateRoomInput{roomTypeId:string;number:string;floor:number|null;}
+export const createLiveRoomType=(body:CreateRoomTypeInput)=>requestJson<ItemResponse<LiveRoomType>>(
+ hotelPath('/room-types'),{method:'POST',body});
+export const createLiveRoom=(body:CreateRoomInput)=>requestJson<ItemResponse<LiveRoom>>(
+ hotelPath('/rooms'),{method:'POST',body});

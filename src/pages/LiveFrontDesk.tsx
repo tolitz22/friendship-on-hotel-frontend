@@ -62,7 +62,7 @@ export function LiveFrontDesk(){
    <Heading title="Front desk" description="Your daily arrival, departure and room-assignment workspace."/>
    <div className="fdc-heading-actions">
     <button type="button" className="btn-inline" onClick={refresh}><RefreshCw size={15}/> Refresh</button>
-    {canOperate&&<Link to="/reservations" className="btn-primary"><Plus size={16}/> New reservation</Link>}
+    {canOperate&&<Link to="/reservations" search={{mode:"new"}} className="btn-primary"><Plus size={16}/> New reservation</Link>}
    </div>
   </div>
   <div className="fdc-date-strip">

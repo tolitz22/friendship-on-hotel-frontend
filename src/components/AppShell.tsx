@@ -30,6 +30,7 @@ const advanced=[
  {to:'/reservation-simulation' as const,label:'Stay simulator',icon:CalendarDays},
 ];
 const all=[...daily,...administration,...advanced];
+type NavItem=(typeof all)[number];
 export function experienceForPath(pathname:string,mode:typeof dataMode){
  if(mode==='mock')return 'DESIGN PREVIEW';
  if(pathname==='/reservation-simulation')return 'SIMULATION · NO WRITES';
@@ -55,7 +56,7 @@ export function AppShell(){
  if(dataMode==='api'&&user&&!hotelId&&pathname==='/change-password')return <Outlet/>;
  if(dataMode==='api'&&!hotelId)return <HotelChooser/>;
 
- const renderNav=(items:readonly (typeof all)[number][])=>items
+ const renderNav=(items:readonly NavItem[])=>items
   .filter(item=>dataMode==='api'||!['/change-password','/staff'].includes(item.to))
   .filter(item=>item.to!=='/staff'||admin)
   .map(({to,label,icon:Icon})=><Link key={to} to={to} activeOptions={{exact:true}}
@@ -77,7 +78,7 @@ export function AppShell(){
     <p className="nav-heading nav-section">MANAGEMENT</p>
     {renderNav(administration)}
     {dataMode==='api'&&<>
-     <button type="button" className="nav-link nav-expand" aria-expanded={showAdvanced}
+     <button type="button" className="nav-link nav-expand" aria-expanded={showAdvanced||advanced.some(item=>item.to===pathname)}
       onClick={()=>setShowAdvanced(v=>!v)}>
       <ChevronDown size={17} className={showAdvanced?'nav-chevron-open':''}/>
       <span>Advanced tools</span>

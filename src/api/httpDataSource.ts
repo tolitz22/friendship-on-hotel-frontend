@@ -1,6 +1,11 @@
-import {getJson} from './http';
+import {getJson,requestJson} from './http';
+import {hotelPath} from './session';
 import type {HotelSettingsResponse,ReportResponse,MaintenanceBoardResponse,HousekeepingBoardResponse,FrontDeskBoardResponse,BookingOptionsResponse,BookingQuoteResponse,RoomTimelineResponse,CalendarParams,ReservationCalendarResponse,CollectionResponse,DashboardSummary,Folio,Guest,HotelDataSource,HousekeepingTask,ItemResponse,ListParams,Reservation,Room} from './types';
 const params=(p:ListParams={})=>({search:p.search,page:p.page,per_page:p.perPage});
+export const createLiveGuest=(body:{firstName:string;lastName:string;email?:string|null;phone?:string|null;nationality?:string|null})=>
+ requestJson<ItemResponse<Guest>>(hotelPath('/guests'),{method:'POST',body});
+export const updateLiveGuest=(id:string,body:Partial<{firstName:string;lastName:string;email:string|null;phone:string|null;nationality:string|null}>)=>
+ requestJson<ItemResponse<Guest>>(hotelPath('/guests/'+encodeURIComponent(id)),{method:'PATCH',body});
 export const httpDataSource:HotelDataSource={
  getHotelSettings:()=>getJson<HotelSettingsResponse>('/settings/overview'),
 
@@ -15,7 +20,7 @@ export const httpDataSource:HotelDataSource={
  getDashboard:()=>getJson<ItemResponse<DashboardSummary>>('/dashboard/summary'),
  listReservations:(p)=>getJson<CollectionResponse<Reservation>>('/reservations',params(p)),
  listRooms:(p)=>getJson<CollectionResponse<Room>>('/rooms',{...params(p),floor:p?.floor}),
- listGuests:(p)=>getJson<CollectionResponse<Guest>>('/guests',params(p)),
+ listGuests:(p)=>getJson<CollectionResponse<Guest>>(hotelPath('/guests'),params(p)),
  listHousekeeping:(p)=>getJson<CollectionResponse<HousekeepingTask>>('/housekeeping/tasks',params(p)),
  listFolios:(p)=>getJson<CollectionResponse<Folio>>('/folios',params(p))
 };

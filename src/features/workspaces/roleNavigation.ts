@@ -28,5 +28,6 @@ export function navigationForRole(role:HotelRole|null):{daily:WorkspacePath[];ma
 /** This controls presentation only. Laravel authorization remains authoritative. */
 export function canDisplayAction(role:HotelRole|null,action:'new_reservation'|'assign_room'|'manage_staff'|'update_assigned_housekeeping'){
  if(action==='update_assigned_housekeeping')return role==='housekeeping'||role==='admin';
+ if(action==='new_reservation'||action==='assign_room')return role==='front_desk'||role==='admin';
  return role==='admin';
 }

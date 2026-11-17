@@ -1,0 +1,38 @@
+name: Staging staff read-only smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Staging staff browser smoke (no writes)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: staging
+    env:
+      PMS_STAGING_URL: ${{ secrets.PMS_STAGING_URL }}
+      PMS_STAGING_EMAIL: ${{ secrets.PMS_STAGING_EMAIL }}
+      PMS_STAGING_PASSWORD: ${{ secrets.PMS_STAGING_PASSWORD }}
+      PMS_STAGING_READ_ONLY: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Require explicit staging secrets
+        run: |
+          if [ -z "$PMS_STAGING_URL" ] || [ -z "$PMS_STAGING_EMAIL" ] || [ -z "$PMS_STAGING_PASSWORD" ]; then
+            echo "Configure staging environment secrets PMS_STAGING_URL, PMS_STAGING_EMAIL and PMS_STAGING_PASSWORD"
+            exit 1
+          fi
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Read-only staging smoke
+        run: npm run test:e2e:staging
+      # Do not upload screenshots/traces from real hotel data.
+      # The staging Playwright config disables all recorded media.

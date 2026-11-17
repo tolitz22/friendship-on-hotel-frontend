@@ -2,7 +2,9 @@ import {useEffect,useRef,useState} from 'react';
 import {Link,useSearch} from '@tanstack/react-router';
 import type {FormEvent} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
-import {AlertTriangle,CheckCircle2} from 'lucide-react';
+import {AlertTriangle,CheckCircle2,UserPlus} from 'lucide-react';
+import {QuickGuestDialog} from '../components/QuickGuestDialog';
+import type {Guest} from '../api/types';
 import {useGuests} from '../api/queries';
 import {getLiveRooms} from '../api/liveCatalog';
 import {useSelectedGuest} from '../api/liveSelectedGuest';
@@ -16,9 +18,10 @@ import {Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {addDays,hotelToday} from '../features/reservations/calendarDate';
 
-const initialSelection=(guestId='',requestedDay?:string):BookingSelection=>{
+const initialSelection=(guestId='',requestedDay?:string,requestedOut?:string):BookingSelection=>{
  const checkIn=requestedDay&&requestedDay>=hotelToday()?requestedDay:addDays(hotelToday(),1);
- return {guestId,roomTypeId:'',ratePlanId:'',checkIn,checkOut:addDays(checkIn,1)};
+ const checkOut=requestedOut&&requestedOut>checkIn&&requestedOut<=addDays(checkIn,31)?requestedOut:addDays(checkIn,1);
+ return {guestId,roomTypeId:'',ratePlanId:'',checkIn,checkOut};
 };
 
 const displayMoney=(minor:number,currency:string)=>currency==='PHP'
@@ -31,14 +34,16 @@ const displayMoney=(minor:number,currency:string)=>currency==='PHP'
  */
 export function LiveBookingForm(){
  const {user,hotelId}=useHotelAuth();
- const {guest:requestedGuest,room:requestedRoomId,roomNumber:requestedRoomNumber,checkIn:requestedDay}=useSearch({from:'/reservations'});
+ const {guest:requestedGuest,room:requestedRoomId,roomNumber:requestedRoomNumber,checkIn:requestedDay,checkOut:requestedOut}=useSearch({from:'/reservations'});
  const admin=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
- const [selection,setSelection]=useState<BookingSelection>(()=>initialSelection(requestedGuest,requestedDay));
+ const [selection,setSelection]=useState<BookingSelection>(()=>initialSelection(requestedGuest,requestedDay,requestedOut));
  const [checked,setChecked]=useState<BookingSelection|null>(null);
  const [pending,setPending]=useState<BookingSubmission|null>(null);
  const [result,setResult]=useState<ConfirmedBooking|null>(null);
  const [error,setError]=useState<Error|null>(null);
  const [busy,setBusy]=useState(false);
+ const [showQuickGuest,setShowQuickGuest]=useState(false);
+ const [createdGuest,setCreatedGuest]=useState<Guest|null>(null);
  const inFlight=useRef(false);
  const pendingByHotel=useRef(new Map<string,BookingSubmission>());
  const client=useQueryClient();
@@ -70,7 +75,7 @@ export function LiveBookingForm(){
   // hotel. Replaying the original key is safer than generating a duplicate.
   setPending(hotelId?pendingByHotel.current.get(hotelId)??null:null);
   setResult(null);setError(null);
- },[hotelId,requestedGuest,requestedDay,requestedRoomId]);
+ },[hotelId,requestedGuest,requestedDay,requestedOut,requestedRoomId]);
  useEffect(()=>{
   if(!suggestedRoom||pending||result||busy)return;
   setSelection(previous=>previous.roomTypeId===suggestedRoom.roomTypeId?previous:{
@@ -81,6 +86,7 @@ export function LiveBookingForm(){
  const activeRates=(rates.data?.data??[]).filter(rate=>rate.roomTypeId===selection.roomTypeId&&rate.active);
  const usingLinkedGuest=!!requestedGuest&&selection.guestId===requestedGuest;
  const guest=guests.data?.data.find(item=>item.id===selection.guestId)
+  ??(createdGuest?.id===selection.guestId?createdGuest:undefined)
   ??(linkedGuest.isSuccess&&usingLinkedGuest?linkedGuest.data:undefined);
  const selectedIsOutsidePage=!!guest&&!guests.data?.data.some(item=>item.id===guest.id);
  const rate=activeRates.find(item=>item.id===selection.ratePlanId);
@@ -120,6 +126,7 @@ export function LiveBookingForm(){
    // must not turn a successful submission into an ambiguous retry.
    void Promise.all([
     client.invalidateQueries({queryKey:['live','reservation-records',submission.hotelId]}),
+    client.invalidateQueries({queryKey:['live','room-calendar',submission.hotelId]}),
     client.invalidateQueries({queryKey:['live','availability',submission.hotelId]}),
     client.invalidateQueries({queryKey:['live','front-desk','manifest',submission.hotelId]}),
     client.invalidateQueries({queryKey:['live','readiness-dashboard',submission.hotelId]}),
@@ -149,7 +156,7 @@ export function LiveBookingForm(){
   if(busy)return;
   if(hotelId)pendingByHotel.current.delete(hotelId);
   setPending(null);setResult(null);setError(null);setChecked(null);
-  setSelection(initialSelection(requestedGuest));
+  setSelection(initialSelection(requestedGuest,requestedDay,requestedOut));
  };
  return <Panel title="New reservation">
   <p className="help-copy">Complete the guest and stay details, check availability, then confirm. The reservation will be saved immediately when you select Confirm.</p>
@@ -170,12 +177,13 @@ export function LiveBookingForm(){
    {guests.isSuccess&&types.isSuccess&&rates.isSuccess&&<form onSubmit={check}>
     <fieldset disabled={locked} style={{border:0,padding:0,margin:0,width:'100%'}}>
      <div className="wizard-fields">
-      <div><label htmlFor="book-guest" className="wizard-label">Existing guest</label>
+      <div><div className="booking-guest-heading"><label htmlFor="book-guest" className="wizard-label">Guest</label>
+       <button type="button" className="btn-inline" disabled={locked} onClick={()=>setShowQuickGuest(true)}><UserPlus size={15}/> New guest</button></div>
        <select id="book-guest" className="wizard-input" required value={selection.guestId}
         onChange={e=>edit('guestId',e.target.value)}>
         <option value="">Select guest</option>
         {guests.data.data.map(item=><option key={item.id} value={item.id}>{item.firstName} {item.lastName}</option>)}
-        {selectedIsOutsidePage&&<option value={guest.id}>{guest.firstName} {guest.lastName} · Selected profile</option>}
+        {selectedIsOutsidePage&&guest&&<option value={guest.id}>{guest.firstName} {guest.lastName} · Selected profile</option>}
        </select>
        <small>Showing up to 100 existing guests. <Link to="/guests" className="text-link">Find or add a guest</Link> if the guest isn't listed.</small>
        {usingLinkedGuest&&linkedGuest.isSuccess&&selectedIsOutsidePage&&<small role="status">
@@ -262,5 +270,10 @@ export function LiveBookingForm(){
     <button type="button" className="btn-inline" onClick={reset}>Create another booking</button>
    </div>}
   </>}
+  {showQuickGuest&&admin&&<QuickGuestDialog onClose={()=>setShowQuickGuest(false)}
+   onCreated={newGuest=>{
+    setShowQuickGuest(false);setCreatedGuest(newGuest);
+    edit('guestId',newGuest.id);
+   }}/>}
  </Panel>;
 }

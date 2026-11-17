@@ -61,7 +61,7 @@ export const cleaningLabel=(status:InventoryRoomStatus['cleaning'])=>({
  checkout_cleaning:'Checkout cleaning required',
  cleaning_in_progress:'Cleaning in progress',
  awaiting_inspection:'Cleaned · awaiting inspection',
- ready:'Ready for check-in',
+ ready:'Clean · inspection approved',
  not_verified:'Readiness not verified',
 })[status];
 export const occupancyLabel=(status:InventoryRoomStatus['occupancy'])=>({

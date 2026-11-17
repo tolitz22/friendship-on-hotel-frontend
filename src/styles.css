@@ -577,3 +577,18 @@
 .room-card>.guest-edit-button{margin-top:10px}
 .workflow-disclosure>summary>span{display:inline-flex;align-items:center;gap:9px}
 @media(max-width:600px){.room-workspace-tabs{display:flex;width:100%}.room-workspace-tabs button{flex:1;justify-content:center}}
+
+
+/* Phase 39 — connected staff reservation journey */
+.desk-selected-workflow{scroll-margin-top:24px;margin:0 0 24px;padding:16px;border:2px solid var(--accent);border-radius:15px;background:var(--surface)}
+.desk-selected-workflow>.desk-tools h3{margin:4px 0;font-size:17px}
+.desk-selected-workflow>.panel{box-shadow:none;border-color:var(--border)}
+.frontdesk-journey{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0 14px}
+.frontdesk-stage{display:flex;flex-direction:column;gap:7px;border:1px solid var(--border);background:var(--canvas);border-radius:10px;padding:13px;min-width:0}
+.frontdesk-stage>svg{color:var(--accent)}
+.frontdesk-stage span{font-size:11px;color:var(--muted)}
+.frontdesk-stage strong{font-size:13px;line-height:1.4;overflow-wrap:anywhere}
+.guest-inline-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.desk-selected-workflow .task-next-step a{display:inline-flex;align-items:center;gap:5px}
+@media(max-width:900px){.frontdesk-journey{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.desk-selected-workflow{padding:10px}.frontdesk-journey{gap:6px}.frontdesk-stage{padding:10px}.frontdesk-stage strong{font-size:12px}}

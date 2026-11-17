@@ -97,7 +97,7 @@ export function LiveHousekeeping(){
    {data.length>0&&<div className="mnt-order-grid">{data.map(task=><article className="mnt-order" key={task.id}>
     <div className="mnt-order-top"><strong>HK-{task.id}</strong><span className="status">{task.status.replaceAll('_',' ')}</span></div>
     <h3>Room {task.roomNumber}</h3>
-    <p>{task.type.replaceAll('_',' ')} · Assigned: {task.assignedTo??'Unassigned'}</p>
+    <p>{task.type.replaceAll('_',' ')} · Assigned: {task.assignedUserId?(admin?staff.data?.data.find(m=>m.userId===task.assignedUserId)?.name??('Staff #'+task.assignedUserId):task.assignedUserId===user?.id?'You':'Linked staff #'+task.assignedUserId):task.assignedTo??'Unassigned'}</p>
     <div className="mnt-order-info"><span>Due</span><strong>{task.dueAt??'Not scheduled'}</strong></div>
     <div className="mnt-order-info"><span>Revision</span><strong>{task.revision}</strong></div>
     <button type="button" className="btn-inline mnt-review" onClick={()=>openEdit(task)}>{canUpdate(task)?'Manage task':'View task'} <ClipboardCheck size={15}/></button>

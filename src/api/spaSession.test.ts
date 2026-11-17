@@ -1,6 +1,6 @@
 import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
 import {clearSession,setSessionToken} from './session';
-import {initializeSpaCsrf,requestJson} from './http';
+import {initializeSpaCsrf,onSpaSessionExpired,requestJson} from './http';
 import {fetchStaffProfile,loginStaff,logoutStaff,requestPasswordReset} from './auth';
 
 beforeEach(()=>{
@@ -11,6 +11,7 @@ afterEach(()=>{
  clearSession();
  vi.unstubAllGlobals();
  vi.unstubAllEnvs();
+ onSpaSessionExpired(null);
 });
 
 describe('Phase 17 Sanctum cookie SPA transport',()=>{
@@ -76,6 +77,14 @@ describe('Phase 17 Sanctum cookie SPA transport',()=>{
   await expect(requestJson('/auth/spa-logout',{method:'POST'}))
    .rejects.toMatchObject({status:419,code:'CSRF_COOKIE_MISSING'});
   expect(fetchMock).not.toHaveBeenCalled();
+ });
+ it('notifies the app when a protected cookie request loses its session',async()=>{
+  const expired=vi.fn();onSpaSessionExpired(expired);
+  vi.stubGlobal('fetch',vi.fn().mockResolvedValue({
+   ok:false,status:401,json:async()=>({message:'Unauthenticated.'}),
+  }));
+  await expect(fetchStaffProfile()).rejects.toMatchObject({status:401});
+  expect(expired).toHaveBeenCalledOnce();
  });
  it('propagates Laravel 419 responses without bypassing CSRF enforcement',async()=>{
   const fetchMock=vi.fn().mockResolvedValue({ok:false,status:419,json:async()=>({message:'Page Expired'})});

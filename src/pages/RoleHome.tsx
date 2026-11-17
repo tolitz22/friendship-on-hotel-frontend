@@ -1,5 +1,6 @@
 import {Link} from '@tanstack/react-router';
 import {ArrowRight,BedDouble,CalendarDays,ClipboardCheck,Hotel,Search,ShieldCheck,UserRound,Wrench} from 'lucide-react';
+import type {LucideIcon} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading} from '../components/ui';
 import {selectedRole} from '../features/workspaces/roleNavigation';
@@ -10,7 +11,7 @@ import {listHousekeepingTasks,parseLiveHousekeeping} from '../api/liveHousekeepi
 
 function Entry({to,title,description,icon:Icon}:{
  to:'/front-desk'|'/reservations'|'/room-calendar'|'/guests'|'/billing'|'/housekeeping'|'/rooms'|'/maintenance';
- title:string;description:string;icon:typeof Hotel;
+ title:string;description:string;icon:LucideIcon;
 }){
  return <Link to={to} className="role-task"><Icon size={23}/><strong>{title}</strong>
   <span>{description}</span><ArrowRight size={17}/></Link>;
@@ -52,7 +53,7 @@ function HousekeepingHome(){
   <Heading title="Housekeeping workspace" description="Focus on cleaning assignments and the next rooms requiring attention."/>
   <div className="role-summary" aria-label="Housekeeping task summary">
    <div><small>My assigned to-do tasks</small><strong>{tasks.isSuccess?mine.length:'—'}</strong>
-    <span>Within the latest {tasks.data?.data.length??0} returned task records</span></div>
+    <span>On the first page (up to 100 to-do tasks)</span></div>
    <div><small>Task queue</small><strong>{tasks.data?.meta.total??'—'}</strong>
     <span>Hotel-wide to-do tasks · not a room-readiness certificate</span></div>
   </div>

@@ -1251,3 +1251,30 @@
 .inventory-room-action:hover{text-decoration:underline}
 @media(max-width:900px){.inventory-cleaning-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:580px){.inventory-cleaning-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.inventory-status-intro{align-items:flex-start;flex-direction:column}.inventory-cleaning-summary strong{font-size:20px}}
+
+/* Night audit preflight: do not style provisional numbers as settled financials. */
+.night-audit-date{display:grid;gap:7px;font-size:12px;font-weight:700}
+.night-audit-warning{display:flex;align-items:flex-start;gap:10px;background:#fffbeb;border:1px solid #f1d9a2;color:#79500c;border-radius:11px;padding:14px;font-size:12px;line-height:1.6}
+.night-audit-warning svg{flex-shrink:0}
+.night-audit-headline{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:14px 0}
+.night-audit-headline>div{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.night-audit-headline span{font-size:12px;color:var(--muted)}
+.night-audit-headline .night-audit-pass{background:#dcfce7;color:#166534;padding:8px;border-radius:9px;font-weight:700}
+.night-audit-headline .night-audit-needs-review{background:#fef3c7;color:#92400e;padding:8px;border-radius:9px;font-weight:700}
+.night-audit-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0 20px}
+.night-audit-metric{display:grid;gap:7px;padding:15px;background:var(--canvas);border:1px solid var(--border);border-radius:11px}
+.night-audit-metric small{color:var(--muted);font-size:11px}
+.night-audit-metric strong{font-size:19px;font-weight:750;overflow-wrap:anywhere}
+.night-audit-issues{border:1px solid #f3d3a0;background:#fffbf3;border-radius:12px;padding:15px;margin:16px 0}
+.night-audit-issues h3{display:flex;align-items:center;gap:9px;color:#925b0c;font-size:15px;margin:0 0 12px}
+.night-audit-issues p{font-size:12px;line-height:1.5;margin:8px 0}
+.night-audit-clean{display:flex;align-items:center;gap:9px;font-size:12px;color:#15803d}
+.night-audit-exception-group{margin:15px 0;padding-top:12px;border-top:1px solid var(--border)}
+.night-audit-exception-group h4{font-size:14px;margin:0 0 12px}
+.night-audit-exception{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;font-size:12px;border-bottom:1px solid var(--border)}
+.night-audit-exception a,.night-audit-next-actions a{font-weight:700;color:var(--accent)}
+.night-audit-next-actions{display:flex;gap:13px;flex-wrap:wrap;margin:20px 0}
+.night-audit-next-actions a{display:inline-flex;gap:6px;align-items:center;font-size:12px}
+.night-audit-fineprint{font-size:11px;line-height:1.65;color:var(--muted);margin-top:18px}
+@media(max-width:900px){.night-audit-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:530px){.night-audit-metrics{grid-template-columns:1fr 1fr}.night-audit-metric{padding:10px}.night-audit-metric strong{font-size:16px}.night-audit-exception{align-items:flex-start;flex-direction:column}}

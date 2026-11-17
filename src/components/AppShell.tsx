@@ -1,5 +1,5 @@
 import {Link,Outlet,useRouterState} from '@tanstack/react-router';
-import {LayoutDashboard,CalendarDays,CalendarRange,BedDouble,Users,Wallet,ClipboardCheck,Wrench,ChartNoAxesCombined,Settings,Bell,Sun,Moon,Menu,X,Hotel,LogOut,ArrowRight,ChevronDown,ShieldCheck,ShieldAlert} from 'lucide-react';
+import {LayoutDashboard,CalendarDays,CalendarRange,BedDouble,Users,Wallet,ClipboardCheck,Wrench,ChartNoAxesCombined,Settings,Bell,Sun,Moon,Menu,X,Hotel,LogOut,ArrowRight,ChevronDown,ShieldCheck,ShieldAlert,ClipboardList} from 'lucide-react';
 import {useEffect,useState} from 'react';
 import {useTheme} from './ThemeProvider';
 import {dataMode} from '../api';
@@ -22,6 +22,7 @@ const daily=[
 const administration=[
  {to:'/reports' as const,label:'Reports',icon:ChartNoAxesCombined},
  {to:'/operational-exceptions' as const,label:'Exceptions & audit',icon:ShieldAlert},
+ {to:'/manager-approvals' as const,label:'Manager approvals',icon:ClipboardList},
  {to:'/settings' as const,label:'Hotel settings',icon:Settings},
  {to:'/staff' as const,label:'Staff access',icon:Users},
  {to:'/change-password' as const,label:'Account security',icon:ShieldCheck},
@@ -132,6 +133,7 @@ export function AppShell(){
     <Link to="/rooms">Room readiness <ArrowRight size={13}/></Link>
     {role==='maintenance'&&<Link to="/maintenance">Work orders <ArrowRight size={13}/></Link>}
     {admin&&<Link to="/operational-exceptions">Exceptions & audit <ArrowRight size={13}/></Link>}
+    {admin&&<Link to="/manager-approvals">Review approvals <ArrowRight size={13}/></Link>}
    </div>}
    <div className="page-content"><Outlet/></div>
   </main>

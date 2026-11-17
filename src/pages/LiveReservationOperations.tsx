@@ -35,6 +35,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const [busy,setBusy]=useState(false);
  const [success,setSuccess]=useState('');
  const [error,setError]=useState('');
+ const [lastOperation,setLastOperation]=useState<'assign'|Operation|null>(null);
  const inFlight=useRef(false);
  const assignmentRef=useRef<HTMLElement>(null);
  const lifecycleRef=useRef<HTMLElement>(null);
@@ -109,7 +110,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
   if(action==='check-in'&&!canCheckIn)return;
   if(action==='check-out'&&!canCheckOut)return;
   const targetHotel=hotelId;
-  inFlight.current=true;setBusy(true);setError('');setSuccess('');
+  inFlight.current=true;setBusy(true);setError('');setSuccess('');setLastOperation(action);
   try{
    if(action==='assign'){
     const data=await assignLiveRoom(targetHotel,record,roomId);
@@ -220,6 +221,10 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
       onClick={()=>void perform('assign')}>{busy?'Assigning…':
        selectedRoom?'Assign Room '+selectedRoom.number:'Select a room first'}</button>
     </div>
+    {lastOperation==='assign'&&error&&<p role="alert" className="auth-error"><AlertTriangle size={16}/>
+     {error} Refresh the room choices and try another available room.</p>}
+    {lastOperation==='assign'&&success&&<p role="status" className="wizard-selection">
+     <CheckCircle2 size={17}/>{success}</p>}
     <p className="desk-muted">These choices are advisory and do not hold inventory or certify room readiness.
      The backend rechecks all conflicts when you save.</p>
    </section>}
@@ -253,6 +258,10 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
       {busy?'Saving…':'Confirm guest check-out'}
      </button>}
     </div>
+    {lastOperation!==null&&lastOperation!=='assign'&&error&&
+     <p role="alert" className="auth-error"><AlertTriangle size={16}/>{error}</p>}
+    {lastOperation!==null&&lastOperation!=='assign'&&success&&
+     <p role="status" className="wizard-selection"><CheckCircle2 size={17}/>{success}</p>}
     <p className="desk-muted">Acknowledgement is a UI confirmation only; the backend does not store independent identity/readiness attestations. Payments and refunds are not changed by these actions.</p>
    </section>
   </>}
@@ -300,9 +309,5 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
    {turnover.isSuccess&&!turnover.data.task&&
     <Link to="/housekeeping">Review the cleaning queue <ArrowRight size={15}/></Link>}
   </div>}
-  {error&&<p role="alert" className="auth-error"><AlertTriangle size={16}/> {
-   error
-  } Check refreshed records before retrying—especially after a network timeout.</p>}
-  {success&&<p role="status" className="wizard-selection"><CheckCircle2 size={17}/>{success}</p>}
  </Panel>;
 }

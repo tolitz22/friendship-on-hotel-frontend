@@ -1,4 +1,4 @@
-import {useRef,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {AlertTriangle,Banknote,CheckCircle2,ClipboardCheck,RefreshCw} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
@@ -110,6 +110,10 @@ export function CashierShifts(){
  const [message,setMessage]=useState('');
  const [error,setError]=useState('');
  const key=useRef<string|null>(null);
+ useEffect(()=>{
+  setPage(1);setStatus('all');setFloat('0.00');setBooking('');setReference('');
+  setAmount('');setMessage('');setError('');key.current=null;
+ },[hotelId]);
  const shifts=useCashierShifts(allowed,page,status==='all'?undefined:status as CashierShift['status']);
  const openShifts=useCashierShifts(allowed,1,'open');
  const active=openShifts.data?.data.find(s=>s.status==='open' && String(s.cashierId)===String(user?.id));

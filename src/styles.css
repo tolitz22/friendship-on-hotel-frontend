@@ -727,3 +727,5 @@
 .lrc-operations-summary .lrc-unassigned-attention{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface))}
 @media(max-width:1050px){.lrc-operations-summary{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:600px){.lrc-operations-summary{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px}.lrc-operations-summary strong{font-size:18px}}
+
+@media(max-width:600px){.qg-backdrop{align-items:flex-end!important;padding:0!important}}

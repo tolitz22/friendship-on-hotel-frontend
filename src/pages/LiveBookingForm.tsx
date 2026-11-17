@@ -14,7 +14,6 @@ import type {BookingSelection,BookingSubmission,ConfirmedBooking} from '../api/l
 import {readSession} from '../api/session';
 import {ApiError} from '../api/http';
 import {useHotelAuth} from '../components/AuthProvider';
-import {Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {addDays,hotelToday} from '../features/reservations/calendarDate';
 

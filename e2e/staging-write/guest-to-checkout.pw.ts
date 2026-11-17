@@ -188,3 +188,71 @@ test('deployed React checks out a pre-seeded due synthetic stay and exposes turn
  await expect(page.getByText('Checked out', {exact:true})).toBeVisible();
  await expect(page.getByRole('link',{name:/Open checkout task #/})).toBeVisible();
 });
+
+
+test('room calendar multi-night booking and inline synthetic guest registration',async({page})=>{
+ await signIn(page);
+ const arrivalDate=new Date(today()+'T00:00:00Z');
+ arrivalDate.setUTCDate(arrivalDate.getUTCDate()+3);
+ const arrival=arrivalDate.toISOString().slice(0,10);
+ arrivalDate.setUTCDate(arrivalDate.getUTCDate()+2);
+ const departure=arrivalDate.toISOString().slice(0,10);
+ const suffix=Date.now().toString(36);
+ const guestLastName='Calendar'+suffix;
+
+ await page.getByRole('navigation',{name:'Hotel workspace navigation'})
+  .getByRole('link',{name:'Room calendar'}).click();
+ await page.getByRole('button',{name:'Month',exact:true}).click();
+ if(arrival.slice(0,7)!==today().slice(0,7)){
+  await page.getByRole('button',{name:'Next period'}).click();
+ }
+ const cell=page.getByRole('button',{name:new RegExp('^Room P43-101 on '+arrival+':')});
+ await expect(cell).toBeVisible();
+ await cell.click();
+ const details=page.getByRole('dialog',{name:'Room P43-101'});
+ await expect(details).toBeVisible();
+ await details.locator('#room-departure').fill(departure);
+ await expect(details.getByText('2 night(s)')).toBeVisible();
+ await details.getByRole('link',{name:'Create reservation'}).click();
+ await expect(page.locator('#book-checkin')).toHaveValue(arrival);
+ await expect(page.locator('#book-checkout')).toHaveValue(departure);
+ await expect(page.locator('#book-roomtype')).toHaveValue(env('PMS_STAGING_TEST_ROOM_TYPE_ID'));
+
+ await page.getByRole('button',{name:'New guest'}).click();
+ const guestDialog=page.getByRole('dialog',{name:'Register a guest'});
+ await expect(guestDialog).toBeVisible();
+ await guestDialog.getByText('First name').locator('input').fill('Synthetic');
+ await guestDialog.getByText('Last name').locator('input').fill(guestLastName);
+ await guestDialog.getByText('Email (optional)').locator('input').fill('phase44-'+suffix+'@example.test');
+ const guestPost=page.waitForResponse(response=>matching('/guests','POST')(response));
+ await guestDialog.getByRole('button',{name:'Save and select guest'}).click();
+ const guestResponse=await guestPost;
+ expect(guestResponse.status()).toBe(201);
+ const guest=await guestResponse.json() as {data:{id:string}};
+ await expect(page.locator('#book-guest')).toHaveValue(guest.data.id);
+
+ await page.locator('#book-rate').selectOption(env('PMS_STAGING_TEST_RATE_PLAN_ID'));
+ await page.getByRole('button',{name:'Step 2 · Check availability and room subtotal'}).click();
+ await expect(page.getByText('Currently bookable')).toBeVisible();
+ const bookingPost=page.waitForResponse(response=>matching('/bookings','POST')(response));
+ await page.getByRole('button',{name:'Step 3 · Confirm and create booking'}).click();
+ const bookingResponse=await bookingPost;
+ expect(bookingResponse.status()).toBe(201);
+ const booking=await bookingResponse.json() as {data:{id:string;reference:string}};
+ await page.getByRole('link',{name:'Open this booking and assign a room'}).click();
+ await expect(page.locator('#operation-room')).toHaveValue(env('PMS_STAGING_TEST_ROOM_ID'));
+ const assigned=page.waitForResponse(response=>matching('/bookings/'+booking.data.id+'/assign-room','PATCH')(response));
+ await page.getByRole('button',{name:'Assign selected room'}).click();
+ expect((await assigned).status()).toBe(200);
+
+ await page.getByRole('navigation',{name:'Hotel workspace navigation'})
+  .getByRole('link',{name:'Room calendar'}).click();
+ await page.getByRole('button',{name:'Month',exact:true}).click();
+ if(arrival.slice(0,7)!==today().slice(0,7)){
+  await page.getByRole('button',{name:'Next period'}).click();
+ }
+ await page.getByRole('button',{name:new RegExp('^Room P43-101 on '+arrival+':')}).click();
+ const bookedDialog=page.getByRole('dialog',{name:'Room P43-101'});
+ await expect(bookedDialog.getByText(guestLastName,{exact:false})).toBeVisible();
+ await expect(bookedDialog.getByRole('link',{name:'View folio'})).toBeVisible();
+});

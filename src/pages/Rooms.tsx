@@ -1,4 +1,6 @@
 import {useState} from 'react';
+import {dataMode} from '../api';
+import {LiveRooms} from './LiveRooms';
 import {BedDouble,Filter,Search,CalendarRange,LayoutGrid} from 'lucide-react';
 import {useRooms} from '../api/queries';
 import {DemoNotice,Heading,Status} from '../components/ui';
@@ -6,7 +8,7 @@ import {QueryFeedback} from '../components/QueryFeedback';
 import {RoomTimeline} from '../features/rooms/RoomTimeline';
 import {statusLabel} from '../lib/format';
 
-export function Rooms(){
+function MockRooms(){
  const [layout,setLayout]=useState<'timeline'|'grid'>('timeline');
  const [floor,setFloor]=useState('all');
  const [search,setSearch]=useState('');
@@ -26,4 +28,9 @@ export function Rooms(){
  {q.data&&<div className="room-grid">{q.data.data.map(r=><article className="room-card" key={r.id}><div className="room-card-top"><div className="room-icon"><BedDouble size={21}/></div><span className="room-type">{r.roomTypeName} · Floor {r.floor}</span></div><h3>Room {r.number}</h3><div className="room-details"><div><span>Occupancy</span><Status value={statusLabel(r.occupancyStatus)}/></div><div><span>Housekeeping</span><Status value={statusLabel(r.housekeepingStatus)}/></div><div><span>Maintenance</span><Status value={statusLabel(r.maintenanceStatus)}/></div></div></article>)}</div>}
  </>}
  </>;
+}
+
+
+export function Rooms(){
+ return dataMode==='api'?<LiveRooms/>:<MockRooms/>;
 }

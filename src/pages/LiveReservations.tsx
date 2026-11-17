@@ -155,9 +155,9 @@ export function LiveReservations(){
      <span className="table-count">Page {pagination.page} of {Math.max(1,pagination.totalPages)}</span>
      <div className="desk-date-nav">
       <button type="button" className="btn-inline" disabled={page<=1}
-       onClick={()=>{setPage(v=>v-1);setSearch('');}}>Previous</button>
+       onClick={()=>setPage(v=>v-1)}>Previous</button>
       <button type="button" className="btn-inline" disabled={page>=pagination.totalPages}
-       onClick={()=>{setPage(v=>v+1);setSearch('');}}>Next</button>
+       onClick={()=>setPage(v=>v+1)}>Next</button>
      </div>
     </div>}
    </Panel>}

@@ -8,6 +8,8 @@ export class ApiError extends Error {
 
 const base=(import.meta.env.VITE_API_URL??'http://localhost:8000/api/v1').replace(/\/$/,'');
 export const isCookieAuth=()=>import.meta.env.VITE_AUTH_MODE==='cookie';
+let sessionExpiredHandler:(()=>void)|null=null;
+export function onSpaSessionExpired(handler:(()=>void)|null){sessionExpiredHandler=handler;}
 type JsonOptions={
  method?:'GET'|'POST'|'PATCH';body?:unknown;authenticated?:boolean;
  params?:Record<string,string|number|undefined>;
@@ -61,6 +63,9 @@ export async function requestJson<T>(path:string,options:JsonOptions={}):Promise
   });
  }catch{throw new ApiError(0,'NETWORK_ERROR','Unable to reach the Laravel API. Check VITE_API_URL and CORS.');}
  if(!response.ok){
+  if(cookie&&options.authenticated!==false&&(response.status===401||response.status===419)){
+   sessionExpiredHandler?.();
+  }
   const payload:unknown=await response.json().catch(()=>null);
   const obj=payload&&typeof payload==='object'?payload as Record<string,unknown>:{};
   throw new ApiError(response.status,typeof obj.code==='string'?obj.code:'HTTP_ERROR',

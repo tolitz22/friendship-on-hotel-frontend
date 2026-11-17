@@ -5,7 +5,7 @@ import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {readSession} from '../api/session';
-import {getCashShiftHistory,openCashierShift,receiveCash,reconcileCashShift,submitCashCount,useCashierShifts} from '../api/cashierShifts';
+import {getCashShiftHistory,openCashierShift,receiveCash,reconcileCashShift,submitCashCount,useCashierShifts,useCashierShiftDetails} from '../api/cashierShifts';
 import type {CashierShift} from '../api/cashierShifts';
 
 const validMoney=(s:string)=>/^\d+(\.\d{1,2})?$/.test(s)&&Number.isSafeInteger(Math.round(Number(s)*100))&&Number(s)<=1_000_000_000;
@@ -22,6 +22,7 @@ function ShiftRow({shift,manager,onChange}:{shift:CashierShift;manager:boolean;o
  const [error,setError]=useState('');
  const [result,setResult]=useState('');
  const [historyOpen,setHistoryOpen]=useState(false);
+ const detail=useCashierShiftDetails(manager&&shift.status==='submitted',shift.id);
  const log=useQuery({
   queryKey:['live','cashier-shift-history',hotelId,shift.id],
   enabled:historyOpen&&!!hotelId,
@@ -64,13 +65,19 @@ function ShiftRow({shift,manager,onChange}:{shift:CashierShift;manager:boolean;o
     onClick={()=>void run('close')}>Submit counted cash</button>
   </div>}
   {manager&&shift.status==='submitted'&&<div>
+   <h4>Recorded receipts for independent verification</h4>
+   <QueryFeedback loading={detail.isPending} error={detail.error} onRetry={()=>void detail.refetch()}/>
+   {detail.data&&<div className="table-scroll"><table><thead><tr><th>Payment</th><th>Reservation</th><th>Reference</th><th>Amount</th><th>Review status</th></tr></thead><tbody>
+    {(detail.data.receipts??[]).map(receipt=><tr key={receipt.id}><td>{receipt.paymentId}</td><td>{receipt.bookingId}</td><td>{receipt.reference}</td><td>{money(receipt.amountMinor,shift.currency)}</td><td>{receipt.paymentStatus}</td></tr>)}
+   </tbody></table></div>}
+   {detail.data?.receipts?.length===0&&<p>No cash receipts recorded; verify opening float separately.</p>}
    <label className="wizard-label">Independent manager review note
     <textarea className="wizard-input" rows={2} value={note} maxLength={1000}
      onChange={e=>setNote(e.target.value)} placeholder="Explain physical count and evidence checked"/></label>
    <div className="desk-tools">
-    <button type="button" className="btn-primary" disabled={busy||note.trim().length<5||shift.varianceMinor!==0||shift.unconfirmedReceiptCount>0}
+    <button type="button" className="btn-primary" disabled={busy||!detail.isSuccess||note.trim().length<5||shift.varianceMinor!==0||shift.unconfirmedReceiptCount>0}
      onClick={()=>void run('reconcile')}><CheckCircle2 size={16}/> Reconcile balanced shift</button>
-    <button type="button" className="btn-inline" disabled={busy||note.trim().length<5}
+    <button type="button" className="btn-inline" disabled={busy||!detail.isSuccess||note.trim().length<5}
      onClick={()=>void run('flag')}><AlertTriangle size={16}/> Flag discrepancy</button>
    </div>
   </div>}

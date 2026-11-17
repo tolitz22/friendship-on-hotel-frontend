@@ -90,3 +90,7 @@ Open Settings for property details, sample room type/floor configuration, operat
 ## Phase 5 — Laravel staff authentication and live Guests
 
 With `VITE_DATA_SOURCE=api`, the app now requires staff sign-in through Laravel and a selected hotel membership. The **Guests** page becomes live with hotel-scoped list/search, pagination and administrator create/edit actions; all other PMS pages remain explicitly labeled **MOCK PREVIEW**. No live booking or financial mutation exists. Access tokens are kept in JS memory only and lost on refresh; this developer integration is not the final production browser authentication strategy. See [Phase 5 setup, security and API contracts](docs/PHASE_5_LARAVEL_INTEGRATION.md).
+
+## Phase 6 — Real Property Catalogue
+
+In `VITE_DATA_SOURCE=api`, **Overview**, **Room Inventory**, and **Hotel Settings** now show authenticated, hotel-scoped Laravel data. They display saved property contact fields, registered room totals, room types and floors. Occupancy, maintenance, housekeeping, rates and bookings remain **unavailable**, never fabricated as live. Guests remains live from Phase 5; all other modules are explicitly labeled previews. See [Phase 6 integration](docs/PHASE_6_LIVE_CATALOG.md).

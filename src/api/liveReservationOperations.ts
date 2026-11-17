@@ -66,6 +66,7 @@ const choiceSchema=z.object({
  })),
  meta:z.object({
   hotelId:id,bookingId:id,roomTypeId:id,
+  roomTypeName:z.string(),currentRoomNumber:z.string().nullable(),
   checkIn:z.iso.date(),checkOut:z.iso.date(),
   page:z.number().int().positive(),perPage:z.number().int().positive(),
   total:z.number().int().nonnegative(),totalPages:z.number().int().nonnegative(),

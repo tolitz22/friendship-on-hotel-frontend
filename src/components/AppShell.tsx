@@ -55,7 +55,7 @@ export function AppShell(){
  if(dataMode==='api'&&user&&!hotelId&&pathname==='/change-password')return <Outlet/>;
  if(dataMode==='api'&&!hotelId)return <HotelChooser/>;
 
- const renderNav=(items:typeof daily)=>items
+ const renderNav=(items:readonly (typeof all)[number][])=>items
   .filter(item=>dataMode==='api'||!['/change-password','/staff'].includes(item.to))
   .filter(item=>item.to!=='/staff'||admin)
   .map(({to,label,icon:Icon})=><Link key={to} to={to} activeOptions={{exact:true}}

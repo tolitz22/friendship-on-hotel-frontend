@@ -716,3 +716,14 @@
 .lrc-stay-picker small,.lrc-stay-picker .help-copy{font-size:11px;color:var(--muted);margin:0}
 .lrc-modal-guest-ref{font-size:11px;letter-spacing:.02em}
 @media(max-width:600px){.qg-backdrop{padding:0;align-items:flex-end}.qg-dialog{width:100%;max-height:92vh;border-radius:20px 20px 0 0}.qg-fields{grid-template-columns:1fr}.qg-fields,.qg-head,.qg-actions{padding:16px}.qg-field:last-child{grid-column:auto}.qg-actions .btn-primary{flex:1;justify-content:center}}
+
+
+/* Phase 45: front desk schedule quick overview */
+.lrc-operations-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;padding:14px 18px;background:var(--surface);border-bottom:1px solid var(--border)}
+.lrc-operations-summary>div{min-width:0;border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--canvas);display:flex;flex-direction:column;gap:5px}
+.lrc-operations-summary small{color:var(--muted);font-size:10px;line-height:1.4}
+.lrc-operations-summary strong{font-size:22px;line-height:1.2;font-variant-numeric:tabular-nums}
+.lrc-operations-summary a{display:inline-flex;align-items:center;gap:5px;color:var(--accent);font-size:10px;font-weight:700;margin-top:4px}
+.lrc-operations-summary .lrc-unassigned-attention{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface))}
+@media(max-width:1050px){.lrc-operations-summary{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){.lrc-operations-summary{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px}.lrc-operations-summary strong{font-size:18px}}

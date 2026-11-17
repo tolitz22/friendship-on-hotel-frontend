@@ -36,6 +36,7 @@ async function signIn(page:Page){
   await choice.click();
  }
  await expect(page.getByText('LIVE HOTEL DATA').first()).toBeVisible();
+ await expect(page.getByLabel('Selected hotel')).toHaveValue(hotelId);
 }
 test('real React guest → booking → room assignment → check-in and Laravel payment evidence',async({page})=>{
  await signIn(page);
@@ -104,17 +105,24 @@ test('real React guest → booking → room assignment → check-in and Laravel 
    }),
   });
   if(record.status!==201)throw new Error('Staging payment evidence POST returned HTTP '+record.status);
-  const payload=await record.json() as {data:{status:string}};
+  const payload=await record.json() as {data:{id:string;status:string}};
+  const review=await fetch(input.base+'/bookings/'+input.booking+'/payment-records/'+payload.data.id+'/review',{
+   method:'POST',credentials:'include',headers,
+   body:JSON.stringify({decision:'confirm',note:'Synthetic staging cash evidence review only'}),
+  });
+  if(!review.ok)throw new Error('Staging payment review returned HTTP '+review.status);
+  const reviewed=await review.json() as {data:{status:string}};
   const ledger=await fetch(input.base+'/bookings/'+input.booking+'/folio-ledger',{
    credentials:'include',headers:{Accept:'application/json'},
   });
   if(!ledger.ok)throw new Error('Staging folio GET returned HTTP '+ledger.status);
   const data=await ledger.json() as {data:{summary:{bankOrGatewayVerified:boolean;isSettled:boolean;
-   pendingReviewPaymentsMinor:number}}};
-  return {status:payload.data.status,summary:data.data.summary};
+   pendingReviewPaymentsMinor:number;staffConfirmedPaymentsMinor:number}}};
+  return {status:payload.data.status,reviewStatus:reviewed.data.status,summary:data.data.summary};
  },{base:apiBase,booking:booking.data.id,suffix});
  expect(result.status).toBe('pending_review');
- expect(result.summary.pendingReviewPaymentsMinor).toBeGreaterThanOrEqual(100);
+ expect(result.reviewStatus).toBe('staff_confirmed');
+ expect(result.summary.staffConfirmedPaymentsMinor).toBeGreaterThanOrEqual(100);
  expect(result.summary.bankOrGatewayVerified).toBe(false);
  expect(result.summary.isSettled).toBe(false);
 });

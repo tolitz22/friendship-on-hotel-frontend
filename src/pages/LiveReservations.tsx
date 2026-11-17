@@ -1,11 +1,12 @@
 import {useEffect,useState} from 'react';
+import {useNavigate,useSearch} from '@tanstack/react-router';
 import {useHotelAuth} from '../components/AuthProvider';
 import {LiveReservationOperations} from './LiveReservationOperations';
 import {LiveBookingForm} from './LiveBookingForm';
 import {AlertTriangle,CalendarDays,Search} from 'lucide-react';
 import {
  useLiveAvailability,useLiveRatePlans,useLiveReservationRecords,useLiveRoomQuote,
- useLiveRoomTypes,validLiveStay,
+ useLiveRoomTypes,useLiveReservationDetail,validLiveStay,
 } from '../api/liveReservations';
 import type {LiveStay} from '../api/liveReservations';
 import {readSession} from '../api/session';
@@ -25,9 +26,14 @@ const price=(minor:number,currency:string)=>currency==='PHP'
 export function LiveReservations(){
  const {hotelId,user}=useHotelAuth();
  const admin=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
- const [selectedRecordId,setSelectedRecordId]=useState<string|null>(null);
+ const navigation=useNavigate();
+ const routeSearch=useSearch({from:'/reservations'});
+ const selectedRecordId=routeSearch.booking??null;
+ const detail=useLiveReservationDetail(selectedRecordId);
+ const openBooking=(booking:string)=>void navigation({to:'/reservations',search:{booking}});
+ const closeBooking=()=>void navigation({to:'/reservations',search:{booking:undefined}});
  const [page,setPage]=useState(1);
- useEffect(()=>{setSelectedRecordId(null);setPage(1);},[hotelId]);
+ useEffect(()=>{setPage(1);},[hotelId]);
  const [search,setSearch]=useState('');
  const [inputs,setInputs]=useState<LiveStay>(initialStay);
  const [rateId,setRateId]=useState('');
@@ -43,7 +49,7 @@ export function LiveReservations(){
  const activeRates=(rates.data?.data??[]).filter(rate=>rate.roomTypeId===inputs.roomTypeId&&rate.active);
  const chosenRate=activeRates.find(rate=>rate.id===rateId);
  const rows=records.data?.data??[];
- const selectedRecord=rows.find(item=>item.id===selectedRecordId)??null;
+ const selectedRecord=detail.data??null;
  const term=search.trim().toLocaleLowerCase();
  const filtered=rows.filter(record=>!term||
   [record.reference,record.id,record.lifecycleState??''].some(v=>v.toLocaleLowerCase().includes(term)));
@@ -64,8 +70,18 @@ export function LiveReservations(){
    <div className="workflow-step"><strong>2</strong><span>Review current capacity and subtotal</span></div>
    <div className="workflow-step"><strong>3</strong><span>Confirm the booking in Laravel</span></div>
   </div>}
-  {admin&&<LiveBookingForm/>}
-  <details className="workflow-disclosure" open>
+  {selectedRecordId&&<section className="desk-selected-workflow" aria-label="Selected reservation">
+   <div className="desk-tools">
+    <h3>Selected booking · #{selectedRecordId}</h3>
+    <button type="button" className="btn-inline" onClick={closeBooking}>Back to bookings</button>
+   </div>
+   <QueryFeedback loading={detail.isPending} error={detail.error}
+    onRetry={()=>void detail.refetch()}/>
+   {selectedRecord&&<LiveReservationOperations key={hotelId+'-'+selectedRecord.id}
+    record={selectedRecord} onClose={closeBooking}/>}
+  </section>}
+  {admin&&!selectedRecordId&&<LiveBookingForm/>}
+  <details className="workflow-disclosure" open={!selectedRecordId} key={selectedRecordId?'selected':'all'}>
    <summary>Existing bookings · Find a reservation and manage its stay</summary>
   <Panel title="Saved reservation records" action={<span className="table-count">{pagination?.total??'—'} records</span>}>
    <div className="table-toolbar">
@@ -84,7 +100,7 @@ export function LiveReservations(){
     <tbody>{filtered.map(record=><tr key={record.id}>
      <td><button type="button" className="reservation-reference-button"
        aria-label={'Manage reservation '+record.reference}
-       onClick={()=>setSelectedRecordId(record.id)}>{record.reference}</button>
+       onClick={()=>openBooking(record.id)}>{record.reference}</button>
        <span className="cell-note">Record #{record.id}</span></td>
      <td>{dateLabel(record.checkIn)} – {dateLabel(record.checkOut)}</td>
      <td>{record.roomTypeId}</td><td>{record.assignedRoomId??'Unassigned'}</td>
@@ -99,8 +115,6 @@ export function LiveReservations(){
    </div>}
    <p className="desk-preview-note">These are structural records; this list does not prove availability, guest identity, room cleanliness, or a payable rate. Administrator assignment and lifecycle operations open from the reference; Laravel checks them again. Select a reservation reference to open room assignment, check-in/out and recorded activity.</p>
   </Panel>
-  {selectedRecord&&<LiveReservationOperations key={hotelId+'-'+selectedRecord.id}
-   record={selectedRecord} onClose={()=>setSelectedRecordId(null)}/>}
 
   </details>
   <details className="workflow-disclosure">

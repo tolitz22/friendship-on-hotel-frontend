@@ -1,4 +1,6 @@
-import {useState} from 'react';
+import {useEffect,useState} from 'react';
+import {Link,useSearch} from '@tanstack/react-router';
+import {useHotelAuth} from '../components/AuthProvider';
 import {Search,Wallet} from 'lucide-react';
 import {useFolios} from '../api/queries';
 import {dataMode} from '../api';
@@ -8,8 +10,14 @@ import {QueryFeedback} from '../components/QueryFeedback';
 import {currency,statusLabel} from '../lib/format';
 
 function LiveFolioLookup(){
- const [draftId,setDraftId]=useState('');
- const [reservationId,setReservationId]=useState('');
+ const {booking:requestedBooking}=useSearch({from:'/billing'});
+ const {hotelId}=useHotelAuth();
+ const [draftId,setDraftId]=useState(requestedBooking??'');
+ const [reservationId,setReservationId]=useState(requestedBooking??'');
+ useEffect(()=>{
+  setDraftId(requestedBooking??'');
+  setReservationId(requestedBooking??'');
+ },[hotelId,requestedBooking]);
  const valid=/^[1-9]\d*$/.test(reservationId);
  const ledger=useLiveFolioLedger(reservationId);
  const summary=ledger.data?.data.summary;
@@ -20,6 +28,7 @@ function LiveFolioLookup(){
 
  return <Panel title="Live reservation folio (read-only)">
   <p>Look up a priced reservation by its ID. This reads the selected hotel's real Laravel ledger. It does not show a legally final balance or verified payment settlement.</p>
+  {requestedBooking&&<p className="calendar-booking-context">From room calendar · Reservation #{requestedBooking}. <Link to="/reservations" search={{booking:requestedBooking}}>Back to booking</Link></p>}
   <form onSubmit={event=>{event.preventDefault();setReservationId(draftId.trim());}}>
    <label htmlFor="live-folio-id">Reservation ID</label>
    <div className="table-toolbar">
@@ -47,9 +56,9 @@ export function Billing(){
  const [search,setSearch]=useState('');
  const q=useFolios({search,perPage:50});
  return <>
-  <DemoNotice/>
+  {dataMode!=='api'&&<DemoNotice/>}
   <Heading title="Guest folios"
-   description="Illustrative balances only; no live charges, payments, receipts or refunds."
+   description={dataMode==='api'?'Read verified hotel-ledger records by reservation ID. Demo tables remain labeled separately.':'Illustrative balances only; no live charges, payments, receipts or refunds.'}
    action={<button disabled className="btn-primary"><Wallet size={16}/> Add charge (planned)</button>}/>
   {dataMode==='api'&&<LiveFolioLookup/>}
   <Panel title="Sample folio overview (demo only)"

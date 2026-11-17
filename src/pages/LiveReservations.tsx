@@ -128,6 +128,7 @@ export function LiveReservations(){
         <div><strong>{record.guestName?.trim()||'Guest details unavailable'}</strong>
          <small>{record.reference} · Booking #{record.id}</small></div>
         <Status value={statusLabel(record.lifecycleState??'unknown')}/>
+        {record.earlyCheckIn&&<span className="stay-early-chip">Early check-in</span>}
        </div>
        <div className="reservation-manage-facts">
         <span><CalendarDays size={15}/> {dateLabel(record.checkIn)} – {dateLabel(record.checkOut)}</span>

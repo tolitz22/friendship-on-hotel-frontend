@@ -47,3 +47,7 @@ The backend now targets both **MySQL 8.4 LTS (InnoDB)** and **PostgreSQL 16+**, 
 ## Backend Phase 3 read-only conflict reporting
 
 The backend now exposes `GET /api/v1/hotels/{hotel}/rooms/{room}/reservation-overlaps?from=YYYY-MM-DD&to=YYYY-MM-DD` for scoped structural overlap diagnostics. This is NOT a room availability endpoint, does not handle unassigned bookings or holds, and creates no reservations. The frontend is unchanged from the Hotel Settings & Configuration milestone, and `VITE_DATA_SOURCE=mock` remains the development mode. See backend `docs/PHASE_3.md`.
+
+## Backend Phase 4 — Guest Management
+
+Backend now has a hotel-scoped guest directory and validated CRUD subset (list/view plus admin-only create/update; no delete). The wire DTO matches the existing typed frontend `Guest`, but the backend route is `/api/v1/hotels/{hotel}/guests`, not the frontend's current `/api/v1/guests`. **Frontend UI, mock data, and last completed Hotel Settings milestone remain unchanged.** Do not switch to live API mode before adding selected-hotel authentication and route mapping. See backend `docs/PHASE_4_GUESTS.md`.

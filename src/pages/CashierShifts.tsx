@@ -154,11 +154,11 @@ export function CashierShifts(){
     <p><ClipboardCheck size={17}/> Current open shift #{active.id}. Payment evidence remains pending independent review.</p>
     <div className="wizard-fields">
      <label>Priced reservation ID
-      <input className="wizard-input" value={booking} onChange={e=>{setBooking(e.target.value);key.current=null;}} inputMode="numeric"/></label>
+      <input className="wizard-input" value={booking} disabled={paymentBusy} onChange={e=>{setBooking(e.target.value);key.current=null;}} inputMode="numeric"/></label>
      <label>Unique cash receipt reference
-      <input className="wizard-input" value={reference} onChange={e=>{setReference(e.target.value);key.current=null;}} maxLength={120}/></label>
+      <input className="wizard-input" value={reference} disabled={paymentBusy} onChange={e=>{setReference(e.target.value);key.current=null;}} maxLength={120}/></label>
      <label>Cash collected (major currency units)
-      <input className="wizard-input" value={amount} onChange={e=>{setAmount(e.target.value);key.current=null;}} inputMode="decimal"/></label>
+      <input className="wizard-input" value={amount} disabled={paymentBusy} onChange={e=>{setAmount(e.target.value);key.current=null;}} inputMode="decimal"/></label>
      <button type="button" className="btn-primary" disabled={paymentBusy||!validMoney(amount)||minor(amount)<1||!(/^[1-9]\d*$/.test(booking))||reference.trim().length<3}
       onClick={()=>void collect()}>{paymentBusy?'Saving…':'Record cash receipt'}</button>
     </div>

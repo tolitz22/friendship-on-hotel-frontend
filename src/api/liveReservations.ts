@@ -103,13 +103,14 @@ export function parseQuote(value:unknown,stay:LiveStay,ratePlanId:string){
  return result;
 }
 
-export function useLiveReservationRecords(page:number){
+export type ReservationListFilter='all'|'needs_room'|'arrivals'|'in_house'|'completed';
+export function useLiveReservationRecords(page:number,search='',filter:ReservationListFilter='all'){
  const {hotelId}=readSession();
  return useQuery({
-  queryKey:['live','reservation-records',hotelId,page],
+  queryKey:['live','reservation-records',hotelId,page,search,filter],
   enabled:!!hotelId,
   queryFn:async()=>parseRecords(await getJson<unknown>(
-   hotelPath('/reservation-records'),{page,per_page:20}
+   hotelPath('/reservation-records'),{page,per_page:20,search:search||undefined,filter}
   ),hotelId!),
   retry:false,
  });

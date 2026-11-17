@@ -11,6 +11,7 @@ import {
 } from '../api/liveHousekeeping';
 import {ApiError} from '../api/http';
 import {readSession} from '../api/session';
+import {linkedTaskKey,shouldOpenLinkedTask} from '../lib/linkedTaskSelection';
 import {listHotelStaff} from '../api/liveStaff';
 import {listMaintenance} from '../api/liveMaintenance';
 import {Heading,Panel} from '../components/ui';
@@ -75,10 +76,9 @@ export function LiveHousekeeping(){
  },[hotelId,linkedTaskId]);
  useEffect(()=>{
   if(!linkedTaskId||!hotelId||!directTask.data)return;
-  const key=hotelId+':'+linkedTaskId;
   // A background refetch must never discard unsaved notes/assignment changes.
-  if(openedLinkedTask.current===key)return;
-  openedLinkedTask.current=key;
+  if(!shouldOpenLinkedTask(openedLinkedTask.current,hotelId,linkedTaskId))return;
+  openedLinkedTask.current=linkedTaskKey(hotelId,linkedTaskId);
   setSelected(directTask.data);setForm(fromTask(directTask.data));setError('');
   setFieldErrors({});setHistoryOpen(false);setHistoryPage(1);
  },[linkedTaskId,directTask.data,hotelId]);

@@ -136,7 +136,17 @@ export function LiveRoomCalendar(){
     <span><i className="lrc-dot lrc-free"/> No assigned booking</span>
     <span><i className="lrc-dot lrc-conflict"/> Drag across empty dates to select nights</span>
    </div>
-   {data&&<p className="lrc-summary">{meta?.total??0} registered rooms · {data.unassignedBookings} unassigned booking(s) in period. Unassigned bookings do not appear on individual room rows.</p>}
+   {data&&<div className="lrc-operations-summary" aria-label="Room schedule overview">
+    <div><small>Rooms on this page</small><strong>{data.rooms.length}</strong></div>
+    <div><small>Assigned reservations in period</small><strong>{data.bookings.length}</strong></div>
+    <div><small>In-house reservations</small><strong>{data.bookings.filter(b=>b.status==='checked_in').length}</strong></div>
+    <div><small>Maintenance blocks</small><strong>{data.blocks.length}</strong></div>
+    <div className={data.unassignedBookings?'lrc-unassigned-attention':''}>
+     <small>Unassigned reservations</small><strong>{data.unassignedBookings}</strong>
+     {data.unassignedBookings>0&&<Link to="/reservations">Review bookings <ArrowUpRight size={13}/></Link>}
+    </div>
+   </div>}
+   {data&&<p className="lrc-summary">Showing {data.rooms.length} of {meta?.total??0} registered rooms. Counts for assigned stays and maintenance are limited to the visible room page; unassigned reservations are counted hotel-wide for the selected dates.</p>}
    <QueryFeedback loading={calendar.isPending} error={calendar.error} onRetry={()=>void calendar.refetch()}
     empty={calendar.isSuccess&&data?.rooms.length===0} emptyMessage="No rooms match these filters. Add rooms in Rooms & readiness."/>
    {calendar.isSuccess&&data&&data.rooms.length>0&&<div className="lrc-scroll">

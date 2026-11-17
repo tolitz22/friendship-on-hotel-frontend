@@ -6,6 +6,7 @@ import {useLiveRooms} from '../api/liveCatalogQueries';
 import {createMaintenance,listMaintenance,maintenanceHistory,updateMaintenance,
  type LiveWorkOrder,type MaintenancePriority,type MaintenanceStatus} from '../api/liveMaintenance';
 import {ApiError} from '../api/http';
+import {listHotelStaff} from '../api/liveStaff';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 
@@ -15,19 +16,21 @@ const transitions:Record<MaintenanceStatus,MaintenanceStatus[]>={
  open:['in_progress','resolved'],in_progress:['resolved'],resolved:['closed'],closed:[]
 };
 type Draft={roomId:string;title:string;description:string;priority:MaintenancePriority;
- status:MaintenanceStatus;assignedTo:string;affectsRoom:boolean;note:string};
+ status:MaintenanceStatus;assignedTo:string;assignedUserId:string;affectsRoom:boolean;note:string};
 const newDraft=():Draft=>({
- roomId:'',title:'',description:'',priority:'medium',status:'open',assignedTo:'',affectsRoom:false,note:'',
+ roomId:'',title:'',description:'',priority:'medium',status:'open',assignedTo:'',assignedUserId:'',affectsRoom:false,note:'',
 });
 const fromOrder=(order:LiveWorkOrder):Draft=>({
  roomId:order.roomId,title:order.title,description:order.description,
- priority:order.priority,status:order.status,assignedTo:order.assignedTo??'',
+ priority:order.priority,status:order.status,assignedTo:order.assignedTo??'',assignedUserId:order.assignedUserId??'',
  affectsRoom:order.affectsRoom,note:'',
 });
 
 export function LiveMaintenance(){
  const {hotelId,user}=useHotelAuth();
- const admin=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
+ const role=user?.hotels.find(h=>h.id===hotelId)?.role;
+ const admin=role==='admin';
+ const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin});
  const queryClient=useQueryClient();
  const [page,setPage]=useState(1);
  const orders=useQuery({queryKey:['live-maintenance',hotelId,page],queryFn:()=>listMaintenance(page)});
@@ -57,20 +60,21 @@ export function LiveMaintenance(){
   setDraft(current=>current?{...current,[field]:value}:current);
  async function submit(e:FormEvent<HTMLFormElement>){
   e.preventDefault();
-  if(!admin||!draft||saving)return;
+  const assigned=!!selected&&role==='maintenance'&&selected.assignedUserId===user?.id;
+  if(!(admin||assigned)||!draft||saving)return;
   setSaving(true);setError('');setFieldErrors({});
   try{
    if(selected){
-    await updateMaintenance(selected.id,{
+    await updateMaintenance(selected.id,admin?{
      expectedRevision:selected.revision,priority:draft.priority,status:draft.status,
-     assignedTo:draft.assignedTo.trim()||null,affectsRoom:draft.affectsRoom,
-     note:draft.note.trim()||null,
-    });
+     assignedTo:draft.assignedTo.trim()||null,assignedUserId:draft.assignedUserId||null,
+     affectsRoom:draft.affectsRoom,note:draft.note.trim()||null,
+    }:{expectedRevision:selected.revision,status:draft.status,note:draft.note.trim()||null});
    }else{
     await createMaintenance({
      roomId:draft.roomId,title:draft.title.trim(),description:draft.description.trim(),
      priority:draft.priority,assignedTo:draft.assignedTo.trim()||null,
-     affectsRoom:draft.affectsRoom,note:draft.note.trim()||null,
+     assignedUserId:draft.assignedUserId||null,affectsRoom:draft.affectsRoom,note:draft.note.trim()||null,
     });
    }
    await queryClient.invalidateQueries({queryKey:['live-maintenance',hotelId]});
@@ -84,6 +88,8 @@ export function LiveMaintenance(){
   }finally{setSaving(false);}
  }
  const data=orders.data?.data??[];
+ const canUpdate=(order:LiveWorkOrder)=>admin||(role==='maintenance'&&order.assignedUserId===user?.id);
+ const maySave=admin||(!!selected&&canUpdate(selected));
  const active=data.filter(o=>o.status==='open'||o.status==='in_progress');
  return <>
   <div className="notice"><strong>Live Laravel maintenance tickets</strong> · Work orders are saved in the selected hotel. An “affects room” flag is only a note: it does not block availability, change reservations or release inventory.</div>
@@ -104,7 +110,7 @@ export function LiveMaintenance(){
     <div className="mnt-order-info"><span>Assigned to</span><strong>{o.assignedTo??'Unassigned'}</strong></div>
     <div className="mnt-order-info"><span>Revision</span><strong>{o.revision}</strong></div>
     {o.affectsRoom&&<p className="mnt-warning"><ShieldAlert size={15}/> Room impact noted; inventory not blocked</p>}
-    <button type="button" className="btn-inline mnt-review" onClick={()=>openEdit(o)}>{admin?'Manage ticket':'View ticket'} <ClipboardList size={15}/></button>
+    <button type="button" className="btn-inline mnt-review" onClick={()=>openEdit(o)}>{canUpdate(o)?'Manage ticket':'View ticket'} <ClipboardList size={15}/></button>
    </article>)}</div>}
    {orders.data&&<div className="guest-pagination"><span>Page {orders.data.meta.page} of {Math.max(1,orders.data.meta.totalPages)}</span>
     <div><button type="button" className="btn-inline" disabled={page<=1} onClick={()=>setPage(p=>Math.max(1,p-1))}>Previous</button>
@@ -125,17 +131,21 @@ export function LiveMaintenance(){
       <label>Title<input required maxLength={160} disabled={!!selected||!admin||saving} value={draft.title} onChange={e=>change('title',e.target.value)}/></label>
       <label>Description<textarea required maxLength={5000} rows={3} disabled={!!selected||!admin||saving} value={draft.description} onChange={e=>change('description',e.target.value)}/></label>
       <label>Priority<select disabled={!admin||saving} value={draft.priority} onChange={e=>change('priority',e.target.value as MaintenancePriority)}>{priorities.map(p=><option key={p} value={p}>{p}</option>)}</select></label>
-      <label>Status<select disabled={!selected||!admin||saving} value={draft.status} onChange={e=>change('status',e.target.value as MaintenanceStatus)}>
+      <label>Status<select disabled={!selected||!maySave||saving} value={draft.status} onChange={e=>change('status',e.target.value as MaintenanceStatus)}>
        {[selected?.status??'open',...(transitions[selected?.status??'open']??[])].filter((x,i,arr)=>arr.indexOf(x)===i).map(s=><option value={s} key={s}>{s.replaceAll('_',' ')}</option>)}
       </select></label>
-      <label>Assigned technician (text)<input maxLength={120} disabled={!admin||saving} value={draft.assignedTo} onChange={e=>change('assignedTo',e.target.value)}/></label>
+      {admin&&<label>Linked technician account<select value={draft.assignedUserId} disabled={saving} onChange={e=>change('assignedUserId',e.target.value)}>
+       <option value="">No linked account</option>
+       {staff.data?.data.filter(m=>m.isActive&&m.accountActive&&(m.role==='maintenance'||m.role==='admin')).map(m=><option key={m.userId} value={m.userId}>{m.name} ({m.role})</option>)}
+      </select></label>}
+      <label>Assigned technician (legacy text)<input maxLength={120} disabled={!admin||saving} value={draft.assignedTo} onChange={e=>change('assignedTo',e.target.value)}/></label>
       <label className="maintenance-checkbox"><input type="checkbox" disabled={!admin||saving} checked={draft.affectsRoom} onChange={e=>change('affectsRoom',e.target.checked)}/> Affects room (flag only; never blocks inventory)</label>
-      {admin&&<label>Handover note<textarea rows={2} maxLength={2000} disabled={saving} value={draft.note} onChange={e=>change('note',e.target.value)}/></label>}
+      {maySave&&<label>Handover note<textarea rows={2} maxLength={2000} disabled={saving} value={draft.note} onChange={e=>change('note',e.target.value)}/></label>}
      </div>
      {Object.entries(fieldErrors).flatMap(([field,errors])=>errors.map((message,i)=><p role="alert" key={field+i} className="catalog-field-error">{field}: {message}</p>))}
      {error&&<p role="alert" className="auth-error">{error}</p>}
      <div className="guest-modal-actions"><button type="button" className="btn-inline" disabled={saving} onClick={close}>Close</button>
-      {admin&&<button type="submit" className="btn-primary" disabled={saving}>{saving?'Saving…':selected?'Save changes':'Create work order'}</button>}</div>
+      {maySave&&<button type="submit" className="btn-primary" disabled={saving}>{saving?'Saving…':selected?'Save changes':'Create work order'}</button>}</div>
     </form>
     {selected&&<div className="catalog-audit-section">
      <button className="btn-inline" type="button" onClick={()=>setHistoryVisible(value=>!value)}><History size={15}/>{historyVisible?'Hide':'View'} recorded history</button>

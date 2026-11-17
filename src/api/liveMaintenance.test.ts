@@ -49,7 +49,7 @@ describe('Phase 13 live maintenance API',()=>{
   expect(new URL(fetchMock.mock.calls[0][0] as string).pathname)
    .toBe('/api/v1/hotels/1/maintenance-work-orders/10/history');
   setSessionHotel(null);
-  await expect(maintenanceHistory('10')).rejects.toThrow('Choose a hotel');
+  expect(()=>maintenanceHistory('10')).toThrow('Choose a hotel');
  });
 });
 

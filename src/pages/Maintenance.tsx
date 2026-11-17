@@ -1,4 +1,5 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
+import {LiveMaintenance} from './LiveMaintenance';
 import {AlertTriangle,ClipboardList,History,RotateCcw,Search,ShieldAlert,Wrench,X} from 'lucide-react';
 import {useMaintenanceBoard} from '../api/queries';
 import {dataMode} from '../api';
@@ -10,7 +11,7 @@ import {applyWorkOrderDrafts,priorityRank,roomImpact,stages,type WorkOrderDraft}
 
 const openStatuses:WorkOrderStatus[]=['open','in_progress'];
 function timestamp(value:string){return new Intl.DateTimeFormat('en-PH',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Manila'}).format(new Date(value));}
-export function Maintenance(){
+function MockMaintenance(){
  const query=useMaintenanceBoard(),data=query.data?.data;
  const [search,setSearch]=useState(''),[priority,setPriority]=useState('all'),[status,setStatus]=useState('active');
  const [selected,setSelected]=useState<string|null>(null),[note,setNote]=useState('');
@@ -95,4 +96,9 @@ export function Maintenance(){
    </section>
  </div>}
  </>;
+}
+
+
+export function Maintenance(){
+ return dataMode==='api'?<LiveMaintenance/>:<MockMaintenance/>;
 }

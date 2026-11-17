@@ -39,6 +39,7 @@ export function ForgotPassword(){
 }
 
 export function ResetPassword(){
+ const {user,signOut}=useHotelAuth();
  const [link]=useState(()=>{
   const query=new URLSearchParams(window.location.search);
   return {token:query.get('token')??'',email:query.get('email')??''};
@@ -62,6 +63,7 @@ export function ResetPassword(){
    const result=await resetStaffPassword(email.trim(),token,password,confirmation);
    setPassword('');setConfirmation('');
    setSuccess(result.message);
+   if(user)await signOut();
   }catch(caught){setError(caught instanceof Error?caught.message:'Could not reset your password.');}
   finally{setPending(false);}
  }

@@ -19,8 +19,8 @@ import {QueryFeedback} from '../components/QueryFeedback';
 import {hotelToday} from '../features/reservations/calendarDate';
 import {dateLabel,statusLabel} from '../lib/format';
 
-export function LiveReservationOperations({record,onClose}:{
- record:LiveRecord;onClose:()=>void;
+export function LiveReservationOperations({record,onClose,preferredRoomId,preferredRoomNumber}:{
+ record:LiveRecord;onClose:()=>void;preferredRoomId?:string|null;preferredRoomNumber?:string|null;
 }){
  const {hotelId,user}=useHotelAuth();
  const admin=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
@@ -58,6 +58,12 @@ export function LiveReservationOperations({record,onClose}:{
   setRoomPage(1);setHistoryPage(1);setRoomId('');setAcknowledged(false);
   setSuccess('');setError('');
  },[hotelId,record.id,record.lifecycleState,record.assignedRoomId]);
+ useEffect(()=>{
+  if(!preferredRoomId||!preferredRoomNumber||!rooms.data||roomId)return;
+  const verified=rooms.data.data.find(item=>item.id===preferredRoomId
+   &&item.number===preferredRoomNumber&&item.roomTypeId===record.roomTypeId);
+  if(verified)setRoomId(verified.id);
+ },[preferredRoomId,preferredRoomNumber,rooms.data,record.roomTypeId,roomId]);
  async function refresh(hotel:string){
   await Promise.all([
    client.invalidateQueries({queryKey:['live','reservation-records',hotel]}),
@@ -122,6 +128,7 @@ export function LiveReservationOperations({record,onClose}:{
   {admin&&<>
    {record.lifecycleState==='confirmed'&&<section>
     <h4>Assign a physical room</h4>
+    {preferredRoomId&&<p role="status" className="calendar-booking-context">Preferred room from calendar: {preferredRoomNumber??'Selected room'}. We only preselect it when Laravel returns a matching room. Assignment is still subject to block and availability checks.</p>}
     <p>Rooms are filtered by matching room type. This is not proof of cleanliness, occupancy readiness, or freedom from future conflicts: Laravel performs the final block and assignment checks.</p>
     <QueryFeedback loading={rooms.isPending} error={rooms.error}/>
     {rooms.isSuccess&&<div>

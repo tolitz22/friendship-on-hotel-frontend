@@ -4,8 +4,11 @@ import {ClipboardList,History,Plus,RefreshCcw,ShieldAlert,Wrench,X} from 'lucide
 import {useHotelAuth} from '../components/AuthProvider';
 import {useLiveRooms} from '../api/liveCatalogQueries';
 import {createMaintenance,listMaintenance,maintenanceHistory,updateMaintenance,
- type LiveWorkOrder,type MaintenancePriority,type MaintenanceStatus} from '../api/liveMaintenance';
+ type LiveWorkOrder,type MaintenancePriority,type MaintenanceStatus,type MaintenanceFilters,
+ parseLiveMaintenance,parseUpdatedMaintenance,parseMaintenanceHistory,patchValidatedMaintenance,
+ mayUpdateMaintenance} from '../api/liveMaintenance';
 import {ApiError} from '../api/http';
+import {readSession} from '../api/session';
 import {listHotelStaff} from '../api/liveStaff';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
@@ -32,7 +35,15 @@ export function LiveMaintenance(){
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin});
  const queryClient=useQueryClient();
  const [page,setPage]=useState(1);
- const orders=useQuery({queryKey:['live-maintenance',hotelId,page],queryFn:()=>listMaintenance(page)});
+ const [statusFilter,setStatusFilter]=useState<MaintenanceStatus|''>('');
+ const [priorityFilter,setPriorityFilter]=useState<MaintenancePriority|''>('');
+ const [search,setSearch]=useState('');
+ const filters:MaintenanceFilters={...(statusFilter?{status:statusFilter}:{}),...(priorityFilter?{priority:priorityFilter}:{})};
+ const orders=useQuery({
+  queryKey:['live-maintenance',hotelId,page,statusFilter,priorityFilter],
+  enabled:!!hotelId,retry:false,
+  queryFn:async()=>parseLiveMaintenance(await listMaintenance(page,20,filters),hotelId!),
+ });
  const rooms=useLiveRooms({page:1,perPage:100});
  const [selected,setSelected]=useState<LiveWorkOrder|null>(null);
  const [draft,setDraft]=useState<Draft|null>(null);
@@ -40,19 +51,21 @@ export function LiveMaintenance(){
  const [error,setError]=useState('');
  const [fieldErrors,setFieldErrors]=useState<Record<string,string[]>>({});
  const [historyVisible,setHistoryVisible]=useState(false);
+ const [historyPage,setHistoryPage]=useState(1);
  const history=useQuery({
-  queryKey:['maintenance-history',hotelId,selected?.id],
-  queryFn:()=>maintenanceHistory(selected!.id),
+  queryKey:['maintenance-history',hotelId,selected?.id,historyPage],
+  queryFn:async()=>parseMaintenanceHistory(await maintenanceHistory(selected!.id,historyPage)),
   enabled:!!selected&&historyVisible,
  });
  useEffect(()=>{
   setSelected(null);setDraft(null);setHistoryVisible(false);setError('');setPage(1);
+  setStatusFilter('');setPriorityFilter('');setSearch('');setHistoryPage(1);
  },[hotelId]);
  const openCreate=()=>{
-  setSelected(null);setDraft(newDraft());setHistoryVisible(false);setError('');setFieldErrors({});
+  setSelected(null);setDraft(newDraft());setHistoryVisible(false);setError('');setFieldErrors({});setHistoryPage(1);
  };
  const openEdit=(order:LiveWorkOrder)=>{
-  setSelected(order);setDraft(fromOrder(order));setHistoryVisible(false);setError('');setFieldErrors({});
+  setSelected(order);setDraft(fromOrder(order));setHistoryVisible(false);setError('');setFieldErrors({});setHistoryPage(1);
  };
  const close=()=>{setDraft(null);setSelected(null);setError('');setHistoryVisible(false);};
  const change=<K extends keyof Draft>(field:K,value:Draft[K])=>
@@ -64,7 +77,7 @@ export function LiveMaintenance(){
   setSaving(true);setError('');setFieldErrors({});
   try{
    if(selected){
-    await updateMaintenance(selected.id,admin?{
+    await patchValidatedMaintenance(hotelId!,selected,admin?{
      expectedRevision:selected.revision,priority:draft.priority,status:draft.status,
      assignedTo:draft.assignedTo.trim()||null,assignedUserId:draft.assignedUserId||null,
      affectsRoom:draft.affectsRoom,note:draft.note.trim()||null,
@@ -76,9 +89,14 @@ export function LiveMaintenance(){
      assignedUserId:draft.assignedUserId||null,affectsRoom:draft.affectsRoom,note:draft.note.trim()||null,
     });
    }
-   await queryClient.invalidateQueries({queryKey:['live-maintenance',hotelId]});
-   await queryClient.invalidateQueries({queryKey:['maintenance-history',hotelId]});
+   if(readSession().hotelId!==hotelId)return;
    setPage(1);close();
+   // A refresh error must not make a committed work order look unsuccessful.
+   void Promise.all([
+    queryClient.invalidateQueries({queryKey:['live-maintenance',hotelId]}),
+    queryClient.invalidateQueries({queryKey:['maintenance-history',hotelId]}),
+    queryClient.invalidateQueries({queryKey:['live','maintenance-for-housekeeping',hotelId]}),
+   ]).catch(()=>{});
   }catch(caught){
    if(caught instanceof ApiError){
     setFieldErrors(caught.fieldErrors??{});
@@ -87,7 +105,11 @@ export function LiveMaintenance(){
   }finally{setSaving(false);}
  }
  const data=orders.data?.data??[];
- const canUpdate=(order:LiveWorkOrder)=>admin||(role==='maintenance'&&order.assignedUserId===user?.id);
+ const term=search.trim().toLocaleLowerCase();
+ const visible=data.filter(order=>!term||[
+  order.id,order.roomNumber,order.title,order.description,order.assignedTo??'',
+ ].some(value=>value.toLocaleLowerCase().includes(term)));
+ const canUpdate=(order:LiveWorkOrder)=>mayUpdateMaintenance(order,admin,role,user?.id??null);
  const maySave=admin||(!!selected&&canUpdate(selected));
  const active=data.filter(o=>o.status==='open'||o.status==='in_progress');
  return <>
@@ -101,8 +123,23 @@ export function LiveMaintenance(){
    <div><History size={20}/><span>All saved work orders</span><strong>{orders.data?.meta.total??'—'}</strong></div>
   </div>
   <Panel title="Maintenance work orders" action={<button className="btn-inline" type="button" onClick={()=>void orders.refetch()}><RefreshCcw size={15}/> Refresh</button>}>
-   <QueryFeedback loading={orders.isPending} error={orders.error} empty={!!orders.data&&data.length===0}/>
-   {data.length>0&&<div className="mnt-order-grid">{data.map(o=><article key={o.id} className="mnt-order">
+   <div className="mnt-toolbar">
+    <label>Status <select aria-label="Filter saved maintenance status" value={statusFilter}
+     onChange={e=>{setStatusFilter(e.target.value as MaintenanceStatus|'');setPage(1);close();}}>
+     <option value="">All statuses</option>
+     {(['open','in_progress','resolved','closed'] as const).map(status=><option key={status} value={status}>{status.replaceAll('_',' ')}</option>)}
+    </select></label>
+    <label>Priority <select aria-label="Filter saved maintenance priority" value={priorityFilter}
+     onChange={e=>{setPriorityFilter(e.target.value as MaintenancePriority|'');setPage(1);close();}}>
+     <option value="">All priorities</option>
+     {priorities.map(priority=><option key={priority} value={priority}>{priority}</option>)}
+    </select></label>
+    <label>Search this page <input aria-label="Search current maintenance page" value={search}
+     onChange={e=>setSearch(e.target.value)}/></label>
+   </div>
+   <p className="mnt-notice">Status and priority filters run on Laravel. Text search filters this page only. A flagged room impact does not create an inventory block or prove room readiness.</p>
+   <QueryFeedback loading={orders.isPending} error={orders.error} empty={!!orders.data&&visible.length===0}/>
+   {visible.length>0&&<div className="mnt-order-grid">{visible.map(o=><article key={o.id} className="mnt-order">
     <div className="mnt-order-top"><strong>WO-{o.id}</strong><span className={'mnt-priority mnt-priority-'+o.priority}>{o.priority}</span></div>
     <h3>{o.title}</h3><p>{o.description}</p>
     <div className="mnt-order-tags"><span className="status">{o.status.replaceAll('_',' ')}</span><span>Room {o.roomNumber}</span></div>
@@ -150,7 +187,14 @@ export function LiveMaintenance(){
      <button className="btn-inline" type="button" onClick={()=>setHistoryVisible(value=>!value)}><History size={15}/>{historyVisible?'Hide':'View'} recorded history</button>
      {historyVisible&&<><QueryFeedback loading={history.isPending} error={history.error}/>
       {history.data?.data.map(e=><article className="maintenance-history-event" key={e.id}><strong>{e.action} · Staff #{e.actorId}</strong>
-       <small>{e.createdAt}</small>{e.note&&<p>{e.note}</p>}</article>)}</>}
+       <small>{e.createdAt}</small>{e.note&&<p>{e.note}</p>}</article>)}
+      {history.data&&<div className="guest-pagination">
+       <span>History page {history.data.meta.page} of {Math.max(1,history.data.meta.totalPages)}</span>
+       <div><button type="button" className="btn-inline" disabled={historyPage<=1}
+        onClick={()=>setHistoryPage(n=>n-1)}>Previous events</button>
+        <button type="button" className="btn-inline" disabled={historyPage>=history.data.meta.totalPages}
+        onClick={()=>setHistoryPage(n=>n+1)}>Next events</button></div>
+      </div>}</>}
     </div>}
    </section>
   </div>}

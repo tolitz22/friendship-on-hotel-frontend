@@ -25,7 +25,7 @@ const price=(minor:number,currency:string)=>currency==='PHP'
 
 export function LiveReservations(){
  const {hotelId,user}=useHotelAuth();
- const admin=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
+ const canOperate=!!user?.hotels.some(h=>h.id===hotelId&&(h.role==='admin'||h.role==='front_desk'));
  const navigation=useNavigate();
  const routeSearch=useSearch({from:'/reservations'});
  const selectedRecordId=routeSearch.booking??null;
@@ -76,7 +76,7 @@ export function LiveReservations(){
     record={selectedRecord} preferredRoomId={routeSearch.room??null}
     preferredRoomNumber={routeSearch.roomNumber??null} deskAction={routeSearch.deskAction??null} onClose={closeBooking}/>}
   </section>}
-  {admin&&!selectedRecordId&&<LiveBookingForm/>}
+  {canOperate&&!selectedRecordId&&<LiveBookingForm/>}
   <details className="workflow-disclosure" open={!selectedRecordId} key={selectedRecordId?'selected':'all'}>
    <summary>Existing bookings · Find a reservation and manage its stay</summary>
   <Panel title="Saved reservation records" action={<span className="table-count">{pagination?.total??'—'} records</span>}>
@@ -109,7 +109,7 @@ export function LiveReservations(){
      <button type="button" className="btn-inline" disabled={page>=pagination!.totalPages} onClick={()=>{setPage(v=>v+1);setSearch('');}}>Next page</button>
     </div>
    </div>}
-   <p className="desk-preview-note">These are structural records; this list does not prove availability, guest identity, room cleanliness, or a payable rate. Administrator assignment and lifecycle operations open from the reference; Laravel checks them again. Select a reservation reference to open room assignment, check-in/out and recorded activity.</p>
+   <p className="desk-preview-note">These are structural records; this list does not prove availability, guest identity, room cleanliness, or a payable rate. Authorized staff assignment and lifecycle operations open from the reference; Laravel checks them again. Select a reservation reference to open room assignment, check-in/out and recorded activity.</p>
   </Panel>
 
   </details>

@@ -95,3 +95,7 @@ API-mode Housekeeping now uses Laravel tasks with revisioned admin changes and e
 ## Phase 15 — Hotel staff memberships
 
 Laravel supports hotel admin staff listing/attachment/role updates and staff audit records. Linked assignee IDs, not free-text names, grant restricted housekeeping/maintenance task status+note PATCH access. A new migration adds assignee user IDs and staff membership audit events. See `docs/PHASE_15_STAFF_PERMISSIONS.md`.
+
+## Phase 16 — Staff password security
+
+Backend now provides throttled password reset-email, password reset and current-password change APIs, invalidating all existing bearer tokens after credential changes. Frontend includes corresponding routes. The session architecture is still memory-only bearer authentication; production cookie sessions and CSRF must be handled as a separate coordinated milestone. See `docs/PHASE_16_STAFF_PASSWORD_SECURITY.md`.

@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
-import {Link} from '@tanstack/react-router';
+import {Link,useSearch} from '@tanstack/react-router';
 import type {FormEvent} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 import {AlertTriangle,CheckCircle2} from 'lucide-react';
@@ -14,9 +14,9 @@ import {Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {addDays,hotelToday} from '../features/reservations/calendarDate';
 
-const initialSelection=():BookingSelection=>{
+const initialSelection=(guestId=''):BookingSelection=>{
  const checkIn=addDays(hotelToday(),1);
- return {guestId:'',roomTypeId:'',ratePlanId:'',checkIn,checkOut:addDays(checkIn,1)};
+ return {guestId,roomTypeId:'',ratePlanId:'',checkIn,checkOut:addDays(checkIn,1)};
 };
 
 const displayMoney=(minor:number,currency:string)=>currency==='PHP'
@@ -29,8 +29,9 @@ const displayMoney=(minor:number,currency:string)=>currency==='PHP'
  */
 export function LiveBookingForm(){
  const {user,hotelId}=useHotelAuth();
+ const {guest:requestedGuest}=useSearch({from:'/reservations'});
  const admin=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
- const [selection,setSelection]=useState<BookingSelection>(initialSelection);
+ const [selection,setSelection]=useState<BookingSelection>(()=>initialSelection(requestedGuest));
  const [checked,setChecked]=useState<BookingSelection|null>(null);
  const [pending,setPending]=useState<BookingSubmission|null>(null);
  const [result,setResult]=useState<ConfirmedBooking|null>(null);
@@ -45,8 +46,8 @@ export function LiveBookingForm(){
  const quote=useLiveRoomQuote(checked,checked?.ratePlanId??'');
 
  useEffect(()=>{
-  setSelection(initialSelection());setChecked(null);setPending(null);setResult(null);setError(null);
- },[hotelId]);
+  setSelection(initialSelection(requestedGuest));setChecked(null);setPending(null);setResult(null);setError(null);
+ },[hotelId,requestedGuest]);
  const activeRates=(rates.data?.data??[]).filter(rate=>rate.roomTypeId===selection.roomTypeId&&rate.active);
  const guest=guests.data?.data.find(item=>item.id===selection.guestId);
  const rate=activeRates.find(item=>item.id===selection.ratePlanId);
@@ -107,7 +108,7 @@ export function LiveBookingForm(){
  const reset=()=>{
   if(busy)return;
   setPending(null);setResult(null);setError(null);setChecked(null);
-  setSelection(initialSelection());
+  setSelection(initialSelection(requestedGuest));
  };
  return <Panel title="New reservation">
   <p className="help-copy">Complete the guest and stay details, check availability, then confirm. The reservation will be saved immediately when you select Confirm.</p>
@@ -126,6 +127,9 @@ export function LiveBookingForm(){
         {guests.data.data.map(item=><option key={item.id} value={item.id}>{item.firstName} {item.lastName}</option>)}
        </select>
        <small>Showing up to 100 existing guests. <Link to="/guests" className="text-link">Find or add a guest</Link> if the guest isn't listed.</small>
+       {requestedGuest&&!guest&&guests.isSuccess&&<small role="status">
+        The selected guest is not in this first 100-profile list. Find the guest in the directory, then return here or choose a listed guest.
+       </small>}
       </div>
       <div><label htmlFor="book-roomtype" className="wizard-label">Room type</label>
        <select id="book-roomtype" className="wizard-input" required value={selection.roomTypeId}

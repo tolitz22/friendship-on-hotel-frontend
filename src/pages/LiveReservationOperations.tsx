@@ -137,7 +137,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
    Opened from Front Desk. Review this reservation and complete the required checks before saving any changes.
   </p>}
   <div className="frontdesk-journey" aria-label="Reservation progress">
-   <div className="frontdesk-stage"><BedDouble size={17}/><span>Booked</span><strong>Confirmed</strong></div>
+   <div className="frontdesk-stage"><BedDouble size={17}/><span>Reservation</span><strong>{record.lifecycleState==='cancelled'?'Cancelled':'Recorded'}</strong></div>
    <div className="frontdesk-stage"><DoorOpen size={17}/><span>Physical room</span><strong>{record.assignedRoomId?'Assigned':'Unassigned'}</strong></div>
    <div className="frontdesk-stage"><DoorClosed size={17}/><span>Guest stay</span>
     <strong>{record.lifecycleState==='checked_in'?'In house':
@@ -148,7 +148,13 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
     <strong>{record.lifecycleState==='checked_out'?'Review tasks':'After checkout'}</strong>
    </div>
   </div>
-  <p className="help-copy">Reservation #{record.id} · Room type #{record.roomTypeId} · Assigned room: {record.assignedRoomId??'None'}.</p>
+  <div className="reservation-selection-summary" aria-label="Reservation summary">
+   <div><small>Guest</small><strong>{record.guestName??'Guest details unavailable'}</strong></div>
+   <div><small>Booked room category</small><strong>{record.roomTypeName??'Room type'} · #{record.roomTypeId}</strong></div>
+   <div><small>Physical room</small><strong>{record.assignedRoomNumber
+    ?'Room '+record.assignedRoomNumber
+    :record.assignedRoomId?'Room #'+record.assignedRoomId:'Not assigned yet'}</strong></div>
+  </div>
   {!canOperate&&<p role="status">Only authorized front-desk staff and hotel managers can assign rooms or change a reservation lifecycle. Laravel enforces permissions.</p>}
   {canOperate&&<>
    {record.lifecycleState==='confirmed'&&<section ref={assignmentRef}

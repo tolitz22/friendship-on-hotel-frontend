@@ -14,3 +14,20 @@ export function fetchStaffProfile(){
 export function logoutStaff(){
  return requestJson<{message:string}>('/auth/logout',{method:'POST'});
 }
+
+export function requestPasswordReset(email:string){
+ return requestJson<{message:string}>('/auth/forgot-password',{
+  method:'POST',body:{email},authenticated:false,
+ });
+}
+export function resetStaffPassword(email:string,token:string,password:string,passwordConfirmation:string){
+ return requestJson<{message:string}>('/auth/reset-password',{
+  method:'POST',authenticated:false,
+  body:{email,token,password,password_confirmation:passwordConfirmation},
+ });
+}
+export function changeStaffPassword(currentPassword:string,password:string,passwordConfirmation:string){
+ return requestJson<{message:string}>('/auth/change-password',{
+  method:'POST',body:{currentPassword,password,password_confirmation:passwordConfirmation},
+ });
+}

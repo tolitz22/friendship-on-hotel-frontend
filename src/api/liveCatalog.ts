@@ -28,3 +28,16 @@ export const createLiveRoomType=(body:CreateRoomTypeInput)=>requestJson<ItemResp
  hotelPath('/room-types'),{method:'POST',body});
 export const createLiveRoom=(body:CreateRoomInput)=>requestJson<ItemResponse<LiveRoom>>(
  hotelPath('/rooms'),{method:'POST',body});
+
+export type UpdateRoomInput=Partial<{number:string;floor:number|null;roomTypeId:string}>;
+export type UpdateRoomTypeInput=Partial<{name:string;maxOccupancy:number}>;
+export interface CatalogAuditEvent{
+ id:string;subjectType:'room'|'room_type';subjectId:string;actorId:string;
+ before:Record<string,string|number|null>;after:Record<string,string|number|null>;createdAt:string;
+}
+export const updateLiveRoom=(id:string,body:UpdateRoomInput)=>requestJson<ItemResponse<LiveRoom>>(
+ hotelPath('/rooms/'+encodeURIComponent(id)),{method:'PATCH',body});
+export const updateLiveRoomType=(id:string,body:UpdateRoomTypeInput)=>requestJson<ItemResponse<LiveRoomType>>(
+ hotelPath('/room-types/'+encodeURIComponent(id)),{method:'PATCH',body});
+export const getCatalogAudit=(subjectType:'room'|'room_type',subjectId:string)=>
+ getJson<CollectionResponse<CatalogAuditEvent>>(hotelPath('/catalog-audit'),{subjectType,subjectId,per_page:20});

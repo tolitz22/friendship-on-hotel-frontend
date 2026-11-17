@@ -226,3 +226,35 @@ npm run build
 \`\`\`
 
 Browser acceptance should test admin vs assigned housekeeping member, revision conflict between tabs, cross-hotel scope, server filters, pagination, maintenance warning, and checkout-created turnover. Next: live Maintenance workflow activation and explicit audited physical-room readiness policy.
+
+
+## Frontend Phase 34 — Live maintenance operations
+
+In \`VITE_DATA_SOURCE=api\`, \`src/pages/Maintenance.tsx\` now mounts \`LiveMaintenance\`, the existing Laravel-connected maintenance editor, rather than the sample work-order UI. Mock mode still renders the original local simulation. Real admin work-order creation, technician assignment, priority and impact flags, revision-checked lifecycle updates, and actor-attributed history are accessible through the standard Maintenance navigation.
+
+These are implemented backend endpoints, scoped to the currently selected hotel:
+
+\`\`\`http
+GET   /hotels/{hotel}/maintenance-work-orders?page=1&per_page=20&status=open&priority=high
+POST  /hotels/{hotel}/maintenance-work-orders
+PATCH /hotels/{hotel}/maintenance-work-orders/{order}
+GET   /hotels/{hotel}/maintenance-work-orders/{order}/history?page=1&per_page=20
+\`\`\`
+
+The API helper \`src/api/liveMaintenance.ts\` now Zod-validates hotel ID, work-order fields, revision and the \`affectsRoomDoesNotBlockInventory:true\` marker. Server-side filters include status and priority; text search checks the current loaded page only. Frontend query keys include hotel ID and filter/page values. History has pagination and displays actor IDs, action and timestamps.
+
+Authorized hotel admins may create/manage work orders, while active assigned maintenance staff may edit their own work order's status and notes only. Laravel's \`expectedRevision\`, role checks and supported transitions are authoritative. A 409 stale-revision error tells staff to reopen the latest record; it must not silently overwrite other users. On success, response identity is verified, and a background cache refresh cannot turn an already-committed write into a failed operation.
+
+**Room readiness is NOT implemented or inferred.** The work-order \`affectsRoom\` flag is informational and does not create/release dated inventory blocks, set cleanliness or occupancy, establish inspection approval, or change booking eligibility. Resolving a work order does not independently verify a physical room. Use the existing inventory-block workflow when appropriate; a future auditable room-readiness state machine requires backend models, independent inspection and authorized approval before a real "Ready" action can be enabled.
+
+Verification remains pending:
+
+\`\`\`bash
+git pull origin main
+npm ci
+npm run typecheck
+npm test
+npm run build
+\`\`\`
+
+Test with two staff accounts (hotel admin and active assigned maintenance worker), property switches, paginated filters/history, simultaneous edits causing 409, multi-page room catalogues and work-order flags with active inventory blocks. Do not claim room availability based on this UI.

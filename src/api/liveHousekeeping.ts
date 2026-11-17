@@ -6,7 +6,7 @@ export type HousekeepingType='checkout_clean'|'stayover'|'inspection';
 export type HousekeepingStatus='todo'|'in_progress'|'done';
 export interface LiveHousekeepingTask{
  id:string;hotelId:string;roomId:string;roomNumber:string;type:HousekeepingType;
- status:HousekeepingStatus;assignedTo:string|null;dueAt:string|null;completedAt:string|null;
+ status:HousekeepingStatus;assignedTo:string|null;assignedUserId:string|null;dueAt:string|null;completedAt:string|null;
  revision:number;createdAt:string;
 }
 export interface HousekeepingEvent{
@@ -17,11 +17,11 @@ export type HousekeepingList=CollectionResponse<LiveHousekeepingTask>&{
  meta:CollectionResponse<LiveHousekeepingTask>['meta']&{determinesRoomReadiness:false};
 };
 export interface CreateHousekeepingInput{
- roomId:string;type:HousekeepingType;assignedTo:string|null;dueAt:string|null;note?:string|null;
+ roomId:string;type:HousekeepingType;assignedTo:string|null;assignedUserId?:string|null;dueAt:string|null;note?:string|null;
 }
 export interface UpdateHousekeepingInput{
  expectedRevision:number;status?:HousekeepingStatus;
- assignedTo?:string|null;dueAt?:string|null;note?:string|null;
+ assignedTo?:string|null;assignedUserId?:string|null;dueAt?:string|null;note?:string|null;
 }
 export const listHousekeepingTasks=(page=1,perPage=50)=>getJson<HousekeepingList>(
  hotelPath('/housekeeping-tasks'),{page,per_page:perPage});

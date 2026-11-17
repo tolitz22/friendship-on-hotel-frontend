@@ -22,7 +22,7 @@ export function selectedRole(hotels:StaffHotel[]|undefined,hotelId:string|null):
  const role=hotels?.find(hotel=>hotel.id===hotelId)?.role;
  return role==='admin'||role==='front_desk'||role==='housekeeping'||role==='maintenance'?role:null;
 }
-export function navigationForRole(role:HotelRole|null){
+export function navigationForRole(role:HotelRole|null):{daily:WorkspacePath[];management:WorkspacePath[];advanced:WorkspacePath[];label:string}{
  return role?roleNav[role]:{daily:['/' as WorkspacePath],management:['/change-password' as WorkspacePath],advanced:[],label:'Staff'};
 }
 /** This controls presentation only. Laravel authorization remains authoritative. */

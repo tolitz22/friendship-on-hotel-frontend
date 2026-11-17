@@ -1,4 +1,5 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
+import type {CSSProperties} from 'react';
 import {createPortal} from 'react-dom';
 import {Link} from '@tanstack/react-router';
 import {useQueryClient} from '@tanstack/react-query';
@@ -160,7 +161,7 @@ export function LiveRoomCalendar(){
     empty={calendar.isSuccess&&data?.rooms.length===0} emptyMessage="No rooms match these filters. Add rooms in Rooms & readiness."/>
    {calendar.isSuccess&&data&&data.rooms.length>0&&<div className="lrc-scroll rack-scroll" role="region" aria-label="Scrollable room rack" tabIndex={0}>
     <div className={'rack-timeline '+(mode==='month'?'rack-month':'rack-week')}
-     style={{'--rack-days':dates.days.length,'--rack-day-width':mode==='week'?'116px':'49px'} as React.CSSProperties}>
+     style={{'--rack-days':dates.days.length,'--rack-day-width':mode==='week'?'116px':'49px'} as CSSProperties}>
      <div className="rack-header">
       <div className="rack-room-head rack-sticky">Room / type</div>
       {dates.days.map(day=><div key={day}

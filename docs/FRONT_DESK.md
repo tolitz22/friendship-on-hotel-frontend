@@ -71,3 +71,34 @@ The fields above describe a **proposed API contract**, not an implemented endpoi
 - `src/features/front-desk/operations.ts`: pure warning and checklist helpers
 
 Front desk stays strictly read-only in API mode until backend inventory, permission, folio, audit logging and transaction rules have been implemented and reviewed.
+
+
+## Frontend Phase 29 — live read-only manifest in API mode
+
+**Implemented on frontend `main` (requires verification with the Laravel API).** The existing mock component, including `OperationPreview`, remains untouched in mock mode. In `VITE_DATA_SOURCE=api`, `src/pages/FrontDesk.tsx` renders `LiveFrontDesk` instead of the sample board. The API adapter is `src/api/liveFrontDesk.ts`; it uses the existing `hotelPath` authenticated selected-property session and calls the **implemented** backend endpoint:
+
+```http
+GET /api/v1/hotels/{hotel}/front-desk/manifest?date=YYYY-MM-DD&kind=arrivals&per_page=20&page=1
+GET /api/v1/hotels/{hotel}/front-desk/manifest?date=YYYY-MM-DD&kind=departures&per_page=20&page=1
+GET /api/v1/hotels/{hotel}/front-desk/manifest?date=YYYY-MM-DD&kind=in_house&per_page=20&page=1
+```
+
+Each queue has independent server pagination and server-provided total. The search box **filters only the currently loaded page**, which is displayed explicitly. Changing the operational date resets all page indices; switching tabs retains each queue's page index. Query keys include the selected hotel ID, date, queue and page to prevent data mixing between selected hotels.
+
+The backend manifest returns only `id`, `reference`, nullable `guestId` and `guestName`, nullable `assignedRoomId` and `roomNumber`, `checkIn`, `checkOut`, and `status`, with paging metadata and `determinesHousekeepingReadiness:false`. The live UI **does not manufacture** room type, adults/children, prices, guest identity status, room readiness, maintenance, housekeeping status, or permission to check in/out. Missing guest names display as unavailable; missing rooms display as unassigned and require separate assignment/review. Live check-in/out actions remain unavailable even though administrator backend routes exist.
+
+No endpoint error falls back to fixtures. Invalid response contracts, wrong hotel-date/queue matches, API failures, and session errors surface as visible error states. API-mode guest data and the Phase 26 separate live folio lookup are unchanged; the remaining modules continue their explicitly labeled previews.
+
+### Verification
+
+```bash
+git pull origin main
+npm ci
+npm run typecheck
+npm test
+npm run build
+```
+
+Use the Laravel backend with migrations applied and `VITE_DATA_SOURCE=api`; authenticate and select an authorized property, then exercise different dates, each manifest tab, multi-page lists, an empty day, and an expired session. Test actual browser rendering and accessibility before production release. `src/api/liveFrontDesk.test.ts` covers representative contract parsing; **build/tests are not yet confirmed passing in this environment**.
+
+Next frontend milestone: typed hotel-scoped reservation list and room inventory/booking quote previews, followed by audited administrator operational actions only after permissions/readiness and live error handling are fully integrated.

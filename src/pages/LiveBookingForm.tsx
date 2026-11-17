@@ -51,7 +51,7 @@ export function LiveBookingForm(){
  const pendingByHotel=useRef(new Map<string,BookingSubmission>());
  const client=useQueryClient();
  const guests=useGuests({perPage:100});
- const linkedGuest=useSelectedGuest(requestedGuest??null);
+ const linkedGuest=useSelectedGuest(selection.guestId||null);
  const types=useLiveRoomTypes();
  const rates=useLiveRatePlans();
  // Treat URL hints as untrusted. Verify the physical room and property against
@@ -95,7 +95,7 @@ export function LiveBookingForm(){
     ?{...previous,ratePlanId:available[0].id}:previous);
   }
  },[selection.roomTypeId,selection.ratePlanId,rates.data,hotelId,pending,result,busy]);
- const usingLinkedGuest=!!requestedGuest&&selection.guestId===requestedGuest;
+ const usingLinkedGuest=!!selection.guestId;
  const guest=guests.data?.data.find(item=>item.id===selection.guestId)
   ??(createdGuest?.id===selection.guestId?createdGuest:undefined)
   ??(linkedGuest.isSuccess&&usingLinkedGuest?linkedGuest.data:undefined);

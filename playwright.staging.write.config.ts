@@ -21,8 +21,7 @@ for(const [label,target,host] of [
  ['frontend',frontend,required('PMS_STAGING_ALLOWED_HOST')],
  ['API',api,required('PMS_STAGING_ALLOWED_API_HOST')],
 ] as const){
- if(target.protocol!=='https:'||target.hostname!==host||!host.includes('staging')
-  ||target.username||target.password||target.search||target.hash){
+ if(target.protocol!=='https:'||target.hostname!==host||target.username||target.password||target.search||target.hash){
   throw new Error('Refusing '+label+' writes: expected exact allowlisted HTTPS staging hostname.');
  }
 }

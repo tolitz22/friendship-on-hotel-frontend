@@ -8,6 +8,7 @@ import {
  type LiveHousekeepingTask,type HousekeepingStatus,type HousekeepingType,
 } from '../api/liveHousekeeping';
 import {ApiError} from '../api/http';
+import {listHotelStaff} from '../api/liveStaff';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 
@@ -16,16 +17,18 @@ const transitions:Record<HousekeepingStatus,HousekeepingStatus[]>={
  todo:['in_progress','done'],in_progress:['done'],done:[],
 };
 type FormState={roomId:string;type:HousekeepingType;status:HousekeepingStatus;
- assignedTo:string;dueAt:string;note:string};
-const empty=():FormState=>({roomId:'',type:'checkout_clean',status:'todo',assignedTo:'',dueAt:'',note:''});
+ assignedTo:string;assignedUserId:string;dueAt:string;note:string};
+const empty=():FormState=>({roomId:'',type:'checkout_clean',status:'todo',assignedTo:'',assignedUserId:'',dueAt:'',note:''});
 const fromTask=(task:LiveHousekeepingTask):FormState=>({
  roomId:task.roomId,type:task.type,status:task.status,
- assignedTo:task.assignedTo??'',dueAt:task.dueAt?task.dueAt.replace('T',' ').slice(0,16):'',note:'',
+ assignedTo:task.assignedTo??'',assignedUserId:task.assignedUserId??'',dueAt:task.dueAt?task.dueAt.replace('T',' ').slice(0,16):'',note:'',
 });
 const formatDue=(value:string)=>value.trim()===''?null:value.replace('T',' ')+':00';
 export function LiveHousekeeping(){
  const {hotelId,user}=useHotelAuth();
- const admin=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
+ const role=user?.hotels.find(h=>h.id===hotelId)?.role;
+ const admin=role==='admin';
+ const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin});
  const client=useQueryClient();
  const [page,setPage]=useState(1);
  const tasks=useQuery({queryKey:['live-housekeeping',hotelId,page],queryFn:()=>listHousekeepingTasks(page)});
@@ -52,17 +55,19 @@ export function LiveHousekeeping(){
  const change=<K extends keyof FormState>(key:K,value:FormState[K])=>
   setForm(current=>current?{...current,[key]:value}:current);
  async function save(e:FormEvent<HTMLFormElement>){
-  e.preventDefault();if(!admin||!form||saving)return;
+  e.preventDefault();
+  const assigned=!!selected&&role==='housekeeping'&&selected.assignedUserId===user?.id;
+  if(!(admin||assigned)||!form||saving)return;
   setSaving(true);setError('');setFieldErrors({});
   try{
-   if(selected)await updateHousekeepingTask(selected.id,{
+   if(selected)await updateHousekeepingTask(selected.id,admin?{
     expectedRevision:selected.revision,status:form.status,
-    assignedTo:form.assignedTo.trim()||null,
+    assignedTo:form.assignedTo.trim()||null,assignedUserId:form.assignedUserId||null,
     dueAt:formatDue(form.dueAt),note:form.note.trim()||null,
-   });
+   }:{expectedRevision:selected.revision,status:form.status,note:form.note.trim()||null});
    else await createHousekeepingTask({
     roomId:form.roomId,type:form.type,assignedTo:form.assignedTo.trim()||null,
-    dueAt:formatDue(form.dueAt),note:form.note.trim()||null,
+    assignedUserId:form.assignedUserId||null,dueAt:formatDue(form.dueAt),note:form.note.trim()||null,
    });
    await client.invalidateQueries({queryKey:['live-housekeeping',hotelId]});
    await client.invalidateQueries({queryKey:['housekeeping-history',hotelId]});
@@ -75,6 +80,8 @@ export function LiveHousekeeping(){
   }finally{setSaving(false);}
  }
  const data=tasks.data?.data??[];
+ const canUpdate=(task:LiveHousekeepingTask)=>admin||(role==='housekeeping'&&task.assignedUserId===user?.id);
+ const maySave=admin||(!!selected&&canUpdate(selected));
  return <>
   <div className="notice"><strong>Live housekeeping tasks</strong> · Cleaning assignments and completion are stored in Laravel. Completing a task does not set room readiness, block reservations, or change occupancy.</div>
   <Heading title="Housekeeping" description="Property-scoped cleaning tasks with revision tracking and recorded history" action={admin?
@@ -93,7 +100,7 @@ export function LiveHousekeeping(){
     <p>{task.type.replaceAll('_',' ')} · Assigned: {task.assignedTo??'Unassigned'}</p>
     <div className="mnt-order-info"><span>Due</span><strong>{task.dueAt??'Not scheduled'}</strong></div>
     <div className="mnt-order-info"><span>Revision</span><strong>{task.revision}</strong></div>
-    <button type="button" className="btn-inline mnt-review" onClick={()=>openEdit(task)}>{admin?'Manage task':'View task'} <ClipboardCheck size={15}/></button>
+    <button type="button" className="btn-inline mnt-review" onClick={()=>openEdit(task)}>{canUpdate(task)?'Manage task':'View task'} <ClipboardCheck size={15}/></button>
    </article>)}</div>}
    {tasks.data&&<div className="guest-pagination"><span>Page {tasks.data.meta.page} of {Math.max(1,tasks.data.meta.totalPages)}</span>
     <div><button type="button" className="btn-inline" disabled={page<=1} onClick={()=>setPage(x=>Math.max(1,x-1))}>Previous</button>
@@ -109,16 +116,20 @@ export function LiveHousekeeping(){
      <option value="">Choose a room</option>{rooms.data?.data.map(r=><option key={r.id} value={r.id}>Room {r.number}</option>)}</select></label>
     <label>Task type<select disabled={!!selected||!admin||saving} value={form.type} onChange={e=>change('type',e.target.value as HousekeepingType)}>
      {taskTypes.map(type=><option key={type} value={type}>{type.replaceAll('_',' ')}</option>)}</select></label>
-    <label>Status<select disabled={!selected||!admin||saving} value={form.status} onChange={e=>change('status',e.target.value as HousekeepingStatus)}>
+    <label>Status<select disabled={!selected||!maySave||saving} value={form.status} onChange={e=>change('status',e.target.value as HousekeepingStatus)}>
      {[selected?.status??'todo',...(transitions[selected?.status??'todo']??[])].map(status=><option key={status} value={status}>{status.replaceAll('_',' ')}</option>)}</select></label>
-    <label>Assigned staff (text)<input maxLength={120} disabled={!admin||saving} value={form.assignedTo} onChange={e=>change('assignedTo',e.target.value)}/></label>
+    {admin&&<label>Linked staff account<select value={form.assignedUserId} disabled={saving} onChange={e=>change('assignedUserId',e.target.value)}>
+     <option value="">No linked account</option>
+     {staff.data?.data.filter(m=>m.isActive&&m.accountActive&&(m.role==='housekeeping'||m.role==='admin')).map(m=><option key={m.userId} value={m.userId}>{m.name} ({m.role})</option>)}
+    </select></label>}
+    <label>Assigned staff (legacy text)<input maxLength={120} disabled={!admin||saving} value={form.assignedTo} onChange={e=>change('assignedTo',e.target.value)}/></label>
     <label>Due at (hotel-local)<input type="datetime-local" disabled={!admin||saving} value={form.dueAt} onChange={e=>change('dueAt',e.target.value)}/></label>
-    {admin&&<label>Handover note<textarea rows={2} maxLength={2000} disabled={saving} value={form.note} onChange={e=>change('note',e.target.value)}/></label>}
+    {maySave&&<label>Handover note<textarea rows={2} maxLength={2000} disabled={saving} value={form.note} onChange={e=>change('note',e.target.value)}/></label>}
    </div>
    {Object.entries(fieldErrors).flatMap(([field,messages])=>messages.map((m,i)=><p key={field+i} className="catalog-field-error" role="alert">{field}: {m}</p>))}
    {error&&<p role="alert" className="auth-error">{error}</p>}
    <div className="guest-modal-actions"><button type="button" className="btn-inline" disabled={saving} onClick={close}>Close</button>
-    {admin&&<button type="submit" className="btn-primary" disabled={saving}>{saving?'Saving…':selected?'Save changes':'Create task'}</button>}</div>
+    {maySave&&<button type="submit" className="btn-primary" disabled={saving}>{saving?'Saving…':selected?'Save changes':'Create task'}</button>}</div>
    </form>
    {selected&&<div className="catalog-audit-section">
     <button type="button" className="btn-inline" onClick={()=>setHistoryOpen(v=>!v)}><History size={16}/>{historyOpen?'Hide':'View'} audit history</button>

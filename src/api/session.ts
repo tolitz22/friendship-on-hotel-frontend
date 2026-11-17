@@ -1,11 +1,12 @@
 /**
- * Bearer auth defaults to memory-only. Temporary opt-in sessionStorage
- * persistence supports page reloads on separate Railway hostnames.
+ * Bearer auth persists in tab-scoped sessionStorage by default so
+ * staff sessions survive reloads on separate Railway hostnames.
+ * Set VITE_AUTH_PERSISTENCE=memory to opt out.
  * IMPORTANT: sessionStorage is readable by JS and is vulnerable to XSS.
  * Prefer same-site HttpOnly Sanctum cookies for an operational PMS.
  */
 const persistenceEnabled=import.meta.env.VITE_AUTH_MODE!=='cookie'
- &&import.meta.env.VITE_AUTH_PERSISTENCE==='session';
+ &&import.meta.env.VITE_AUTH_PERSISTENCE!=='memory';
 const tokenKey='foh.staff.bearer.v1';
 const hotelKey='foh.staff.hotel.v1';
 const storage=():Storage|null=>{

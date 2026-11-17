@@ -24,7 +24,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  deskAction?:'assign'|'check-in'|'check-out'|null;
 }){
  const {hotelId,user}=useHotelAuth();
- const admin=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
+ const canOperate=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&(h.role==='admin'||h.role==='front_desk'));
  const [roomPage,setRoomPage]=useState(1);
  const [historyPage,setHistoryPage]=useState(1);
  const [roomId,setRoomId]=useState('');
@@ -36,8 +36,8 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const assignmentRef=useRef<HTMLElement>(null);
  const lifecycleRef=useRef<HTMLElement>(null);
  const client=useQueryClient();
- const rooms=useLiveAssignableRooms(record,roomPage,admin);
- const blocks=useLiveRoomBlocks(roomId||null,admin);
+ const rooms=useLiveAssignableRooms(record,roomPage,canOperate);
+ const blocks=useLiveRoomBlocks(roomId||null,canOperate);
  const history=useLiveReservationHistory(record,historyPage);
  const readinessPolicy=useReadinessPolicy();
  const readiness=useLiveReadiness(record.assignedRoomId);
@@ -46,16 +46,16 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const activeBlock=blocks.data
   ?hasActiveStayBlock(blocks.data.data,record):false;
  const allBlockPagesLoaded=!!blocks.data&&blocks.data.meta.totalPages<=1;
- const canAssign=admin&&record.lifecycleState==='confirmed'&&!!room
+ const canAssign=canOperate&&record.lifecycleState==='confirmed'&&!!room
   &&blocks.isSuccess&&allBlockPagesLoaded&&!activeBlock&&!busy
   &&roomId!==record.assignedRoomId;
  const hotelDate=hotelToday();
  const readyForEnforcedCheckin=readinessPolicy.isSuccess&&(
   !readinessPolicy.data.enforceAtCheckIn || (readiness.isSuccess&&readiness.data.advisoryReady)
  );
- const canCheckIn=admin&&allowedOperation(record,'check-in',hotelDate)
+ const canCheckIn=canOperate&&allowedOperation(record,'check-in',hotelDate)
   &&readyForEnforcedCheckin&&acknowledged&&!busy;
- const canCheckOut=admin&&allowedOperation(record,'check-out',hotelDate)&&acknowledged&&!busy;
+ const canCheckOut=canOperate&&allowedOperation(record,'check-out',hotelDate)&&acknowledged&&!busy;
 
  useEffect(()=>{
   setRoomPage(1);setHistoryPage(1);setRoomId('');setAcknowledged(false);
@@ -97,7 +97,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  }
  async function perform(action:'assign'|Operation,event?:FormEvent){
   event?.preventDefault();
-  if(!hotelId||!admin||inFlight.current)return;
+  if(!hotelId||!canOperate||inFlight.current)return;
   if(action==='assign'&&!canAssign)return;
   if(action==='check-in'&&!canCheckIn)return;
   if(action==='check-out'&&!canCheckOut)return;
@@ -143,8 +143,8 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
    </div>
   </div>
   <p className="help-copy">Reservation #{record.id} · Room type #{record.roomTypeId} · Assigned room: {record.assignedRoomId??'None'}.</p>
-  {!admin&&<p role="status">Only administrators of the selected hotel can assign rooms or change a reservation lifecycle. The backend enforces permissions.</p>}
-  {admin&&<>
+  {!canOperate&&<p role="status">Only authorized front-desk staff and hotel managers can assign rooms or change a reservation lifecycle. Laravel enforces permissions.</p>}
+  {canOperate&&<>
    {record.lifecycleState==='confirmed'&&<section ref={assignmentRef} className={deskAction==='assign'?'fdc-target-operation':''}>
     <h4>Assign a physical room</h4>
     {preferredRoomId&&<p role="status" className="calendar-booking-context">Preferred room from calendar: {preferredRoomNumber??'Selected room'}. We only preselect it when Laravel returns a matching room. Assignment is still subject to block and availability checks.</p>}

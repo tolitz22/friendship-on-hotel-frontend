@@ -21,6 +21,9 @@ The checked-out reservation now offers the exact task link only after the read-o
 ### Readiness freshness
 Real housekeeping and maintenance writes invalidate the selected hotel's room-readiness assessment cache. No task status alone certifies room readiness or changes dated inventory/guest status.
 
+### Confirmed source-level test mismatch
+The existing src/api/http.test.ts expected bearer-authenticated fetch options to leave credentials undefined, while src/api/http.ts explicitly uses credentials:'omit' so browser cookies are not sent with bearer-token requests. The assertion has been corrected to require 'omit'; production transport behavior was **not** weakened. This mismatch was confirmed by comparing the test against the implementation; the revised test still needs execution.
+
 ### CI strengthening
 The backend GitHub Actions workflow now runs php -l over app, routes, database and tests before route registration and the feature suite. The existing SQLite feature tests and MySQL 8.4 migration check remain in place. This adds a syntax gate, not a claim of passing execution.
 

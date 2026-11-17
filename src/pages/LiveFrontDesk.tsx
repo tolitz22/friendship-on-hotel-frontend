@@ -33,7 +33,8 @@ export function LiveFrontDesk(){
  const client=useQueryClient();
  const {hotelId}=readSession();
  const {user}=useHotelAuth();
- const admin=selectedRole(user?.hotels,hotelId)==='admin';
+ const role=selectedRole(user?.hotels,hotelId);
+ const canOperate=role==='admin'||role==='front_desk';
  const arrivals=useLiveManifest(date,'arrivals',pageByKind.arrivals);
  const departures=useLiveManifest(date,'departures',pageByKind.departures);
  const inHouse=useLiveManifest(date,'in_house',pageByKind.in_house);
@@ -61,7 +62,7 @@ export function LiveFrontDesk(){
    <Heading title="Front desk" description="Your daily arrival, departure and room-assignment workspace."/>
    <div className="fdc-heading-actions">
     <button type="button" className="btn-inline" onClick={refresh}><RefreshCw size={15}/> Refresh</button>
-    {admin&&<Link to="/reservations" className="btn-primary"><Plus size={16}/> New reservation</Link>}
+    {canOperate&&<Link to="/reservations" className="btn-primary"><Plus size={16}/> New reservation</Link>}
    </div>
   </div>
   <div className="fdc-date-strip">
@@ -129,11 +130,11 @@ export function LiveFrontDesk(){
        <small>Status</small><Status value={statusLabel(row.status)}/>
       </div>
       <div className="fdc-guest-actions">
-       <Link to="/reservations" search={{booking:row.id,...(!admin||action.kind==='view'?{}:{deskAction:action.kind})}} className="fdc-action-link">
-        {!admin?<ClipboardCheck size={16}/>:action.kind==='assign'?<BedDouble size={16}/>:action.kind==='check-in'?<LogIn size={16}/>:action.kind==='check-out'?<LogOut size={16}/>:<ClipboardCheck size={16}/>} 
-        {admin?action.label:'View reservation'} <ArrowRight size={15}/>
+       <Link to="/reservations" search={{booking:row.id,...(!canOperate||action.kind==='view'?{}:{deskAction:action.kind})}} className="fdc-action-link">
+        {!canOperate?<ClipboardCheck size={16}/>:action.kind==='assign'?<BedDouble size={16}/>:action.kind==='check-in'?<LogIn size={16}/>:action.kind==='check-out'?<LogOut size={16}/>:<ClipboardCheck size={16}/>} 
+        {canOperate?action.label:'View reservation'} <ArrowRight size={15}/>
        </Link>
-       <span>{admin?action.hint:'Read-only staff review. Contact a manager for changes.'}</span>
+       <span>{canOperate?action.hint:'Read-only staff review. Contact a manager for changes.'}</span>
       </div>
      </article>;
     })}

@@ -1,4 +1,5 @@
-import {useEffect,useMemo,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
 import {Link} from '@tanstack/react-router';
 import {CalendarDays,ChevronLeft,ChevronRight,RotateCw,Search,X,ArrowUpRight,Info,BedDouble,AlertTriangle} from 'lucide-react';
 import {useRoomCalendar,type RoomCalendarData} from '../api/liveRoomCalendar';
@@ -38,6 +39,8 @@ export function LiveRoomCalendar(){
  const [roomTypeId,setRoomTypeId]=useState('');
  const [search,setSearch]=useState('');
  const [selected,setSelected]=useState<Selection|null>(null);
+ const closeRef=useRef<HTMLButtonElement>(null);
+ const lastTriggerRef=useRef<HTMLButtonElement|null>(null);
 
  const dates=useMemo(()=>period(anchor,mode),[anchor,mode]);
  const roomTypes=useLiveRoomTypes();
@@ -46,9 +49,27 @@ export function LiveRoomCalendar(){
  useEffect(()=>{setSelected(null);},[mode,anchor,page,floor,roomTypeId,search]);
  useEffect(()=>{
   if(!selected)return;
-  const close=(event:KeyboardEvent)=>{if(event.key==='Escape')setSelected(null);};
+  const originalOverflow=document.body.style.overflow;
+  document.body.style.overflow='hidden';
+  closeRef.current?.focus();
+  const close=(event:KeyboardEvent)=>{
+   if(event.key==='Escape'){event.preventDefault();setSelected(null);}
+   if(event.key==='Tab'){
+    const root=document.getElementById('lrc-room-dialog');
+    if(!root)return;
+    const focusable=Array.from(root.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled])'));
+    if(!focusable.length)return;
+    const first=focusable[0],last=focusable[focusable.length-1];
+    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+   }
+  };
   window.addEventListener('keydown',close);
-  return ()=>window.removeEventListener('keydown',close);
+  return ()=>{
+   document.body.style.overflow=originalOverflow;
+   window.removeEventListener('keydown',close);
+   lastTriggerRef.current?.focus();
+  };
  },[selected]);
  const data=calendar.data?.data;
  const selectedBookings=selected&&data?data.bookings.filter(b=>b.roomId===selected.room.id&&b.checkIn<=selected.day&&selected.day<b.checkOut):[];
@@ -123,7 +144,7 @@ export function LiveRoomCalendar(){
        ].join('\n');
        return <button key={day} type="button" className={'lrc-cell lrc-clickable '+(conflict?'lrc-conflict':blocks.length?'lrc-maintenance':booking?.status==='checked_in'?'lrc-inhouse':booking?'lrc-confirmed':'lrc-free')}
         title={title} aria-label={'Room '+room.number+' on '+day+': '+(conflict?'overlapping records':booking?booking.reference:blocks.length?'maintenance blocked':'no assigned booking')+'. View details'}
-        onClick={()=>setSelected({room,day})}>
+        onClick={event=>{lastTriggerRef.current=event.currentTarget;setSelected({room,day});}}>
         <span className="lrc-cell-content">{booking?(mode==='week'?booking.reference:'●'):blocks.length?(mode==='week'?'Blocked':'×'):(mode==='week'?'+':'·')}</span>
         {conflict&&<span className="lrc-warning" aria-label="Overlapping records">!</span>}
        </button>;
@@ -138,54 +159,74 @@ export function LiveRoomCalendar(){
    </div>}
    <p className="lrc-note"><CalendarDays size={14}/> Read-only schedule of assigned reservations and maintenance blocks. Checkout dates are exclusive. Empty cells do not prove room readiness, physical occupancy, or sellable availability. Use Reservations for booking changes and Rooms & readiness for inspections.</p>
   </section>
-   {selected&&<div className="lrc-modal-backdrop" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setSelected(null);}}>
-    <section className="lrc-modal" role="dialog" aria-modal="true" aria-labelledby="lrc-details-title">
-     <div className="lrc-modal-header">
-      <div><span className="lrc-modal-eyebrow">ROOM INVENTORY</span>
-       <h2 id="lrc-details-title">Room {selected.room.number}</h2>
-       <p>{dayText(selected.day,{weekday:'long',month:'long',day:'numeric',year:'numeric'})} · {selected.room.roomTypeName}{selected.room.floor===null?'':' · Floor '+selected.room.floor}</p>
-      </div>
-      <button type="button" className="btn-inline lrc-modal-close" aria-label="Close room details" onClick={()=>setSelected(null)}><X size={18}/></button>
-     </div>
-     <div className="lrc-modal-body">
-      {selectedBookings.length===0&&selectedBlocks.length===0&&<div className="lrc-modal-state">
-       <BedDouble size={20}/><div><strong>No room assignment recorded</strong>
-        <p>There is no assigned booking or active maintenance block on this date. This does not guarantee the room is clean or available for sale.</p>
-       </div></div>}
-      {selectedBookings.length>0&&<div className="lrc-modal-section">
-       <h3>Assigned bookings ({selectedBookings.length})</h3>
-       {selectedBookings.map(b=><div key={b.id} className="lrc-modal-booking">
-        <div className="lrc-modal-line"><strong>{b.reference}</strong><span>{b.status?.replaceAll('_',' ')??'Status unknown'}</span></div>
-        <p>Check-in: {dayText(b.checkIn,{month:'short',day:'numeric',year:'numeric'})}</p>
-        <p>Check-out: {dayText(b.checkOut,{month:'short',day:'numeric',year:'numeric'})}</p>
-        <Link to="/reservations" search={{booking:b.id}} className="lrc-modal-action" onClick={()=>setSelected(null)}>Open reservation <ArrowUpRight size={15}/></Link>
-       </div>)}
-       {selectedBookings.length===1&&<div className="lrc-modal-extra">
-        {reservation.isPending&&<p>Loading reservation confirmation…</p>}
-        {reservation.isError&&<p>Could not refresh reservation detail. Open the reservation to verify its current state.</p>}
-        {reservation.data&&<p>Current Laravel state: <strong>{reservation.data.lifecycleState?.replaceAll('_',' ')??'Unknown'}</strong></p>}
+   {selected&&createPortal(
+    <div className="lrc-modal-backdrop" style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(8,12,22,.76)',display:'flex',alignItems:'center',justifyContent:'center',padding:16,backdropFilter:'blur(3px)'}}
+     role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setSelected(null);}}>
+     <section id="lrc-room-dialog" className="lrc-modal" role="dialog" aria-modal="true"
+      aria-labelledby="lrc-details-title" aria-describedby="lrc-details-context"
+      style={{width:'min(100%,520px)',maxHeight:'min(88vh,800px)',overflowY:'auto',borderRadius:18,background:'var(--surface)',color:'var(--text)',border:'1px solid var(--border)',boxShadow:'0 24px 70px rgba(0,0,0,.42)'}}>
+      <header className="lrc-modal-header" style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:15,padding:'22px 24px 18px',borderBottom:'1px solid var(--border)'}}>
+       <div>
+        <span className="lrc-modal-eyebrow">ROOM SCHEDULE · {selected.day}</span>
+        <h2 id="lrc-details-title" style={{fontSize:24,margin:'6px 0'}}>Room {selected.room.number}</h2>
+        <p id="lrc-details-context" style={{fontSize:12,margin:0,color:'var(--muted)',lineHeight:1.6}}>
+         {selected.room.roomTypeName}{selected.room.floor===null?'':' · Floor '+selected.room.floor}<br/>
+         {dayText(selected.day,{weekday:'long',month:'long',day:'numeric',year:'numeric'})}
+        </p>
+       </div>
+       <button ref={closeRef} type="button" className="btn-inline lrc-modal-close"
+        aria-label="Close room details" onClick={()=>setSelected(null)}><X size={18}/></button>
+      </header>
+      <div className="lrc-modal-body" style={{display:'grid',gap:16,padding:'20px 24px'}}>
+       {selectedBookings.length===0&&selectedBlocks.length===0&&<div className="lrc-modal-state">
+        <BedDouble size={22}/><div><strong>No assigned booking</strong>
+         <p>This room has no recorded assignment for this date. Check housekeeping readiness and availability before accepting a guest.</p>
+        </div>
        </div>}
-      </div>}
-      {selectedBlocks.length>0&&<div className="lrc-modal-section">
-       <h3>Maintenance blocks ({selectedBlocks.length})</h3>
-       {selectedBlocks.map(b=><div className="lrc-modal-block" key={b.id}>
-        <strong>{b.reason}</strong>
-        <p>{dayText(b.checkIn,{month:'short',day:'numeric'})} – {dayText(b.checkOut,{month:'short',day:'numeric'})} (checkout boundary exclusive)</p>
-       </div>)}
-      </div>}
-      {selectedBookings.length+selectedBlocks.length>1&&<p className="lrc-modal-warning"><AlertTriangle size={17}/> Overlapping records detected. Review assignments and blocks before changing anything.</p>}
-      <div className="lrc-modal-hint"><Info size={17}/><span>Booking requires a guest, an active rate, and final availability checks. Selecting a room here never reserves or assigns it automatically.</span></div>
-      {selectedBookings.length===0&&selectedBlocks.length===0&&selected.day<hotelToday()&&
-       <p role="status" className="lrc-modal-warning">Past dates cannot start new reservations. Pick today or a future date.</p>}
-     </div>
-     <div className="lrc-modal-footer">
-      <button className="btn-inline" type="button" onClick={()=>setSelected(null)}>Close</button>
-      {canStartBooking
-       ?<Link to="/reservations" search={{room:selected.room.id,roomNumber:selected.room.number,checkIn:selected.day}}
-          className="btn-primary" onClick={()=>setSelected(null)}>Start booking for this room <ArrowUpRight size={15}/></Link>
-       :<Link to="/reservations" className="btn-primary" onClick={()=>setSelected(null)}>Manage bookings <ArrowUpRight size={15}/></Link>}
-     </div>
-    </section>
-   </div>}
+       {selectedBookings.length>0&&<div className="lrc-modal-section">
+        <h3>Reservations ({selectedBookings.length})</h3>
+        {selectedBookings.map(booking=><div key={booking.id} className="lrc-modal-booking">
+         <div className="lrc-modal-line"><strong>{booking.reference}</strong>
+          <span>{booking.status?.replaceAll('_',' ')??'Status unknown'}</span>
+         </div>
+         <p><strong>Arrival:</strong> {dayText(booking.checkIn,{month:'short',day:'numeric',year:'numeric'})}</p>
+         <p><strong>Departure:</strong> {dayText(booking.checkOut,{month:'short',day:'numeric',year:'numeric'})}</p>
+         <Link to="/reservations" search={{booking:booking.id}} className="lrc-modal-action" onClick={()=>setSelected(null)}>
+          Manage this booking <ArrowUpRight size={15}/>
+         </Link>
+        </div>)}
+        {selectedBookings.length===1&&<div className="lrc-modal-extra" aria-live="polite">
+         {reservation.isPending&&<p>Refreshing reservation status…</p>}
+         {reservation.isError&&<p>Current status could not be verified. Open the reservation for the latest details.</p>}
+         {reservation.data&&<p>Verified status: <strong>{reservation.data.lifecycleState?.replaceAll('_',' ')??'Unknown'}</strong></p>}
+        </div>}
+       </div>}
+       {selectedBlocks.length>0&&<div className="lrc-modal-section">
+        <h3>Room blocks ({selectedBlocks.length})</h3>
+        {selectedBlocks.map(block=><div className="lrc-modal-block" key={block.id}>
+         <strong>{block.reason}</strong>
+         <p>{dayText(block.checkIn,{month:'short',day:'numeric'})} – {dayText(block.checkOut,{month:'short',day:'numeric'})}</p>
+        </div>)}
+       </div>}
+       {selectedBookings.length+selectedBlocks.length>1&&<p className="lrc-modal-warning"><AlertTriangle size={17}/> Multiple assignments or blocks overlap. Review before changing inventory.</p>}
+       {canStartBooking&&<div className="lrc-modal-tip">
+        <CalendarDays size={18}/><div><strong>Start a reservation for this date</strong>
+         <p>We'll carry this room and check-in date to the booking form. You'll choose a guest and rate before confirming.</p>
+        </div>
+       </div>}
+       {selectedBookings.length===0&&selectedBlocks.length===0&&selected.day<hotelToday()&&
+        <p className="lrc-modal-warning">This date has passed. Select today or a future night to create a booking.</p>}
+       <p className="lrc-modal-hint"><Info size={16}/> The schedule is informational. Empty cells do not guarantee a room is clean, unoccupied, or sellable.</p>
+      </div>
+      <footer className="lrc-modal-footer" style={{display:'flex',justifyContent:'flex-end',alignItems:'center',gap:10,padding:'16px 24px',borderTop:'1px solid var(--border)',flexWrap:'wrap'}}>
+       <button type="button" className="btn-inline" onClick={()=>setSelected(null)}>Close</button>
+       {canStartBooking
+        ?<Link to="/reservations" search={{room:selected.room.id,roomNumber:selected.room.number,checkIn:selected.day}}
+           className="btn-primary" onClick={()=>setSelected(null)}>Create reservation <ArrowUpRight size={16}/></Link>
+        :<Link to="/reservations" className="btn-primary" onClick={()=>setSelected(null)}>View reservations <ArrowUpRight size={16}/></Link>}
+      </footer>
+     </section>
+    </div>,document.body)}
+
  </>;
 }

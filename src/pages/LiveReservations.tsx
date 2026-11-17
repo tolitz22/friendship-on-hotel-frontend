@@ -36,7 +36,10 @@ export function LiveReservations(){
  const [view,setView]=useState<'manage'|'new'>('manage');
  const [filter,setFilter]=useState<'all'|'needs_room'|'arrivals'|'in_house'|'completed'>('all');
  const [search,setSearch]=useState('');
- useEffect(()=>{setPage(1);setView('manage');setFilter('all');setSearch('');},[hotelId]);
+ useEffect(()=>{
+  setPage(1);setFilter('all');setSearch('');
+  setView(routeSearch.mode==='new'||!!routeSearch.guest||!!routeSearch.room?'new':'manage');
+ },[hotelId,routeSearch.mode,routeSearch.guest,routeSearch.room]);
  const [inputs,setInputs]=useState<LiveStay>(initialStay);
  const [rateId,setRateId]=useState('');
  const [requested,setRequested]=useState<{stay:LiveStay;rateId:string}|null>(null);

@@ -1,7 +1,7 @@
 import {useEffect,useState,type FormEvent} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
-import {Plus,ShieldCheck} from 'lucide-react';
-import {attachHotelStaff,listHotelStaff,updateHotelStaff,type StaffRole} from '../api/liveStaff';
+import {Plus,ShieldCheck,History} from 'lucide-react';
+import {attachHotelStaff,getHotelStaffHistory,listHotelStaff,updateHotelStaff,type StaffRole} from '../api/liveStaff';
 import {ApiError} from '../api/http';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
@@ -18,13 +18,16 @@ export function LiveStaff(){
  const [saving,setSaving]=useState<string|null>(null);
  const [error,setError]=useState('');
  const [notice,setNotice]=useState('');
- useEffect(()=>{setEmail('');setError('');setNotice('');},[hotelId]);
+ const [historyOpen,setHistoryOpen]=useState(false);
+ const history=useQuery({queryKey:['hotel-staff-history',hotelId],queryFn:getHotelStaffHistory,enabled:admin&&historyOpen});
+ useEffect(()=>{setEmail('');setError('');setNotice('');setHistoryOpen(false);},[hotelId]);
  async function attach(e:FormEvent<HTMLFormElement>){
   e.preventDefault();if(!admin||saving)return;
   setSaving('attach');setError('');setNotice('');
   try{
    await attachHotelStaff(email.trim(),role);
    await client.invalidateQueries({queryKey:['hotel-staff',hotelId]});
+   await client.invalidateQueries({queryKey:['hotel-staff-history',hotelId]});
    setEmail('');setNotice('Existing account added to the selected hotel.');
   }catch(e){setError(e instanceof ApiError?e.message:e instanceof Error?e.message:'Unable to add staff.');}
   finally{setSaving(null);}
@@ -70,6 +73,15 @@ export function LiveStaff(){
      </button>{!member.accountActive&&<span className="guest-info">Account inactive</span>}</td>
     </tr>)}
    </tbody></table></div>}
+  </Panel>
+  <Panel title="Membership audit history" action={<button type="button" className="btn-inline" onClick={()=>setHistoryOpen(v=>!v)}><History size={16}/>{historyOpen?'Hide':'View'} history</button>}>
+   {historyOpen&&<><QueryFeedback loading={history.isPending} error={history.error} empty={history.data?.data.length===0}/>
+    {history.data?.data.map(event=><article className="maintenance-history-event" key={event.id}>
+     <strong>{event.action} · Staff #{event.targetUserId}</strong>
+     <small>Changed by administrator #{event.actorId} · {event.createdAt}</small>
+     <p>{event.before?.role??'No membership'} → {event.after.role} · {event.after.isActive?'Active':'Inactive'}</p>
+    </article>)}
+   </>}
   </Panel>
  </>;
 }

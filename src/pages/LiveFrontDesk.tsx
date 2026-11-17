@@ -125,7 +125,7 @@ export function LiveFrontDesk(){
        <small>Status</small><Status value={statusLabel(row.status)}/>
       </div>
       <div className="fdc-guest-actions">
-       <Link to="/reservations" search={{booking:row.id}} className="fdc-action-link">
+       <Link to="/reservations" search={{booking:row.id,...(action.kind==='view'?{}:{deskAction:action.kind})}} className="fdc-action-link">
         {action.kind==='assign'?<BedDouble size={16}/>:action.kind==='check-in'?<LogIn size={16}/>:action.kind==='check-out'?<LogOut size={16}/>:<ClipboardCheck size={16}/>}
         {action.label} <ArrowRight size={15}/>
        </Link>

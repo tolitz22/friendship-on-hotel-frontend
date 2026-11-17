@@ -5,6 +5,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {CalendarDays,ChevronLeft,ChevronRight,RotateCw,Search,X,ArrowUpRight,Info,BedDouble,AlertTriangle} from 'lucide-react';
 import {useRoomCalendar,type RoomCalendarData} from '../api/liveRoomCalendar';
 import {useLiveReservationDetail} from '../api/liveReservations';
+import {useLiveFolioLedger} from '../api/liveFinance';
 import {useLiveRoomTypes} from '../api/liveCatalogQueries';
 import {addDays,hotelToday} from '../features/reservations/calendarDate';
 import {roomHasConflict,validRoomStay} from '../features/reservations/roomCalendarRange';
@@ -85,6 +86,7 @@ export function LiveRoomCalendar(){
  const selectedBookings=selected&&data?data.bookings.filter(b=>b.roomId===selected.room.id&&b.checkIn<=selected.day&&selected.day<b.checkOut):[];
  const selectedBlocks=selected&&data?data.blocks.filter(b=>b.roomId===selected.room.id&&b.checkIn<=selected.day&&selected.day<b.checkOut):[];
  const reservation=useLiveReservationDetail(selectedBookings.length===1?selectedBookings[0].id:null);
+ const folio=useLiveFolioLedger(selectedBookings.length===1?selectedBookings[0].id:'');
  const meta=calendar.data?.meta;
  const rangeValid=!!selected&&validRoomStay(selected.day,departure);
  const rangeConflict=!!selected&&rangeValid&&!!data&&roomHasConflict(
@@ -260,6 +262,15 @@ export function LiveRoomCalendar(){
          {reservation.isError&&<p>Current status could not be verified. Open the reservation for the latest details.</p>}
          {reservation.data&&<p>Verified status: <strong>{reservation.data.lifecycleState?.replaceAll('_',' ')??'Unknown'}</strong> · Room {selected.room.number}</p>}
         </div>}
+        {selectedBookings.length===1&&folio.isSuccess&&<div className="lrc-folio-preview">
+         <strong>Recorded folio snapshot</strong>
+         <div><span>Staff-confirmed payment evidence</span>
+          <b>{new Intl.NumberFormat('en-PH',{style:'currency',currency:folio.data.data.summary.currency}).format(folio.data.data.summary.staffConfirmedPaymentsMinor/100)}</b></div>
+         <div><span>Pending payment evidence</span>
+          <b>{new Intl.NumberFormat('en-PH',{style:'currency',currency:folio.data.data.summary.currency}).format(folio.data.data.summary.pendingReviewPaymentsMinor/100)}</b></div>
+         <p>This is not a final bill, a settled balance, or independently verified cash. Review the folio for details.</p>
+        </div>}
+        {selectedBookings.length===1&&folio.isError&&<p className="lrc-modal-extra">No priced folio preview available for this reservation. Use View folio to investigate.</p>}
        </div>}
        {selectedBlocks.length>0&&<div className="lrc-modal-section">
         <h3>Room blocks ({selectedBlocks.length})</h3>

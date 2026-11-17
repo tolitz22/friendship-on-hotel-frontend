@@ -2,7 +2,7 @@ import {createContext,useContext,useState,type ReactNode} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 import {dataMode} from '../api';
 import {fetchStaffProfile,loginStaff,logoutStaff,type StaffProfile} from '../api/auth';
-import {clearSession,setSessionHotel,setSessionToken} from '../api/session';
+import {clearSession,readSession,setSessionHotel,setSessionToken} from '../api/session';
 
 interface AuthContextValue{
  user:StaffProfile|null;
@@ -36,6 +36,8 @@ export function AuthProvider({children}:{children:ReactNode}){
     setHotelId(profile.hotels[0].id);
    }
   }catch(e){
+   // A successful login followed by a failed /auth/me should not leave an unused token behind.
+   if(!user&&readSession().token){try{await logoutStaff();}catch{/* Token expires server-side. */}}
    clearSession();setUser(null);setHotelId(null);queryClient.clear();
    throw e;
   }finally{setPending(false);}

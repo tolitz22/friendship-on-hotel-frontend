@@ -75,7 +75,9 @@ export function LiveReservations(){
     <span className="filter-hint">Read-only · server pagination</span>
    </div>
    <QueryFeedback loading={records.isPending} error={records.error}
-    empty={records.isSuccess&&filtered.length===0}/>
+    onRetry={()=>void records.refetch()}
+    empty={records.isSuccess&&filtered.length===0}
+    emptyMessage={term?'No bookings on this page match the search. Try another page or clear search.':'No reservations have been recorded for this hotel yet.'}/>
    {records.isSuccess&&filtered.length>0&&<div className="table-scroll"><table>
     <thead><tr><th>Reference</th><th>Stay</th><th>Room type ID</th><th>Assigned room ID</th><th>Lifecycle</th></tr></thead>
     <tbody>{filtered.map(record=><tr key={record.id}>

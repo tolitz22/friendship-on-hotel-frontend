@@ -7,7 +7,7 @@ import {
 import {useHotelAuth} from '../components/AuthProvider';
 import {useFolios} from '../api/queries';
 import {dataMode} from '../api';
-import {useBillingFolios,formatBillingMoney} from '../api/billing';
+import {useBillingFolios,useBillingReservationFallback,formatBillingMoney} from '../api/billing';
 import {DemoNotice,Heading,Panel,Status} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {SettlementPanel} from '../components/SettlementPanel';
@@ -23,17 +23,18 @@ function LiveBilling(){
  const [page,setPage]=useState(1);
  const [search,setSearch]=useState('');
  const [debounced,setDebounced]=useState('');
- const [directId,setDirectId]=useState('');
  useEffect(()=>{
   const timer=window.setTimeout(()=>{setDebounced(search.trim());setPage(1);},300);
   return ()=>window.clearTimeout(timer);
  },[search]);
- useEffect(()=>{setPage(1);setSearch('');setDebounced('');setDirectId('');},[hotelId]);
+ useEffect(()=>{setPage(1);setSearch('');setDebounced('');},[hotelId]);
  const folios=useBillingFolios(page,debounced);
+ const fallback=useBillingReservationFallback(folios.isError,page,debounced);
  const selectedId=requestedBooking??null;
  const select=(booking:string)=>void navigate({to:'/billing',search:{booking}});
  const clear=()=>void navigate({to:'/billing',search:{}});
  const loadingSearch=debounced!==search.trim();
+ const directId=/^[1-9]\\d*$/.test(search.trim())?search.trim():null;
  if(!hotelId||!canRead)return <>
   <Heading title="Billing & guest folios" description="Hotel billing is available to authorized reception and finance staff."/>
   <Panel title="Access required"><p>Select an authorized hotel and sign in with a billing-enabled staff account.</p></Panel>
@@ -47,36 +48,54 @@ function LiveBilling(){
     <Link to="/reservations" className="rr-secondary-action"><ClipboardList size={16}/> Reservations</Link>
    </div>
   </div>
-  <div className="billing-guidance"><Info size={18}/><p><strong>Financial records are not proof of bank settlement.</strong>
-   Staff-confirmed payments still require independent verification. Only approved and signed folios are final internal settlement records; these statements are not tax invoices.</p></div>
-  <section className="billing-index" aria-label="Guest folio directory">
+  <div className="billing-guidance"><Info size={18}/><p><strong>Billing shows recorded amounts, not proof of payment.</strong>
+   Payments require separate verification. A signed account is an internal settlement record—not a tax invoice.</p></div>
+  {!selectedId&&<section className="billing-index" aria-label="Guest folio directory">
    <div className="billing-section-heading">
-    <div><span className="rr-eyebrow">LIVE HOTEL RECORDS</span><h3>Find a guest folio</h3>
-     <p>Search by guest name, booking reference, or reservation ID, then open the recorded account.</p></div>
+    <div><span className="rr-eyebrow">GUEST ACCOUNTS</span><h3>Find a guest or booking</h3>
+     <p>Search by name, booking reference, or reservation number. Select a guest to see charges and payment status.</p></div>
     <button type="button" className="rr-secondary-action" disabled={folios.isFetching}
      onClick={()=>void folios.refetch()}><RefreshCcw size={15}/>{folios.isFetching?'Refreshing…':'Refresh list'}</button>
    </div>
-   <form className="billing-direct-search" onSubmit={e=>{
-    e.preventDefault();if(/^[1-9]\d*$/.test(directId))select(directId);
-   }}>
-    <label>Open a reservation by ID
-     <input className="wizard-input" inputMode="numeric" pattern="[1-9][0-9]*"
-      value={directId} onChange={e=>setDirectId(e.target.value.trim())} placeholder="Reservation ID"/>
-    </label>
-    <button type="submit" className="btn-primary" disabled={!/^[1-9]\d*$/.test(directId)}>
-     Open folio <ArrowRight size={15}/></button>
-   </form>
-   <div className="billing-directory-controls">
-    <label className="billing-list-search"><Search size={17}/>
-     <input type="search" value={search} aria-label="Search folios" placeholder="Guest name, reference, or booking ID…"
+   <div className="billing-directory-controls billing-primary-search">
+    <label className="billing-list-search"><Search size={19}/>
+     <input type="search" value={search} aria-label="Search folios" autoFocus
+      placeholder="Search guest name, booking reference, or number"
       onChange={e=>setSearch(e.target.value)}/>
     </label>
-    {search&&<button type="button" className="btn-inline" onClick={()=>{setSearch('');setDebounced('');setPage(1);}}><X size={15}/> Clear search</button>}
-    <span className="billing-count" role="status">{loadingSearch?'Searching…':folios.isSuccess?folios.data.meta.total+' priced folios found':'Loading folios…'}</span>
+    {directId&&<button type="button" className="btn-primary" onClick={()=>select(directId)}>
+     Open booking #{directId} <ArrowRight size={16}/></button>}
+    {search&&!directId&&<button type="button" className="btn-inline" onClick={()=>{setSearch('');setDebounced('');setPage(1);}}>
+     <X size={15}/> Clear</button>}
+    <span className="billing-count" role="status">{loadingSearch?'Searching…':folios.isSuccess
+     ?folios.data.meta.total+' guest accounts found':folios.isError?'Account list unavailable':'Loading accounts…'}</span>
    </div>
-   <QueryFeedback loading={folios.isPending||loadingSearch} error={folios.error} onRetry={()=>void folios.refetch()}
-    empty={folios.isSuccess&&!loadingSearch&&folios.data.data.length===0}
-    emptyMessage={debounced?'No matching priced folios. Check the reference or clear search.':'No priced folios have been recorded yet. Create a priced reservation first.'}/>
+   {folios.isPending&&!loadingSearch&&<QueryFeedback loading error={null}/>}
+   {folios.isError&&!loadingSearch&&<div className="billing-recovery" role="alert">
+    <div className="billing-recovery-head"><AlertTriangle size={20}/>
+     <div><strong>Guest account list is unavailable</strong>
+      <p>Your accounts couldn't be loaded right now. You can still find bookings below or open a booking by its number above.</p></div>
+    </div>
+    <button type="button" className="rr-secondary-action" onClick={()=>void folios.refetch()}>
+     <RefreshCcw size={16}/> Retry account list</button>
+    {fallback.isPending&&<p className="billing-fallback-status">Looking for available reservations…</p>}
+    {fallback.isSuccess&&<div className="billing-recovery-bookings">
+     <h4>Find a reservation instead</h4>
+     <p>These are reservation records, not bills. Open one to check whether it has a recorded folio.</p>
+     {fallback.data.data.map(record=><div className="billing-fallback-booking" key={record.id}>
+      <div><strong>{record.guestName?.trim()||record.reference}</strong>
+       <small>{record.reference} · {record.checkIn} – {record.checkOut}</small></div>
+      <button type="button" className="btn-inline" onClick={()=>select(record.id)}>Check bill <ArrowRight size={15}/></button>
+     </div>)}
+     {fallback.data.data.length===0&&<p>No matching reservations. Try another name or booking reference.</p>}
+    </div>}
+    {fallback.isError&&<p>Reservation search is also unavailable. Try again or contact the hotel administrator.</p>}
+   </div>}
+   {folios.isSuccess&&!loadingSearch&&folios.data.data.length===0&&
+    <div className="billing-quiet-empty"><Search size={23}/><strong>No matching guest accounts</strong>
+     <p>{debounced?'Try a different name or reference.':'There are no priced guest folios recorded yet.'}</p>
+     <Link to="/reservations">View reservations <ArrowRight size={15}/></Link>
+    </div>}
    {folios.isSuccess&&!loadingSearch&&folios.data.data.length>0&&<>
     <div className="billing-folio-list">
      {folios.data.data.map(folio=><article className={'billing-folio-row'+(selectedId===folio.bookingId?' selected':'')} key={folio.folioId}>
@@ -89,8 +108,9 @@ function LiveBilling(){
       <div className="billing-folio-amount"><small>Staff-confirmed evidence</small>
        <strong>{formatBillingMoney(folio.staffConfirmedPaymentsMinor,folio.currency)}</strong>
        {folio.pendingReviewPaymentsMinor>0&&<span className="billing-pending">Evidence awaiting review</span>}</div>
-      <div className="billing-folio-status">{folio.signed?
-       <span className="billing-signed"><CheckCircle2 size={14}/> Signed account</span>:
+      <div className="billing-folio-status">{folio.signed===null?
+       <span className="billing-provisional"><AlertTriangle size={14}/> Status unavailable</span>:
+       folio.signed?<span className="billing-signed"><CheckCircle2 size={14}/> Signed account</span>:
        <span className="billing-provisional"><AlertTriangle size={14}/> Not yet signed</span>}
        <small>{statusLabel(folio.status)}</small>
       </div>
@@ -104,17 +124,15 @@ function LiveBilling(){
       <button type="button" className="btn-inline" disabled={page>=folios.data.meta.totalPages} onClick={()=>setPage(v=>v+1)}>Next</button></div>
     </div>}
    </>}
-  </section>
+  </section>}
   {selectedId?<section className="billing-selected" aria-label="Selected guest folio">
    <div className="billing-selected-heading">
     <div><span className="rr-eyebrow">SELECTED ACCOUNT</span><h3>Reservation #{selectedId}</h3>
      <p>Itemized charges, verified allocations, payment reviews and checkout statement.</p></div>
-    <button type="button" className="btn-inline" onClick={clear}><X size={16}/> Close folio</button>
+    <button type="button" className="rr-secondary-action" onClick={clear}><ArrowRight size={16} style={{transform:'rotate(180deg)'}}/> Back to guest accounts</button>
    </div>
    <SettlementPanel key={hotelId+'-'+selectedId} bookingId={selectedId}/>
-  </section>:<div className="billing-unselected"><Wallet size={25}/>
-   <div><strong>Choose a folio to review</strong>
-    <p>Select an account above or enter a reservation ID. Its current settlement status and eligible actions appear here.</p></div></div>}
+  </section>:null}
   <p className="billing-footer-note"><ShieldCheck size={16}/> All financial changes are subject to the existing hotel permissions, independent reviews, and signed-folio restrictions.</p>
  </div>;
 }

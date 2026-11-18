@@ -97,6 +97,7 @@ export function LiveRoomCalendar(){
  },[selected]);
  const data=calendar.data?.data;
  const selectedBookings=selected&&data?data.bookings.filter(b=>b.roomId===selected.room.id
+  &&(showCheckedOut||b.status!=='checked_out')
   &&(selected.bookingId?b.id===selected.bookingId:b.checkIn<=selected.day&&selected.day<b.checkOut)):[];
  const activeBooking=selected?.bookingId&&data
   ?data.bookings.find(b=>b.id===selected.bookingId&&b.roomId===selected.room.id):undefined;
@@ -161,7 +162,7 @@ export function LiveRoomCalendar(){
    <div className="lrc-legend">
     <span><i className="lrc-dot lrc-confirmed"/> Reserved</span>
     <span><i className="lrc-dot lrc-inhouse"/> In house</span>
-    <span><i className="lrc-dot lrc-history"/> Checked out (historical)</span>
+    {showCheckedOut&&<span><i className="lrc-dot lrc-history"/> Checked out (historical)</span>}
     <span><i className="lrc-dot lrc-maintenance"/> Maintenance block</span>
     <span><i className="lrc-dot lrc-conflict"/> Overlap / inspect</span>
     <span><i className="lrc-dot lrc-free"/> No assigned booking</span>
@@ -169,7 +170,7 @@ export function LiveRoomCalendar(){
    </div>
    {calendar.isSuccess&&data&&<div className="lrc-operations-summary" aria-label="Room schedule overview">
     <div><small>Rooms on this page</small><strong>{data.rooms.length}</strong></div>
-    <div><small>Assigned reservations in period</small><strong>{data.bookings.length}</strong></div>
+    <div><small>Assigned bookings shown</small><strong>{data.bookings.filter(b=>showCheckedOut||b.status!=='checked_out').length}</strong></div>
     <div><small>In-house reservations</small><strong>{data.bookings.filter(b=>b.status==='checked_in').length}</strong></div>
     <div><small>Maintenance blocks</small><strong>{data.blocks.length}</strong></div>
     <div className={data.unassignedBookings?'lrc-unassigned-attention':''}>
@@ -293,7 +294,7 @@ export function LiveRoomCalendar(){
     <button className="btn-inline" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>Previous rooms</button>
     <button className="btn-inline" disabled={page>=meta.totalPages} onClick={()=>setPage(p=>p+1)}>Next rooms</button>
    </div>}
-   <p className="lrc-note"><CalendarDays size={14}/> Click a reservation bar to open the booking drawer. Drag across empty dates for a multi-night stay. Read-only schedule of assigned reservations and maintenance blocks. Checkout dates are exclusive. Empty cells do not prove room readiness, physical occupancy, or sellable availability. Use Reservations for booking changes and Rooms & readiness for inspections.</p>
+   <p className="lrc-note"><CalendarDays size={14}/> Click a reservation bar to open the booking drawer. Drag across empty dates for a multi-night stay. Read-only schedule of assigned reservations and maintenance blocks. Checkout dates are exclusive. Empty cells do not prove room readiness, physical occupancy, or sellable availability. Use Bookings for booking changes and Rooms & readiness for inspections.</p>
   </section>
    {selected&&createPortal(
     <div className="lrc-modal-backdrop" style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(8,12,22,.76)',display:'flex',alignItems:'stretch',justifyContent:'flex-end',padding:0,backdropFilter:'blur(3px)'}}

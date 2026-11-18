@@ -1,11 +1,13 @@
 import {useEffect,useRef,useState} from 'react';
 import {Link,useNavigate,useSearch} from '@tanstack/react-router';
 import {useQueryClient} from '@tanstack/react-query';
-import {CalendarDays,Plus,ArrowRight,RefreshCw,Trash2,Search,Layers3,Clock3,ChevronLeft} from 'lucide-react';
+import {CalendarDays,Plus,ArrowRight,RefreshCw,Trash2,Search,Layers3,Clock3,ChevronLeft,UserPlus,BedDouble} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {BookingGuestPicker} from '../components/BookingGuestPicker';
+import {QuickGuestDialog} from '../components/QuickGuestDialog';
+import type {Guest} from '../api/types';
 import {useSelectedGuest} from '../api/liveSelectedGuest';
 import {useLiveRoomTypes,useLiveRatePlans,validLiveStay} from '../api/liveReservations';
 import {createGroupBooking,useGroupBooking,useGroupBookings} from '../api/groupReservations';
@@ -24,12 +26,21 @@ const money=(minor:number,currency:string)=>new Intl.NumberFormat('en-PH',{
 }).format(minor/100);
 const start=()=>hotelToday();
 
-function RoomGuestField({value,index,disabled,onChange}:{value:string;index:number;disabled:boolean;onChange:(id:string)=>void}){
+function RoomGuestField({value,index,disabled,onChange,onAddGuest,canAddGuest,createdGuest}:{
+ value:string;index:number;disabled:boolean;onChange:(id:string)=>void;
+ onAddGuest:()=>void;canAddGuest:boolean;createdGuest?:Guest;
+}){
  const selected=useSelectedGuest(value||null);
- return <div><span className="wizard-label" id={'group-guest-'+index}>Registered guest</span>
-  <BookingGuestPicker value={value} selectedGuest={selected.data??undefined}
+ const guest=createdGuest?.id===value?createdGuest:selected.data;
+ return <div className="gb-guest-field">
+  <div className="gb-field-heading">
+   <label className="wizard-label" id={'group-guest-'+index}>Registered guest</label>
+   {canAddGuest&&<button type="button" className="gb-add-guest" disabled={disabled}
+    onClick={onAddGuest}><UserPlus size={15}/> Add guest</button>}
+  </div>
+  <BookingGuestPicker value={value} selectedGuest={guest??undefined}
    disabled={disabled} onChange={onChange}/>
-  {value&&selected.isError&&<small role="alert">Could not verify this guest. Search and choose again.</small>}
+  {value&&!guest&&selected.isError&&<small role="alert">Could not verify this guest. Search and choose again.</small>}
  </div>;
 }
 
@@ -311,6 +322,7 @@ function GroupDetails({id}:{id:string}){
 export function GroupReservations(){
  const {hotelId,user}=useHotelAuth();
  const canBook=!!user?.hotels.some(h=>h.id===hotelId&&(h.role==='admin'||h.role==='front_desk'));
+ const canCreateGuest=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const search=useSearch({from:'/group-reservations'});
  const navigate=useNavigate();
  const client=useQueryClient();
@@ -326,6 +338,8 @@ export function GroupReservations(){
  const [checkIn,setCheckIn]=useState(start);
  const [checkOut,setCheckOut]=useState(()=>addDays(start(),1));
  const [rooms,setRooms]=useState<Room[]>([blank(),blank()]);
+ const [guestDialogRoom,setGuestDialogRoom]=useState<number|null>(null);
+ const [createdGuests,setCreatedGuests]=useState<Record<string,Guest>>({});
  const [pending,setPending]=useState<{hotelId:string;payload:GroupBookingInput}|null>(null);
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState<string|null>(null);
@@ -335,7 +349,7 @@ export function GroupReservations(){
   setRooms(old=>old.map((row,index)=>index===i
    ?{...row,[key]:value,...(key==='roomTypeId'?{ratePlanId:''}:{})}:row));
  };
- useEffect(()=>{setView('groups');setSearchText('');setSelectedAllotment(null);setPage(1);setPending(null);setResult(null);setError(null);},[hotelId]);
+ useEffect(()=>{setView('groups');setSearchText('');setSelectedAllotment(null);setPage(1);setPending(null);setResult(null);setError(null);setGuestDialogRoom(null);setCreatedGuests({});},[hotelId]);
  const datesValid=validLiveStay({roomTypeId:rooms[0].roomTypeId||'1',checkIn,checkOut})
   &&checkIn>=hotelToday();
  const ready=canBook&&name.trim().length>=2&&datesValid&&rooms.length>=2&&
@@ -443,13 +457,16 @@ export function GroupReservations(){
      <QueryFeedback loading={types.isPending||rates.isPending}
       error={types.error??rates.error}/>
      {rooms.map((room,index)=><div key={index} className="rb-section gb-room-entry">
-      <div className="rb-section-heading"><h4>Room {index+1}</h4>
+      <div className="rb-section-heading"><div className="gb-room-title"><BedDouble size={18}/>
+       <h4>Room {index+1}</h4><span>Guest and rate details</span></div>
        {rooms.length>2&&<button type="button" className="btn-inline"
         onClick={()=>setRooms(old=>old.filter((_,i)=>i!==index))}>
         <Trash2 size={14}/> Remove</button>}</div>
       <div className="wizard-fields">
        <RoomGuestField index={index} value={room.guestId} disabled={locked}
-        onChange={guestId=>update(index,'guestId',guestId)}/>
+        onChange={guestId=>update(index,'guestId',guestId)}
+        onAddGuest={()=>setGuestDialogRoom(index)} canAddGuest={canCreateGuest}
+        createdGuest={createdGuests[room.guestId]}/>
        <div><label className="wizard-label" htmlFor={'group-type-'+index}>Room type</label>
         <select id={'group-type-'+index} className="wizard-input" required
          value={room.roomTypeId} onChange={e=>update(index,'roomTypeId',e.target.value)}>
@@ -468,7 +485,9 @@ export function GroupReservations(){
      </div>)}
      <button type="button" className="btn-inline" disabled={rooms.length>=10}
       onClick={()=>setRooms(old=>[...old,blank()])}><Plus size={16}/> Add another room</button>
-     <p className="desk-muted">Search registered guests by name, email or phone. Add missing guests in the Guest directory before booking.</p>
+     <p className="desk-muted">{canCreateGuest
+      ?'Search for an existing guest first, or use Add guest in the room card to register someone without leaving this booking.'
+      :'Search for an existing guest. Ask a hotel administrator to register a missing guest.'}</p>
     </fieldset>
     <div className="rb-review gb-booking-review">
      <div className="gb-form-step"><span>3</span><div><strong>Review and confirm</strong>
@@ -525,5 +544,15 @@ export function GroupReservations(){
   </Panel>:null}
    <p className="gb-bottom-note"><CalendarDays size={14}/> Room numbers are assigned after a group booking is confirmed.</p>
   </div>
+  {guestDialogRoom!==null&&canCreateGuest&&hotelId&&<QuickGuestDialog key={hotelId+'-'+guestDialogRoom}
+   onClose={()=>setGuestDialogRoom(null)}
+   onCreated={guest=>{
+    if(guest.hotelId!==hotelId)return;
+    setCreatedGuests(previous=>({...previous,[guest.id]:guest}));
+    setRooms(previous=>previous.map((row,index)=>index===guestDialogRoom
+     ?{...row,guestId:guest.id}:row));
+    setGuestDialogRoom(null);
+    setError(null);
+   }}/>}
  </>;
 }

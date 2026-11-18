@@ -2374,3 +2374,39 @@
 .hk-handoff-alert,.hk-handoff-attention{font-weight:700;font-size:11px;color:var(--accent)}
 .hk-handoff-clear{font-size:13px;color:var(--muted)}
 @media(max-width:660px){.hk-handoff-row{align-items:flex-start;flex-direction:column}}
+
+
+/* Group operations: keep travel dates and workflow actions visible in context. */
+.gb-list-stay{font-weight:750;color:var(--text);font-size:13px!important;margin:6px 0!important}
+.gb-list-actions{display:flex;flex-direction:column;align-items:flex-end;gap:9px}
+.gb-list-actions a{display:inline-flex;align-items:center;gap:5px;font-weight:750;font-size:12px}
+.gb-detail-head p strong{font-size:14px;color:var(--text)}
+.gb-context-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.gb-context-actions>a{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:750}
+.gb-progress{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.gb-progress>div{border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:14px;display:grid;gap:6px;align-content:start}
+.gb-progress small{font-size:11px;color:var(--muted)}
+.gb-progress strong{font-size:15px;color:var(--text)}
+.gb-progress span,.gb-progress a{font-size:11px;color:var(--muted)}
+.gb-progress a{color:var(--accent);display:inline-flex;align-items:center;gap:4px}
+.gb-finance-section{scroll-margin-top:16px}
+.gb-billing-progress{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}
+.gb-billing-progress>div{border:1px solid var(--border);background:var(--canvas);border-radius:10px;padding:12px;display:grid;gap:6px}
+.gb-billing-progress small{font-size:11px;color:var(--muted)}
+.gb-billing-progress strong{font-size:18px;font-variant-numeric:tabular-nums}
+.gb-billing-folios{display:grid;gap:8px;margin:14px 0}
+.gb-billing-folio{display:flex;align-items:center;justify-content:space-between;gap:16px;border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.gb-billing-folio small{display:block;color:var(--muted);font-size:11px;margin-top:4px}
+.gb-billing-folio>a{display:inline-flex;align-items:center;gap:5px;color:var(--accent);font-weight:700;font-size:12px}
+.gb-workflow-notice{padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);font-size:12px;line-height:1.5}
+.lrc-focus-banner{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 18px;margin:12px 0;border:1px solid var(--accent);border-radius:12px;background:var(--surface)}
+.lrc-focus-banner>div:first-child{display:grid;gap:5px}
+.lrc-focus-banner strong{font-size:14px}
+.lrc-focus-banner small{display:block;font-size:12px;color:var(--muted)}
+.lrc-focus-actions{display:flex;align-items:center;gap:13px;flex-wrap:wrap}
+.lrc-focus-actions a{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:750}
+.rack-booking-bar.rack-bar-group-focused{outline:2px solid var(--accent);outline-offset:1px;box-shadow:0 0 0 2px var(--surface);z-index:4}
+.rack-booking-bar.rack-bar-group-muted{opacity:.42}
+@media(max-width:900px){.gb-progress{grid-template-columns:repeat(2,minmax(0,1fr))}.gb-billing-progress{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.gb-progress,.gb-billing-progress{grid-template-columns:1fr 1fr}.lrc-focus-banner,.gb-billing-folio{align-items:flex-start;flex-direction:column}.gb-list-actions{align-items:flex-start}}
+@media(max-width:420px){.gb-progress,.gb-billing-progress{grid-template-columns:1fr}}

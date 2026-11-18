@@ -12,6 +12,9 @@ import {createGroupBooking,useGroupBooking,useGroupBookings} from '../api/groupR
 import type {GroupBooking,GroupBookingInput} from '../api/groupReservations';
 import {hotelToday,addDays} from '../features/reservations/calendarDate';
 import {readSession} from '../api/session';
+import {useGroupAllotments,createGroupAllotment,releaseGroupAllotment} from '../api/groupAllotments';
+import type {GroupAllotment,GroupHoldInput} from '../api/groupAllotments';
+import {useGroupFinancialSummary} from '../api/groupFinance';
 import {readableDate,readableDateTime,statusLabel} from '../lib/format';
 
 type Room={guestId:string;roomTypeId:string;ratePlanId:string};
@@ -30,6 +33,147 @@ function RoomGuestField({value,index,disabled,onChange}:{value:string;index:numb
  </div>;
 }
 
+function GroupFinance({groupId}:{groupId:string}){
+ const report=useGroupFinancialSummary(groupId);
+ const data=report.data;
+ return <details className="workflow-disclosure">
+  <summary>Consolidated billing overview · read only</summary>
+  <Panel title="Group financial overview">
+   <p className="desk-muted">Amounts are drawn from each reservation's recorded folio.
+    Staff-confirmed evidence is not automatically independently verified or bank-settled.
+    Group allocations require a separate authorized review.</p>
+   <QueryFeedback loading={report.isPending} error={report.error}
+    onRetry={()=>void report.refetch()}/>
+   {data&&<>
+    {data.currencies.length===0&&<p>No priced guest folios are available for this group.</p>}
+    {data.currencies.map(total=><div key={total.currency} className="rb-section">
+     <strong>{total.currency} · {total.pricedFolioCount} priced folios</strong>
+     <dl className="readable-audit-changes">
+      <div><dt>Net recorded charges</dt><dd>{(total.netRecordedChargesMinor/100).toLocaleString('en-PH',{style:'currency',currency:total.currency})}</dd></div>
+      <div><dt>Staff-confirmed payments</dt><dd>{(total.staffConfirmedPaymentsMinor/100).toLocaleString('en-PH',{style:'currency',currency:total.currency})}</dd></div>
+      <div><dt>Independently reviewed allocations</dt><dd>{(total.verifiedAllocatedMinor/100).toLocaleString('en-PH',{style:'currency',currency:total.currency})}</dd></div>
+      <div><dt>Group payer allocations (reviewed)</dt><dd>{(total.verifiedGroupPayerAllocatedMinor/100).toLocaleString('en-PH',{style:'currency',currency:total.currency})}</dd></div>
+      <div><dt>Unallocated recorded charges</dt><dd>{(total.unallocatedNetChargesMinor/100).toLocaleString('en-PH',{style:'currency',currency:total.currency})}</dd></div>
+     </dl>
+    </div>)}
+    {data.rooms.some(row=>!row.priced)&&<p role="status">Some group rooms have no priced folio and are excluded from financial totals.</p>}
+    <p className="desk-muted">Not a final invoice. Open the individual guest bill to review payment records and verification before any group-payer allocation.</p>
+   </>}
+  </Panel>
+ </details>;
+}
+
+function GroupAllotmentsPanel({hotelId,onConvert}:{hotelId:string;onConvert:(hold:GroupAllotment)=>void}){
+ const {user}=useHotelAuth();
+ const admin=!!user?.hotels.some(item=>item.id===hotelId&&item.role==='admin');
+ const client=useQueryClient();
+ const holds=useGroupAllotments();
+ const types=useLiveRoomTypes();
+ const [name,setName]=useState('');
+ const [roomTypeId,setRoomTypeId]=useState('');
+ const [quantity,setQuantity]=useState(2);
+ const [checkIn,setCheckIn]=useState(hotelToday);
+ const [checkOut,setCheckOut]=useState(()=>addDays(hotelToday(),1));
+ const [minutes,setMinutes]=useState(60);
+ const [pending,setPending]=useState<{hotelId:string;payload:GroupHoldInput}|null>(null);
+ const [busy,setBusy]=useState(false);
+ const [error,setError]=useState<string|null>(null);
+ const send=async(input:GroupHoldInput,propertyId:string)=>{
+  setBusy(true);setError(null);
+  try{
+   await createGroupAllotment(input);
+   if(readSession().hotelId!==propertyId)return;
+   setPending(null);setName('');setRoomTypeId('');
+   await Promise.all([
+    client.invalidateQueries({queryKey:['live','group-allotments',propertyId]}),
+    client.invalidateQueries({queryKey:['live','availability',propertyId]})]);
+  }catch(e){if(readSession().hotelId===propertyId)setError(e instanceof Error?e.message:'Could not confirm hold.');}
+  finally{setBusy(false);}
+ };
+ const release=async(id:string)=>{
+  setBusy(true);setError(null);
+  try{
+   await releaseGroupAllotment(id);
+   await Promise.all([
+    client.invalidateQueries({queryKey:['live','group-allotments',hotelId]}),
+    client.invalidateQueries({queryKey:['live','availability',hotelId]})]);
+  }catch(e){setError(e instanceof Error?e.message:'Could not release the hold.');}
+  finally{setBusy(false);}
+ };
+ return <details className="workflow-disclosure">
+  <summary>Temporary room allotments · manager controlled</summary>
+  <Panel title="Unconfirmed group holds">
+   <p className="desk-muted">Holds reserve a room-type quantity, not specific room numbers.
+    They expire automatically and never create guest charges or deposits.</p>
+   <QueryFeedback loading={holds.isPending||types.isPending}
+    error={holds.error??types.error} onRetry={()=>{void holds.refetch();void types.refetch();}}/>
+   {holds.data?.meta.hasMore&&<p role="status">Showing the 100 most recent holds; older records are not shown here.</p>}
+   <div className="reservation-manage-list">
+    {holds.data?.data.map(hold=><article key={hold.id} className="reservation-manage-card">
+     <div className="reservation-manage-primary">
+      <strong>{hold.name}</strong>
+      <p>{hold.reference} · {hold.quantity} × {hold.roomTypeName}</p>
+      <small>{readableDate(hold.checkIn)} – {readableDate(hold.checkOut)}
+       {' · '}Status: {statusLabel(hold.status)} · Expires {readableDateTime(hold.expiresAt)}</small>
+      <small>Created by {hold.createdByName||'Employee name unavailable'}
+       {hold.releasedByName?' · Released by '+hold.releasedByName:''}</small>
+     </div>
+     {hold.status==='held'&&admin&&<div className="reservation-manage-action">
+      {hold.quantity>=2&&<button className="btn-primary" type="button" disabled={busy}
+       onClick={()=>onConvert(hold)}>Convert to booking</button>}
+      <button className="btn-inline" type="button" disabled={busy}
+       onClick={()=>void release(hold.id)}>Release hold</button>
+     </div>}
+     {hold.convertedGroupId&&<Link to="/group-reservations" search={{group:hold.convertedGroupId}}>Open group</Link>}
+    </article>)}
+   </div>
+   {admin&&<div className="rb-section">
+    <h4>Create a temporary hold</h4>
+    <fieldset disabled={busy||!!pending} className="rb-fieldset">
+     <div className="wizard-fields">
+      <div><label className="wizard-label" htmlFor="hold-name">Group name</label>
+       <input id="hold-name" className="wizard-input" value={name} maxLength={120}
+        onChange={e=>setName(e.target.value)}/></div>
+      <div><label className="wizard-label" htmlFor="hold-type">Room type</label>
+       <select id="hold-type" className="wizard-input" value={roomTypeId}
+        onChange={e=>setRoomTypeId(e.target.value)}>
+        <option value="">Select room type</option>
+        {types.data?.data.map(type=><option key={type.id} value={type.id}>{type.name}</option>)}
+       </select></div>
+      <div><label className="wizard-label" htmlFor="hold-quantity">Rooms to hold (1–10)</label>
+       <input id="hold-quantity" className="wizard-input" type="number" min={1} max={10}
+        value={quantity} onChange={e=>setQuantity(Number(e.target.value))}/></div>
+      <div><label className="wizard-label" htmlFor="hold-duration">Hold duration</label>
+       <select id="hold-duration" className="wizard-input" value={minutes}
+        onChange={e=>setMinutes(Number(e.target.value))}>
+        <option value={15}>15 minutes</option><option value={60}>1 hour</option>
+        <option value={240}>4 hours</option><option value={1440}>24 hours</option>
+       </select></div>
+      <div><label className="wizard-label" htmlFor="hold-in">Check-in</label>
+       <input id="hold-in" className="wizard-input" type="date" min={hotelToday()}
+        value={checkIn} onChange={e=>{setCheckIn(e.target.value);
+         if(checkOut<=e.target.value)setCheckOut(addDays(e.target.value,1));}}/></div>
+      <div><label className="wizard-label" htmlFor="hold-out">Check-out</label>
+       <input id="hold-out" className="wizard-input" type="date" min={addDays(checkIn,1)}
+        max={addDays(checkIn,31)} value={checkOut} onChange={e=>setCheckOut(e.target.value)}/></div>
+     </div>
+    </fieldset>
+    {error&&<p className="wizard-error" role="alert">{error}</p>}
+    {pending?<button className="btn-primary" disabled={busy} type="button"
+      onClick={()=>void send(pending.payload,pending.hotelId)}>{busy?'Checking hold…':'Retry same hold request'}</button>:
+     <button className="btn-primary" type="button" disabled={busy||!roomTypeId||name.trim().length<2||
+      !Number.isInteger(quantity)||quantity<1||quantity>10||
+      !validLiveStay({roomTypeId,checkIn,checkOut})||checkIn<hotelToday()}
+      onClick={()=>{
+       const payload:GroupHoldInput={idempotencyKey:crypto.randomUUID(),name:name.trim(),
+        roomTypeId:Number(roomTypeId),quantity,checkIn,checkOut,holdMinutes:minutes};
+       setPending({hotelId,payload});void send(payload,hotelId);
+      }}>Hold room inventory</button>}
+   </div>}
+  </Panel>
+ </details>;
+}
+
 function GroupDetails({id}:{id:string}){
  const details=useGroupBooking(id);
  const group=details.data;
@@ -40,6 +184,7 @@ function GroupDetails({id}:{id:string}){
    <p><strong>{group.reference}</strong> · {group.roomCount} rooms · Created {readableDateTime(group.createdAt)}</p>
    {group.contactName&&<p>Group contact: {group.contactName}</p>}
    <p className="desk-muted">Each room has its own booking, guest folio and payment history. The group record does not transfer charges or settle bills.</p>
+   <GroupFinance groupId={group.id}/>
    <div className="reservation-manage-list">
     {group.rooms.map(room=><article className="reservation-manage-card" key={room.bookingId}>
      <div className="reservation-manage-primary">
@@ -70,6 +215,7 @@ export function GroupReservations(){
  const types=useLiveRoomTypes();
  const rates=useLiveRatePlans();
  const [creating,setCreating]=useState(false);
+ const [selectedAllotment,setSelectedAllotment]=useState<GroupAllotment|null>(null);
  const [name,setName]=useState('');
  const [contact,setContact]=useState('');
  const [checkIn,setCheckIn]=useState(start);
@@ -84,13 +230,16 @@ export function GroupReservations(){
   setRooms(old=>old.map((row,index)=>index===i
    ?{...row,[key]:value,...(key==='roomTypeId'?{ratePlanId:''}:{})}:row));
  };
- useEffect(()=>{setCreating(false);setPage(1);setPending(null);setResult(null);setError(null);},[hotelId]);
+ useEffect(()=>{setCreating(false);setSelectedAllotment(null);setPage(1);setPending(null);setResult(null);setError(null);},[hotelId]);
  const datesValid=validLiveStay({roomTypeId:rooms[0].roomTypeId||'1',checkIn,checkOut})
   &&checkIn>=hotelToday();
  const ready=canBook&&name.trim().length>=2&&datesValid&&rooms.length>=2&&
   rooms.every(room=>Number(room.guestId)>0&&Number(room.roomTypeId)>0
    &&Number(room.ratePlanId)>0
-   &&rates.data?.data.some(rate=>rate.active&&rate.id===room.ratePlanId&&rate.roomTypeId===room.roomTypeId));
+   &&rates.data?.data.some(rate=>rate.active&&rate.id===room.ratePlanId&&rate.roomTypeId===room.roomTypeId))
+  &&(!selectedAllotment||(rooms.length===selectedAllotment.quantity
+   &&checkIn===selectedAllotment.checkIn&&checkOut===selectedAllotment.checkOut
+   &&rooms.every(room=>room.roomTypeId===selectedAllotment.roomTypeId)));
  const locked=!!pending||busy||!!result;
  const selectedRates=rooms.map(room=>rates.data?.data.find(item=>item.id===room.ratePlanId&&item.active));
  const allPhp=selectedRates.every(rate=>rate?.currency==='PHP');
@@ -116,6 +265,7 @@ export function GroupReservations(){
   if(!ready||locked||!hotelId)return;
   const payload:GroupBookingInput={
    idempotencyKey:crypto.randomUUID(),name:name.trim(),
+   ...(selectedAllotment?{allotmentId:Number(selectedAllotment.id)}:{}),
    ...(contact.trim()?{contactName:contact.trim()}:{}),
    checkIn,checkOut,
    rooms:rooms.map(room=>({guestId:Number(room.guestId),
@@ -135,6 +285,13 @@ export function GroupReservations(){
      onClick={()=>setCreating(true)}><Plus size={16}/> New group booking</button>}
    </div>
   </div>
+  {!creating&&hotelId&&<GroupAllotmentsPanel hotelId={hotelId} onConvert={hold=>{
+   setSelectedAllotment(hold);setCreating(true);setName(hold.name);
+   setCheckIn(hold.checkIn);setCheckOut(hold.checkOut);
+   setRooms(Array.from({length:hold.quantity},()=>({
+    guestId:'',roomTypeId:hold.roomTypeId,ratePlanId:'',
+   })));setPending(null);setResult(null);setError(null);
+  }}/>}
   {creating&&canBook?<Panel title="Create a multi-room reservation">
    {result?<div role="status">
     <h3>Group reservation confirmed</h3>
@@ -195,6 +352,7 @@ export function GroupReservations(){
     </fieldset>
     <div className="rb-review">
      <h4>Review group booking</h4>
+     {selectedAllotment&&<p>Converting hold {selectedAllotment.reference}. Dates, room type and quantity must match the existing hold.</p>
      <p>{rooms.length} rooms · {readableDate(checkIn)} – {readableDate(checkOut)}</p>
      <p><strong>Estimated room subtotal: {estimate===null?'Mixed currencies — review individual rates':money(estimate,'PHP')}</strong></p>
      <p className="desk-muted">Estimated room charges only. Taxes, service fees, discounts, deposits, and payments are separate. Inventory is verified again when you confirm.</p>

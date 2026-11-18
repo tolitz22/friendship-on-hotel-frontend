@@ -2538,3 +2538,34 @@
 .billing-void-section[open] .billing-void-heading{padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:13px}
 .billing-void-section[open] .billing-void-heading .billing-expand-hint{font-size:0}
 .billing-void-section[open] .billing-void-heading .billing-expand-hint::after{content:"Hide records";font-size:11px}
+
+
+/* Guest billing: a compact overview plus task-specific finance dialogs. */
+.settlement-task-modal{width:min(850px,100%);max-height:min(91dvh,960px);padding:0}
+.settlement-task-modal>.billing-action-modal-header{padding:20px 24px}
+.settlement-task-tabs{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:12px 24px;border-bottom:1px solid var(--border)}
+.settlement-task-tabs button{background:var(--canvas);border:1px solid var(--border);color:var(--muted);border-radius:9px;padding:10px 14px;font-size:12px;font-weight:750;min-height:40px}
+.settlement-task-tabs button.active{background:var(--surface);border-color:var(--accent);color:var(--text)}
+.settlement-task-modal-body{display:grid;gap:15px;padding:20px 24px 24px}
+.settlement-task-modal-body>.billing-actions{border:0;padding:0;margin:0}
+.settlement-task-modal-body .billing-review-list{border:0;padding:0}
+.settlement-task-modal-body>.settlement-progress{margin:0}
+.settlement-task-modal-body>.settlement-action-panel{margin:0}
+.settlement-task-modal-body>.settlement-signoff{margin:0}
+.billing-more-tools{margin:10px 0;border:1px solid var(--border);border-radius:11px;padding:12px 16px;background:var(--surface)}
+.billing-more-tools>summary{cursor:pointer;color:var(--muted);font-size:12px;font-weight:750}
+.billing-secondary-actions{display:flex;gap:8px;flex-wrap:wrap;padding-top:13px}
+.billing-secondary-actions button{display:inline-flex;align-items:center;gap:7px}
+.billing-account-overview{margin-bottom:12px}
+.checkout-guide{margin:12px 0!important;gap:12px}
+.checkout-guide-header h3{font-size:18px}
+.checkout-guide-next{padding:15px}
+@media(max-width:650px){
+ .settlement-task-backdrop{align-items:flex-end;padding:0}
+ .settlement-task-modal{width:100%;max-height:94dvh;border-radius:18px 18px 0 0}
+ .settlement-task-modal>.billing-action-modal-header,.settlement-task-tabs{padding:14px 16px}
+ .settlement-task-modal-body{padding:16px}
+ .settlement-task-tabs button{flex:1;justify-content:center;font-size:11px;padding:9px 7px}
+ .billing-secondary-actions{flex-direction:column}
+ .billing-secondary-actions button{width:100%;justify-content:center}
+}

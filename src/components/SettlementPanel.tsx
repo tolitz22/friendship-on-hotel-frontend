@@ -535,8 +535,17 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        <label>Verification reference
         <input className="wizard-input" value={reference} maxLength={160}
          onChange={e=>setReference(e.target.value)}
-         placeholder={paymentRow.method==='cash'?'shift-123':'Internal bank statement evidence reference'}/>
+         placeholder={paymentRow.method==='cash'
+          ?'shift-<actual reconciled cashier shift ID>'
+          :'Internal bank statement evidence reference'}/>
        </label>
+       {paymentRow.method==='cash'&&<p className="desk-muted">
+        Use the actual reconciled shift reference in the form <code>shift-123</code>
+        (replace 123 with its cashier shift ID). The same payment's cash receipt must
+        belong to that reconciled shift.
+        {' '}<Link to="/cashier-shifts" search={{booking:bookingId,hotel:hotelId??undefined}}>
+         Open cashier shifts <ArrowRight size={13}/></Link>
+       </p>}
        <button type="button" className="btn-primary"
         disabled={busy||!data.settlementWorkflowEnabled||reference.trim().length<6}
         onClick={()=>void mutation(endpoint+'/payment-records/'+paymentRow.id+'/verification',{

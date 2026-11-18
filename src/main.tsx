@@ -25,7 +25,8 @@ import {ForgotPassword,ResetPassword,ChangePassword} from './pages/StaffPassword
 import {LiveReservationDemand} from './pages/LiveReservationDemand';
 import {LiveReservationPolicy} from './pages/LiveReservationPolicy';
 import {LiveReservationSimulation} from './pages/LiveReservationSimulation';
-import {dataMode} from './api';import {Reservations} from './pages/Reservations';import {Rooms} from './pages/Rooms';
+import {dataMode} from './api';import {Reservations} from './pages/Reservations';
+import {GroupReservations} from './pages/GroupReservations';import {Rooms} from './pages/Rooms';
 import {Guests} from './pages/Guests';
 import {Housekeeping} from './pages/Housekeeping';
 import {LiveHousekeeping} from './pages/LiveHousekeeping';
@@ -55,6 +56,10 @@ const reservations=createRoute({getParentRoute:()=>root,path:'/reservations',
   checkIn:typeof value.checkIn==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.checkIn)&&!Number.isNaN(Date.parse(value.checkIn+'T00:00:00Z'))&&new Date(value.checkIn+'T00:00:00Z').toISOString().slice(0,10)===value.checkIn?value.checkIn:undefined,
   checkOut:typeof value.checkOut==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.checkOut)&&!Number.isNaN(Date.parse(value.checkOut+'T00:00:00Z'))&&new Date(value.checkOut+'T00:00:00Z').toISOString().slice(0,10)===value.checkOut?value.checkOut:undefined,
  }),component:Reservations});
+const groupReservations=createRoute({getParentRoute:()=>root,path:'/group-reservations',
+ validateSearch:(value:Record<string,unknown>):{group?:string}=>({
+  group:typeof value.group==='string'&&/^[1-9][0-9]*$/.test(value.group)?value.group:undefined,
+ }),component:GroupReservations});
 const rooms=createRoute({getParentRoute:()=>root,path:'/rooms',
  validateSearch:(value:Record<string,unknown>):{room?:string}=>({
   room:typeof value.room==='string'&&value.room.trim().length<=50
@@ -101,7 +106,7 @@ const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/reset-password',component:ResetPassword}),
  createRoute({getParentRoute:()=>root,path:'/change-password',component:ChangePassword}),
 ];
-const routeTree=root.addChildren([index,reservations,rooms,roomCalendar,...functionalRoutes]);
+const routeTree=root.addChildren([index,reservations,groupReservations,rooms,roomCalendar,...functionalRoutes]);
 const router=createRouter({routeTree,defaultPreload:'intent'});
 declare module '@tanstack/react-router'{interface Register{router:typeof router}}
 const client=new QueryClient({defaultOptions:{queries:{retry:1,refetchOnWindowFocus:false}}});

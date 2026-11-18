@@ -72,11 +72,11 @@ export function LiveReservations(){
   requested.stay.checkOut!==inputs.checkOut);
 
  if(!hasHotel)return <>
-  <Heading title="Reservations" description="Select an authorized hotel to see its bookings."/>
+  <Heading title="Bookings" description="Select an authorized hotel to see its bookings."/>
   <Panel title="Choose a property"><p role="status">Select your hotel from the authenticated workspace before creating or managing reservations.</p></Panel>
  </>;
  return <>
-  {!selectedRecordId&&<Heading title="Reservations" description="Find a guest booking, see what needs attention, and complete the next step."/>}
+  {!selectedRecordId&&<Heading title="Bookings" description="Find a guest booking, see what needs attention, and complete the next step."/>}
   {selectedRecordId?<>
    <section className="stay-selected-workflow" aria-label="Selected reservation">
     <QueryFeedback loading={detail.isPending} error={detail.error} onRetry={()=>void detail.refetch()}/>
@@ -85,7 +85,7 @@ export function LiveReservations(){
      preferredRoomNumber={routeSearch.roomNumber??null} deskAction={routeSearch.deskAction??null} onClose={closeBooking}/>}
    </section>
   </>:<>
-   <div className="reservation-workspace-bar" role="group" aria-label="Reservation tasks">
+   <div className="reservation-workspace-bar" role="group" aria-label="Booking tasks">
     <div className="view-switch">
      <button type="button" aria-pressed={view==='manage'} className={view==='manage'?'selected':''}
       onClick={()=>{setView('manage');void navigation({to:'/reservations',search:{}});}}><ClipboardList size={16}/> Manage reservations</button>
@@ -94,28 +94,28 @@ export function LiveReservations(){
     </div>
     <span className="table-count" role="status">{pagination?.total??'—'} matching reservations · newest first</span>
    </div>
-   {view==='manage'&&<div className="reservation-flow-guide" aria-label="Reservation workflow">
+   {view==='manage'&&<div className="reservation-flow-guide" aria-label="Booking workflow">
     <span><strong>1 · Reserve</strong><small>Create a reservation with guest, dates and rate</small></span>
     <ArrowRight size={15} aria-hidden="true"/>
     <span><strong>2 · Assign room</strong><small>Choose an available physical room</small></span>
     <ArrowRight size={15} aria-hidden="true"/>
     <span><strong>3 · Check in</strong><small>Verify arrival and room readiness</small></span>
    </div>}
-   {view==='new'&&canOperate?<LiveBookingForm/>:<Panel title="Find a reservation"
+   {view==='new'&&canOperate?<LiveBookingForm/>:<Panel title="Find a booking"
     action={<button type="button" className="btn-inline" disabled={records.isFetching} onClick={()=>void records.refetch()}>
      <RefreshCw size={15}/> {records.isFetching?'Refreshing…':'Refresh'}</button>}>
     <div className="reservation-filter-layout">
      <div className="reservation-search-control">
       <label className="search-box"><Search size={17}/>
        <input value={search} onChange={e=>setSearch(e.target.value)}
-        aria-label="Search all reservations" placeholder="Guest name, reference, or room number"/>
+        aria-label="Search all bookings" placeholder="Guest name, reference, or room number"/>
       </label>
       {search.length>0&&<button type="button" className="reservation-search-clear"
        aria-label="Clear reservation search" onClick={()=>{setSearch('');setAppliedSearch('');setPage(1);}}>
        <X size={17}/>
       </button>}
      </div>
-     <div className="reservation-filter-tabs" role="group" aria-label="Reservation status filter">
+     <div className="reservation-filter-tabs" role="group" aria-label="Booking status filter">
       {([
        ['all','All'],['needs_room','Needs room'],['arrivals','Confirmed'],['in_house','In house'],['completed','Completed'],
       ] as const).map(([value,label])=><button type="button" key={value}
@@ -135,8 +135,8 @@ export function LiveReservations(){
      onRetry={()=>void records.refetch()}
      empty={records.isSuccess&&!searching&&filtered.length===0}
      emptyMessage={appliedSearch||filter!=='all'
-      ?'No matching reservations. Clear the search or change the filter.'
-      :canOperate?'No reservations yet. Use New reservation to register the first guest stay.':'No reservations are recorded for this property.'}/>
+      ?'No matching bookings. Clear the search or change the filter.'
+      :canOperate?'No bookings yet. Use New reservation to register the first guest stay.':'No bookings are recorded for this property.'}/>
     {records.isSuccess&&!searching&&filtered.length>0&&<div className="reservation-manage-list">
      {filtered.map(record=><article className="reservation-manage-card" key={record.id}>
       <div className="reservation-manage-primary">

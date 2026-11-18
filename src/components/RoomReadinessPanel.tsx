@@ -51,7 +51,7 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
   try{
    await action();
    if(readSession().hotelId!==at)return;
-   setMessage('Laravel recorded the change. Refresh readiness and history before the next action.');
+   setMessage('Change saved. The room status and inspection history are being updated.');
    setForm(empty());setReviewNote('');
    void Promise.all([
     client.invalidateQueries({queryKey:['live','room-readiness',at,room.id]}),
@@ -81,7 +81,7 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
   {state.data&&<>
    <div className={'rr-inspection-status'+(state.data.advisoryReady?' approved':'')}>
     {state.data.advisoryReady?<ShieldCheck size={22}/>:<ShieldAlert size={22}/>}
-    <div><strong>{state.data.advisoryReady?'Current advisory approval':'Not approved for readiness'}</strong>
+    <div><strong>{state.data.advisoryReady?'Current inspection approved':'Not approved for readiness'}</strong>
      <p>{state.data.advisoryReady?'No new inspection is required merely because another day has passed. Reinspect after checkout turnover, relevant room work, or a new blocker.':'This means there is no current approved inspection. It does not automatically mean the room is dirty.'}</p></div>
    </div>
    <div className="rr-readiness-steps" aria-label="Room readiness process">
@@ -100,7 +100,7 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
    </section>
    {latest?<div className="rr-latest-inspection">
     <span>Latest inspection</span><strong>#{latest.id} · {latest.status}</strong>
-    <small>Revision {latest.revision} · Inspector #{latest.inspectedBy}{latest.reviewedBy?' · Reviewer #'+latest.reviewedBy:''}</small>
+    <small>Inspection version {latest.revision} · Inspector #{latest.inspectedBy}{latest.reviewedBy?' · Reviewer #'+latest.reviewedBy:''}</small>
    </div>:<p className="rr-latest-inspection">No inspection has been submitted for this room.</p>}
    {approvedCurrent&&<p role="status" className="rr-valid-approval"><CheckCircle2 size={17}/> Inspection is current. Another routine inspection is not needed unless new turnover, maintenance, or other work invalidates it.</p>}
    {admin&&needsNewInspection&&<section>
@@ -142,7 +142,7 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
   {error&&<p role="alert">{error}</p>}
   {message&&<p role="status"><CheckCircle2 size={16}/> {message}</p>}
   <section className="rr-audit-section">
-   <h4>Recorded readiness audit</h4>
+   <h4>Inspection history</h4>
    <QueryFeedback loading={history.isPending} error={history.error}
     empty={history.isSuccess&&history.data.data.length===0}/>
    {history.data?.data.map(e=><article className="maintenance-history-event" key={e.id}>

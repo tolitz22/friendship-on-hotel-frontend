@@ -160,6 +160,9 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   document.body.style.overflow='hidden';
   dialogCloser.current?.focus();
   const handleKey=(event:KeyboardEvent)=>{
+   // The confirmation dialog opened from the review list owns keyboard focus
+   // until it closes; do not close or trap its underlying manager dialog.
+   if(document.querySelector('.billing-review-backdrop'))return;
    if(event.key==='Escape'&&!busyRef.current){setActiveDialog(null);return;}
    if(event.key!=='Tab')return;
    const dlg=document.getElementById('settlement-current-dialog');
@@ -207,11 +210,10 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  }
  if(!valid)return null;
  return <section className="settlement-page">
-  <div className="desk-tools settlement-tools">
-   <h3>Guest bill details</h3>
-   <button type="button" className="btn-inline" disabled={busy} onClick={()=>void query.refetch()}>
-    <RefreshCw size={15}/> Refresh statement
-   </button>
+  <div className="billing-compact-toolbar">
+   <span>Guest account</span>
+   <button type="button" className="btn-inline" disabled={busy||query.isFetching}
+    onClick={()=>void query.refetch()}><RefreshCw size={15}/> Refresh</button>
   </div>
   <QueryFeedback loading={query.isPending} error={query.error} onRetry={()=>void query.refetch()}/>
   {data&&<>
@@ -235,12 +237,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
      <AlertTriangle size={16}/> Payment evidence is already on file and awaiting review.
      Do not charge the guest again just because verified allocations are incomplete.
     </p>}
-    <div className="billing-account-next">
-     {data.signed&&!data.signedSnapshotIntegrity?<><AlertTriangle size={19}/><p><strong>Account needs investigation.</strong> The signed record failed an integrity check. Do not print or complete checkout.</p></>
-      :data.signed?<><CheckCircle2 size={19}/><p><strong>Financial sign-off completed.</strong> Check the guest's other checkout requirements before departure.</p></>
-      :data.blockers.length>0?<><AlertTriangle size={19}/><p><strong>Still needs review.</strong> There are {data.blockers.length} settlement item{data.blockers.length===1?'':'s'} to resolve. See the details below.</p></>
-      :<><ShieldCheck size={19}/><p><strong>Review before checkout.</strong> These amounts reflect saved records, not proof of bank settlement or a final payable amount.</p></>}
-    </div>
+
    </div>
    <section className="checkout-guide" aria-label="Guided payment and checkout">
     <div className="checkout-guide-header">
@@ -707,7 +704,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
      </section>
     </div>,document.body)}
    {manager&&!data.signed&&<details className="billing-more-tools">
-    <summary>Additional financial actions</summary>
+    <summary>More finance tools · refunds, payment allocation and sign-off</summary>
     <div className="billing-secondary-actions">
      <button type="button" className="btn-inline" onClick={()=>openDialog('review')}>
       <ShieldCheck size={15}/> Review payments & allocation</button>

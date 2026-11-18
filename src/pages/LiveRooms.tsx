@@ -3,7 +3,7 @@ import {createPortal} from 'react-dom';
 import {Link} from '@tanstack/react-router';
 import {
  AlertTriangle,ArrowRight,BedDouble,CheckCircle2,ClipboardCheck,
- Clock3,Filter,Info,Layers3,MoreHorizontal,Plus,RefreshCw,Search,Settings2,
+ Clock3,Filter,Info,Layers3,Plus,RefreshCw,Search,Settings2,
  ShieldAlert,ShieldCheck,Users,X,
 } from 'lucide-react';
 import {useLiveCatalogSummary,useLiveRooms,useLiveRoomTypes} from '../api/liveCatalogQueries';

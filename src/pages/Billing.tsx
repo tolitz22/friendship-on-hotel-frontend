@@ -57,7 +57,7 @@ function LiveBilling(){
      <div className="gb-context-actions">
       <Link to="/group-reservations" search={{group:originGroup,tab:'billing' as const,
        hotel:originHotel??undefined}}>Return to group billing <ArrowRight size={14}/></Link>
-      {groupCheckIn&&<Link to="/room-calendar" search={{date:groupCheckIn,group:originGroup,
+      {groupCheckIn&&<Link to="/room-calendar" search={{date:groupCheckIn,end:groupCheckOut,group:originGroup,
        hotel:originHotel??undefined}}>View group calendar <ArrowRight size={14}/></Link>}
      </div></>}
   </div>}

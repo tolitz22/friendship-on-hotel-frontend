@@ -18,6 +18,7 @@ import {useHotelAuth} from '../components/AuthProvider';
 import {Heading} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {occupancyLabel,useRoomInventoryStatus} from '../api/roomInventoryStatus';
+import {roomOperationalSignal} from '../features/rooms/roomOperationalSignals';
 
 type View='catalog'|'readiness';
 type AttentionFilter='all'|'attention'|'vacant_ready'|'occupied';
@@ -28,36 +29,9 @@ function needsAttention(status:InventoryRoomStatus){
 }
 type RoomCardState={title:string;detail:string;kind:'good'|'warning'|'blocked'|'occupied';next:string};
 function stateFor(status:InventoryRoomStatus):RoomCardState{
- if(status.maintenanceBlocked||status.inventoryBlockedToday)return{
-  title:'Operational block',detail:'Maintenance or inventory restrictions need review before this room can be used.',
-  kind:'blocked',next:'Review the active room restrictions',
- };
- if(status.occupancy==='due_for_checkout')return{
-  title:'Checkout due',detail:'The guest is still checked in; cleaning follows the recorded checkout.',
-  kind:'occupied',next:'Confirm checkout through Front Desk',
- };
- if(status.occupancy==='occupied')return{
-  title:'Guest in house',detail:'An active stay is recorded in the PMS.',
-  kind:'occupied',next:'Review the current room inspection',
- };
- if(status.cleaning==='ready'&&status.advisoryReady)return{
-  title:'Inspection approved',detail:'The room is vacant in the PMS with a current inspection approval.',
-  kind:'good',next:'No routine daily inspection; recheck at check-in',
- };
- if(status.cleaning==='checkout_cleaning')return{
-  title:'Cleaning required',detail:'Checkout cleaning has not started.',
-  kind:'warning',next:'Complete checkout cleaning',
- };
- if(status.cleaning==='cleaning_in_progress')return{
-  title:'Cleaning underway',detail:'Housekeeping is working on the room.',
-  kind:'warning',next:'Follow up on the cleaning task',
- };
- if(status.cleaning==='awaiting_inspection')return{
-  title:'Awaiting inspection',detail:'Cleaning is recorded; an inspection still needs approval.',
-  kind:'warning',next:'Review or complete the room inspection',
- };
- return {title:'Not yet verified',detail:'No current approved inspection is recorded. This does not necessarily mean the room is dirty.',
-  kind:'warning',next:'Check whether a new physical inspection is needed'};
+ const signal=roomOperationalSignal(status);
+ return {title:signal.title,detail:signal.explanation,next:signal.action,
+  kind:signal.tone==='approved'?'good':signal.tone==='attention'?'warning':signal.tone};
 }
 function cardAction(status:InventoryRoomStatus|undefined,admin:boolean,canOpenCleaning:boolean){
  if(!status)return {title:'View readiness',kind:'inspection' as const};

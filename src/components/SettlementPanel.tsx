@@ -6,6 +6,7 @@ import {getJson,requestJson} from '../api/http';
 import {hotelPath,readSession} from '../api/session';
 import {useHotelAuth} from './AuthProvider';
 import {QueryFeedback} from './QueryFeedback';
+import {BillingActions} from './BillingActions';
 import './settlement-print.css';
 
 const id=z.string().regex(/^[1-9]\d*$/);
@@ -244,6 +245,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
     <h4><AlertTriangle size={17}/> Settlement blockers</h4>
     <ul>{data.blockers.map((b,i)=><li key={i}>{b}</li>)}</ul>
    </div>}
+   <BillingActions bookingId={bookingId} signed={data.signed}/>
    {manager&&!data.signed&&<>
     {!data.settlementWorkflowEnabled&&<div className="night-audit-warning" role="status">
      <AlertTriangle size={18}/>

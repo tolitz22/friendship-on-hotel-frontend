@@ -54,7 +54,11 @@ const reservations=createRoute({getParentRoute:()=>root,path:'/reservations',
 const rooms=createRoute({getParentRoute:()=>root,path:'/rooms',component:dataMode==='api'?LiveRooms:Rooms});
 const roomCalendar=createRoute({getParentRoute:()=>root,path:'/room-calendar',component:LiveRoomCalendar});
 const functionalRoutes=[
- createRoute({getParentRoute:()=>root,path:'/front-desk',component:FrontDesk}),
+ createRoute({getParentRoute:()=>root,path:'/front-desk',
+  validateSearch:(value:Record<string,unknown>):{queue?:'arrivals'|'departures'|'in_house'}=>({
+   queue:value.queue==='arrivals'||value.queue==='departures'||value.queue==='in_house'?value.queue:undefined,
+  }),
+  component:FrontDesk}),
  createRoute({getParentRoute:()=>root,path:'/operational-exceptions',component:OperationalExceptions}),
  createRoute({getParentRoute:()=>root,path:'/manager-approvals',component:ManagerApprovals}),
  createRoute({getParentRoute:()=>root,path:'/cashier-shifts',component:CashierShifts}),

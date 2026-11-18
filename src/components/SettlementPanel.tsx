@@ -136,6 +136,12 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   :/^\d+$/.test(text)&&Number.isSafeInteger(Number(text))&&Number(text)>0?Number(text):null;
  const allocationMinor=minorInput(amount);
  const refundMinor=minorInput(refundAmount);
+ const recordedActive=data?.payments.filter(p=>p.status==='pending_review'||p.status==='staff_confirmed')??[];
+ const recordedTotal=recordedActive.reduce((sum,p)=>sum+p.amountMinor,0);
+ const confirmedPendingVerification=data?.payments.filter(p=>p.status==='staff_confirmed'
+  &&p.verificationStatus!=='verified')??[];
+ const verifiedTotal=data?.verifiedPaymentsMinor??0;
+ const cashAwaitingVerification=confirmedPendingVerification.some(p=>p.method==='cash');
  const unconfirmed=data?.payments.filter(p=>p.status==='pending_review')??[];
  const unverified=data?.payments.filter(p=>p.status==='staff_confirmed'
   &&p.verificationStatus!=='verified')??[];
@@ -234,16 +240,23 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
     </div>
     <div className="billing-account-totals">
      <div><span>Recorded charges</span><strong>{money(data.netRecordedChargesMinor,data.currency)}</strong></div>
-     <div><span>Payment evidence already recorded · not necessarily verified</span>
-      <strong>{money(data.payments.filter(p=>['pending_review','staff_confirmed'].includes(p.status))
-       .reduce((total,p)=>total+p.amountMinor,0),data.currency)}</strong></div>
-     <div><span>Verified payment allocations</span><strong>{money(data.verifiedAllocatedMinor,data.currency)}</strong></div>
+     <div><span>Payments recorded · awaiting or completed review</span>
+      <strong>{money(recordedTotal,data.currency)}</strong>
+      <small>{unconfirmed.length} awaiting confirmation · {confirmedPendingVerification.length} confirmed, awaiting verification</small></div>
+     <div><span>Independently verified funds</span><strong>{money(verifiedTotal,data.currency)}</strong>
+      <small>Internal review, not external bank settlement</small></div>
+     <div><span>Verified funds applied to charges</span><strong>{money(data.verifiedAllocatedMinor,data.currency)}</strong>
+      <small>Only allocated funds reduce the recorded balance</small></div>
      <div className="billing-account-difference"><span>Recorded charges not yet covered by reviewed allocations · not a request to pay again</span>
       <strong>{money(data.remainingMinor,data.currency)}</strong></div>
     </div>
-    {data.payments.some(p=>p.status==='pending_review')&&<p className="billing-payment-pending-banner">
-     <AlertTriangle size={16}/> Payment evidence is already on file and awaiting review.
-     Do not charge the guest again just because verified allocations are incomplete.
+    {recordedTotal>0&&data.verifiedAllocatedMinor<recordedTotal&&<p className="billing-payment-pending-banner">
+     <AlertTriangle size={16}/>
+     {confirmedPendingVerification.length>0
+      ?'Payment confirmation succeeded, but independent verification is still required.'
+      :unconfirmed.length>0?'Payment recorded — staff confirmation is pending.'
+      :'Payment funds are verified but not fully allocated to charges.'}
+     {' '}Do not charge the guest again just because the balance is not yet covered by verified allocations.
     </p>}
 
    </div>
@@ -268,9 +281,12 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       <h4>Review recorded payment evidence</h4>
       <p>{unconfirmed.length} payment record{unconfirmed.length===1?'':'s'} still need staff confirmation before independent verification.</p>
      </>:nextTask==='verification'?<>
-      <h4>{pendingOtherReviewer?'Awaiting another manager':'Verify the payment evidence'}</h4>
-      <p>{pendingOtherReviewer?'The person who prepared this verification cannot approve it. Another authorized manager must review it.'
-       :'Confirm the evidence and have a different authorized reviewer approve it where required.'}</p>
+      <h4>{pendingOtherReviewer?'Awaiting a different manager':'Payment confirmed — verification still required'}</h4>
+      <p>{pendingOtherReviewer
+       ?'The manager who prepared verification cannot approve it. Ask another authorized manager to review.'
+       :cashAwaitingVerification
+        ?'Cash verification requires the related cashier shift to be counted, submitted and independently reconciled. Then submit and review payment verification.'
+        :'Submit supporting payment evidence for independent review. Confirmation alone does not verify or allocate the funds.'}</p>
      </>:nextTask==='allocation'?<>
       <h4>Allocate independently reviewed funds</h4>
       <p>Verified funds have not all been applied to recorded charges. Allocate only eligible amounts; no new payment is created.</p>
@@ -287,11 +303,13 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        ?<button type="button" className="btn-primary" disabled={busy}
         onClick={openPaymentReview}><ShieldCheck size={16}/>
         {nextTask==='confirmation'?'Review payment evidence'
-         :nextTask==='signoff'?'Open final authorization':'Continue manager review'}
+         :nextTask==='signoff'?'Open final authorization'
+         :nextTask==='verification'?'Start payment verification'
+         :nextTask==='allocation'?'Apply verified payment':'Continue manager review'}
        </button>
        :<button type="button" className="btn-primary" disabled={busy}
         onClick={()=>openDialog('payment')}><Banknote size={16}/> Record payment</button>}
-      {manager&&data.remainingMinor>0&&nextTask!=='disabled'&&
+      {manager&&data.remainingMinor>0&&recordedTotal===0&&nextTask!=='disabled'&&
        <button type="button" className="rr-secondary-action"
         onClick={()=>openDialog('payment')}><Banknote size={15}/> Record another payment</button>}
       {nextTask==='confirmation'&&!manager&&
@@ -299,6 +317,13 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       {manager&&<button type="button" className="btn-inline"
        onClick={()=>openDialog('charges')}>Add charge or correction</button>}
      </div>
+     {nextTask==='verification'&&cashAwaitingVerification&&<div className="checkout-guide-shift">
+      <AlertTriangle size={16}/>
+      <div><strong>Cashier shift reconciliation may be required.</strong>
+       <p>Cash receipts cannot complete independent verification until their own shift has been independently reconciled.</p>
+       <Link to="/cashier-shifts" search={{booking:bookingId,hotel:hotelId??undefined}}>
+        Review cashier shifts <ArrowRight size={14}/></Link></div>
+     </div>}
      {shift.isSuccess&&!shift.data&&<div className="checkout-guide-shift">
       <AlertTriangle size={16}/>
       <div><strong>No active cash shift for your account.</strong>

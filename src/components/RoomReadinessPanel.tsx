@@ -11,6 +11,9 @@ import {
 import type {InspectionInput} from '../api/liveRoomReadiness';
 import type {LiveRoom} from '../api/liveCatalog';
 import {readSession} from '../api/session';
+import {ReadableInspectionAuditEvent,auditActorName} from './ReadableAuditEvent';
+import {useQuery} from '@tanstack/react-query';
+import {listHotelStaff} from '../api/liveStaff';
 
 const blockerLabels:Record<string,string>={
  activeInventoryBlockToday:'Inventory restriction active today',
@@ -27,6 +30,8 @@ const empty=():InspectionInput=>({
 export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>void}){
  const {hotelId,user}=useHotelAuth();
  const admin=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
+ const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin&&!!hotelId});
+ const nameOf=(id:string)=>auditActorName(id,staff.data?.data.find(member=>member.userId===id)?.name,user?.id,user?.name);
  const [form,setForm]=useState<InspectionInput>(empty);
  const [reviewNote,setReviewNote]=useState('');
  const [historyPage,setHistoryPage]=useState(1);
@@ -99,8 +104,8 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
      :<p className="rr-blocker-clear"><CheckCircle2 size={16}/> No blockers reported in the current readiness response.</p>}
    </section>
    {latest?<div className="rr-latest-inspection">
-    <span>Latest inspection</span><strong>#{latest.id} · {latest.status}</strong>
-    <small>Inspection version {latest.revision} · Inspector #{latest.inspectedBy}{latest.reviewedBy?' · Reviewer #'+latest.reviewedBy:''}</small>
+    <span>Latest inspection</span><strong>{latest.status==='submitted'?'Awaiting manager review':latest.status==='approved'?'Approved':'Rejected'}</strong>
+    <small>Inspected by {nameOf(latest.inspectedBy)}{latest.reviewedBy?' · Reviewed by '+nameOf(latest.reviewedBy):''}</small>
    </div>:<p className="rr-latest-inspection">No inspection has been submitted for this room.</p>}
    {approvedCurrent&&<p role="status" className="rr-valid-approval"><CheckCircle2 size={17}/> Inspection is current. Another routine inspection is not needed unless new turnover, maintenance, or other work invalidates it.</p>}
    {admin&&needsNewInspection&&<section>
@@ -145,10 +150,9 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
    <h4>Inspection history</h4>
    <QueryFeedback loading={history.isPending} error={history.error}
     empty={history.isSuccess&&history.data.data.length===0}/>
-   {history.data?.data.map(e=><article className="maintenance-history-event" key={e.id}>
-    <strong>{e.action} · Inspection #{e.inspectionId} · Staff #{e.actorId}</strong>
-    <small>{e.createdAt}</small>
-   </article>)}
+   {history.data?.data.map(e=><ReadableInspectionAuditEvent key={e.id} event={{
+     ...e,actorName:e.actorName??staff.data?.data.find(member=>member.userId===e.actorId)?.name,
+    }} currentUserId={user?.id} currentUserName={user?.name}/>)}
    {history.data&&<div className="guest-pagination">
     <span>Page {history.data.meta.page} of {Math.max(1,history.data.meta.totalPages)}</span>
     <div>

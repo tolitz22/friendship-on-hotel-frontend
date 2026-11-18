@@ -180,7 +180,7 @@ export function LiveHousekeeping(){
     <Heading title="Housekeeping" description="Find assigned rooms, finish cleaning work, and hand off completed rooms for separate readiness checks."/></div>
    {admin&&<button type="button" className="btn-primary" onClick={openCreate}><Plus size={16}/> New cleaning task</button>}
   </div>
-  <div className="hk-guidance"><Info size={18}/><p><strong>Cleaning done is not room approved.</strong> Completing a task updates housekeeping records only. Room inspection, maintenance restrictions, and guest check-in are checked separately.</p></div>
+  <div className="hk-guidance"><Info size={18}/><p><strong>Cleaning complete — new inspection required.</strong> Finishing checkout cleaning never marks the room ready. A new inspection and independent approval are required before room release.</p></div>
   <section className="hk-work-summary" aria-label="Housekeeping tasks on current page">
    <div className="hk-work-heading"><div><span className="rr-eyebrow">HOTEL-WIDE TASKS</span><h3>Cleaning workload</h3>
     <p>To do, In progress and Completed show totals across this hotel, even when you change the queue filter. Past due is based on the current task page.</p></div>
@@ -238,7 +238,7 @@ export function LiveHousekeeping(){
        </span>
       </div>
       {pastDue&&<p className="hk-cleaning-priority"><AlertTriangle size={15}/> Follow up on this overdue task.</p>}
-      {task.status==='done'&&<p className="hk-cleaning-finished"><CheckCircle2 size={15}/> Cleaning completed. Room inspection and readiness are separate.</p>}
+      {task.status==='done'&&<p className="hk-cleaning-finished"><CheckCircle2 size={15}/> Cleaning complete — new inspection required. An independent approval is still needed.</p>}
       <Link to="/rooms" search={{room:task.roomNumber}} className="ops-room-link">Check room readiness <ArrowRight size={14}/></Link>
       <button type="button" className="hk-open-task" onClick={()=>openEdit(task)}>
        {editable?task.status==='todo'?'Start or update task':task.status==='in_progress'?'Update cleaning progress':'View completed task':'View task details'}
@@ -315,7 +315,7 @@ export function LiveHousekeeping(){
    </div>}
   </section></div>}
   <div className="demand-warning"><ShieldAlert size={18}/><div><strong>Room readiness is checked separately</strong>
-   <p>Marking a task complete does not confirm the room is ready for guests. The current inspection, maintenance restrictions, and reservation availability must still be checked.</p>
+   <p>Marking checkout cleaning complete never makes a room ready. Request a new room inspection and independent approval; maintenance restrictions and reservation availability also remain enforced.</p>
   </div></div>
  </>;
 }

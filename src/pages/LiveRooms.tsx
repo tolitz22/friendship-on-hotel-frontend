@@ -78,7 +78,7 @@ export function LiveRooms(){
  const operationStatus=useRoomInventoryStatus(visibleRoomIds,canSeeStay&&view==='catalog');
  const statusReady=canSeeStay&&operationStatus.isSuccess;
  const statuses=useMemo(()=>new Map(
-  statusReady?operationStatus.data.data.map(item=>[item.roomId,item]):[]
+  operationStatus.isSuccess?operationStatus.data.data.map(item=>[item.roomId,item] as const):[]
  ),[statusReady,operationStatus.data]);
  const filtered=useMemo(()=>catalogRows.map(room=>({
   room,status:statuses.get(room.id),
@@ -92,7 +92,7 @@ export function LiveRooms(){
   return status.occupancy!=='vacant';
  }),[catalogRows,statuses,canSeeStay,statusReady,attentionFilter]);
  const counts=useMemo(()=>{
-  const list=statusReady?operationStatus.data.data:[];
+  const list=operationStatus.isSuccess?operationStatus.data.data:[];
   return {
    attention:list.filter(needsAttention).length,
    ready:list.filter(s=>s.occupancy==='vacant'&&s.cleaning==='ready'&&s.advisoryReady

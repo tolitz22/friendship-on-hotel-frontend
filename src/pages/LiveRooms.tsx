@@ -138,7 +138,7 @@ export function LiveRooms(){
   <div className="rr-page-heading">
    <Heading title="Rooms & readiness" description="Manage the physical room catalogue and review recorded occupancy, cleaning, and inspection evidence."/>
    <div className="rr-heading-actions">
-    <Link to="/room-calendar" className="rr-secondary-action"><BedDouble size={16}/> Room calendar <ArrowRight size={15}/></Link>
+    {canSeeStay&&<Link to="/room-calendar" className="rr-secondary-action"><BedDouble size={16}/> Room calendar <ArrowRight size={15}/></Link>}
     {admin&&view==='catalog'&&<button type="button" className="btn-primary" onClick={()=>setShowCreate(true)}><Plus size={16}/> Add room</button>}
    </div>
   </div>

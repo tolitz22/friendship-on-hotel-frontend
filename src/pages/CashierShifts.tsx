@@ -9,6 +9,8 @@ import {readSession} from '../api/session';
 import {getCashShiftHistory,openCashierShift,reconcileCashShift,submitCashCount,useCashierShifts,useCashierShiftDetails,useCurrentCashierShift} from '../api/cashierShifts';
 import type {CashierShift} from '../api/cashierShifts';
 import {readableDateTime} from '../lib/format';
+import {listHotelStaff} from '../api/liveStaff';
+import {ReadableCashAuditEvent} from '../components/ReadableAuditEvent';
 
 const validMoney=(s:string)=>/^\d+(\.\d{1,2})?$/.test(s)&&Number.isSafeInteger(Math.round(Number(s)*100))&&Number(s)<=1_000_000_000;
 const minor=(s:string)=>Math.round(Number(s)*100);
@@ -17,7 +19,8 @@ const money=(n:number,currency:string)=>currency==='PHP'
  :n.toLocaleString()+' '+currency+' minor units';
 
 function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:boolean;ownShift:boolean;onChange:()=>void}){
- const {hotelId}=useHotelAuth();
+ const {hotelId,user}=useHotelAuth();
+ const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:manager&&!!hotelId});
  const [count,setCount]=useState('');
  const [note,setNote]=useState('');
  const [busy,setBusy]=useState(false);
@@ -130,9 +133,9 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
   <button type="button" className="cash-shift-history-toggle" onClick={()=>setHistoryOpen(v=>!v)}
    aria-expanded={historyOpen}><History size={15}/>{historyOpen?'Hide':'View'} shift activity</button>
   {historyOpen&&<div><QueryFeedback loading={log.isPending} error={log.error}/>
-   {log.data?.data.map(row=><p key={row.id} className="desk-muted">
-    {row.event.replaceAll('_',' ')} · User #{row.actorId} · {readableDateTime(row.createdAt)}
-   </p>)}</div>}
+   {log.data?.data.map(event=><ReadableCashAuditEvent key={event.id} event={event}
+    actorName={staff.data?.data.find(member=>member.userId===event.actorId)?.name}
+    currentUserId={user?.id}/>)}</div>}
   {error&&<p role="alert" className="auth-error">{error}. Refresh the shift before retrying.</p>}
   {result&&<p role="status">{result}</p>}
  </article>;

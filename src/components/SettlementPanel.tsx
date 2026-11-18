@@ -9,6 +9,7 @@ import {QueryFeedback} from './QueryFeedback';
 import {BillingActions} from './BillingActions';
 import {RecordGuestPayment} from './RecordGuestPayment';
 import {parseBillingAmount} from '../api/billing';
+import {readableDate,readableDateTime} from '../lib/format';
 import './settlement-print.css';
 
 const id=z.string().regex(/^[1-9]\d*$/);
@@ -159,7 +160,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
    <div className="billing-account-overview" aria-label="Guest account overview">
     <div className="billing-account-overview-head">
      <div><span className="rr-eyebrow">ACCOUNT SUMMARY</span>
-      <h3>{data.reservationReference}</h3><p>{data.checkIn} to {data.checkOut} · Guest account</p></div>
+      <h3>{data.reservationReference}</h3><p>{readableDate(data.checkIn)} to {readableDate(data.checkOut)} · Guest account</p></div>
      <span className={'billing-account-tag '+(data.signed?'complete':'pending')}>
       {data.signed?'Settlement signed':'Settlement not final'}</span>
     </div>
@@ -214,8 +215,8 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
      <strong className="settlement-status">{data.signed?'SIGNED ACCOUNT':'PROVISIONAL · NOT SETTLED'}</strong>
     </div>
     <div className="settlement-metrics">
-     <KeyValue label="Arrival" value={data.checkIn}/>
-     <KeyValue label="Departure" value={data.checkOut}/>
+     <KeyValue label="Arrival" value={readableDate(data.checkIn)}/>
+     <KeyValue label="Departure" value={readableDate(data.checkOut)}/>
      <KeyValue label="Recorded charges" value={money(data.netRecordedChargesMinor,data.currency)}/>
      <KeyValue label="Verified payments applied" value={money(data.verifiedAllocatedMinor,data.currency)}/>
      <KeyValue label="Recorded difference (not final)" value={money(data.remainingMinor,data.currency)}/>
@@ -225,7 +226,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
     <div className="table-scroll"><table className="settlement-table">
      <thead><tr><th>Date</th><th>Description</th><th>Amount</th></tr></thead>
      <tbody>{data.charges.map(c=><tr key={c.id}>
-      <td>{c.stayDate??'—'}</td><td>{c.description} <small>#{c.id}</small></td>
+      <td>{readableDate(c.stayDate)}</td><td>{c.description} <small>#{c.id}</small></td>
       <td>{money(c.amountMinor,data.currency)}</td>
      </tr>)}{data.charges.length===0&&<tr><td colSpan={3}>No posted charges.</td></tr>}</tbody>
     </table></div>
@@ -234,7 +235,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
      <div className="table-scroll"><table className="settlement-table">
       <thead><tr><th>Night</th><th>VAT portion</th><th>Net room revenue</th><th>Benefit</th></tr></thead>
       <tbody>{data.taxAllocations.map(t=><tr key={t.folioEntryId}>
-       <td>{t.stayDate} · {t.status}</td>
+       <td>{readableDate(t.stayDate)} · {t.status}</td>
        <td>{money(t.vatMinor,data.currency)}</td>
        <td>{money(t.roomRevenueMinor,data.currency)}</td>
        <td>{t.benefitKind} · {money(t.folioCreditMinor,data.currency)}</td>
@@ -283,7 +284,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
      </table></div>
     </>}
     <div className="settlement-signature">
-     <p>{data.signed?'Signed settlement: '+data.signedAt+' · Manager #'+data.signedBy:
+     <p>{data.signed?'Signed settlement: '+readableDateTime(data.signedAt)+' · Manager #'+data.signedBy:
       'This statement is not yet an approved settlement.'}</p>
      {data.signed&&<p><small>Signed financial snapshot SHA-256: {data.signedSnapshotSha256}</small></p>}
      <small>This is an internal PMS guest-account statement, NOT a BIR tax invoice, bank receipt,

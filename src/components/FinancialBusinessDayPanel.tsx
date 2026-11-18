@@ -56,8 +56,9 @@ export function FinancialBusinessDayPanel(){
   setBusy(true);setError('');setSuccess('');
   try{
    // Get a fresh readiness snapshot immediately before the irreversible write.
-   const current=(await query.refetch()).data;
-   if(!current||!current.canClose||current.businessDate!==data.businessDate){
+   const refresh=await query.refetch();
+   const current=refresh.data;
+   if(refresh.isError||!current||!current.canClose||current.businessDate!==data.businessDate){
     throw new Error('Business-date readiness changed. Review the updated checklist before closing.');
    }
    if(readSession().hotelId!==hotelId)throw new Error('Hotel selection changed.');

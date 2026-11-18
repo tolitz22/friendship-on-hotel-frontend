@@ -147,17 +147,37 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  if(!valid)return null;
  return <section className="settlement-page">
   <div className="desk-tools settlement-tools">
-   <h3>Itemized settlement & checkout statement</h3>
+   <h3>Guest bill details</h3>
    <button type="button" className="btn-inline" disabled={busy} onClick={()=>void query.refetch()}>
     <RefreshCw size={15}/> Refresh statement
    </button>
   </div>
   <QueryFeedback loading={query.isPending} error={query.error} onRetry={()=>void query.refetch()}/>
   {data&&<>
+   <div className="billing-account-overview" aria-label="Guest account overview">
+    <div className="billing-account-overview-head">
+     <div><span className="rr-eyebrow">ACCOUNT SUMMARY</span>
+      <h3>{data.reservationReference}</h3><p>{data.checkIn} to {data.checkOut} · Guest account</p></div>
+     <span className={'billing-account-tag '+(data.signed?'complete':'pending')}>
+      {data.signed?'Settlement signed':'Settlement not final'}</span>
+    </div>
+    <div className="billing-account-totals">
+     <div><span>Recorded charges</span><strong>{money(data.netRecordedChargesMinor,data.currency)}</strong></div>
+     <div><span>Verified payment allocations</span><strong>{money(data.verifiedAllocatedMinor,data.currency)}</strong></div>
+     <div className="billing-account-difference"><span>Current difference · not final</span>
+      <strong>{money(data.remainingMinor,data.currency)}</strong></div>
+    </div>
+    <div className="billing-account-next">
+     {data.signed&&!data.signedSnapshotIntegrity?<><AlertTriangle size={19}/><p><strong>Account needs investigation.</strong> The signed record failed an integrity check. Do not print or complete checkout.</p></>
+      :data.signed?<><CheckCircle2 size={19}/><p><strong>Financial sign-off completed.</strong> Check the guest's other checkout requirements before departure.</p></>
+      :data.blockers.length>0?<><AlertTriangle size={19}/><p><strong>Still needs review.</strong> There are {data.blockers.length} settlement item{data.blockers.length===1?'':'s'} to resolve. See the details below.</p></>
+      :<><ShieldCheck size={19}/><p><strong>Review before checkout.</strong> These amounts reflect saved records, not proof of bank settlement or a final payable amount.</p></>}
+    </div>
+   </div>
    <div className="settlement-print-area" aria-label="Printable guest checkout statement">
     <div className="settlement-heading">
      <div><p className="eyebrow">FRIENDSHIP ON HOTEL · RESERVATION ACCOUNT</p>
-      <h3>Guest folio statement</h3>
+      <h3>Guest account statement</h3>
       <p>Booking {data.reservationReference} · Folio #{data.folioId} · {data.currency}</p>
      </div>
      <strong className="settlement-status">{data.signed?'SIGNED ACCOUNT':'PROVISIONAL · NOT SETTLED'}</strong>
@@ -166,11 +186,11 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
      <KeyValue label="Arrival" value={data.checkIn}/>
      <KeyValue label="Departure" value={data.checkOut}/>
      <KeyValue label="Recorded charges" value={money(data.netRecordedChargesMinor,data.currency)}/>
-     <KeyValue label="Verified allocations" value={money(data.verifiedAllocatedMinor,data.currency)}/>
-     <KeyValue label="Remaining / credit" value={money(data.remainingMinor,data.currency)}/>
-     <KeyValue label="Unallocated deposits" value={money(data.unallocatedVerifiedDepositsMinor,data.currency)}/>
+     <KeyValue label="Verified payments applied" value={money(data.verifiedAllocatedMinor,data.currency)}/>
+     <KeyValue label="Recorded difference (not final)" value={money(data.remainingMinor,data.currency)}/>
+     <KeyValue label="Verified deposits not yet applied" value={money(data.unallocatedVerifiedDepositsMinor,data.currency)}/>
     </div>
-    <h4>Accommodation and additional charges</h4>
+    <h4>What was charged</h4>
     <div className="table-scroll"><table className="settlement-table">
      <thead><tr><th>Date</th><th>Description</th><th>Amount</th></tr></thead>
      <tbody>{data.charges.map(c=><tr key={c.id}>
@@ -200,7 +220,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       </tr>)}</tbody>
      </table></div>
     </>}
-    <h4>Recorded payment evidence</h4>
+    <h4>Payments and their review status</h4>
     <div className="table-scroll"><table className="settlement-table">
      <thead><tr><th>Method / reference</th><th>Status</th><th>Amount</th></tr></thead>
      <tbody>{data.payments.map(p=><tr key={p.id}>
@@ -253,11 +273,14 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
      :<p className="desk-muted">Printable for review. Unsigned statements remain provisional.</p>}
    </div>
    {data.blockers.length>0&&<div className="night-audit-issues" role="status">
-    <h4><AlertTriangle size={17}/> Settlement blockers</h4>
+    <h4><AlertTriangle size={17}/> What still needs attention before checkout</h4>
     <ul>{data.blockers.map((b,i)=><li key={i}>{b}</li>)}</ul>
    </div>}
-   <BillingActions bookingId={bookingId} signed={data.signed}/>
-   {manager&&!data.signed&&<>
+   {manager&&!data.signed&&<details className="billing-manager-details">
+    <summary><div><strong>Manager billing tools</strong>
+     <span>Record charges, review payment evidence, allocate deposits and manage refunds</span></div>
+     <span className="billing-expand-hint">Show tools</span></summary>
+    <BillingActions bookingId={bookingId} signed={data.signed}/>
     {!data.settlementWorkflowEnabled&&<div className="night-audit-warning" role="status">
      <AlertTriangle size={18}/>
      Final settlement is not yet enabled for this hotel. A finance administrator must complete the required checks before activating it. You can still review the recorded statement.
@@ -455,7 +478,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       <ClipboardCheck size={16}/> Sign final settlement statement
      </button>
     </div>
-   </>}
+   </details>}
    {success&&<p className="stay-feedback-success" role="status">{success}</p>}
    {error&&<p className="stay-feedback-error" role="alert"><AlertTriangle size={16}/>{error}</p>}
   </>}

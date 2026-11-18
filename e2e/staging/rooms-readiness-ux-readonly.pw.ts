@@ -29,10 +29,14 @@ test('rooms catalogue supports safe filtering, summary and readiness navigation'
  await expect(search).toHaveValue('');
  const firstRoom=page.locator('.rr-room-card').first();
  if(await firstRoom.count()){
-  await firstRoom.getByRole('button',{name:/View readiness|Review inspection/}).click();
+  // Every room exposes its own inspection history, regardless of operational state.
+  await expect(firstRoom.getByText('Next step')).toBeVisible();
+  await expect(firstRoom.getByRole('button',{name:'View inspection history'})).toBeVisible();
+  await firstRoom.getByRole('button',{name:'View inspection history'}).click();
   const drawer=page.getByRole('dialog',{name:/inspection and readiness/});
   await expect(drawer).toBeVisible();
   await expect(drawer.getByText('Operational blockers')).toBeVisible();
+  await expect(drawer.getByText('Recorded readiness audit')).toBeVisible();
   // Close without submitting an inspection or editing the room.
   await drawer.getByRole('button',{name:'Close',exact:true}).click();
   await expect(drawer).toHaveCount(0);

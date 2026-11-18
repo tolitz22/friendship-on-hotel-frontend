@@ -279,7 +279,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       <p>Review the server-reported blockers below; do not assume the displayed difference is a final amount due.</p>
      </>}
      <div className="checkout-guide-actions">
-      {nextTask==='disabled'&&recordedTotal>0
+      {recordedTotal>0&&(nextTask==='disabled'||!manager)
        ?<button type="button" className="rr-secondary-action" onClick={()=>{
           const history=document.getElementById('billing-account-history');
           if(history instanceof HTMLDetailsElement)history.open=true;
@@ -299,8 +299,11 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       {manager&&data.remainingMinor>0&&recordedTotal===0&&nextTask!=='disabled'&&
        <button type="button" className="rr-secondary-action"
         onClick={()=>openDialog('payment')}><Banknote size={15}/> Record another payment</button>}
-      {nextTask==='confirmation'&&!manager&&
-       <span className="checkout-guide-review-wait">An authorized manager must confirm the recorded evidence.</span>}
+      {recordedTotal>0&&!manager&&<span className="checkout-guide-review-wait">
+       {nextTask==='confirmation'?'Awaiting manager confirmation.':
+        nextTask==='disabled'?'Financial settlement is not enabled.':
+         'Awaiting authorized finance review. Do not collect the same payment again.'}
+      </span>}
       {manager&&<button type="button" className="btn-inline"
        onClick={()=>openDialog('charges')}>Add charge or correction</button>}
      </div>

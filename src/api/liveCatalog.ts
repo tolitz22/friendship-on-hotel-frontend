@@ -32,7 +32,7 @@ export const createLiveRoom=(body:CreateRoomInput)=>requestJson<ItemResponse<Liv
 export type UpdateRoomInput=Partial<{number:string;floor:number|null;roomTypeId:string}>;
 export type UpdateRoomTypeInput=Partial<{name:string;maxOccupancy:number}>;
 export interface CatalogAuditEvent{
- id:string;subjectType:'room'|'room_type';subjectId:string;actorId:string;
+ id:string;subjectType:'room'|'room_type';subjectId:string;actorId:string;actorName?:string|null;
  before:Record<string,string|number|null>;after:Record<string,string|number|null>;createdAt:string;
 }
 export const updateLiveRoom=(id:string,body:UpdateRoomInput)=>requestJson<ItemResponse<LiveRoom>>(

@@ -2,7 +2,7 @@ import {useEffect,useState} from 'react';
 import {Link,useNavigate,useSearch} from '@tanstack/react-router';
 import {
  AlertTriangle,ArrowRight,Banknote,CheckCircle2,ClipboardList,
- FileText,Info,RefreshCcw,Search,ShieldCheck,X,
+ FileText,Info,RefreshCcw,Search,X,
 } from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {useFolios} from '../api/queries';
@@ -19,7 +19,6 @@ function LiveBilling(){
  const {hotelId,user}=useHotelAuth();
  const role=user?.hotels.find(h=>h.id===hotelId)?.role;
  const canRead=role==='admin'||role==='front_desk';
- const manager=role==='admin';
  const [page,setPage]=useState(1);
  const [search,setSearch]=useState('');
  const [debounced,setDebounced]=useState('');
@@ -36,24 +35,23 @@ function LiveBilling(){
  const loadingSearch=debounced!==search.trim();
  const directId=/^[1-9]\d*$/.test(search.trim())?search.trim():null;
  if(!hotelId||!canRead)return <>
-  <Heading title="Billing & guest folios" description="Hotel billing is available to authorized reception and finance staff."/>
+  <Heading title="Guest billing" description="Hotel billing is available to authorized reception and finance staff."/>
   <Panel title="Access required"><p>Select an authorized hotel and sign in with a billing-enabled staff account.</p></Panel>
  </>;
  return <div className="billing-workspace">
   <div className="billing-header">
    <div><span className="rr-eyebrow">GUEST ACCOUNTS · CASHIERING</span>
-    <Heading title="Billing & guest folios" description="Review charges, record verified evidence, and prepare guest checkout statements."/></div>
+    <Heading title="Guest billing" description="Find a guest, review their bill, and manage payments or checkout statements."/></div>
    <div className="billing-header-actions">
-    <Link to="/cashier-shifts" className="rr-secondary-action"><Banknote size={16}/> {manager?'Cash reconciliation':'Cashier shifts'} <ArrowRight size={14}/></Link>
+    <Link to="/cashier-shifts" className="rr-secondary-action"><Banknote size={16}/> Cashier shifts</Link>
     <Link to="/reservations" className="rr-secondary-action"><ClipboardList size={16}/> Reservations</Link>
    </div>
   </div>
-  <div className="billing-guidance"><Info size={18}/><p><strong>Billing shows recorded amounts, not proof of payment.</strong>
-   Payments require separate verification. A signed account is an internal settlement record—not a tax invoice.</p></div>
+  <div className="billing-guidance"><Info size={18}/><p><strong>Before collecting or closing an account:</strong> Check recorded charges and payment reviews. Displayed differences are not final amounts due until finance verifies the account.</p></div>
   {!selectedId&&<section className="billing-index" aria-label="Guest folio directory">
    <div className="billing-section-heading">
-    <div><span className="rr-eyebrow">GUEST ACCOUNTS</span><h3>Find a guest or booking</h3>
-     <p>Search by name, booking reference, or reservation number. Select a guest to see charges and payment status.</p></div>
+    <div><span className="rr-eyebrow">GUEST ACCOUNTS</span><h3>Who would you like to bill?</h3>
+     <p>Search by guest name or reservation reference, then select the guest account.</p></div>
     <button type="button" className="rr-secondary-action" disabled={folios.isFetching}
      onClick={()=>void folios.refetch()}><RefreshCcw size={15}/>{folios.isFetching?'Refreshing…':'Refresh list'}</button>
    </div>
@@ -97,26 +95,29 @@ function LiveBilling(){
      <Link to="/reservations">View reservations <ArrowRight size={15}/></Link>
     </div>}
    {folios.isSuccess&&!loadingSearch&&folios.data.data.length>0&&<>
+    <div className="billing-list-labels"><span>Guest & stay</span><span>Recorded charges</span><span>Staff-reviewed payments</span><span>Difference (not final)</span><span>Action</span></div>
     <div className="billing-folio-list">
-     {folios.data.data.map(folio=><article className={'billing-folio-row'+(selectedId===folio.bookingId?' selected':'')} key={folio.folioId}>
-      <div className="billing-folio-identity"><span className="billing-folio-icon"><FileText size={18}/></span>
-       <div><strong>{folio.guestName?.trim()||folio.reference}</strong><small>{folio.reference} · Reservation #{folio.bookingId}</small><small>Folio #{folio.folioId}</small>
-        <small>{folio.checkIn} – {folio.checkOut}</small></div>
-      </div>
-      <div className="billing-folio-amount"><small>Recorded charges</small>
-       <strong>{formatBillingMoney(folio.netRecordedChargesMinor,folio.currency)}</strong></div>
-      <div className="billing-folio-amount"><small>Staff-confirmed evidence</small>
-       <strong>{formatBillingMoney(folio.staffConfirmedPaymentsMinor,folio.currency)}</strong>
-       {folio.pendingReviewPaymentsMinor>0&&<span className="billing-pending">Evidence awaiting review</span>}</div>
-      <div className="billing-folio-status">{folio.signed===null?
-       <span className="billing-provisional"><AlertTriangle size={14}/> Status unavailable</span>:
-       folio.signed?<span className="billing-signed"><CheckCircle2 size={14}/> Signed account</span>:
-       <span className="billing-provisional"><AlertTriangle size={14}/> Not yet signed</span>}
-       <small>{statusLabel(folio.status)}</small>
-      </div>
-      <Link to="/billing" search={{booking:folio.bookingId}} className="billing-open-link"
-       aria-label={'Open folio for booking '+folio.reference}>{selectedId===folio.bookingId?'Viewing folio':'Open folio'} <ArrowRight size={15}/></Link>
-     </article>)}
+     {folios.data.data.map(folio=>{
+      const difference=folio.netRecordedChargesMinor-folio.staffConfirmedPaymentsMinor;
+      return <article className="billing-folio-row" key={folio.folioId}>
+       <div className="billing-folio-identity"><span className="billing-folio-icon"><FileText size={18}/></span>
+        <div><strong>{folio.guestName?.trim()||'Guest name unavailable'}</strong>
+         <small>{folio.reference} · {folio.checkIn} to {folio.checkOut}</small>
+         <span className="billing-stay-status">{statusLabel(folio.status)}</span></div>
+       </div>
+       <div className="billing-folio-amount"><small>Charges</small>
+        <strong>{formatBillingMoney(folio.netRecordedChargesMinor,folio.currency)}</strong></div>
+       <div className="billing-folio-amount"><small>Reviewed payments</small>
+        <strong>{formatBillingMoney(folio.staffConfirmedPaymentsMinor,folio.currency)}</strong>
+        {folio.pendingReviewPaymentsMinor>0&&<span className="billing-pending">Payment evidence awaiting review</span>}</div>
+       <div className="billing-folio-amount billing-folio-difference"><small>Difference · not final</small>
+        <strong>{formatBillingMoney(difference,folio.currency)}</strong>
+        <span className="billing-provisional">{folio.signed===null?'Settlement status unavailable':folio.signed?'Signed account':'Under review'}</span>
+       </div>
+       <Link to="/billing" search={{booking:folio.bookingId}} className="billing-open-link"
+        aria-label={'Open folio for booking '+folio.reference}>View bill <ArrowRight size={15}/></Link>
+      </article>;
+     })}
     </div>
     {folios.data.meta.totalPages>1&&<div className="billing-pagination">
      <span>Page {folios.data.meta.page} of {folios.data.meta.totalPages}</span>
@@ -127,13 +128,12 @@ function LiveBilling(){
   </section>}
   {selectedId?<section className="billing-selected" aria-label="Selected guest folio">
    <div className="billing-selected-heading">
-    <div><span className="rr-eyebrow">SELECTED ACCOUNT</span><h3>Reservation #{selectedId}</h3>
-     <p>Itemized charges, verified allocations, payment reviews and checkout statement.</p></div>
+    <div><span className="rr-eyebrow">GUEST BILL</span><h3>Review guest charges and payments</h3>
+     <p>Check the recorded amounts first. Use the manager tools only if an update is needed.</p></div>
     <button type="button" className="rr-secondary-action" onClick={clear}><ArrowRight size={16} style={{transform:'rotate(180deg)'}}/> Back to guest accounts</button>
    </div>
    <SettlementPanel key={hotelId+'-'+selectedId} bookingId={selectedId}/>
   </section>:null}
-  <p className="billing-footer-note"><ShieldCheck size={16}/> All financial changes are subject to the existing hotel permissions, independent reviews, and signed-folio restrictions.</p>
  </div>;
 }
 function DemoBilling(){

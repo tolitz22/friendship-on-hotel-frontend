@@ -29,6 +29,15 @@ const payment=z.object({
  verificationId:id.nullable(),verificationPreparedBy:id.nullable(),
  evidenceKind:z.string().nullable(),evidenceReference:z.string().nullable(),
 });
+const paymentHandoff=z.object({
+ paymentId:id,recordedBy:id.nullable(),recordedByName:z.string().nullable(),
+ verificationPreparedByName:z.string().nullable(),
+ cashShiftId:id.nullable(),cashShiftStatus:z.enum([
+  'open','submitted','reconciled','flagged','unlinked','not_applicable',
+ ]),
+ cashierName:z.string().nullable(),reconciledByName:z.string().nullable(),
+ reconciledBy:id.nullable(),
+});
 const allocation=z.object({
  id,paymentId:id,folioEntryId:id.nullable(),payerKind:z.string(),
  payerReference:z.string(),amountMinor:z.number().int(),
@@ -47,7 +56,8 @@ const tax=z.object({
 const statement=z.object({
  hotelId:id,bookingId:id,folioId:id,reservationReference:z.string(),
  checkIn:z.string(),checkOut:z.string(),status:z.string(),currency:z.string(),
- charges:z.array(charge),adjustments:z.array(adjustment),payments:z.array(payment),
+ charges:z.array(charge),adjustments:z.array(adjustment),
+ payments:z.array(payment),cashShiftContexts:z.array(paymentHandoff),
  allocations:z.array(allocation),taxAllocations:z.array(tax),
  refunds:z.array(refund),verifiedRefundsMinor:z.number().int(),
  netRecordedChargesMinor:z.number().int(),

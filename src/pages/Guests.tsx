@@ -56,9 +56,9 @@ export function Guests(){
  }
  const totalPages=query.data?.meta.totalPages??1;
  return <>
- {live?<div className="notice"><strong>Live Laravel guest records</strong> · Property-scoped staff access. Booking operations use live Laravel reservation records; payment capture and some reports remain separate or preview-only.</div>:<DemoNotice/>}
- <Heading title="Guest directory" description={live?'Authenticated hotel directory. Guest records are stored in your Laravel database.':'Example guest profiles and contact details, using fictional sample records.'}
-  action={<button type="button" className="btn-primary" disabled={!admin} onClick={openCreate}><Plus size={16}/>{live?'Add guest':'Add guest (API only)'}</button>}/>
+ {live?<div className="notice"><strong>Guest records</strong> · Manage the guest directory for the selected hotel. Reservation and payment activities are handled in their respective sections.</div>:<DemoNotice/>}
+ <Heading title="Guest directory" description={live?'View and manage guest profiles for this hotel.':'Example guest profiles and contact details, using fictional sample records.'}
+  action={<button type="button" className="btn-primary" disabled={!admin} onClick={openCreate}><Plus size={16}/>{live?'Add guest':'Add guest (available in live mode)'}</button>}/>
  <Panel title="Guest profiles" action={<span className="table-count">{query.data?.meta.total??'—'} profiles</span>}>
  <div className="table-toolbar"><label className="search-box"><Search size={17}/><input value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} aria-label="Search guests" placeholder="Search guest name or email"/></label>
  <button type="button" className="btn-inline" onClick={()=>void query.refetch()}><RotateCcw size={15}/> Refresh</button></div>

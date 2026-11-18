@@ -17,7 +17,9 @@ const room=z.discriminatedUnion('priced',[
   folioId:id,currency:z.string(),netRecordedChargesMinor:amount,
   staffConfirmedPaymentsMinor:amount,verifiedAllocatedMinor:amount,
   verifiedGroupPayerAllocatedMinor:amount,unallocatedNetChargesMinor:amount,
-  signed:z.boolean()}),
+  signed:z.boolean(),eligiblePayments:z.array(z.object({
+   paymentId:id,reference:z.string(),remainingMinor:amount,
+  }))}),
 ]);
 const schema=z.object({data:z.object({hotelId:id,groupId:id,
  currencies:z.array(currency),rooms:z.array(room)}),

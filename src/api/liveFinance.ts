@@ -21,7 +21,7 @@ export type LiveLedgerSummary={
 export type LiveFolioLedgerResponse={data:{
  summary:LiveLedgerSummary;
  adjustments:Array<{id:string;kind:'debit'|'credit';amountMinor:number;reason:string;createdAt:string}>;
- payments:Array<{id:string;method:'cash'|'bank_transfer';reference:string;amountMinor:number;status:string}>;
+ payments:Array<{id:string;method:'cash'|'bank_transfer';reference:string;amountMinor:number;status:string;recordedBy:string;reviewedBy:string|null;reviewNote:string|null;createdAt:string}>;
 }};
 
 /** Independent backend read-only lookup. Never silently falls back to sample data. */

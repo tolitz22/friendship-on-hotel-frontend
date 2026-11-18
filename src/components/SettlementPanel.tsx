@@ -76,6 +76,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const manager=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const shift=useCurrentCashierShift(!!hotelId);
  const [selected,setSelected]=useState('');
+ const [reviewStage,setReviewStage]=useState<'confirmation'|'allocation'>('confirmation');
  const [activeDialog,setActiveDialog]=useState<'payment'|'charges'|'review'|'refunds'|'signoff'|null>(null);
  const dialogCloser=useRef<HTMLButtonElement>(null);
  const dialogOpener=useRef<HTMLElement|null>(null);
@@ -101,7 +102,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const valid=!!hotelId&&/^[1-9]\d*$/.test(bookingId);
  const endpoint='/bookings/'+bookingId;
  useEffect(()=>{
-  setActiveDialog(null);setSelected('');setReference('');setReviewNote('');setPayerKind('guest');
+  setActiveDialog(null);setReviewStage('confirmation');setSelected('');setReference('');setReviewNote('');setPayerKind('guest');
   setPayerRef('');setAmount('');setEntryId('');setAck(false);setBusy(false);
   setError('');setSuccess('');setRequestKey(crypto.randomUUID());
   setRefundPayment('');setRefundAmount('');setRefundReason('');
@@ -151,6 +152,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  }
  function openPaymentReview(){
   if(nextPayment)selectPayment(nextPayment);
+  setReviewStage(nextTask==='confirmation'?'confirmation':'allocation');
   openDialog(nextTask==='signoff'?'signoff':'review');
  }
  function closeDialog(){if(!busyRef.current)setActiveDialog(null);}
@@ -474,8 +476,18 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
      <AlertTriangle size={18}/>
      Final settlement is not yet enabled for this hotel. A finance administrator must complete the required checks before activating it. You can still review the recorded statement.
     </div>}
-    <BillingActions bookingId={bookingId} signed={data.signed} mode="review"/>
-    <h4>Manager payment verification & allocation</h4>
+    <div className="settlement-review-steps" role="group" aria-label="Payment review steps">
+     <button type="button" disabled={busy} aria-pressed={reviewStage==='confirmation'}
+      className={reviewStage==='confirmation'?'active':''}
+      onClick={()=>setReviewStage('confirmation')}>
+      1 · Confirm recorded evidence {unconfirmed.length>0?'('+unconfirmed.length+')':''}</button>
+     <button type="button" disabled={busy} aria-pressed={reviewStage==='allocation'}
+      className={reviewStage==='allocation'?'active':''}
+      onClick={()=>setReviewStage('allocation')}>2 · Verify & allocate</button>
+    </div>
+    {reviewStage==='confirmation'&&<BillingActions bookingId={bookingId} signed={data.signed} mode="review"/>}
+    {reviewStage==='allocation'&&<>
+    <h4>Verification & payment allocation</h4>
     <p className="desk-muted">Bank transfer evidence requires a different administrator to verify the supporting statement. Cash evidence requires a reconciled shift. These controls never initiate a bank payment or refund.</p>
     <div className="settlement-payment-choice">
      {data.payments.map(p=><button type="button" key={p.id} className={'btn-inline'+(selected===p.id?' active':'')}
@@ -566,6 +578,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        </button>
       </>:<p role="alert">Rejected verification cannot be allocated. Manager investigation required.</p>}
     </div>}
+    </>}
 
    <details className="settlement-progress" aria-label="Detailed financial settlement stages">
     <summary className="settlement-progress-title"><ClipboardCheck size={17}/>
@@ -706,7 +719,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
    {manager&&!data.signed&&<details className="billing-more-tools">
     <summary>More finance tools · refunds, payment allocation and sign-off</summary>
     <div className="billing-secondary-actions">
-     <button type="button" className="btn-inline" onClick={()=>openDialog('review')}>
+     <button type="button" className="btn-inline" onClick={()=>{setReviewStage('confirmation');openDialog('review');}}>
       <ShieldCheck size={15}/> Review payments & allocation</button>
      <button type="button" className="btn-inline" onClick={()=>openDialog('refunds')}>Refund requests</button>
      <button type="button" className="btn-inline" onClick={()=>openDialog('signoff')}>

@@ -30,8 +30,8 @@ export function ReadinessEnforcementPanel(){
    const updated=await changeReadinessPolicy(capturedHotel,policy.data.revision,desired,reason);
    if(readSession().hotelId!==capturedHotel)return;
    setMessage(updated.enforceAtCheckIn?
-    'Laravel enabled the room inspection gate for this hotel.' :
-    'Laravel disabled the room inspection gate for this hotel.');
+    'Approved room inspection is now required before check-in.' :
+    'Approved room inspection is no longer required for check-in.');
    setAck(false);setReason('');
    void Promise.all([
     client.invalidateQueries({queryKey:['live','readiness-policy',capturedHotel]}),
@@ -49,8 +49,8 @@ export function ReadinessEnforcementPanel(){
   <QueryFeedback loading={policy.isPending} error={policy.error}/>
   {policy.data&&<>
    <div className="rr-policy-state" role="status"><ShieldCheck size={21}/><div><strong>{policy.data.enforceAtCheckIn?'Approved inspection required at check-in':'Inspection not mandatory for check-in'}</strong>
-    <p>{policy.data.enforceAtCheckIn?'Laravel checks for an independently approved current inspection without blockers when a guest checks in.':'Inspections and audit history remain available, but the readiness gate is not enforced at check-in.'}</p>
-    <small>Policy revision {policy.data.revision} · No automatic daily inspection</small></div></div>
+    <p>{policy.data.enforceAtCheckIn?'Check-in requires a currently approved room inspection with no active readiness blockers.':'Inspections and audit history remain available, but the readiness gate is not enforced at check-in.'}</p>
+    <small>Policy change #{policy.data.revision} · No automatic daily inspection</small></div></div>
    <p className="rr-policy-caution"><AlertTriangle size={16}/> Enabling this rule may prevent check-in for rooms without current approval. It does not replace reservations, inventory checks, guest identity, maintenance or payment controls.</p>
    {admin&&<section>
     <h4>Change this hotel-wide rule</h4>
@@ -79,7 +79,7 @@ export function ReadinessEnforcementPanel(){
    <QueryFeedback loading={history.isPending} error={history.error}
     empty={history.isSuccess&&history.data.data.length===0}/>
    {history.data?.data.map(entry=><article key={entry.id} className="maintenance-history-event">
-    <strong>{entry.nextEnabled?'Enabled':'Disabled'} · revision {entry.revision} · Staff #{entry.actorId}</strong>
+    <strong>{entry.nextEnabled?'Enabled':'Disabled'} · Change #{entry.revision} · Staff #{entry.actorId}</strong>
     <small>{entry.createdAt}</small>
     <p>{entry.reason}</p>
    </article>)}

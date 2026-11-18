@@ -27,6 +27,16 @@ test('rooms catalogue supports safe filtering, summary and readiness navigation'
  await expect(page.getByRole('button',{name:'Clear filters'})).toBeVisible();
  await page.getByRole('button',{name:'Clear filters'}).click();
  await expect(search).toHaveValue('');
+ const firstRoom=page.locator('.rr-room-card').first();
+ if(await firstRoom.count()){
+  await firstRoom.getByRole('button',{name:/View readiness|Review inspection/}).click();
+  const drawer=page.getByRole('dialog',{name:/inspection and readiness/});
+  await expect(drawer).toBeVisible();
+  await expect(drawer.getByText('Operational blockers')).toBeVisible();
+  // Close without submitting an inspection or editing the room.
+  await drawer.getByRole('button',{name:'Close',exact:true}).click();
+  await expect(drawer).toHaveCount(0);
+ }
  await page.getByRole('button',{name:/Readiness & arrivals/}).click();
  await expect(page.getByRole('button',{name:/Readiness & arrivals/})).toHaveAttribute('aria-pressed','true');
  await expect(page.getByRole('heading',{name:'Room readiness · Operational dashboard'})).toBeVisible();

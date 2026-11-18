@@ -316,7 +316,8 @@ function GroupDetails({id,billingOpen=false}:{id:string;billingOpen?:boolean}){
    </div></div>
    <div className="gb-context-actions">
     {group.checkIn&&<Link className="btn-primary" to="/room-calendar"
-     search={{date:group.checkIn,group:group.id,hotel:hotelId??undefined}}>
+     search={{date:group.checkIn,end:group.checkOut??undefined,
+      group:group.id,hotel:hotelId??undefined}}>
      <CalendarDays size={17}/> View group on calendar <ArrowRight size={15}/></Link>}
     <Link className="rr-secondary-action" to="/group-reservations"
      search={{group:group.id,tab:'billing' as const,hotel:hotelId??undefined}}>
@@ -578,7 +579,8 @@ export function GroupReservations(){
      <div className="gb-list-actions">
       <Link to="/group-reservations" search={{group:group.id}}>View group <ArrowRight size={16}/></Link>
       {group.checkIn&&<Link to="/room-calendar"
-       search={{date:group.checkIn,group:group.id,hotel:hotelId??undefined}}>View on calendar</Link>}
+       search={{date:group.checkIn,end:group.checkOut??undefined,
+      group:group.id,hotel:hotelId??undefined}}>View on calendar</Link>}
      </div>
     </article>)}
    </div>

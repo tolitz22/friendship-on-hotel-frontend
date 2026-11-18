@@ -106,7 +106,7 @@ export function ChangePassword(){
   }finally{setPending(false);}
  }
  return <>
-  <Heading title="Change password" description="Update your account password and revoke existing API sessions"/>
+  <Heading title="Change password" description="Update your password and sign out other active sessions"/>
   <Panel title="Account security">
    <p className="guest-info">You will be signed out on all devices after a successful password change.</p>
    <form className="password-change-form" onSubmit={e=>void submit(e)}>

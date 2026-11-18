@@ -144,7 +144,7 @@ export function LiveRoomCalendar(){
    <div className="lrc-focus-actions">
     <Link to="/group-reservations" search={{group:focusGroupId,hotel:hotelId??undefined}}>
      Back to group <ArrowUpRight size={14}/></Link>
-    <Link to="/room-calendar" search={{date:focus.date}} className="btn-inline">Show all rooms</Link>
+    <Link to="/room-calendar" search={{date:focus.date,end:focus.end}} className="btn-inline">Show all rooms</Link>
    </div>
   </div>}
   <section className="live-room-calendar" aria-label="Room inventory calendar">

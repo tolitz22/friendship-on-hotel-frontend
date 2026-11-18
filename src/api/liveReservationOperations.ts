@@ -29,7 +29,7 @@ const historySchema=z.object({
  data:z.array(z.object({
   id,reservationId:id,eventType:z.string(),
   oldState:z.string().nullable(),newState:z.string().nullable(),
-  actorId:id,createdAt:z.string(),
+  actorId:id,actorName:z.string().nullable().optional(),createdAt:z.string(),
  })),
  meta:z.object({
   page:z.number().int().positive(),perPage:z.number().int().positive(),

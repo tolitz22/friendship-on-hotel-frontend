@@ -42,7 +42,10 @@ function Home(){const {user,hotelId}=useHotelAuth();
 const index=createRoute({getParentRoute:()=>root,path:'/',component:dataMode==='api'?Home:Dashboard});
 const reservations=createRoute({getParentRoute:()=>root,path:'/reservations',
  validateSearch:(value:Record<string,unknown>):{booking?:string;mode?:'new';guest?:string;room?:string;roomNumber?:string;checkIn?:string;checkOut?:string;deskAction?:'assign'|'check-in'|'check-out'}=>({
-  booking:typeof value.booking==='string'&&/^[1-9][0-9]*$/.test(value.booking)?value.booking:undefined,
+  booking:(()=>{const raw=typeof value.booking==='string'?value.booking.trim():String(typeof value.booking==='number'?value.booking:'');
+   const normalized=raw.replace(/^\"([1-9][0-9]*)\"$/,'$1');
+   return /^[1-9][0-9]*$/.test(normalized)?normalized:undefined;
+  })(),
   mode:value.mode==='new'?'new':undefined,
   guest:typeof value.guest==='string'&&/^[1-9][0-9]*$/.test(value.guest)?value.guest:undefined,
   room:typeof value.room==='string'&&/^[1-9][0-9]*$/.test(value.room)?value.room:undefined,

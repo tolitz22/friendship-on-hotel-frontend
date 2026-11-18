@@ -21,7 +21,10 @@ import {ReservationSpecialRequests} from '../components/ReservationSpecialReques
 import {Status} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {hotelToday} from '../features/reservations/calendarDate';
-import {dateLabel,statusLabel} from '../lib/format';
+import {dateLabel,statusLabel,readableDateTime,readableDate} from '../lib/format';
+import {auditActorName} from '../components/ReadableAuditEvent';
+import {listHotelStaff} from '../api/liveStaff';
+import {useQuery} from '@tanstack/react-query';
 
 export function LiveReservationOperations({record,onClose,preferredRoomId,preferredRoomNumber,deskAction}:{
  record:LiveRecord;onClose:()=>void;preferredRoomId?:string|null;preferredRoomNumber?:string|null;
@@ -30,6 +33,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const {hotelId,user}=useHotelAuth();
  const canOperate=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&(h.role==='admin'||h.role==='front_desk'));
  const manager=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
+ const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:manager});
  const [roomPage,setRoomPage]=useState(1);
  const [showRoomPicker,setShowRoomPicker]=useState(false);
  const [historyPage,setHistoryPage]=useState(1);
@@ -350,10 +354,11 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
      </div>
      {record.earlyCheckIn&&<div className="stay-facts-item stay-early-record">
       <small>EARLY CHECK-IN · AUDITED</small>
-      <strong>Actual arrival: {record.earlyCheckIn.actualCheckInDate}</strong>
-      <span>Originally booked: {record.earlyCheckIn.scheduledCheckIn}</span>
-      <span>Recorded at: {record.earlyCheckIn.actualCheckedInAt}</span>
-      <span>Approved by manager #{record.earlyCheckIn.approvedBy}</span>
+      <strong>Actual arrival: {readableDate(record.earlyCheckIn.actualCheckInDate)}</strong>
+      <span>Originally booked: {readableDate(record.earlyCheckIn.scheduledCheckIn)}</span>
+      <span>Recorded at: {readableDateTime(record.earlyCheckIn.actualCheckedInAt)}</span>
+      <span>Approved by {auditActorName(record.earlyCheckIn.approvedBy,
+       staff.data?.data.find(m=>m.userId===record.earlyCheckIn?.approvedBy)?.name,user?.id,user?.name)}</span>
       <span>Approval #{record.earlyCheckIn.approvalRequestId}</span>
       <span>Reason: {record.earlyCheckIn.reason}</span>
       <span>Manager note: {record.earlyCheckIn.managerNote}</span>
@@ -361,7 +366,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
      <div className="stay-facts-item"><small>Reservation reference</small><strong>{record.reference}</strong></div>
     </section>
     <div className="stay-side-tip"><ShieldCheck size={17}/>
-     <p>All actions are validated by Laravel and recorded in the reservation audit trail.</p>
+     <p>All reservation changes are checked against hotel rules and recorded in the activity history.</p>
     </div>
    </aside>
   </div>
@@ -384,16 +389,23 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
    <details className="stay-secondary-disclosure">
     <summary>Reservation activity log <span>View recorded changes</span></summary>
     <div className="stay-secondary-content">
-     <p className="stay-security-note">Activity shows recorded actions and staff identifiers, not independent proof of physical occupancy or payment settlement.</p>
+     <p className="stay-security-note">Activity shows recorded actions, who performed them and any saved status changes. It does not prove physical occupancy or bank settlement.</p>
      <QueryFeedback loading={history.isPending} error={history.error}
       empty={history.isSuccess&&history.data.data.length===0} onRetry={()=>void history.refetch()}/>
-     {history.isSuccess&&history.data.data.length>0&&<div className="table-scroll">
-      <table><thead><tr><th>Event</th><th>Before</th><th>After</th><th>Staff ID</th><th>Recorded</th></tr></thead>
-       <tbody>{history.data.data.map(item=><tr key={item.id}>
-        <td>{item.eventType.replaceAll('_',' ')}</td>
-        <td>{item.oldState??'—'}</td><td>{item.newState??'—'}</td>
-        <td>{item.actorId}</td><td>{item.createdAt}</td>
-       </tr>)}</tbody></table></div>}
+     {history.isSuccess&&history.data.data.length>0&&<div className="reservation-audit-timeline">
+      {history.data.data.map(item=><article className="readable-audit-event" key={item.id}>
+       <strong>{statusLabel(item.eventType)}</strong>
+       <p className="readable-audit-context">{auditActorName(item.actorId,
+        item.actorName??staff.data?.data.find(m=>m.userId===item.actorId)?.name,user?.id,user?.name)}
+        {' · '}{readableDateTime(item.createdAt)}</p>
+       {item.oldState!==item.newState&&<div className="readable-audit-changes">
+        <div><span>Reservation status</span><strong>{item.oldState?statusLabel(item.oldState):'Not recorded'}
+         {' → '}{item.newState?statusLabel(item.newState):'Not recorded'}</strong></div>
+       </div>}
+       {item.oldState===item.newState&&<p className="readable-audit-context">
+        Action recorded. No status change is included in this event.</p>}
+      </article>)}
+     </div>}
      {history.isSuccess&&<div className="stay-room-pagination">
       <span>Page {history.data.meta.page} of {Math.max(1,history.data.meta.totalPages)}</span>
       <div><button className="btn-inline" disabled={historyPage<=1} type="button"

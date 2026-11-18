@@ -2501,3 +2501,30 @@
 .billing-void-confirm>.billing-payment-ack{display:flex;align-items:flex-start}
 .billing-void-confirm>.btn-primary{justify-self:start}
 @media(max-width:680px){.billing-void-row,.billing-payment-existing-heading{flex-direction:column;align-items:flex-start}.billing-void-row button{white-space:normal}.billing-payment-existing-totals{flex-direction:column;gap:5px}}
+
+
+/* Manager evidence decision is a focused transaction, never an inline form per receipt. */
+.billing-evidence-dialog{width:min(560px,100%);padding:0;overflow-y:auto}
+.billing-evidence-dialog .billing-action-modal-header{padding:22px 24px 17px}
+.billing-evidence-dialog .billing-action-modal-header h3{font-size:20px}
+.billing-evidence-modal-body{padding:20px 24px 24px;display:grid;gap:15px}
+.billing-evidence-summary{display:grid;gap:11px;padding:15px;border:1px solid var(--border);background:var(--canvas);border-radius:12px}
+.billing-evidence-summary>div{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.billing-evidence-summary span{color:var(--muted);font-size:12px;flex-shrink:0}
+.billing-evidence-summary strong{font-size:13px;text-align:right;overflow-wrap:anywhere}
+.billing-evidence-explainer{font-size:12px;color:var(--muted);line-height:1.65;margin:0}
+.billing-evidence-modal-body>label{font-size:12px;font-weight:700;display:grid;gap:8px}
+.billing-evidence-dialog-actions{display:flex;justify-content:flex-end;align-items:center;gap:10px;border-top:1px solid var(--border);padding-top:16px}
+.billing-evidence-dialog-actions button{min-height:42px;display:inline-flex;justify-content:center;align-items:center;gap:7px}
+.billing-review-item>div:first-child{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:7px}
+.billing-review-item>div:first-child span{font-size:12px}
+.billing-review-actions{justify-content:flex-end}
+.billing-review-actions button{min-height:40px}
+@media(max-width:600px){.billing-review-backdrop{padding:0;align-items:flex-end}
+.billing-evidence-dialog{width:100%;max-height:94dvh;border-radius:17px 17px 0 0}
+.billing-evidence-dialog .billing-action-modal-header{padding:18px 16px 14px}
+.billing-evidence-modal-body{padding:16px}
+.billing-evidence-summary>div{align-items:flex-start;flex-direction:column;gap:3px}
+.billing-evidence-summary strong{text-align:left}
+.billing-evidence-dialog-actions{flex-direction:column-reverse}
+.billing-evidence-dialog-actions button{width:100%}}

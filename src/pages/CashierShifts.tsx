@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
-import {AlertTriangle,ArrowRight,Banknote,CheckCircle2,Clock3,History,Info,RefreshCw,Wallet} from 'lucide-react';
+import {AlertTriangle,ArrowRight,Banknote,CheckCircle2,Clock3,History,Info,RefreshCw,Wallet,X} from 'lucide-react';
 import {Link} from '@tanstack/react-router';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
@@ -67,29 +67,46 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
    <div><small>Difference</small><strong>{money(shift.varianceMinor??0,shift.currency)}</strong></div></div>}
   {shift.unconfirmedReceiptCount>0&&<p className="cash-shift-alert"><AlertTriangle size={16}/>
    {shift.unconfirmedReceiptCount} receipt{shift.unconfirmedReceiptCount===1?'':'s'} still need independent payment review.</p>}
-  {ownShift&&shift.status==='open'&&<section className="cash-shift-close">
-   <button type="button" className="cash-shift-close-toggle" aria-expanded={closingOpen}
-    onClick={()=>setClosingOpen(v=>!v)}>
-    <span><strong>Finish shift and count cash</strong><small>Only at the end of your shift · This stops new cash payments</small></span>
-    <ArrowRight size={17} aria-hidden="true"/></button>
-   {closingOpen&&<div className="cash-shift-close-form">
-    <p>Count the physical notes and coins in your drawer. Do not use a calculated expected total as your count.</p>
-    <label>Actual cash counted (₱)
-     <input className="wizard-input" type="text" inputMode="decimal" value={count}
-      onChange={e=>{setCount(e.target.value);setCountConfirmed(false);}} placeholder="0.00"/></label>
-    <label>Handover note (optional)
-     <input className="wizard-input" value={note} maxLength={1000}
-      onChange={e=>setNote(e.target.value)} placeholder="Any handover details"/></label>
-    <label className="cash-shift-confirm"><input type="checkbox" checked={countConfirmed}
-     onChange={e=>setCountConfirmed(e.target.checked)}/>
-     I counted the actual cash in the drawer and understand that this shift will be submitted for manager review.</label>
-    <div className="cash-shift-close-buttons">
-     <button type="button" className="btn-primary" disabled={busy||!validMoney(count)||!countConfirmed}
-      onClick={()=>void run('close')}>{busy?'Submitting…':'Submit cash count and end shift'}</button>
-     <button type="button" className="btn-inline" onClick={()=>setClosingOpen(false)}>Cancel</button>
-    </div>
+  {ownShift&&shift.status==='open'&&<>
+   <button type="button" className="cash-shift-close-toggle cash-shift-end-action"
+    aria-expanded={closingOpen} onClick={()=>{setClosingOpen(true);setCountConfirmed(false);}}>
+    <span><strong>End cashier shift</strong>
+     <small>Count cash and submit for manager review when your shift is finished</small></span>
+    <ArrowRight size={17}/>
+   </button>
+   {closingOpen&&<div className="billing-modal-backdrop">
+    <section role="dialog" aria-modal="true" aria-label="End cashier shift"
+     className="billing-action-modal cashier-close-dialog">
+     <div className="billing-action-modal-header">
+      <div><span className="rr-eyebrow">SHIFT #{shift.id}</span>
+       <h3>End shift and count cash</h3>
+       <p>Enter the physical amount in your drawer. Expected cash remains hidden until submission.</p>
+      </div>
+      <button type="button" className="billing-modal-dismiss" aria-label="Cancel ending shift"
+       disabled={busy} onClick={()=>{setClosingOpen(false);setCountConfirmed(false);}}><X size={20}/></button>
+     </div>
+     <div className="cash-shift-close-form">
+      <label>Actual cash counted (₱)
+       <input className="wizard-input" type="text" inputMode="decimal" autoFocus
+        value={count} disabled={busy}
+        onChange={e=>{setCount(e.target.value);setCountConfirmed(false);}} placeholder="0.00"/></label>
+      <label>Handover note (optional)
+       <input className="wizard-input" value={note} maxLength={1000} disabled={busy}
+        onChange={e=>setNote(e.target.value)} placeholder="Any handover details"/></label>
+      <label className="cash-shift-confirm"><input type="checkbox" checked={countConfirmed}
+       disabled={busy} onChange={e=>setCountConfirmed(e.target.checked)}/>
+       I counted the physical cash and understand this shift will stop accepting payments.</label>
+      <div className="cash-shift-close-buttons">
+       <button type="button" className="btn-primary" disabled={busy||!validMoney(count)||!countConfirmed}
+        onClick={()=>void run('close')}>{busy?'Submitting…':'Submit count and end shift'}</button>
+       <button type="button" className="btn-inline" disabled={busy}
+        onClick={()=>{setClosingOpen(false);setCountConfirmed(false);}}>Cancel</button>
+      </div>
+      {error&&<p role="alert" className="auth-error">{error} Check the shift before retrying.</p>}
+     </div>
+    </section>
    </div>}
-  </section>}
+  </>}
   {manager&&!ownShift&&shift.status==='submitted'&&<div>
    <h4>Recorded receipts for independent verification</h4>
    <QueryFeedback loading={detail.isPending} error={detail.error} onRetry={()=>void detail.refetch()}/>
@@ -185,7 +202,10 @@ export function CashierShifts(){
    {message&&<p role="status" className="cashier-feedback-success">{message}</p>}
    {error&&<p className="auth-error" role="alert">{error} Check your shift before trying again.</p>}
   </section>
-  <Panel title={manager?'Shift review & history':'Previous shifts'}>
+  <details className="cashier-history-disclosure">
+   <summary><span><History size={18}/><strong>{manager?'Review other shifts and history':'Previous cashier shifts'}</strong></span>
+    <small>Open shift history</small></summary>
+   <Panel title={manager?'Shift review & history':'Previous shifts'}>
    <div className="desk-tools">
     <label>Filter by status <select className="wizard-input" value={status} onChange={e=>{setStatus(e.target.value);setPage(1);}}>
      <option value="all">All</option><option value="open">Open</option>
@@ -202,7 +222,8 @@ export function CashierShifts(){
      <button className="btn-inline" disabled={page===1} onClick={()=>setPage(p=>p-1)}>Previous</button>
      <button className="btn-inline" disabled={page>=shifts.data.meta.totalPages} onClick={()=>setPage(p=>p+1)}>Next</button>
     </div></div>}
-  </Panel>
+   </Panel>
+  </details>
   <p className="desk-preview-note"><AlertTriangle size={17}/> Only registered cash payments are included in reconciliation. Always record every stay and guest payment in the hotel system.</p>
  </>;
 }

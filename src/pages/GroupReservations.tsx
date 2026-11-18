@@ -352,9 +352,11 @@ function GroupDetails({id,billingOpen=false}:{id:string;billingOpen?:boolean}){
        <small>{readableDate(room.checkIn)} – {readableDate(room.checkOut)} · {statusLabel(room.status??'Unknown')}</small>
       </div>
       <div className="reservation-manage-action">
-       <Link className="btn-primary" to="/reservations" search={{booking:room.bookingId}}>
+       <Link className="btn-primary" to="/reservations" search={{booking:room.bookingId,group:group.id,
+         hotel:hotelId??undefined,checkIn:group.checkIn??undefined,checkOut:group.checkOut??undefined}}>
         Manage booking <ArrowRight size={16}/></Link>
-       <Link to="/billing" search={{booking:room.bookingId}}>Review guest folio</Link>
+       <Link to="/billing" search={{booking:room.bookingId,group:group.id,hotel:hotelId??undefined,
+        checkIn:group.checkIn??undefined,checkOut:group.checkOut??undefined}}>Review guest folio</Link>
       </div>
      </article>)}
     </div>

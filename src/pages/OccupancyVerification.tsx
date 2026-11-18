@@ -114,7 +114,7 @@ export function OccupancyVerification(){
   finally{setSaving(false);}
  }
  if(!allowed)return <><Heading title="Independent occupancy verification" description="Only assigned housekeeping and managers may use this workspace."/>
-  <Panel title="Access restricted"><p>Laravel enforces role and per-assignment access.</p></Panel></>;
+  <Panel title="Access restricted"><p>This page is available only to staff with the required permissions and assignments.</p></Panel></>;
  return <>
   <Heading title="Independent occupancy verification" description={manager
    ?'Assign physical room checks and investigate mismatches against recorded check-ins.'

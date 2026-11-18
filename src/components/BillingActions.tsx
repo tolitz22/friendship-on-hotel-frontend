@@ -1,6 +1,6 @@
 import {useRef,useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
-import {CheckCircle2,ClipboardPlus,ShieldCheck} from 'lucide-react';
+import {AlertTriangle,CheckCircle2,ClipboardPlus,ShieldCheck} from 'lucide-react';
 import {useHotelAuth} from './AuthProvider';
 import {useLiveFolioLedger} from '../api/liveFinance';
 import {formatBillingMoney,parseBillingAmount,recordFolioAdjustment,reviewFolioPayment} from '../api/billing';

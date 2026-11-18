@@ -321,14 +321,14 @@ export function LiveRoomCalendar(){
          {reservation.data&&<p>Verified status: <strong>{reservation.data.lifecycleState?.replaceAll('_',' ')??'Unknown'}</strong> · Room {selected.room.number}</p>}
         </div>}
         {selectedBookings.length===1&&folio.isSuccess&&<div className="lrc-folio-preview">
-         <strong>Recorded folio snapshot</strong>
+         <strong>Recorded billing summary</strong>
          <div><span>Staff-confirmed payment evidence</span>
           <b>{new Intl.NumberFormat('en-PH',{style:'currency',currency:folio.data.data.summary.currency}).format(folio.data.data.summary.staffConfirmedPaymentsMinor/100)}</b></div>
          <div><span>Pending payment evidence</span>
           <b>{new Intl.NumberFormat('en-PH',{style:'currency',currency:folio.data.data.summary.currency}).format(folio.data.data.summary.pendingReviewPaymentsMinor/100)}</b></div>
          <p>This is not a final bill, a settled balance, or independently verified cash. Review the folio for details.</p>
         </div>}
-        {selectedBookings.length===1&&folio.isError&&<p className="lrc-modal-extra">No priced folio preview available for this reservation. Use View folio to investigate.</p>}
+        {selectedBookings.length===1&&folio.isError&&<p className="lrc-modal-extra">Billing details could not be loaded for this reservation. Use View folio to investigate.</p>}
        </div>}
        {selectedBlocks.length>0&&<div className="lrc-modal-section">
         <h3>Room blocks ({selectedBlocks.length})</h3>

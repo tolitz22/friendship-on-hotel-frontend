@@ -47,6 +47,7 @@ const statement=z.object({
  verifiedPaymentsMinor:z.number().int(),verifiedAllocatedMinor:z.number().int(),
  unallocatedVerifiedDepositsMinor:z.number().int(),remainingMinor:z.number().int(),
  blockers:z.array(z.string()),canSignOff:z.boolean(),signed:z.boolean(),
+ signedSnapshotIntegrity:z.boolean(),signedSnapshotSha256:z.string().nullable(),
  signedAt:z.string().nullable(),signedBy:id.nullable(),
  isTaxInvoice:z.literal(false),bankOrGatewayApiVerified:z.literal(false),
  paymentEvidenceIndependentlyReviewed:z.boolean(),settlementWorkflowEnabled:z.boolean(),
@@ -221,17 +222,22 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
     <div className="settlement-signature">
      <p>{data.signed?'Signed settlement: '+data.signedAt+' · Manager #'+data.signedBy:
       'This statement is not yet an approved settlement.'}</p>
+     {data.signed&&<p><small>Signed financial snapshot SHA-256: {data.signedSnapshotSha256}</small></p>}
      <small>This is an internal PMS guest-account statement, NOT a BIR tax invoice, bank receipt,
       payment gateway confirmation, or proof that a refund has been disbursed.
       Payment evidence has been reviewed by staff, not confirmed via a live bank/PSP API.</small>
     </div>
    </div>
    <div className="desk-tools settlement-controls">
-    <button type="button" className="btn-inline" onClick={()=>window.print()}>
+    <button type="button" className="btn-inline"
+     disabled={data.signed&&!data.signedSnapshotIntegrity}
+     onClick={()=>window.print()}>
      <Printer size={16}/> Print guest statement
     </button>
-    {data.signed?<p className="night-audit-clean"><CheckCircle2 size={16}/>
-     Signed by manager #{data.signedBy}. Financial history is locked.</p>
+    {data.signed&&!data.signedSnapshotIntegrity?<p role="alert" className="stay-feedback-error">
+     <AlertTriangle size={16}/> Signed statement integrity failed. Printing and checkout are blocked pending independent investigation.
+    </p>:data.signed?<p className="night-audit-clean"><CheckCircle2 size={16}/>
+     Signed by manager #{data.signedBy}. Financial snapshot integrity confirmed.</p>
      :<p className="desk-muted">Printable for review. Unsigned statements remain provisional.</p>}
    </div>
    {data.blockers.length>0&&<div className="night-audit-issues" role="status">

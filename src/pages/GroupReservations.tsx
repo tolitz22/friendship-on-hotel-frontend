@@ -134,7 +134,9 @@ function GroupPayerAllocation({groupId,report}:{
  </details>;
 }
 
-function GroupFinance({groupId,open=false}:{groupId:string;open?:boolean}){
+function GroupFinance({groupId,hotelId,checkIn,checkOut,open=false}:{
+ groupId:string;hotelId?:string;checkIn?:string;checkOut?:string;open?:boolean;
+}){
  const report=useGroupFinancialSummary(groupId);
  const data=report.data;
  return <details id="group-billing-overview" key={groupId+'-'+String(open)} open={open?true:undefined}
@@ -162,14 +164,15 @@ function GroupFinance({groupId,open=false}:{groupId:string;open?:boolean}){
      <div><small>Priced guest folios</small><strong>{data.rooms.filter(row=>row.priced).length} / {data.rooms.length}</strong></div>
      <div><small>Payment evidence recorded</small><strong>{data.rooms.filter(row=>row.priced&&row.staffConfirmedPaymentsMinor>0).length} / {data.rooms.length}</strong></div>
      <div><small>Verified allocations recorded</small><strong>{data.rooms.filter(row=>row.priced&&row.verifiedAllocatedMinor>0).length} / {data.rooms.length}</strong></div>
-     <div><small>Folio settlement signed</small><strong>{data.rooms.filter(row=>row.priced&&row.signed).length} / {data.rooms.length}</strong></div>
+     <div><small>Settlement sign-offs recorded</small><strong>{data.rooms.filter(row=>row.priced&&row.signed).length} / {data.rooms.length}</strong></div>
     </div>
     <div className="gb-billing-folios">
      {data.rooms.map(row=><div className="gb-billing-folio" key={row.bookingId}>
       <div><strong>{row.reference}</strong><small>{row.priced
        ?row.signed?'Settlement signed':row.verifiedAllocatedMinor>0?'Reviewed allocation recorded':'Settlement incomplete'
        :'No priced folio available'}</small></div>
-      <Link to="/billing" search={{booking:row.bookingId}}>Review guest folio <ArrowRight size={14}/></Link>
+      <Link to="/billing" search={{booking:row.bookingId,group:groupId,hotel:hotelId,
+       checkIn,checkOut}}>Review guest folio <ArrowRight size={14}/></Link>
      </div>)}
     </div>
     {data.rooms.some(row=>!row.priced)&&<p role="status">Some group rooms have no priced folio and are excluded from financial totals.</p>}
@@ -349,7 +352,8 @@ function GroupDetails({id,billingOpen=false,originHotel}:{id:string;billingOpen?
    {billingOpen&&<div className="gb-workflow-notice" role="status">
     Group billing is below. All figures are from individual guest folios; no group invoice or external settlement is implied.
    </div>}
-   <GroupFinance groupId={group.id} open={billingOpen}/>
+   <GroupFinance groupId={group.id} hotelId={hotelId??undefined}
+    checkIn={group.checkIn??undefined} checkOut={group.checkOut??undefined} open={billingOpen}/>
    <Panel title="Rooms and guests">
     <p className="desk-muted">Readiness figures are advisory only, not a guarantee of check-in eligibility.
      Cleaning completion never automatically approves a room. Each booking is managed independently. The group links the stay,

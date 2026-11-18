@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
-import {AlertTriangle,ArrowRight,Banknote,CheckCircle2,ClipboardCheck,Clock3,History,Info,RefreshCw,Wallet} from 'lucide-react';
+import {AlertTriangle,ArrowRight,Banknote,CheckCircle2,Clock3,History,Info,RefreshCw,Wallet} from 'lucide-react';
 import {Link} from '@tanstack/react-router';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';

@@ -2569,3 +2569,12 @@
  .billing-secondary-actions{flex-direction:column}
  .billing-secondary-actions button{width:100%;justify-content:center}
 }
+
+
+.settlement-review-steps{display:flex;gap:8px;flex-wrap:wrap}
+.settlement-review-steps button{border:1px solid var(--border);border-radius:9px;background:var(--canvas);padding:10px 13px;min-height:40px;color:var(--muted);font-size:12px;font-weight:750}
+.settlement-review-steps button.active{border-color:var(--accent);color:var(--text);background:var(--surface)}
+.billing-compact-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.billing-compact-toolbar span{font-size:11px;color:var(--muted);font-weight:800;letter-spacing:.07em;text-transform:uppercase}
+.billing-compact-toolbar button{display:inline-flex;align-items:center;gap:5px}
+@media(max-width:580px){.settlement-review-steps button{flex:1 1 100%}}

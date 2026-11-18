@@ -12,6 +12,7 @@ const daily=[
  {to:'/' as const,label:'Overview',icon:LayoutDashboard},
  {to:'/front-desk' as const,label:'Front desk',icon:Hotel},
  {to:'/reservations' as const,label:'Reservations',icon:CalendarDays},
+ {to:'/group-reservations' as const,label:'Group bookings',icon:CalendarRange},
  {to:'/room-calendar' as const,label:'Room calendar',icon:CalendarRange},
  {to:'/rooms' as const,label:'Rooms & readiness',icon:BedDouble},
  {to:'/guests' as const,label:'Guests',icon:Users},

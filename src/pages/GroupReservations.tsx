@@ -301,6 +301,7 @@ function GroupDetails({id,billingOpen=false,originHotel}:{id:string;billingOpen?
  const {hotelId}=useHotelAuth();
  const mismatch=!!originHotel&&originHotel!==hotelId;
  const details=useGroupBooking(mismatch?null:id);
+ const finance=useGroupFinancialSummary(mismatch?'':id);
  const group=details.data;
  useEffect(()=>{
   if(billingOpen&&group?.id===id){
@@ -346,9 +347,18 @@ function GroupDetails({id,billingOpen=false,originHotel}:{id:string;billingOpen?
     <div><small>Advisory room readiness</small>
      <strong>{group.operations.readinessAdvisoryReadyCount} / {group.operations.readinessCheckedCount}</strong>
      <Link to="/rooms" search={{}}>Inspect approval and blockers <ArrowRight size={13}/></Link></div>
-    <div><small>Payment & settlement</small><strong>Per folio</strong>
+    <div><small>Verified payment allocations</small>
+     <strong>{finance.data
+      ?finance.data.rooms.filter(row=>row.priced&&row.verifiedAllocatedMinor>0).length+' / '+group.roomCount
+      :'Not yet verified'}</strong>
      <Link to="/group-reservations" search={{group:group.id,tab:'billing' as const,hotel:hotelId??undefined}}>
-      Review progress <ArrowRight size={13}/></Link></div>
+      Review payment progress <ArrowRight size={13}/></Link></div>
+    <div><small>Folio settlement sign-offs</small>
+     <strong>{finance.data
+      ?finance.data.rooms.filter(row=>row.priced&&row.signed).length+' / '+group.roomCount
+      :'Not yet verified'}</strong>
+     <Link to="/group-reservations" search={{group:group.id,tab:'billing' as const,hotel:hotelId??undefined}}>
+      Review sign-offs <ArrowRight size={13}/></Link></div>
     <div><small>Checkout housekeeping</small>
      <strong>{group.operations.checkoutCleaningCompleteCount} / {group.operations.checkedOutCount}</strong>
      <span>{group.operations.checkoutCleaningPendingCount} pending · {group.operations.checkoutCleaningNoTaskCount} awaiting task</span>

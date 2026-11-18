@@ -111,8 +111,7 @@ export function BillingActions({bookingId,signed}:{bookingId:string;signed:boole
    <button type="button" className="btn-primary" disabled={!canWrite||!parsedAmount||!confirm||reason.trim().length<3}
     onClick={()=>void submit()}>{busy?'Saving…':kind==='debit'?'Add charge to guest bill':'Apply bill correction'}</button>
   </div>
-  <div className="billing-review-list">
-   <h4>Pending payment evidence review</h4>
+  <details className="billing-review-list billing-review-details"><summary><strong>Payment records waiting for manager review</strong><span>View reviews</span></summary>
    <QueryFeedback loading={ledger.isPending} error={ledger.error} onRetry={()=>void ledger.refetch()}/>
    {ledger.data?.data.payments.filter(p=>p.status==='pending_review').map(p=><div className="billing-review-item" key={p.id}>
     <div><strong>Payment #{p.id} · {p.method==='bank_transfer'?'Bank transfer':'Cash'}</strong>
@@ -134,7 +133,7 @@ export function BillingActions({bookingId,signed}:{bookingId:string;signed:boole
    </div>)}
    {ledger.isSuccess&&ledger.data.data.payments.every(p=>p.status!=='pending_review')&&
     <p className="billing-reviewed"><CheckCircle2 size={16}/> No payment records are awaiting staff review.</p>}
-  </div>
+  </details>
   {notice&&<p role="status" className="stay-feedback-success"><CheckCircle2 size={16}/>{notice}</p>}
   {error&&<p role="alert" className="stay-feedback-error"><AlertTriangle size={16}/>{error} Check the folio before retrying if the outcome is unclear.</p>}
  </section>;

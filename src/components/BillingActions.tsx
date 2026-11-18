@@ -1,9 +1,9 @@
 import {useRef,useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
-import {AlertTriangle,Banknote,CheckCircle2,ClipboardPlus,ShieldCheck} from 'lucide-react';
+import {CheckCircle2,ClipboardPlus,ShieldCheck} from 'lucide-react';
 import {useHotelAuth} from './AuthProvider';
 import {useLiveFolioLedger} from '../api/liveFinance';
-import {formatBillingMoney,parseBillingAmount,recordBankEvidence,recordFolioAdjustment,reviewFolioPayment} from '../api/billing';
+import {formatBillingMoney,parseBillingAmount,recordFolioAdjustment,reviewFolioPayment} from '../api/billing';
 import {readSession} from '../api/session';
 import {QueryFeedback} from './QueryFeedback';
 
@@ -12,9 +12,7 @@ export function BillingActions({bookingId,signed}:{bookingId:string;signed:boole
  const manager=!!hotelId&&user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const client=useQueryClient();
  const ledger=useLiveFolioLedger(bookingId);
- const [action,setAction]=useState<'bank'|'adjust'>('bank');
  const [amount,setAmount]=useState('');
- const [reference,setReference]=useState('');
  const [kind,setKind]=useState<'credit'|'debit'>('debit');
  const [reason,setReason]=useState('');
  const [confirm,setConfirm]=useState(false);
@@ -35,16 +33,14 @@ export function BillingActions({bookingId,signed}:{bookingId:string;signed:boole
  };
  const submit=async()=>{
   if(!canWrite||!parsedAmount||!confirm)return;
-  if(action==='bank'&&reference.trim().length<3)return;
-  if(action==='adjust'&&reason.trim().length<3)return;
+  if(reason.trim().length<3)return;
   const previousKey=key.current;
   setBusy(true);setError('');setNotice('');
   try{
-   if(action==='bank')await recordBankEvidence(bookingId,previousKey,reference.trim(),parsedAmount);
-   else await recordFolioAdjustment(bookingId,previousKey,kind,parsedAmount,reason.trim());
+   await recordFolioAdjustment(bookingId,previousKey,kind,parsedAmount,reason.trim());
    if(readSession().hotelId!==hotelId)return;
-   key.current=crypto.randomUUID();setAmount('');setReference('');setReason('');setConfirm(false);
-   setNotice(action==='bank'?'Bank-transfer evidence recorded. It still requires an independent review.':'Folio adjustment saved and recorded in the audit trail.');
+   key.current=crypto.randomUUID();setAmount('');setReason('');setConfirm(false);
+   setNotice('Charge or credit saved in the guest account history.');
    void refresh();
   }catch(e){if(readSession().hotelId===hotelId)setError(e instanceof Error?e.message:'Outcome uncertain. Review the folio before retrying.');}
   finally{setBusy(false);}
@@ -64,19 +60,10 @@ export function BillingActions({bookingId,signed}:{bookingId:string;signed:boole
  };
  if(!manager||signed)return null;
  return <section className="billing-actions" aria-label="Manager folio actions">
-  <div className="billing-section-heading"><h3>Record charges and payment evidence</h3>
-   <p>Manager-only controls. These actions create audited financial records; they do not collect money from a bank or automatically settle the account.</p></div>
-  <div className="billing-action-tabs" role="group" aria-label="Folio entry type">
-   <button type="button" aria-pressed={action==='bank'} className={action==='bank'?'active':''}
-    onClick={()=>{setAction('bank');change();}}><Banknote size={16}/> Bank transfer evidence</button>
-   <button type="button" aria-pressed={action==='adjust'} className={action==='adjust'?'active':''}
-    onClick={()=>{setAction('adjust');change();}}><ClipboardPlus size={16}/> Charge or credit</button>
-  </div>
+  <div className="billing-section-heading"><h3>Charges and credits</h3>
+   <p>Add a charge or correct the guest account. Use Record guest payment above for cash and bank transfers.</p></div>
+  <div className="billing-action-tabs"><span><ClipboardPlus size={16}/> Add a charge or credit</span></div>
   <div className="billing-action-form">
-   {action==='bank'?<label>Bank transfer reference
-    <input className="wizard-input" value={reference} maxLength={120} disabled={busy}
-     placeholder="Reference from payment evidence" onChange={e=>{setReference(e.target.value);change();}}/>
-   </label>:<>
     <label>Adjustment type
      <select className="wizard-input" value={kind} disabled={busy}
       onChange={e=>{setKind(e.target.value as 'debit'|'credit');change();}}>
@@ -87,7 +74,6 @@ export function BillingActions({bookingId,signed}:{bookingId:string;signed:boole
      <textarea className="wizard-input" rows={2} value={reason} maxLength={500} disabled={busy}
       onChange={e=>{setReason(e.target.value);change();}} placeholder="Explain what changed and why"/>
     </label>
-   </>}
    <label>Amount ({ledger.data?.data.summary.currency==='PHP'?'PHP':'hotel currency'})
     <input className="wizard-input" type="text" inputMode="decimal" value={amount} disabled={busy}
      placeholder="0.00" onChange={e=>{setAmount(e.target.value);change();}}/>
@@ -97,9 +83,8 @@ export function BillingActions({bookingId,signed}:{bookingId:string;signed:boole
     onChange={e=>setConfirm(e.target.checked)}/>
     I checked the amount, reservation, and supporting evidence. I understand this will create a financial record.
    </label>
-   <button type="button" className="btn-primary" disabled={!canWrite||!parsedAmount||!confirm||
-    (action==='bank'?reference.trim().length<3:reason.trim().length<3)}
-    onClick={()=>void submit()}>{busy?'Saving…':action==='bank'?'Record bank evidence':'Record adjustment'}</button>
+   <button type="button" className="btn-primary" disabled={!canWrite||!parsedAmount||!confirm||reason.trim().length<3
+    onClick={()=>void submit()}>{busy?'Saving…':'Save charge or credit'}</button>
    {action==='bank'&&<p className="billing-advisory"><AlertTriangle size={15}/> Cash receipts must be recorded through an open cashier shift. A bank-transfer reference is not independent payment verification.</p>}
   </div>
   <div className="billing-review-list">

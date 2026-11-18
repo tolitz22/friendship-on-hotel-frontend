@@ -117,8 +117,8 @@ export function LiveMaintenance(){
  const maySave=admin||(!!selected&&canUpdate(selected));
  const active=data.filter(o=>o.status==='open'||o.status==='in_progress');
  return <>
-  <div className="notice"><strong>Live Laravel maintenance tickets</strong> · Work orders are saved in the selected hotel. An “affects room” flag is only a note: it does not block availability, change reservations or release inventory.</div>
-  <Heading title="Maintenance" description="Real, hotel-scoped work orders and recorded status history" action={admin?
+  <div className="notice"><strong>Maintenance work orders</strong> · Track repairs and their progress. Marking work as affecting a room does not automatically block it from bookings; check room restrictions separately.</div>
+  <Heading title="Maintenance" description="Track repair requests, assignments, and work history for this hotel" action={admin?
     <button type="button" className="btn-primary" onClick={openCreate}><Plus size={16}/> Create work order</button>:undefined}/>
   <div className="mnt-summary">
    <div><Wrench size={20}/><span>Active on this page</span><strong>{active.length}</strong></div>
@@ -141,14 +141,14 @@ export function LiveMaintenance(){
     <label>Search this page <input aria-label="Search current maintenance page" value={search}
      onChange={e=>setSearch(e.target.value)}/></label>
    </div>
-   <p className="mnt-notice">Status and priority filters run on Laravel. Text search filters this page only. A flagged room impact does not create an inventory block or prove room readiness.</p>
+   <p className="mnt-notice">Status and priority filters cover all matching work orders. Text search checks only this page. A room-impact flag does not automatically block bookings or confirm room readiness.</p>
    <QueryFeedback loading={orders.isPending} error={orders.error} empty={!!orders.data&&visible.length===0}/>
    {visible.length>0&&<div className="mnt-order-grid">{visible.map(o=><article key={o.id} className="mnt-order">
     <div className="mnt-order-top"><strong>WO-{o.id}</strong><span className={'mnt-priority mnt-priority-'+o.priority}>{o.priority}</span></div>
     <h3>{o.title}</h3><p>{o.description}</p>
     <div className="mnt-order-tags"><span className="status">{o.status.replaceAll('_',' ')}</span><span>Room {o.roomNumber}</span></div>
     <div className="mnt-order-info"><span>Assigned to</span><strong>{o.assignedUserId?(admin?staff.data?.data.find(m=>m.userId===o.assignedUserId)?.name??('Staff #'+o.assignedUserId):o.assignedUserId===user?.id?'You':'Linked staff #'+o.assignedUserId):o.assignedTo??'Unassigned'}</strong></div>
-    <div className="mnt-order-info"><span>Revision</span><strong>{o.revision}</strong></div>
+    <div className="mnt-order-info"><span>Update version</span><strong>{o.revision}</strong></div>
     {o.affectsRoom&&<p className="mnt-warning"><ShieldAlert size={15}/> Room impact noted; inventory not blocked</p>}
     <button type="button" className="btn-inline mnt-review" onClick={()=>openEdit(o)}>{canUpdate(o)?'Manage ticket':'View ticket'} <ClipboardList size={15}/></button>
    </article>)}</div>}
@@ -160,7 +160,7 @@ export function LiveMaintenance(){
    <section className="guest-modal" role="dialog" aria-modal="true" aria-labelledby="maintenance-title">
     <div className="catalog-modal-heading"><h3 id="maintenance-title">{selected?'Work order WO-'+selected.id:'Create work order'}</h3>
      <button className="icon-btn" type="button" disabled={saving} onClick={close} aria-label="Close"><X size={19}/></button></div>
-    <p>{selected?'Updates are revision-checked and audited.':'Create a work order without affecting bookable inventory.'}</p>
+    <p>{selected?'Changes are checked for newer updates and recorded in the work history.':'Create a work order without affecting bookable inventory.'}</p>
     {rooms.data&&rooms.data.meta.total>100&&!selected&&<p className="guest-info">This room selector shows only the first 100 registered rooms. A searchable picker is planned.</p>}
     <form onSubmit={e=>void submit(e)}>
      <div className="guest-fields">

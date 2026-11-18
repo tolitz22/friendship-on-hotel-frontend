@@ -2,7 +2,7 @@ import {useEffect,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {Link} from '@tanstack/react-router';
 import {z} from 'zod';
-import {AlertTriangle,CheckCircle2,ClipboardCheck,Printer,RefreshCw,ShieldCheck,Wallet,Banknote,PlusCircle,X} from 'lucide-react';
+import {AlertTriangle,CheckCircle2,ClipboardCheck,Printer,RefreshCw,ShieldCheck,Wallet,Banknote,PlusCircle,ArrowRight,X} from 'lucide-react';
 import {getJson,requestJson} from '../api/http';
 import {hotelPath,readSession} from '../api/session';
 import {useHotelAuth} from './AuthProvider';
@@ -143,7 +143,8 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  function openPaymentReview(){
   if(nextPayment)selectPayment(nextPayment);
   setReviewExpanded(true);
-  window.setTimeout(()=>document.getElementById('settlement-review-workspace')
+  const target=nextTask==='signoff'?'settlement-final-authorization':'settlement-review-workspace';
+  window.setTimeout(()=>document.getElementById(target)
    ?.scrollIntoView({behavior:'smooth',block:'start'}),0);
  }
 
@@ -608,7 +609,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        External refund evidence reviewed · {r.externalReference}. No funds were sent by the PMS.</p>}
      </div>)}
     </div>
-    <div className="settlement-signoff">
+    <div className="settlement-signoff" id="settlement-final-authorization">
      <h4>Final settlement authorization</h4>
      <p>Signing freezes the statement and prevents ordinary corrections, new collections, and refund reviews. The booking must be checked in and at or after its departure date.</p>
      <label className="night-review-ack"><input type="checkbox" checked={ack} disabled={busy}

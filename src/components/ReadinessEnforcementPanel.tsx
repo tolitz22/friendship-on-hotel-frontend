@@ -44,13 +44,17 @@ export function ReadinessEnforcementPanel(){
     setError(e instanceof Error?e.message:'Policy result could not be confirmed; refresh before retrying.');
   }finally{setBusy(false);}
  }
- return <Panel title="Check-in readiness policy">
-  <p>This hotel-level switch changes Laravel check-in behavior. When enabled, check-in requires an independently approved current room inspection with no recorded readiness blockers. Physical room assignment, reservation timing, and collision checks still apply.</p>
+ return <Panel title="Inspection requirement at check-in">
+  <p>Choose whether the front desk must have an approved room inspection before checking in a guest. This is a hotel-wide rule, not a daily inspection schedule.</p>
   <QueryFeedback loading={policy.isPending} error={policy.error}/>
   {policy.data&&<>
-   <p role="status"><strong>Current enforcement:</strong> {policy.data.enforceAtCheckIn?'Enabled':'Disabled (legacy check-in rules)'} · Revision {policy.data.revision}</p>
-   <p><AlertTriangle size={16}/> This is not guest identity validation, payment settlement, or guaranteed room inventory. Enabling can block arrivals that have not been inspected yet.</p>
+   <div className="rr-policy-state" role="status"><ShieldCheck size={21}/><div><strong>{policy.data.enforceAtCheckIn?'Approved inspection required at check-in':'Inspection not mandatory for check-in'}</strong>
+    <p>{policy.data.enforceAtCheckIn?'Laravel checks for an independently approved current inspection without blockers when a guest checks in.':'Inspections and audit history remain available, but the readiness gate is not enforced at check-in.'}</p>
+    <small>Policy revision {policy.data.revision} · No automatic daily inspection</small></div></div>
+   <p className="rr-policy-caution"><AlertTriangle size={16}/> Enabling this rule may prevent check-in for rooms without current approval. It does not replace reservations, inventory checks, guest identity, maintenance or payment controls.</p>
    {admin&&<section>
+    <h4>Change this hotel-wide rule</h4>
+    <p>This affects future check-ins. Confirm staff training and pending arrivals before changing it.</p>
     <label className="wizard-label">Reason for changing policy
      <textarea className="wizard-input" value={reason} maxLength={500} rows={2}
       disabled={busy} onChange={e=>setReason(e.target.value)}

@@ -74,7 +74,7 @@ function MaintenanceHome(){
    <Entry to="/rooms" title="Rooms & readiness" description="Review room inventory and reported blockers" icon={BedDouble}/>
    <Entry to="/housekeeping" title="Cleaning coordination" description="See tasks that may affect repairs" icon={ClipboardCheck}/>
   </section>
-  <p className="role-note"><ShieldCheck size={17}/> Your hotel membership determines which tasks you may update. The backend validates ownership and permissions before saving.</p>
+  <p className="role-note"><ShieldCheck size={17}/> Your hotel membership determines which tasks you may update. Only authorized staff can make changes to these tasks.</p>
  </>;
 }
 /** A personalized landing screen, not an authorization boundary. */

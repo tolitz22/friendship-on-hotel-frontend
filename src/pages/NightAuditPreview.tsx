@@ -7,6 +7,7 @@ import {QueryFeedback} from '../components/QueryFeedback';
 import {hotelToday} from '../features/reservations/calendarDate';
 import {useNightAuditPreview} from '../api/nightAuditPreview';
 import {NightAuditReviewPanel} from '../components/NightAuditReviewPanel';
+import {FinancialBusinessDayPanel} from '../components/FinancialBusinessDayPanel';
 import type {NightAuditPreview as Preview} from '../api/nightAuditPreview';
 
 function money(amount:number,currency:string){
@@ -38,7 +39,7 @@ export function NightAuditPreview(){
  </>;
  const data=query.data;
  return <>
-  <Heading title="Night audit preflight" description="Review posted room nights, missing charges and cashier exceptions before designing an authoritative business-date close."/>
+  <Heading title="Night audit preflight" description="Review operational exceptions, record the manager decision, then use the separate financial-close checklist to advance the accounting date."/>
   <Panel title="Review hotel date">
    <div className="desk-tools">
     <label className="night-audit-date">Hotel-local date
@@ -92,6 +93,7 @@ export function NightAuditPreview(){
      <Link to="/operational-exceptions">Review operational exceptions</Link>
     </div>
     <NightAuditReviewPanel key={hotelId+'-'+data.businessDate} date={data.businessDate} preflight={data}/>
+    <FinancialBusinessDayPanel key={'financial-'+hotelId}/>
     <p className="night-audit-fineprint">The scheduled-night count is based on current reservation records, not historical physical room occupancy. Current inventory counts may differ from the inventory on the selected historical date. Payment totals are staff-maintained evidence, not settlement. The cashier and payment exception counts are current property-wide counts, not date-scoped historical snapshots.</p>
    </>}
   </Panel>

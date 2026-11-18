@@ -7,6 +7,7 @@ import {hotelPath,readSession} from '../api/session';
 import {useHotelAuth} from './AuthProvider';
 import {QueryFeedback} from './QueryFeedback';
 import {BillingActions} from './BillingActions';
+import {RecordGuestPayment} from './RecordGuestPayment';
 import {parseBillingAmount} from '../api/billing';
 import './settlement-print.css';
 
@@ -174,6 +175,12 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       :<><ShieldCheck size={19}/><p><strong>Review before checkout.</strong> These amounts reflect saved records, not proof of bank settlement or a final payable amount.</p></>}
     </div>
    </div>
+   <RecordGuestPayment key={hotelId+'-payment-'+bookingId} bookingId={bookingId}
+    currency={data.currency} signed={data.signed} recordedDifferenceMinor={data.remainingMinor}/>
+   <details className="billing-statement-details">
+    <summary><span><strong>View itemized bill and payment history</strong>
+     <small>Room charges, payment reviews, refunds and printable statement</small></span>
+     <span className="billing-expand-hint">Show details</span></summary>
    <div className="settlement-print-area" aria-label="Printable guest checkout statement">
     <div className="settlement-heading">
      <div><p className="eyebrow">FRIENDSHIP ON HOTEL · RESERVATION ACCOUNT</p>
@@ -276,6 +283,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
     <h4><AlertTriangle size={17}/> What still needs attention before checkout</h4>
     <ul>{data.blockers.map((b,i)=><li key={i}>{b}</li>)}</ul>
    </div>}
+   </details>
    {manager&&!data.signed&&<details className="billing-manager-details">
     <summary><div><strong>Manager billing tools</strong>
      <span>Record charges, review payment evidence, allocate deposits and manage refunds</span></div>

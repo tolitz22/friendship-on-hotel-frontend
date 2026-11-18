@@ -2,6 +2,7 @@ import {useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 import {getJson,requestJson} from './http';
 import {hotelPath,readSession} from './session';
+import {parseRecords} from './liveReservations';
 
 const id=z.string().regex(/^[1-9]\d*$/);
 const row=z.object({
@@ -10,7 +11,7 @@ const row=z.object({
  netRecordedChargesMinor:z.number().int(),
  staffConfirmedPaymentsMinor:z.number().int(),
  pendingReviewPaymentsMinor:z.number().int(),
- signed:z.boolean(),provisionalOnly:z.literal(true),
+ signed:z.boolean().nullable(),provisionalOnly:z.literal(true),
 });
 const list=z.object({
  data:z.array(row),
@@ -18,6 +19,7 @@ const list=z.object({
   page:z.number().int().positive(),perPage:z.number().int().positive(),
   total:z.number().int().nonnegative(),totalPages:z.number().int().nonnegative(),
   amountsProvisional:z.literal(true),paymentEvidenceNotIndependentlyVerified:z.literal(true),
+  signoffRecordsAvailable:z.boolean().optional(),
  }),
 });
 export type BillingFolioRow=z.infer<typeof row>;
@@ -57,5 +59,19 @@ export function recordFolioAdjustment(bookingId:string,requestKey:string,kind:'c
 export function reviewFolioPayment(bookingId:string,paymentId:string,decision:'confirm'|'reject',note:string){
  return requestJson<unknown>(hotelPath('/bookings/'+bookingId+'/payment-records/'+paymentId+'/review'),{
   method:'POST',body:{decision,note},
+ });
+}
+
+/** If the billing index cannot load, offer the actual reservation directory as
+ * navigation only. Never compute or guess charges for this fallback. */
+export function useBillingReservationFallback(enabled:boolean,page:number,search:string){
+ const {hotelId}=readSession();
+ return useQuery({
+  queryKey:['live','billing-reservation-fallback',hotelId,page,search],
+  enabled:enabled&&!!hotelId,
+  queryFn:async()=>parseRecords(await getJson<unknown>(hotelPath('/reservation-records'),{
+   page,per_page:20,search:search||undefined,filter:'all',
+  }),hotelId!),
+  retry:false,
  });
 }

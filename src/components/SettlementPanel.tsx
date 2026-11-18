@@ -118,7 +118,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   setBusy(true);setError('');setSuccess('');
   try{
    await requestJson<unknown>(hotelPath(path),{method:'POST',body});
-   if(!active())return;
+   if(!active())return false;
    setAck(false);setReviewNote('');setSuccess(message);
    await client.invalidateQueries({queryKey:['live','settlement-statement',hotelId,bookingId]});
    await client.invalidateQueries({queryKey:['live','folio-ledger',hotelId]});

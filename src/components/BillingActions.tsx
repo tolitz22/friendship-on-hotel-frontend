@@ -190,8 +190,7 @@ export function BillingActions({bookingId,signed,mode='full'}:{
     onClick={()=>void submit()}>{busy?'Saving…':kind==='debit'?'Add charge to guest bill':'Apply bill correction'}</button>
   </div>
   </>}
-  <details className="billing-review-list billing-review-details"
-   open={mode==='review'?true:undefined}>
+  {mode==='review'&&<details className="billing-review-list billing-review-details" open>
    <summary><strong>Payment records waiting for manager review</strong>
     <span>{mode==='review'?'Independent manager confirmation':'View reviews'}</span></summary>
    <QueryFeedback loading={ledger.isPending} error={ledger.error} onRetry={()=>void ledger.refetch()}/>
@@ -210,13 +209,16 @@ export function BillingActions({bookingId,signed,mode='full'}:{
    </div>)}
    {ledger.isSuccess&&ledger.data.data.payments.every(p=>p.status!=='pending_review')&&
     <p className="billing-reviewed"><CheckCircle2 size={16}/> No payment records are awaiting staff review.</p>}
-  </details>
-  <section className="billing-void-section" aria-label="Correct accidental payment entries">
-   <div className="billing-section-heading"><div>
-    <h3>Correct an accidental payment</h3>
-    <p>Void only evidence entered by mistake when no additional money was received.
-     This is not a refund, and a signed folio or closed cash shift cannot be changed here.</p>
-   </div></div>
+  </details>}
+  {mode==='review'&&<details className="billing-void-section"
+    aria-label="Correct accidental payment entries">
+   <summary className="billing-void-heading">
+    <span><strong>Correct an accidental payment</strong>
+     <small>Manager-only audited void · no deletion or automatic refund</small>
+    </span><span className="billing-expand-hint">Show records</span>
+   </summary>
+   <p className="desk-muted">Void only an entry recorded by mistake when no additional money was received.
+    A signed folio or closed cash shift cannot be changed here.</p>
    <div className="billing-void-list">
     {ledger.data?.data.payments.map(payment=><div key={payment.id} className="billing-void-record">
      <div className="billing-void-row">
@@ -255,7 +257,7 @@ export function BillingActions({bookingId,signed,mode='full'}:{
     </div>)}
     {ledger.data?.data.payments.length===0&&<p className="desk-muted">No payment records to correct.</p>}
    </div>
-  </section>
+  </details>}
   {notice&&<p role="status" className="stay-feedback-success"><CheckCircle2 size={16}/>{notice}</p>}
   {error&&<p role="alert" className="stay-feedback-error"><AlertTriangle size={16}/>{error} Check the folio before retrying if the outcome is unclear.</p>}
   {reviewDialog&&createPortal(<div className="billing-modal-backdrop billing-review-backdrop"

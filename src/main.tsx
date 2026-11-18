@@ -71,7 +71,11 @@ const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/operational-exceptions',component:OperationalExceptions}),
  createRoute({getParentRoute:()=>root,path:'/manager-approvals',component:ManagerApprovals}),
  createRoute({getParentRoute:()=>root,path:'/cashier-shifts',component:CashierShifts}),
- createRoute({getParentRoute:()=>root,path:'/occupancy-verification',component:OccupancyVerification}),
+ createRoute({getParentRoute:()=>root,path:'/occupancy-verification',
+  validateSearch:(value:Record<string,unknown>):{room?:string;date?:string}=>({
+   room:typeof value.room==='string'&&/^[1-9][0-9]*$/.test(value.room)?value.room:undefined,
+   date:typeof value.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.date)?value.date:undefined,
+  }),component:OccupancyVerification}),
  createRoute({getParentRoute:()=>root,path:'/occupancy-coverage',component:OccupancyCoverageReport}),
  createRoute({getParentRoute:()=>root,path:'/night-audit',component:NightAuditPreview}),
  createRoute({getParentRoute:()=>root,path:'/tax-policies',component:TaxPolicies}),

@@ -12,8 +12,9 @@ const makeReference=()=> 'CASH-'+crypto.randomUUID().replaceAll('-','').slice(0,
 
 /** One guest payment form: cash is always linked to THIS cashier's shift.
  * A recorded receipt remains subject to independent review and reconciliation. */
-export function RecordGuestPayment({bookingId,currency,signed,recordedDifferenceMinor}:{
+export function RecordGuestPayment({bookingId,currency,signed,recordedDifferenceMinor,onDone}:{
  bookingId:string;currency:string;signed:boolean;recordedDifferenceMinor:number;
+ onDone?:()=>void;
 }){
  const {hotelId,user}=useHotelAuth();
  const role=user?.hotels.find(h=>h.id===hotelId)?.role;
@@ -131,7 +132,8 @@ export function RecordGuestPayment({bookingId,currency,signed,recordedDifference
       I counted the opening cash in my drawer.</label>
      <button type="button" className="btn-primary" onClick={()=>void startShift()}
       disabled={busy||floatMinor===null||!openingConfirmed}>{busy?'Opening…':'Open my cash drawer'}</button>
-     <Link to="/cashier-shifts">View cashier shifts <ArrowRight size={14}/></Link>
+     <Link to="/cashier-shifts" search={{booking:bookingId,hotel:hotelId??undefined}}>
+      View cashier shifts <ArrowRight size={14}/></Link>
     </div>}
   </div>}
   {(method!=='cash'||!!shift.data)&&<div className="billing-payment-fields">
@@ -168,7 +170,11 @@ export function RecordGuestPayment({bookingId,currency,signed,recordedDifference
      ?'The receipt is saved in your open cashier shift for manager review and end-of-shift cash reconciliation. The change shown is calculated here; only the payment amount is recorded.'
      :'Recording a transfer reference does not confirm that the money reached the hotel’s bank account.'}</p>
   </div>}
-  {notice&&<p role="status" className="billing-payment-success"><CheckCircle2 size={17}/>{notice}</p>}
+  {notice&&<div className="billing-payment-complete" role="status">
+   <p className="billing-payment-success"><CheckCircle2 size={17}/>{notice}</p>
+   {onDone&&<button type="button" className="btn-primary" onClick={onDone}>
+    Continue to payment review <ArrowRight size={15}/></button>}
+  </div>}
   {error&&<p role="alert" className="billing-payment-error"><AlertTriangle size={17}/>{error}</p>}
  </section>;
 }

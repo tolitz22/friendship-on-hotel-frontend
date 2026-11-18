@@ -1,7 +1,7 @@
 import {useEffect,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {Link} from '@tanstack/react-router';
-import {AlertTriangle,ClipboardCheck,RefreshCw,ShieldCheck} from 'lucide-react';
+import {AlertTriangle,ArrowRight,ClipboardCheck,Info,Plus,RefreshCw,ShieldCheck,X} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
@@ -23,6 +23,7 @@ function CheckCard({check,manager,onChanged}:{check:OccupancyVerification;manage
  const [error,setError]=useState('');
  const [message,setMessage]=useState('');
  const [showHistory,setShowHistory]=useState(false);
+ const [workDialog,setWorkDialog]=useState(false);
  const history=useQuery({
   queryKey:['live','occupancy-history',hotelId,check.id],
   enabled:showHistory&&!!hotelId,
@@ -35,47 +36,79 @@ function CheckCard({check,manager,onChanged}:{check:OccupancyVerification;manage
    if(action==='observe')await observeOccupancy(hotelId,check.id,{observedOccupancy:observed,note:note.trim()});
    else await reviewOccupancy(hotelId,check.id,{decision:action,note:note.trim()});
    if(readSession().hotelId!==hotelId)return;
-   setMessage('Recorded and audited.');setNote('');onChanged();
+   setMessage(action==='observe'?'Observation saved for manager review.':action==='verified'?'Matching observation reviewed.':'Investigation flag recorded.');setNote('');setWorkDialog(false);onChanged();
   }catch(e){setError(e instanceof Error?e.message:'Result uncertain. Refresh before retrying.');}
   finally{setBusy(false);}
  }
- return <article className="ex-record">
-  <div className="desk-tools"><strong>Room {check.roomNumber} · {readableDate(check.inspectionDate)}</strong>
-   <span>{check.status.replaceAll('_',' ')} · Verifier: {actor(check.assignedUserId)}</span></div>
-  {check.status==='assigned'&&<p>Awaiting independent room observation. This does not require entering an occupied guest room.</p>}
-  {check.status!=='assigned'&&<>
-   <p><strong>Observed:</strong> {check.observedOccupancy} · <strong>Registered PMS state:</strong> {check.expectedOccupancy}</p>
-   <p><strong>Comparison:</strong> {(check.discrepancy??'unavailable').replaceAll('_',' ')}
-    {' · '}Linked checked-in reservations: {check.expectedBookingIds?.join(', ')||'none'}</p>
-   <p className="desk-muted">Original observation: {check.observationNote}</p>
-  </>}
-  {check.status==='assigned'&&!manager&&<div className="wizard-fields">
-   <label>Occupancy observed
-    <select className="wizard-input" value={observed} onChange={e=>setObserved(e.target.value as typeof observed)}>
-     <option value="unknown">Unable to verify</option><option value="occupied">Occupied (observed)</option>
-     <option value="vacant">Vacant (observed)</option>
-    </select></label>
-   <label>Observation evidence and limitations
-    <textarea className="wizard-input" maxLength={1500} rows={2} value={note}
-     onChange={e=>setNote(e.target.value)} placeholder="What did you observe? Avoid guest identity or unnecessary personal details."/></label>
-   <button className="btn-primary" type="button" disabled={busy||note.trim().length<5}
-    onClick={()=>void submit('observe')}>Submit observation once</button>
+ const statusText=check.status==='assigned'?'Observation needed':check.status==='submitted'
+  ?'Manager review needed':check.status==='verified'?'Reviewed · matches PMS':'Investigation needed';
+ const mismatch=check.discrepancy==='unexpected_occupied'?'Observed occupied, PMS has no checked-in stay':
+  check.discrepancy==='expected_occupied_vacant'?'Observed vacant, PMS has a checked-in stay':
+  check.discrepancy==='unverified'?'Could not confirm occupancy':'Observation matches PMS snapshot';
+ const canObserve=check.status==='assigned'&&!manager;
+ const canReview=check.status==='submitted'&&manager;
+ const independent=check.observedBy!==user?.id;
+ return <article className="occ-check-card">
+  <div className="occ-check-header">
+   <div><strong>Room {check.roomNumber}</strong><small>{readableDate(check.inspectionDate)} · Assigned to {actor(check.assignedUserId)}</small></div>
+   <span className={'occ-status '+(check.status==='flagged'||(check.discrepancy!==null&&check.discrepancy!=='match'&&check.discrepancy!=='unverified')?'occ-danger':
+    check.status==='verified'?'occ-success':'occ-attention')}>{statusText}</span>
+  </div>
+  {check.status!=='assigned'&&<div className="occ-check-comparison">
+   <div><small>What staff observed</small><strong>{statusLabel(check.observedOccupancy??'unknown')}</strong></div>
+   <div><small>Registered in the PMS at observation</small><strong>{statusLabel(check.expectedOccupancy??'unknown')}</strong></div>
   </div>}
-  {check.status==='submitted'&&manager&&<div className="wizard-fields">
-   <label>Manager investigation / review note
-    <textarea className="wizard-input" value={note} maxLength={1500} rows={2}
-     onChange={e=>setNote(e.target.value)} placeholder="Record independent checks and any limitations."/></label>
-   <div className="desk-tools">
-    <button type="button" className="btn-primary"
-     disabled={busy||check.discrepancy!=='match'||note.trim().length<5}
-     onClick={()=>void submit('verified')}><ShieldCheck size={16}/> Verify matching evidence</button>
-    <button type="button" className="btn-inline" disabled={busy||note.trim().length<5}
-     onClick={()=>void submit('flagged')}><AlertTriangle size={16}/> Flag for investigation</button>
-   </div>
-  </div>}
-  {check.reviewNote&&<p>Manager note: {check.reviewNote}</p>}
-  <button type="button" className="btn-inline" aria-expanded={showHistory}
-   onClick={()=>setShowHistory(v=>!v)}>Show {showHistory?'less':'more'} audit history</button>
+  {check.status!=='assigned'&&<p className="occ-check-result">
+   <Info size={15}/>{mismatch}. This is evidence for review, not proof of an unregistered stay.</p>}
+  {check.status==='assigned'&&<p className="occ-check-result"><Info size={15}/>
+   Awaiting an independent observation. Follow privacy and safe room-access procedures.</p>}
+  <div className="occ-check-actions">
+   {(canObserve||canReview)&&<button type="button" className="btn-primary"
+    onClick={()=>{setError('');setMessage('');setWorkDialog(true);}}>
+    {canObserve?'Record observation':'Review observation'} <ArrowRight size={15}/></button>}
+   <button type="button" className="rr-secondary-action" aria-expanded={showHistory}
+    onClick={()=>setShowHistory(v=>!v)}>{showHistory?'Hide':'View'} activity</button>
+  </div>
+  {workDialog&&<div className="billing-modal-backdrop"><section role="dialog" aria-modal="true"
+   aria-label={canObserve?'Record room observation':'Review room observation'} className="billing-action-modal occ-check-dialog">
+   <div className="billing-action-modal-header"><div><span className="rr-eyebrow">ROOM {check.roomNumber}</span>
+    <h3>{canObserve?'Record what you observed':'Review the observation'}</h3>
+    <p>{readableDate(check.inspectionDate)} · {canReview?mismatch:'Only record what you can safely verify.'}</p></div>
+    <button type="button" className="billing-modal-dismiss" aria-label="Close dialog" disabled={busy}
+     onClick={()=>setWorkDialog(false)}><X size={19}/></button></div>
+   {canObserve&&<div className="occ-dialog-form">
+    <p className="occ-dialog-guidance"><Info size={15}/> Do not enter a guest room without permission and approved procedures. If uncertain, choose Could not verify.</p>
+    <label>Was the room physically occupied?
+     <select className="wizard-input" value={observed} disabled={busy}
+      onChange={e=>setObserved(e.target.value as typeof observed)}>
+      <option value="unknown">Could not verify</option>
+      <option value="occupied">Yes, occupied</option><option value="vacant">No, vacant</option>
+     </select></label>
+    <label>What did you observe?
+     <textarea className="wizard-input" rows={3} maxLength={1500} value={note} disabled={busy}
+      onChange={e=>setNote(e.target.value)} placeholder="Describe the observation method and any limitations. Avoid guest personal details."/></label>
+    <button type="button" className="btn-primary" disabled={busy||note.trim().length<5}
+     onClick={()=>void submit('observe')}>{busy?'Saving…':'Submit observation for review'}</button>
+   </div>}
+   {canReview&&<div className="occ-dialog-form">
+    <p className="occ-dialog-guidance"><Info size={15}/>
+     {independent?'Review the original observation and reservation snapshot.':'You cannot review an observation you submitted.'}
+     {' '}A mismatch or unknown observation must be investigated, not marked verified.</p>
+    <p className="occ-check-result">{mismatch}</p>
+    <label>Review findings / next steps
+     <textarea className="wizard-input" rows={3} maxLength={1500} value={note} disabled={busy}
+      onChange={e=>setNote(e.target.value)} placeholder="Document independent evidence, follow-up and limitations."/></label>
+    <div className="occ-dialog-buttons">
+     <button type="button" className="btn-primary" disabled={busy||!independent||check.discrepancy!=='match'||note.trim().length<5}
+      onClick={()=>void submit('verified')}><ShieldCheck size={16}/> Verify matching observation</button>
+     <button type="button" className="rr-secondary-action" disabled={busy||!independent||note.trim().length<5}
+      onClick={()=>void submit('flagged')}><AlertTriangle size={16}/> Flag for investigation</button>
+    </div>
+   </div>}
+   {error&&<p className="auth-error" role="alert">{error}</p>}
+  </section></div>}
+  {check.reviewNote&&<p className="occ-manager-note"><strong>Manager review:</strong> {check.reviewNote}</p>}
+  {message&&<p role="status" className="occ-check-result">{message}</p>}
   {showHistory&&<div><QueryFeedback loading={history.isPending} error={history.error}/>
    {history.data?.data.map(event=>{
     const details=event.details&&typeof event.details==='object'&&!Array.isArray(event.details)
@@ -110,6 +143,7 @@ export function OccupancyVerification(){
  const [error,setError]=useState('');
  const [message,setMessage]=useState('');
  const [saving,setSaving]=useState(false);
+ const [showAssign,setShowAssign]=useState(false);
  const client=useQueryClient();
  const checks=useOccupancyVerifications(allowed,page,status==='all'?undefined:status as OccupancyVerification['status']);
  const rooms=useLiveRooms({page:1,perPage:100});
@@ -126,21 +160,29 @@ export function OccupancyVerification(){
    if(!hotelDate)throw new Error('Load the hotel verification list before assigning inspections.');
    await assignOccupancy(hotelId,{roomId,assignedUserId:assignee,inspectionDate:hotelDate});
    if(readSession().hotelId!==hotelId)return;
-   setMessage('Daily check assigned.');setRoomId('');setAssignee('');refresh();
+   setMessage('Room check assigned.');setRoomId('');setAssignee('');setShowAssign(false);refresh();
   }catch(e){setError(e instanceof Error?e.message:'Unable to assign room check.');}
   finally{setSaving(false);}
  }
  if(!allowed)return <><Heading title="Independent occupancy verification" description="Only assigned housekeeping and managers may use this workspace."/>
   <Panel title="Access restricted"><p>This page is available only to staff with the required permissions and assignments.</p></Panel></>;
  return <>
-  <Heading title="Independent occupancy verification" description={manager
-   ?'Assign physical room checks and investigate mismatches against recorded check-ins.'
-   :'Record an independent, factual room observation on each assigned check.'}/>
-  {manager&&<div className="desk-tools"><Link to="/occupancy-coverage" className="btn-inline">
-   View daily occupancy coverage and discrepancies
-  </Link></div>}
-  {manager&&<Panel title="Assign a room inspection">
-   <p>One independent observation per room per hotel-local date. Assign an active housekeeping staff member, not the front desk.</p>
+  <div className="occ-page-heading"><div><span className="rr-eyebrow">ROOM OPERATIONS</span>
+   <Heading title="Room occupancy checks" description={manager
+    ?'Assign independent room observations and review what differs from the hotel records.'
+    :'Report what you can safely observe in your assigned rooms.'}/></div>
+   {manager&&<button type="button" className="btn-primary occ-nav-link" onClick={()=>setShowAssign(true)}>
+    <Plus size={16}/> Assign a room check</button>}</div>
+  {manager&&<div className="occ-report-link"><Link to="/occupancy-coverage">
+   View room occupancy report <ArrowRight size={15}/></Link></div>}
+  {manager&&showAssign&&<div className="billing-modal-backdrop">
+   <section className="billing-action-modal" role="dialog" aria-modal="true" aria-label="Assign a room check">
+    <div className="billing-action-modal-header"><div><h3>Assign a room check</h3>
+     <p>Assign today's independent observation to an active housekeeping employee.</p></div>
+     <button type="button" className="billing-modal-dismiss" aria-label="Close dialog"
+      disabled={saving} onClick={()=>setShowAssign(false)}><X size={19}/></button></div>
+   <Panel title="Observation assignment">
+   <p>One check per room per hotel day. Observations must be completed independently of front desk.</p>
    <div className="wizard-fields">
     <label>Room
      <select className="wizard-input" value={roomId} onChange={e=>setRoomId(e.target.value)}>
@@ -160,8 +202,8 @@ export function OccupancyVerification(){
    <QueryFeedback loading={staff.isPending} error={staff.error}/>
    {error&&<p role="alert" className="auth-error">{error}</p>}
    {message&&<p role="status">{message}</p>}
-  </Panel>}
-  <Panel title={manager?'Hotel verification records':'My assigned room checks'}>
+   </Panel></section></div>}
+  <Panel title={manager?'Room checks':'My assigned rooms'}>
    <div className="desk-tools">
     <label>Filter status{' '}
      <select className="wizard-input" value={status} onChange={e=>{setPage(1);setStatus(e.target.value);}}>
@@ -184,7 +226,7 @@ export function OccupancyVerification(){
     </div>
    </div>}
   </Panel>
-  <p className="desk-preview-note"><AlertTriangle size={16}/>
+  <p className="occ-privacy-footnote"><AlertTriangle size={16}/>
    This compares staff observations with registered checked-in reservations, not actual payments or independent access logs. A mismatch is a lead for investigation, not proof of fraud. Never enter a guest's room without consent and hotel procedure.</p>
  </>;
 }

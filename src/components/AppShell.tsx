@@ -23,6 +23,9 @@ const daily=[
  {to:'/occupancy-verification' as const,label:'Occupancy checks',icon:ClipboardCheck},
  {to:'/occupancy-coverage' as const,label:'Occupancy report',icon:ClipboardList},
 ];
+const primaryPaths=['/','/front-desk','/reservations','/group-reservations','/room-calendar','/rooms','/billing'];
+const primaryDaily=daily.filter(item=>primaryPaths.includes(item.to));
+const secondaryDaily=daily.filter(item=>!primaryPaths.includes(item.to));
 const administration=[
  {to:'/night-audit' as const,label:'Night audit preflight',icon:ClipboardCheck},
  {to:'/tax-policies' as const,label:'Tax configuration',icon:Wallet},
@@ -56,6 +59,7 @@ export function AppShell(){
  const {user,hotelId,selectHotel,signOut,pending}=useHotelAuth();
  const [open,setOpen]=useState(false);
  const [showAdvanced,setShowAdvanced]=useState(false);
+ const [showMoreOperations,setShowMoreOperations]=useState(false);
  const pathname=useRouterState({select:s=>s.location.pathname});
  const current=all.find(item=>item.to===pathname)?.label??'Overview';
  const role=selectedRole(user?.hotels,hotelId);
@@ -69,11 +73,11 @@ export function AppShell(){
  if(dataMode==='api'&&user&&!hotelId&&pathname==='/change-password')return <Outlet/>;
  if(dataMode==='api'&&!hotelId)return <HotelChooser/>;
 
- const renderNav=(items:readonly NavItem[])=>items
+ const renderNav=(items:readonly NavItem[],section:'daily'|'management'|'advanced')=>items
   .filter(item=>dataMode==='api'||!['/change-password','/staff'].includes(item.to))
   .filter(item=>dataMode!=='api'||(
-   items===daily?workspace.daily.includes(item.to):
-   items===administration?workspace.management.includes(item.to):
+   section==='daily'?workspace.daily.includes(item.to):
+   section==='management'?workspace.management.includes(item.to):
    workspace.advanced.includes(item.to)))
   .map(({to,label,icon:Icon})=><Link key={to} to={to} activeOptions={{exact:true}}
    aria-current={pathname===to?'page':undefined}
@@ -90,9 +94,19 @@ export function AppShell(){
    </div>
    <nav aria-label="Hotel workspace navigation" className="workspace-nav">
     <p className="nav-heading">{dataMode==='api'?workspace.label.toUpperCase()+' WORKSPACE':'DAILY OPERATIONS'}</p>
-    {renderNav(daily)}
+    {renderNav(primaryDaily,'daily')}
+    {(dataMode==='mock'||secondaryDaily.some(item=>workspace.daily.includes(item.to)))&&<>
+     <button type="button" className="nav-link nav-expand"
+      aria-expanded={showMoreOperations||secondaryDaily.some(item=>item.to===pathname)}
+      onClick={()=>setShowMoreOperations(v=>!v)}>
+      <ChevronDown size={17} className={showMoreOperations?'nav-chevron-open':''}/>
+      <span>More operations</span>
+     </button>
+     {(showMoreOperations||secondaryDaily.some(item=>item.to===pathname))&&
+      <div className="nav-nested">{renderNav(secondaryDaily,'daily')}</div>}
+    </>}
     <p className="nav-heading nav-section">{admin||dataMode==='mock'?'MANAGEMENT':'ACCOUNT'}</p>
-    {renderNav(administration)}
+    {renderNav(administration,'management')}
     {dataMode==='api'&&workspace.advanced.length>0&&<>
      <button type="button" className="nav-link nav-expand" aria-expanded={showAdvanced||advanced.some(item=>item.to===pathname)}
       onClick={()=>setShowAdvanced(v=>!v)}>
@@ -100,7 +114,7 @@ export function AppShell(){
       <span>Advanced tools</span>
      </button>
      {(showAdvanced||advanced.some(item=>item.to===pathname))&&<div className="nav-nested">
-      {renderNav(advanced)}
+      {renderNav(advanced,'advanced')}
      </div>}
     </>}
    </nav>

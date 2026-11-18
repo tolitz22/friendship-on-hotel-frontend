@@ -6,6 +6,7 @@ import {ApiError} from '../api/http';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
+import {ReadableAuditEvent} from '../components/ReadableAuditEvent';
 
 const roles:StaffRole[]=['front_desk','housekeeping','maintenance','admin'];
 export function LiveStaff(){
@@ -126,11 +127,15 @@ export function LiveStaff(){
   </Panel>
   <Panel title="Membership audit history" action={<button type="button" className="btn-inline" onClick={()=>setHistoryOpen(v=>!v)}><History size={16}/>{historyOpen?'Hide':'View'} history</button>}>
    {historyOpen&&<><QueryFeedback loading={history.isPending} error={history.error} empty={history.data?.data.length===0}/>
-    {history.data?.data.map(event=><article className="maintenance-history-event" key={event.id}>
-     <strong>{event.action} · Staff #{event.targetUserId}</strong>
-     <small>Changed by administrator #{event.actorId} · {event.createdAt}</small>
-     <p>{event.before?.role??'No membership'} → {event.after.role} · {event.after.isActive?'Active':'Inactive'}</p>
-    </article>)}
+    {history.data?.data.map(event=><div key={event.id} className="staff-audit-entry">
+     <p className="staff-audit-target"><strong>Employee affected:</strong> {staff.data?.data.find(member=>member.userId===event.targetUserId)?.name??'Staff member #'+event.targetUserId}</p>
+     <ReadableAuditEvent event={{
+      id:event.id,actorId:event.actorId,action:event.action,
+      before:event.before?{...event.before}:null,after:{...event.after},
+      note:null,createdAt:event.createdAt,
+     }} actorName={staff.data?.data.find(member=>member.userId===event.actorId)?.name}
+      currentUserId={user?.id}/>
+    </div>)}
    </>}
   </Panel>
  </>;

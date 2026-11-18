@@ -38,6 +38,22 @@ export function useCashierShifts(enabled:boolean,page=1,status?:CashierShift['st
   retry:false,
  });
 }
+/** Current user only, including administrators. Never use a hotel-wide list to select a drawer. */
+export function useCurrentCashierShift(enabled:boolean){
+ const {hotelId}=readSession();
+ return useQuery({
+  queryKey:['live','current-cashier-shift',hotelId],
+  enabled:enabled&&!!hotelId,
+  queryFn:async()=>{
+   const result=z.object({data:shift.nullable()}).parse(
+    await getJson<unknown>(hotelPath('/cashier-shifts/current'))).data;
+   if(result&&(result.hotelId!==hotelId||result.status!=='open'))
+    throw new Error('Current cashier shift does not match this hotel or is not open.');
+   return result;
+  },retry:false,
+ });
+}
+
 export function useCashierShiftDetails(enabled:boolean,shiftId:string){
  const {hotelId}=readSession();
  return useQuery({

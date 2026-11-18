@@ -65,7 +65,8 @@ export function GroupReservations(){
  const search=useSearch({from:'/group-reservations'});
  const navigate=useNavigate();
  const client=useQueryClient();
- const groups=useGroupBookings();
+ const [page,setPage]=useState(1);
+ const groups=useGroupBookings(page);
  const types=useLiveRoomTypes();
  const rates=useLiveRatePlans();
  const [creating,setCreating]=useState(false);
@@ -83,7 +84,7 @@ export function GroupReservations(){
   setRooms(old=>old.map((row,index)=>index===i
    ?{...row,[key]:value,...(key==='roomTypeId'?{ratePlanId:''}:{})}:row));
  };
- useEffect(()=>{setCreating(false);setPending(null);setResult(null);setError(null);},[hotelId]);
+ useEffect(()=>{setCreating(false);setPage(1);setPending(null);setResult(null);setError(null);},[hotelId]);
  const datesValid=validLiveStay({roomTypeId:rooms[0].roomTypeId||'1',checkIn,checkOut})
   &&checkIn>=hotelToday();
  const ready=canBook&&name.trim().length>=2&&datesValid&&rooms.length>=2&&
@@ -215,8 +216,15 @@ export function GroupReservations(){
      <Link to="/group-reservations" search={{group:group.id}}>View group <ArrowRight size={16}/></Link>
     </article>)}
    </div>
-   {groups.data&&groups.data.meta.totalPages>1&&<p className="desk-muted">
-    Showing the latest {groups.data.data.length} groups. Further pages are available through the API.</p>}
+   {groups.data&&groups.data.meta.totalPages>1&&<div className="desk-tools reservation-pagination">
+    <span className="desk-muted">Page {page} of {groups.data.meta.totalPages} · {groups.data.meta.total} groups</span>
+    <div className="desk-date-nav">
+     <button type="button" className="btn-inline" disabled={page<=1}
+      onClick={()=>setPage(current=>Math.max(1,current-1))}>Previous</button>
+     <button type="button" className="btn-inline" disabled={page>=groups.data.meta.totalPages}
+      onClick={()=>setPage(current=>current+1)}>Next</button>
+    </div>
+   </div>}
   </Panel>}
   <p className="desk-muted"><CalendarDays size={14}/> Group booking does not guarantee specific room numbers; assign each physical room from its reservation.</p>
  </>;

@@ -96,7 +96,7 @@ export async function reconcileCashShift(hotelId:string,shiftId:string,decision:
  return data;
 }
 export async function receiveCash(hotelId:string,shiftId:string,bookingId:string,payload:{
- requestKey:string;reference:string;amountMinor:number;
+ requestKey:string;reference:string;amountMinor:number;duplicateOverrideReason?:string;
 }){
  if(readSession().hotelId!==hotelId)throw new Error('Property changed.');
  return z.object({data:z.object({

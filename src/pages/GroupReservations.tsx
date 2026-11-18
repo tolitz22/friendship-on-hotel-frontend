@@ -5,7 +5,8 @@ import {CalendarDays,Plus,ArrowRight,RefreshCw,Trash2} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
-import {useGuests} from '../api/queries';
+import {BookingGuestPicker} from '../components/BookingGuestPicker';
+import {useSelectedGuest} from '../api/liveSelectedGuest';
 import {useLiveRoomTypes,useLiveRatePlans,validLiveStay} from '../api/liveReservations';
 import {createGroupBooking,useGroupBooking,useGroupBookings} from '../api/groupReservations';
 import type {GroupBooking,GroupBookingInput} from '../api/groupReservations';
@@ -19,6 +20,15 @@ const money=(minor:number,currency:string)=>new Intl.NumberFormat('en-PH',{
  style:'currency',currency:currency==='PHP'?'PHP':'USD',
 }).format(minor/100);
 const start=()=>hotelToday();
+
+function RoomGuestField({value,index,disabled,onChange}:{value:string;index:number;disabled:boolean;onChange:(id:string)=>void}){
+ const selected=useSelectedGuest(value||null);
+ return <div><span className="wizard-label" id={'group-guest-'+index}>Registered guest</span>
+  <BookingGuestPicker value={value} selectedGuest={selected.data??undefined}
+   disabled={disabled} onChange={onChange}/>
+  {value&&selected.isError&&<small role="alert">Could not verify this guest. Search and choose again.</small>}
+ </div>;
+}
 
 function GroupDetails({id}:{id:string}){
  const details=useGroupBooking(id);
@@ -56,7 +66,6 @@ export function GroupReservations(){
  const navigate=useNavigate();
  const client=useQueryClient();
  const groups=useGroupBookings();
- const guests=useGuests({perPage:100});
  const types=useLiveRoomTypes();
  const rates=useLiveRatePlans();
  const [creating,setCreating]=useState(false);
@@ -153,21 +162,16 @@ export function GroupReservations(){
         value={checkOut} onChange={e=>setCheckOut(e.target.value)}/></div>
      </div>
      <h3>Rooms and registered guests</h3>
-     <QueryFeedback loading={guests.isPending||types.isPending||rates.isPending}
-      error={guests.error??types.error??rates.error}/>
+     <QueryFeedback loading={types.isPending||rates.isPending}
+      error={types.error??rates.error}/>
      {rooms.map((room,index)=><div key={index} className="rb-section">
       <div className="rb-section-heading"><h4>Room {index+1}</h4>
        {rooms.length>2&&<button type="button" className="btn-inline"
         onClick={()=>setRooms(old=>old.filter((_,i)=>i!==index))}>
         <Trash2 size={14}/> Remove</button>}</div>
       <div className="wizard-fields">
-       <div><label className="wizard-label" htmlFor={'group-guest-'+index}>Registered guest</label>
-        <select id={'group-guest-'+index} className="wizard-input" required
-         value={room.guestId} onChange={e=>update(index,'guestId',e.target.value)}>
-         <option value="">Choose a guest</option>
-         {(guests.data?.data??[]).map(guest=><option key={guest.id} value={guest.id}>
-          {guest.firstName} {guest.lastName}</option>)}
-        </select></div>
+       <RoomGuestField index={index} value={room.guestId} disabled={locked}
+        onChange={guestId=>update(index,'guestId',guestId)}/>
        <div><label className="wizard-label" htmlFor={'group-type-'+index}>Room type</label>
         <select id={'group-type-'+index} className="wizard-input" required
          value={room.roomTypeId} onChange={e=>update(index,'roomTypeId',e.target.value)}>
@@ -186,7 +190,7 @@ export function GroupReservations(){
      </div>)}
      <button type="button" className="btn-inline" disabled={rooms.length>=10}
       onClick={()=>setRooms(old=>[...old,blank()])}><Plus size={16}/> Add another room</button>
-     <p className="desk-muted">Only the first 100 guest directory entries are shown. Register guests first in the Guest directory if they are not listed.</p>
+     <p className="desk-muted">Search registered guests by name, email or phone. Add missing guests in the Guest directory before booking.</p>
     </fieldset>
     <div className="rb-review">
      <h4>Review group booking</h4>

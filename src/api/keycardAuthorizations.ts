@@ -10,6 +10,8 @@ const auth=z.object({
  status:z.enum(['pending_manager','authorized_mock','rejected','revoked']),
  provider:z.literal('mock'),providerReference:z.string().nullable(),
  physicalCardEncoded:z.literal(false),requestedBy:id,
+ requestedByName:z.string().nullable().optional(),reviewedByName:z.string().nullable().optional(),
+ revokedByName:z.string().nullable().optional(),
  reviewedBy:id.nullable(),revokedBy:id.nullable(),
  reason:z.string(),reviewNote:z.string().nullable(),revocationNote:z.string().nullable(),
  validFrom:z.string(),validUntil:z.string(),createdAt:z.string(),

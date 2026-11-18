@@ -281,7 +281,9 @@ export function LiveRooms(){
   {view==='readiness'&&<div className="rr-readiness-workspace">
    <div className="rr-explainer"><Info size={18}/><div><strong>Hotel-wide readiness and upcoming arrivals</strong>
     <p>This report covers more than the current catalogue page. Approvals are snapshots; occupancy, availability, and guest identity still require separate verification.</p></div></div>
-   <ReadinessDashboardPanel/>
+   <ReadinessDashboardPanel onFindRoom={roomNumber=>{
+    setView('catalog');setFloor('all');setSearch(roomNumber);setAttentionFilter('all');setPage(1);
+   }}/>
    {admin&&<details className="workflow-disclosure">
     <summary><span><Settings2 size={17}/> Advanced · Check-in readiness enforcement policy</span></summary>
     <ReadinessEnforcementPanel/>

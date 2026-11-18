@@ -30,6 +30,7 @@ export function RecordGuestPayment({bookingId,currency,signed,recordedDifference
  const [openingConfirmed,setOpeningConfirmed]=useState(false);
  const [busy,setBusy]=useState(false);
  const [notice,setNotice]=useState('');
+ const [paymentSaved,setPaymentSaved]=useState(false);
  const [error,setError]=useState('');
  const idempotencyKey=useRef(crypto.randomUUID());
  const receiptReference=useRef(makeReference());
@@ -46,7 +47,7 @@ export function RecordGuestPayment({bookingId,currency,signed,recordedDifference
  const resetAttempt=()=>{
   idempotencyKey.current=crypto.randomUUID();
   receiptReference.current=makeReference();
-  setConfirmed(false);setNotice('');setError('');
+  setConfirmed(false);setNotice('');setPaymentSaved(false);setError('');
  };
  const refresh=()=>{
   void Promise.all([
@@ -59,7 +60,7 @@ export function RecordGuestPayment({bookingId,currency,signed,recordedDifference
  };
  async function startShift(){
   if(!hotelId||!allowed||signed||busy||!openingConfirmed||floatMinor===null)return;
-  setBusy(true);setError('');setNotice('');
+  setBusy(true);setError('');setNotice('');setPaymentSaved(false);
   try{
    await openCashierShift(hotelId,floatMinor);
    if(readSession().hotelId!==hotelId)return;
@@ -90,6 +91,7 @@ export function RecordGuestPayment({bookingId,currency,signed,recordedDifference
     if(readSession().hotelId!==hotelId)return;
     setNotice('Bank-transfer evidence recorded. An independent manager must review it before settlement.');
    }
+   setPaymentSaved(true);
    idempotencyKey.current=crypto.randomUUID();
    receiptReference.current=makeReference();
    setAmount('');setTendered('');setBankReference('');setConfirmed(false);
@@ -172,7 +174,7 @@ export function RecordGuestPayment({bookingId,currency,signed,recordedDifference
   </div>}
   {notice&&<div className="billing-payment-complete" role="status">
    <p className="billing-payment-success"><CheckCircle2 size={17}/>{notice}</p>
-   {onDone&&<button type="button" className="btn-primary" onClick={onDone}>
+   {paymentSaved&&onDone&&<button type="button" className="btn-primary" onClick={onDone}>
     Continue to payment review <ArrowRight size={15}/></button>}
   </div>}
   {error&&<p role="alert" className="billing-payment-error"><AlertTriangle size={17}/>{error}</p>}

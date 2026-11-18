@@ -54,7 +54,7 @@ export function Settings(){
     <div className="settings-table-scroll"><table><thead><tr><th>Room type</th><th>Sample rooms</th><th>Max occupants</th><th>Illustrative rate / night</th></tr></thead><tbody>{config.roomTypes.map(type=><tr key={type.id}><td><strong>{type.name}</strong></td><td>{type.roomCount}</td><td>{type.maxOccupancy}</td><td>{currency(type.sampleRate)}</td></tr>)}</tbody></table></div>
     <h4 className="settings-subhead">Physical floors</h4>
     <div className="settings-floor-grid">{config.floors.map(floor=><div key={floor.number}><span>Floor {floor.number}</span><strong>{floor.roomCount} sample room(s)</strong></div>)}</div>
-    <p className="settings-readonly"><Info size={15}/> Create/edit/delete room types and floors will require Laravel validation, booking impact checks, and audit logs.</p>
+    <p className="settings-readonly"><Info size={15}/> Changing room types or floors may affect existing bookings. These changes must be reviewed and recorded.</p>
    </>}
    {tab==='operations'&&<><header><h3>Operational preferences</h3><p>Example operating times and regional display settings. Not active check-in/check-out policy enforcement.</p></header>
     <div className="settings-fields">
@@ -63,15 +63,15 @@ export function Settings(){
      <label className="settings-field">Hotel time zone<select value={draft.timeZone} disabled><option value="Asia/Manila">Asia/Manila</option></select></label>
      <label className="settings-field">Currency<select value={draft.currency} disabled><option value="PHP">PHP — Philippine Peso</option></select></label>
     </div>
-    <p className="settings-readonly"><Info size={15}/> Time zone and currency are locked in this mock prototype. Operational times are not connected to reservations or financial reports.</p>
+    <p className="settings-readonly"><Info size={15}/> These example time and currency settings cannot be changed here. Operational times shown here do not affect reservations or financial reports.</p>
    </>}
    {tab==='roles'&&<><header><h3>Staff roles and access preview</h3><p>These are display-only role examples, not actual permissions or user accounts.</p></header>
     <div className="settings-roles">{config.roles.map(role=><article key={role.id}><div><ShieldCheck size={19}/><h4>{role.name}</h4><span>{role.staffCount} fictional staff</span></div><p>{role.description}</p><div>{role.permissionLabels.map(label=><span key={label}>{label}</span>)}</div></article>)}</div>
-    <p className="settings-readonly"><Info size={15}/> Laravel policies and server authentication must enforce authorization. UI role labels never grant access.</p>
+    <p className="settings-readonly"><Info size={15}/> Only authorized staff can access restricted actions. The roles shown here are examples.</p>
    </>}
    {(tab==='property'||tab==='operations')&&<footer className="settings-actions">
     {confirmed&&<span className="settings-saved" role="status">Preview validated. No changes were saved.</span>}
-    {editable?<><button className="btn-inline" onClick={reset} disabled={!changed}><RotateCcw size={15}/> Reset preview</button><button className="btn-primary" onClick={previewSave} disabled={!changed}><Save size={16}/> Validate preview</button></>:<span className="settings-readonly">Read-only in API mode until update endpoints are approved.</span>}
+    {editable?<><button className="btn-inline" onClick={reset} disabled={!changed}><RotateCcw size={15}/> Reset preview</button><button className="btn-primary" onClick={previewSave} disabled={!changed}><Save size={16}/> Validate preview</button></>:<span className="settings-readonly">Editing is not available on this page.</span>}
    </footer>}
   </section>
  </div>}

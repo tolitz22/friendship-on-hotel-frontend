@@ -116,7 +116,9 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
    <h4>Recorded receipts for independent verification</h4>
    <QueryFeedback loading={detail.isPending} error={detail.error} onRetry={()=>void detail.refetch()}/>
    {detail.data&&<div className="table-scroll"><table><thead><tr><th>Payment</th><th>Reservation</th><th>Reference</th><th>Amount</th><th>Review status</th></tr></thead><tbody>
-    {(detail.data.receipts??[]).map(receipt=><tr key={receipt.id}><td>{receipt.paymentId}</td><td>{receipt.bookingId}</td><td>{receipt.reference}</td><td>{money(receipt.amountMinor,shift.currency)}</td><td>{receipt.paymentStatus}</td></tr>)}
+    {(detail.data.receipts??[]).map(receipt=><tr key={receipt.id}><td>{receipt.paymentId}</td><td><Link to="/billing"
+     search={{booking:receipt.bookingId}}>Review guest bill <ArrowRight size={13}/></Link></td>
+     <td>{receipt.reference}</td><td>{money(receipt.amountMinor,shift.currency)}</td><td>{receipt.paymentStatus}</td></tr>)}
    </tbody></table></div>}
    {detail.data?.receipts?.length===0&&<p>No cash receipts recorded; verify opening float separately.</p>}
    <label className="wizard-label">Independent manager review note
@@ -223,15 +225,16 @@ export function CashierShifts(){
    <div className="cashier-panel-heading">
     <div><span className="rr-eyebrow">MANAGER · INDEPENDENT REVIEW</span>
      <h2>Shifts awaiting reconciliation</h2>
-     <p>Review receipt confirmations and the physical count before reconciling.
+     <p>Review each receipt in Guest Billing, then check the physical count.
       The cashier cannot approve their own shift.</p></div>
     <button type="button" className="rr-secondary-action" disabled={managerReviewQueue.isFetching}
      onClick={()=>void managerReviewQueue.refetch()}><RefreshCw size={15}/> Refresh queue</button>
    </div>
    <QueryFeedback loading={managerReviewQueue.isPending} error={managerReviewQueue.error}
     onRetry={()=>void managerReviewQueue.refetch()}/>
-   {managerReviewQueue.data?.data.length===0&&<p className="cashier-queue-empty">
-    <CheckCircle2 size={16}/> No submitted shifts are awaiting your review.</p>}
+   {managerReviewQueue.data?.data.filter(shift=>shift.cashierId!==user?.id).length===0&&
+    <p className="cashier-queue-empty"><CheckCircle2 size={16}/>
+     No eligible submitted shifts to review. Your own submitted shift requires another manager.</p>}
    {managerReviewQueue.data?.data.filter(shift=>shift.cashierId!==user?.id).map(shift=>
     <ShiftRow key={'manager-'+shift.id} shift={shift} manager ownShift={false}
      onChange={()=>void refresh()}/>)}

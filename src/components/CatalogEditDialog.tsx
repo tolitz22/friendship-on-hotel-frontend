@@ -4,6 +4,8 @@ import {History,Pencil,X} from 'lucide-react';
 import {ApiError} from '../api/http';
 import {getCatalogAudit,updateLiveRoom,updateLiveRoomType,type LiveRoom,type LiveRoomType} from '../api/liveCatalog';
 import {useHotelAuth} from './AuthProvider';
+import {listHotelStaff} from '../api/liveStaff';
+import {ReadableAuditEvent} from './ReadableAuditEvent';
 
 type EditTarget={kind:'room';record:LiveRoom}|{kind:'room_type';record:LiveRoomType};
 type Props={target:EditTarget;roomTypes:LiveRoomType[];onClose:()=>void;onSaved:()=>void};
@@ -11,6 +13,7 @@ type Props={target:EditTarget;roomTypes:LiveRoomType[];onClose:()=>void;onSaved:
 export function CatalogEditDialog({target,roomTypes,onClose,onSaved}:Props){
  const {hotelId,user}=useHotelAuth();
  const admin=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
+ const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin&&!!hotelId});
  const queryClient=useQueryClient();
  const [name,setName]=useState(target.kind==='room_type'?target.record.name:'');
  const [capacity,setCapacity]=useState(target.kind==='room_type'?String(target.record.maxOccupancy):'');
@@ -97,10 +100,17 @@ export function CatalogEditDialog({target,roomTypes,onClose,onSaved}:Props){
     {audit.isPending&&<p>Loading history…</p>}
     {audit.error&&<p className="auth-error">{audit.error.message}</p>}
     {audit.data?.data.length===0&&<p>No changes recorded yet.</p>}
-    {audit.data?.data.map(event=><article key={event.id}>
-     <strong>Staff #{event.actorId} · {event.createdAt}</strong>
-     <p>Before: {JSON.stringify(event.before)}</p><p>After: {JSON.stringify(event.after)}</p>
-    </article>)}
+    {audit.data?.data.map(event=><ReadableAuditEvent key={event.id} event={{
+     id:event.id,actorId:event.actorId,action:'updated',
+     before:Object.fromEntries(Object.entries(event.before).map(([key,value])=>[
+      key,key==='roomTypeId'?roomTypes.find(type=>type.id===String(value))?.name??'Previous room category':value,
+     ])),
+     after:Object.fromEntries(Object.entries(event.after).map(([key,value])=>[
+      key,key==='roomTypeId'?roomTypes.find(type=>type.id===String(value))?.name??'Room category changed':value,
+     ])),
+     note:null,createdAt:event.createdAt,
+    }} actorName={staff.data?.data.find(member=>member.userId===event.actorId)?.name}
+     currentUserId={user?.id} currentUserName={user?.name}/>)}
    </div>}
   </div>
  </section></div>;

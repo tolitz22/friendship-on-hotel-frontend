@@ -151,7 +151,7 @@ export function AppShell(){
     {pathname==='/group-reservations'?<>
      {(role==='admin'||role==='front_desk')&&<Link to="/reservations">Bookings <ArrowRight size={13}/></Link>}
      <Link to="/room-calendar">Room calendar <ArrowRight size={13}/></Link>
-     {(role==='admin'||role==='front_desk')&&<Link to="/front-desk">Front desk <ArrowRight size={13}/></Link>
+     {(role==='admin'||role==='front_desk')&&<Link to="/front-desk">Front desk <ArrowRight size={13}/></Link>}
     </>:pathname==='/room-calendar'?<>
      <Link to="/group-reservations">Group Bookings <ArrowRight size={13}/></Link>
      <Link to="/reservations">Bookings <ArrowRight size={13}/></Link>

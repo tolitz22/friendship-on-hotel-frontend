@@ -7,9 +7,15 @@ import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {getApprovalHistory,reviewManagerApproval,useApprovalRequests} from '../api/managerApprovals';
 import type {Approval,ApprovalStatus} from '../api/managerApprovals';
+import {readableDate,readableDateTime,statusLabel} from '../lib/format';
+import {auditActorName} from '../components/ReadableAuditEvent';
+import {listHotelStaff} from '../api/liveStaff';
 
 function ApprovalCard({item,hotelId}:{item:Approval;hotelId:string}){
  const client=useQueryClient();
+ const {user}=useHotelAuth();
+ const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:!!hotelId});
+ const actor=(id:string,serverName?:string|null)=>auditActorName(id,serverName??staff.data?.data.find(m=>m.userId===id)?.name,user?.id,user?.name);
  const [note,setNote]=useState('');
  const [confirmed,setConfirmed]=useState(false);
  const [busy,setBusy]=useState(false);
@@ -42,12 +48,12 @@ function ApprovalCard({item,hotelId}:{item:Approval;hotelId:string}){
   <div className="desk-tools"><strong>{item.action==='cancel_booking'?'Cancel reservation':item.action==='early_check_in'?'Early check-in · Manager review':'Change stay dates'} <small>#{item.id}</small></strong>
    <span className="table-count">{item.status.toUpperCase()}</span></div>
   <p><Link to="/reservations" search={{booking:item.bookingId}}>Reservation #{item.bookingId}</Link>
-   {' · '}Requested by staff #{item.requestedBy} · {item.createdAt}</p>
+   {' · '}Requested by {actor(item.requestedBy)} · {readableDateTime(item.createdAt)}</p>
   <p><strong>Reason:</strong> {item.reason}</p>
-  <p><strong>Recorded booking:</strong> {item.snapshot.checkIn} → {item.snapshot.checkOut}
+  <p><strong>Recorded booking:</strong> {readableDate(item.snapshot.checkIn)} → {readableDate(item.snapshot.checkOut)}
    {' · '}{item.snapshot.status} · Room {item.snapshot.assignedRoomId??'unassigned'}</p>
-  {item.action==='amend_dates'&&<p><strong>Requested dates:</strong> {item.payload.checkIn} → {item.payload.checkOut}</p>}
-  <p className="desk-muted">Expires: {item.expiresAt}. For early check-in, approval immediately records the guest as checked in and an early-arrival audit record. Room availability, readiness and date rules are rechecked; payment is not changed.</p>
+  {item.action==='amend_dates'&&<p><strong>Requested dates:</strong> {readableDate(item.payload.checkIn)} → {readableDate(item.payload.checkOut)}</p>}
+  <p className="desk-muted">Expires: {readableDateTime(item.expiresAt)}. For early check-in, approval immediately records the guest as checked in and an early-arrival audit record. Room availability, readiness and date rules are rechecked; payment is not changed.</p>
   {item.status==='pending'&&<>
    <label className="wizard-label" htmlFor={'review-note-'+item.id}>Manager decision note</label>
    <textarea id={'review-note-'+item.id} className="wizard-input" rows={2} maxLength={1000}
@@ -65,15 +71,30 @@ function ApprovalCard({item,hotelId}:{item:Approval;hotelId:string}){
      onClick={()=>void decide('reject')}>Reject request</button>
    </div>
   </>}
-  {item.status!=='pending'&&<p><CheckCircle2 size={16}/> Reviewed by #{item.reviewedBy} · {item.reviewNote||'No additional note'}</p>}
+  {item.status!=='pending'&&<p><CheckCircle2 size={16}/> Reviewed by {item.reviewedBy?actor(item.reviewedBy):'Manager name unavailable'} · {item.reviewNote||'No additional note'}</p>}
   {error&&<p role="alert" className="auth-error"><AlertTriangle size={16}/>{error} Check booking history before retrying.</p>}
   <button className="btn-inline" type="button" aria-expanded={showHistory}
    onClick={()=>setShowHistory(v=>!v)}><History size={15}/> {showHistory?'Hide audit':'Show audit trail'}</button>
   {showHistory&&<div>
    <QueryFeedback loading={log.isPending} error={log.error} onRetry={()=>void log.refetch()}/>
-   {log.data?.data.map(entry=><p key={entry.id} className="desk-muted">
-    {entry.event} · Staff #{entry.actorId} · {entry.createdAt}
-   </p>)}
+   {log.data?.data.map(entry=>{
+    const eventDetails=entry.details&&typeof entry.details==='object'&&!Array.isArray(entry.details)
+     ?entry.details as Record<string,unknown>:null;
+    const note=typeof eventDetails?.note==='string'?eventDetails.note:null;
+    const title:Record<string,string>={
+     requested:'Requested manager approval',approved:'Approved the request',
+     rejected:'Rejected the request',executed:'Applied the approved change',
+    };
+    return <article key={entry.id} className="readable-audit-event">
+     <strong>{title[entry.event]??statusLabel(entry.event)}</strong>
+     <p className="readable-audit-context">{actor(entry.actorId,entry.actorName)}
+      {' · '}{readableDateTime(entry.createdAt)}</p>
+     {note&&<p className="readable-audit-note"><strong>Decision note:</strong> {note}</p>}
+     {entry.event==='requested'&&<p className="readable-audit-context">
+      Requested action: {item.action==='cancel_booking'?'Cancel reservation':
+       item.action==='amend_dates'?'Change stay dates':'Early check-in'}</p>}
+    </article>;
+   })}
   </div>}
  </article>;
 }

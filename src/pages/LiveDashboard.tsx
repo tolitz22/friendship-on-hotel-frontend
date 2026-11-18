@@ -31,9 +31,10 @@ function DeskSummary({date}:{date:string}){
  const arrivals=useLiveManifest(date,'arrivals',1,5);
  const departures=useLiveManifest(date,'departures',1,5);
  const inHouse=useLiveManifest(date,'in_house',1,5);
- const ready=arrivals.data&&departures.data&&inHouse.data;
+ const ready=arrivals.isSuccess&&departures.isSuccess&&inHouse.isSuccess;
  const failed=arrivals.error??departures.error??inHouse.error;
  const refresh=()=>{void arrivals.refetch();void departures.refetch();void inHouse.refetch();};
+ const queueCount=(query:typeof arrivals)=>query.isSuccess?query.data.meta.total:query.isPending?'Loading…':'Unavailable';
  return <section className="ov-section" aria-labelledby="ov-desk-title">
   <div className="ov-section-heading">
    <div><span className="ov-kicker">LIVE OPERATIONS</span><h3 id="ov-desk-title">Front desk today</h3>
@@ -44,17 +45,17 @@ function DeskSummary({date}:{date:string}){
   </div>
   {failed&&<QueryFeedback loading={false} error={failed} onRetry={refresh}/>}
   <div className="ov-queue-grid">
-   <Link to="/front-desk" className="ov-queue-card" aria-label="View expected arrivals">
+   <Link to="/front-desk" search={{queue:'arrivals'}} className="ov-queue-card" aria-label="View expected arrivals">
     <span className="ov-queue-icon"><LogIn size={19}/></span><span>Expected arrivals</span>
-    <strong>{arrivals.data?.meta.total??'—'}</strong><small>Confirmed stays due today</small><ArrowRight size={16} className="ov-queue-arrow"/>
+    <strong>{queueCount(arrivals)}</strong><small>Confirmed stays due today</small><ArrowRight size={16} className="ov-queue-arrow"/>
    </Link>
-   <Link to="/front-desk" className="ov-queue-card" aria-label="View due departures">
+   <Link to="/front-desk" search={{queue:'departures'}} className="ov-queue-card" aria-label="View due departures">
     <span className="ov-queue-icon"><LogOut size={19}/></span><span>Due departures</span>
-    <strong>{departures.data?.meta.total??'—'}</strong><small>In-house stays due today</small><ArrowRight size={16} className="ov-queue-arrow"/>
+    <strong>{queueCount(departures)}</strong><small>In-house stays due today</small><ArrowRight size={16} className="ov-queue-arrow"/>
    </Link>
-   <Link to="/front-desk" className="ov-queue-card" aria-label="View in-house reservations">
+   <Link to="/front-desk" search={{queue:'in_house'}} className="ov-queue-card" aria-label="View in-house reservations">
     <span className="ov-queue-icon"><Users size={19}/></span><span>In-house reservations</span>
-    <strong>{inHouse.data?.meta.total??'—'}</strong><small>Registered in-house stays</small><ArrowRight size={16} className="ov-queue-arrow"/>
+    <strong>{queueCount(inHouse)}</strong><small>Registered in-house stays</small><ArrowRight size={16} className="ov-queue-arrow"/>
    </Link>
   </div>
   {ready&&<p className="ov-data-note"><CheckCircle2 size={14}/> Live reservation counts, not independently verified physical occupancy or room availability.</p>}

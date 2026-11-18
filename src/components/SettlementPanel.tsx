@@ -121,9 +121,14 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
    await requestJson<unknown>(hotelPath(path),{method:'POST',body});
    if(!active())return false;
    setAck(false);setReviewNote('');setSuccess(message);
-   await client.invalidateQueries({queryKey:['live','settlement-statement',hotelId,bookingId]});
-   await client.invalidateQueries({queryKey:['live','folio-ledger',hotelId]});
-   await client.invalidateQueries({queryKey:['live','cashier-shifts',hotelId]});
+   // Financial write already succeeded. Cache refresh failures must not
+   // make a committed action appear unsaved or invite duplicate submission.
+   void Promise.all([
+    client.invalidateQueries({queryKey:['live','settlement-statement',hotelId,bookingId]}),
+    client.invalidateQueries({queryKey:['live','folio-ledger',hotelId]}),
+    client.invalidateQueries({queryKey:['live','billing-folios',hotelId]}),
+    client.invalidateQueries({queryKey:['live','cashier-shifts',hotelId]}),
+   ]).catch(()=>{});
    return true;
   }catch(e){if(active())setError(e instanceof Error?e.message:'Settlement action failed.');return false;}
   finally{setBusy(false);}

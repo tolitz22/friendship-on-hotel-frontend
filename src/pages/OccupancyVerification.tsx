@@ -14,6 +14,7 @@ import {readableDate,readableDateTime,statusLabel} from '../lib/format';
 import {auditActorName} from '../components/ReadableAuditEvent';
 import {useLiveProperty} from '../api/liveCatalogQueries';
 import {hotelToday} from '../features/reservations/calendarDate';
+import {OccupancyInvestigationPanel} from '../components/OccupancyInvestigationPanel';
 
 function CheckCard({check,manager,isCurrentDate,onChanged}:{check:OccupancyVerification;manager:boolean;isCurrentDate:boolean;onChanged:()=>void}){
  const {hotelId,user}=useHotelAuth();
@@ -110,6 +111,8 @@ function CheckCard({check,manager,isCurrentDate,onChanged}:{check:OccupancyVerif
    {error&&<p className="auth-error" role="alert">{error}</p>}
   </section></div>}
   {check.reviewNote&&<p className="occ-manager-note"><strong>Manager review:</strong> {check.reviewNote}</p>}
+  {check.status==='flagged'&&manager&&<OccupancyInvestigationPanel
+   verificationId={check.id} roomNumber={check.roomNumber}/>} 
   {message&&<p role="status" className="occ-check-result">{message}</p>}
   {showHistory&&<div><QueryFeedback loading={history.isPending} error={history.error}/>
    {history.data?.data.map(event=>{

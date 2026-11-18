@@ -3,7 +3,7 @@ import {Link,useNavigate,useSearch} from '@tanstack/react-router';
 import {useQueryClient} from '@tanstack/react-query';
 import {CalendarDays,Plus,ArrowRight,RefreshCw,Trash2,Search,Layers3,Clock3,ChevronLeft} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
-import {Heading,Panel} from '../components/ui';
+import {Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {BookingGuestPicker} from '../components/BookingGuestPicker';
 import {useSelectedGuest} from '../api/liveSelectedGuest';

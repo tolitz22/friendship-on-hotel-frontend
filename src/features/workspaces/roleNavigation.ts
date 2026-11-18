@@ -2,11 +2,11 @@ import type {StaffHotel} from '../../api/auth';
 
 export type HotelRole='admin'|'front_desk'|'housekeeping'|'maintenance';
 export type WorkspacePath='/'|'/front-desk'|'/reservations'|'/room-calendar'|
- '/rooms'|'/guests'|'/housekeeping'|'/maintenance'|'/billing'|'/cashier-shifts'|
+ '/rooms'|'/group-reservations'|'/guests'|'/housekeeping'|'/maintenance'|'/billing'|'/cashier-shifts'|
  '/reports'|'/operational-exceptions'|'/manager-approvals'|'/settings'|'/staff'|
  '/occupancy-verification'|'/occupancy-coverage'|'/night-audit'|'/tax-policies'|'/folio-night-accounting'|'/change-password'|'/reservation-demand'|'/reservation-policy'|'/reservation-simulation';
 
-const allDaily:WorkspacePath[]=['/','/front-desk','/reservations','/room-calendar','/rooms','/guests','/housekeeping','/maintenance','/billing','/cashier-shifts','/occupancy-verification','/occupancy-coverage'];
+const allDaily:WorkspacePath[]=['/','/front-desk','/reservations','/group-reservations','/room-calendar','/rooms','/guests','/housekeeping','/maintenance','/billing','/cashier-shifts','/occupancy-verification','/occupancy-coverage'];
 const allManagement:WorkspacePath[]=['/night-audit','/tax-policies','/folio-night-accounting','/reports','/operational-exceptions','/manager-approvals','/settings','/staff','/change-password'];
 const allAdvanced:WorkspacePath[]=['/reservation-demand','/reservation-policy','/reservation-simulation'];
 const roleNav:Record<HotelRole,{daily:WorkspacePath[];management:WorkspacePath[];advanced:WorkspacePath[];label:string}>={

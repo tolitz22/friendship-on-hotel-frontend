@@ -1,7 +1,7 @@
 import {useEffect,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
-import {AlertTriangle,CheckCircle2,ClipboardCheck,Printer,RefreshCw,ShieldCheck,Wallet} from 'lucide-react';
+import {AlertTriangle,CheckCircle2,ClipboardCheck,Printer,RefreshCw,ShieldCheck,Wallet,Banknote,PlusCircle,X} from 'lucide-react';
 import {getJson,requestJson} from '../api/http';
 import {hotelPath,readSession} from '../api/session';
 import {useHotelAuth} from './AuthProvider';
@@ -71,6 +71,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const client=useQueryClient();
  const manager=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const [selected,setSelected]=useState('');
+ const [activeDialog,setActiveDialog]=useState<'payment'|'charges'|null>(null);
  const [reference,setReference]=useState('');
  const [reviewNote,setReviewNote]=useState('');
  const [payerKind,setPayerKind]=useState('guest');
@@ -92,7 +93,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const valid=!!hotelId&&/^[1-9]\d*$/.test(bookingId);
  const endpoint='/bookings/'+bookingId;
  useEffect(()=>{
-  setSelected('');setReference('');setReviewNote('');setPayerKind('guest');
+  setActiveDialog(null);setSelected('');setReference('');setReviewNote('');setPayerKind('guest');
   setPayerRef('');setAmount('');setEntryId('');setAck(false);setBusy(false);
   setError('');setSuccess('');setRequestKey(crypto.randomUUID());
   setRefundPayment('');setRefundAmount('');setRefundReason('');
@@ -175,8 +176,33 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       :<><ShieldCheck size={19}/><p><strong>Review before checkout.</strong> These amounts reflect saved records, not proof of bank settlement or a final payable amount.</p></>}
     </div>
    </div>
-   <RecordGuestPayment key={hotelId+'-payment-'+bookingId} bookingId={bookingId}
-    currency={data.currency} signed={data.signed} recordedDifferenceMinor={data.remainingMinor}/>
+   {!data.signed&&<div className="billing-main-actions" aria-label="Guest bill actions">
+    <button type="button" className="btn-primary" onClick={()=>setActiveDialog('payment')}>
+     <Banknote size={18}/> Record payment
+    </button>
+    {manager&&<button type="button" className="rr-secondary-action" onClick={()=>setActiveDialog('charges')}>
+     <PlusCircle size={18}/> Add charge or correction
+    </button>}
+   </div>}
+   {activeDialog&&<div className="billing-modal-backdrop" onMouseDown={event=>{
+    if(event.target===event.currentTarget)setActiveDialog(null);
+   }}>
+    <section className="billing-action-modal" role="dialog" aria-modal="true"
+     aria-label={activeDialog==='payment'?'Record guest payment':'Update guest bill'}>
+     <div className="billing-action-modal-header">
+      <div><span className="rr-eyebrow">BOOKING {data.reservationReference}</span>
+       <h3>{activeDialog==='payment'?'Record guest payment':'Add a charge or correction'}</h3>
+       <p>Current recorded difference: {money(data.remainingMinor,data.currency)} · Not a final amount due</p>
+      </div>
+      <button type="button" className="billing-modal-dismiss" aria-label="Close dialog"
+       onClick={()=>setActiveDialog(null)}><X size={20}/></button>
+     </div>
+     {activeDialog==='payment'
+      ?<RecordGuestPayment key={hotelId+'-payment-'+bookingId} bookingId={bookingId}
+        currency={data.currency} signed={data.signed} recordedDifferenceMinor={data.remainingMinor}/>
+      :<BillingActions bookingId={bookingId} signed={data.signed}/>}
+    </section>
+   </div>}
    <details className="billing-statement-details">
     <summary><span><strong>View itemized bill and payment history</strong>
      <small>Room charges, payment reviews, refunds and printable statement</small></span>
@@ -284,7 +310,6 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
     <ul>{data.blockers.map((b,i)=><li key={i}>{b}</li>)}</ul>
    </div>}
    </details>
-   {manager&&!data.signed&&<BillingActions bookingId={bookingId} signed={data.signed}/>}
    {manager&&!data.signed&&<details className="billing-manager-details">
     <summary><div><strong>Advanced settlement tools</strong>
      <span>Verify allocations, manage refunds and finalize accounts</span></div>

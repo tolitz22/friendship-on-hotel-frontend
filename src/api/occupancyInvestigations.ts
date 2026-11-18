@@ -26,7 +26,7 @@ export const resolutions=[
 function assertHotel(hotelId:string){if(readSession().hotelId!==hotelId)throw Error('Hotel selection changed. Refresh before continuing.');}
 function path(idValue:string){return hotelPath('/occupancy-verifications/'+encodeURIComponent(idValue)+'/investigation');}
 function parseCase(value:unknown){return z.object({data:investigation.nullable()}).parse(value).data;}
-export function useOccupancyInvestigation(enabled:boolean,hotelId:string|undefined,verificationId:string){
+export function useOccupancyInvestigation(enabled:boolean,hotelId:string|null|undefined,verificationId:string){
  return useQuery({queryKey:['occupancy-investigation',hotelId,verificationId],
   enabled:enabled&&!!hotelId,queryFn:async()=>parseCase(await getJson<unknown>(path(verificationId))),retry:false});
 }

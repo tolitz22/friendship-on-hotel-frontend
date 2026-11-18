@@ -44,7 +44,7 @@ export function experienceForPath(pathname:string,mode:typeof dataMode){
  if(pathname==='/reservation-policy')return 'POLICY DRAFT';
  if(pathname==='/reservation-demand')return 'DIAGNOSTIC';
  if(pathname==='/reports')return 'PREVIEW REPORT';
- if(pathname==='/night-audit')return 'PREFLIGHT · NO DAY CLOSE';
+ if(pathname==='/night-audit')return 'PREFLIGHT + CONTROLLED CLOSE';
  if(pathname==='/billing')return 'PARTIAL LIVE · REVIEW';
  return 'LIVE HOTEL DATA';
 }

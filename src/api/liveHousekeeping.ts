@@ -10,7 +10,7 @@ export interface LiveHousekeepingTask{
  revision:number;createdAt:string;
 }
 export interface HousekeepingEvent{
- id:string;actorId:string;action:string;
+ id:string;actorId:string;actorName?:string|null;action:string;
  before:Record<string,unknown>|null;after:Record<string,unknown>;note:string|null;createdAt:string;
 }
 export type HousekeepingList=CollectionResponse<LiveHousekeepingTask>&{
@@ -58,7 +58,7 @@ const listSchema=z.object({
 });
 const historySchema=z.object({
  data:z.array(z.object({
-  id:idSchema,actorId:idSchema,action:z.string(),before:z.record(z.string(),z.unknown()).nullable(),
+  id:idSchema,actorId:idSchema,actorName:z.string().nullable().optional(),action:z.string(),before:z.record(z.string(),z.unknown()).nullable(),
   after:z.record(z.string(),z.unknown()),note:z.string().nullable(),createdAt:z.string(),
  })),
  meta:z.object({

@@ -29,7 +29,7 @@ test('real priced folio directory and settlement statement are accessible withou
  const row=page.locator('.billing-folio-row').first();
  if(await row.count()){
   await row.getByRole('link',{name:/Open folio for booking/}).click();
-  await expect(page.getByRole('region',{name:'Guest account overview'})).toBeVisible();
+  await expect(page.locator('.billing-account-overview')).toBeVisible();
   const payment=page.getByRole('region',{name:'Record guest payment'});
   if(await payment.count()){
    await expect(payment.getByRole('button',{name:'Cash',exact:true})).toBeVisible();
@@ -58,7 +58,7 @@ test('front-desk account can review folios without manager-only financial write 
  const row=page.locator('.billing-folio-row').first();
  if(await row.count()){
   await row.getByRole('link',{name:/Open folio for booking/}).click();
-  await expect(page.getByRole('region',{name:'Guest account overview'})).toBeVisible();
+  await expect(page.locator('.billing-account-overview')).toBeVisible();
   await expect(page.getByRole('region',{name:'Manager folio actions'})).toHaveCount(0);
   const payment=page.getByRole('region',{name:'Record guest payment'});
   if(await payment.count())

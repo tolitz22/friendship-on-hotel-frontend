@@ -2446,3 +2446,17 @@
 .cashier-manager-queue{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin:20px 0}
 .cashier-queue-empty{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px}
 @media(max-width:760px){.checkout-guide-steps{grid-template-columns:1fr}.checkout-guide-header,.checkout-return-context{align-items:flex-start;flex-direction:column}.checkout-guide-actions button,.checkout-return-context a{width:100%;justify-content:center}}
+
+
+/* Cashier journey: distinguish cash receipt recording from independent approval. */
+.cashier-journey{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:15px 0 20px}
+.cashier-journey>div{display:grid;align-content:start;grid-template-columns:26px 1fr;gap:3px 9px;border:1px solid var(--border);border-radius:11px;padding:12px;background:var(--surface)}
+.cashier-journey>div>span{grid-row:span 2;width:25px;height:25px;display:grid;place-items:center;border:1px solid var(--border);border-radius:8px;color:var(--accent);font-size:12px;font-weight:800}
+.cashier-journey strong{font-size:13px}
+.cashier-journey small{color:var(--muted);font-size:11px;line-height:1.5}
+.cashier-manager-queue .table-scroll a{color:var(--accent);font-weight:700;font-size:12px;display:inline-flex;align-items:center;gap:5px}
+.settlement-progress>summary{display:flex;align-items:center;gap:9px;cursor:pointer}
+.settlement-progress>summary::after{content:"Show details";margin-left:auto;font-size:11px;color:var(--muted)}
+.settlement-progress[open]>summary::after{content:"Hide details"}
+@media(max-width:970px){.cashier-journey{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.cashier-journey{grid-template-columns:1fr}}

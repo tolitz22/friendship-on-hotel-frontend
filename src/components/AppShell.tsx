@@ -25,6 +25,7 @@ const daily=[
 const administration=[
  {to:'/night-audit' as const,label:'Night audit preflight',icon:ClipboardCheck},
  {to:'/tax-policies' as const,label:'Tax configuration',icon:Wallet},
+ {to:'/folio-night-accounting' as const,label:'Folio-night accounting',icon:ClipboardList},
  {to:'/reports' as const,label:'Reports',icon:ChartNoAxesCombined},
  {to:'/operational-exceptions' as const,label:'Exceptions & audit',icon:ShieldAlert},
  {to:'/manager-approvals' as const,label:'Manager approvals',icon:ClipboardList},
@@ -145,6 +146,7 @@ export function AppShell(){
     {admin&&<Link to="/occupancy-coverage">Occupancy report <ArrowRight size={13}/></Link>}
     {admin&&<Link to="/night-audit">Night audit preflight <ArrowRight size={13}/></Link>}
     {admin&&<Link to="/tax-policies">Tax policies <ArrowRight size={13}/></Link>}
+    {admin&&<Link to="/folio-night-accounting">Revenue review <ArrowRight size={13}/></Link>}
    </div>}
    <div className="page-content"><Outlet/></div>
   </main>

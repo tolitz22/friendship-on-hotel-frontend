@@ -42,7 +42,7 @@ function stateFor(status:InventoryRoomStatus):RoomCardState{
  };
  if(status.cleaning==='ready'&&status.advisoryReady)return{
   title:'Inspection approved',detail:'The room is vacant in the PMS with a current advisory approval.',
-  kind:'good',next:'Recheck readiness and availability before check-in',
+  kind:'good',next:'No routine daily inspection; recheck at check-in',
  };
  if(status.cleaning==='checkout_cleaning')return{
   title:'Cleaning required',detail:'Checkout cleaning has not started.',
@@ -56,8 +56,8 @@ function stateFor(status:InventoryRoomStatus):RoomCardState{
   title:'Awaiting inspection',detail:'Cleaning is recorded; an inspection still needs approval.',
   kind:'warning',next:'Review or complete the room inspection',
  };
- return {title:'Readiness not verified',detail:'No current approved readiness is recorded.',
-  kind:'warning',next:'Inspect the room and submit the findings'};
+ return {title:'Not yet verified',detail:'No current approved inspection is recorded. This does not necessarily mean the room is dirty.',
+  kind:'warning',next:'Check whether a new physical inspection is needed'};
 }
 function cardAction(status:InventoryRoomStatus|undefined,admin:boolean,canOpenCleaning:boolean){
  if(!status)return {title:'View readiness',kind:'inspection' as const};
@@ -176,8 +176,8 @@ export function LiveRooms(){
   </div>
   {view==='catalog'&&<>
    <div className="rr-explainer"><Info size={18}/>
-    <div><strong>Understand a room's current state</strong>
-     <p>Occupancy comes from PMS reservations; cleanliness and inspections come from recorded staff actions. "Vacant & approved" is <strong>not</strong> an availability guarantee or proof of physical occupancy.</p></div>
+    <div><strong>Cleaning and inspection are different</strong>
+     <p>Housekeeping marks cleaning complete; an authorized reviewer separately approves the physical inspection. <strong>Not yet verified does not mean dirty.</strong> Approved rooms do not need a repeat inspection every day unless turnover, maintenance, or new work changes their condition. Availability is checked separately.</p></div>
    </div>
 
    {canSeeStay&&<section className="rr-status-section" aria-label="Room status for the current page">
@@ -309,8 +309,8 @@ export function LiveRooms(){
    </section>
   </>}
   {view==='readiness'&&<div className="rr-readiness-workspace">
-   <div className="rr-explainer"><Info size={18}/><div><strong>Hotel-wide readiness and upcoming arrivals</strong>
-    <p>This report covers more than the current catalogue page. Approvals are snapshots; occupancy, availability, and guest identity still require separate verification.</p></div></div>
+   <div className="rr-explainer"><Info size={18}/><div><strong>Inspection when needed—not automatic every day</strong>
+    <p>Housekeeping cleans, a different authorized person reviews the inspection, and the PMS checks current blockers. The hotel administrator controls whether approved readiness is enforced at check-in. Inspections are not automatic daily tasks. Booking availability, physical occupancy, identity, and payment remain separate checks.</p></div></div>
    <ReadinessDashboardPanel onFindRoom={roomNumber=>{
     setView('catalog');setFloor('all');setSearch(roomNumber);setAttentionFilter('all');setPage(1);
    }}/>

@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {NightAuditReconciliationPanel} from '../components/NightAuditReconciliationPanel';
 import {useMemo,useState} from 'react';
 import {Activity,BedDouble,CalendarDays,ClipboardCheck,Download,Wallet,Wrench} from 'lucide-react';
 import {useReports} from '../api/queries';
@@ -43,7 +44,7 @@ export function Reports(){
   const anchor=document.createElement('a');anchor.href=url;anchor.download='friendship-hotel-sample-report-'+from+'-to-'+to+'.csv';
   anchor.click();URL.revokeObjectURL(url);
  }
- return <><DemoNotice/>
+ return <><NightAuditReconciliationPanel/><DemoNotice/>
   <Heading title="Reports & analytics" description="Explore sample operational reports with clearly separated date-based metrics and current-state snapshots." action={<button className="btn-primary" disabled={!data||!valid} onClick={exportCsv}><Download size={16}/> Export sample CSV</button>}/>
   <section className="report-controls">
    <div className="report-date-inputs"><label>From<input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label><label>To<input type="date" value={to} onChange={e=>setTo(e.target.value)}/></label></div>

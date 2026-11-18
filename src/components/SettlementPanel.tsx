@@ -11,7 +11,6 @@ import {QueryFeedback} from './QueryFeedback';
 import {BillingActions} from './BillingActions';
 import {RecordGuestPayment} from './RecordGuestPayment';
 import {parseBillingAmount} from '../api/billing';
-import {useCurrentCashierShift} from '../api/cashierShifts';
 import {readableDate,readableDateTime} from '../lib/format';
 import './settlement-print.css';
 
@@ -84,7 +83,6 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const {hotelId,user}=useHotelAuth();
  const client=useQueryClient();
  const manager=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
- const shift=useCurrentCashierShift(!!hotelId);
  const [selected,setSelected]=useState('');
  const [reviewStage,setReviewStage]=useState<'confirmation'|'allocation'>('confirmation');
  const [activeDialog,setActiveDialog]=useState<'payment'|'charges'|'review'|'refunds'|'signoff'|null>(null);
@@ -151,7 +149,6 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const confirmedPendingVerification=data?.payments.filter(p=>p.status==='staff_confirmed'
   &&p.verificationStatus!=='verified')??[];
  const verifiedTotal=data?.verifiedPaymentsMinor??0;
- const cashAwaitingVerification=confirmedPendingVerification.some(p=>p.method==='cash');
  const unconfirmed=data?.payments.filter(p=>p.status==='pending_review')??[];
  const unverified=data?.payments.filter(p=>p.status==='staff_confirmed'
   &&p.verificationStatus!=='verified')??[];
@@ -176,7 +173,6 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const recorderIsCurrent=!!nextPayment&&
   data?.cashShiftContexts.find(row=>row.paymentId===nextPayment.id)?.recordedBy===user?.id;
  const cannotVerifyOwn=!!nextPayment&&(pendingOtherReviewer||recorderIsCurrent);
- const managerCanReview=manager&&(!cannotVerifyOwn||nextPayment?.verificationStatus!=='pending');
  const hasExistingMoney=recordedTotal>0;
  const nextHeading=data?.signed?'Financial account signed'
   :nextTask==='disabled'?'Final settlement is unavailable'

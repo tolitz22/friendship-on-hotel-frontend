@@ -122,6 +122,11 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  });
  const data=query.data;
  busyRef.current=busy;
+ useEffect(()=>{
+  if(data?.signed&&activeDialog&&['review','refunds','signoff'].includes(activeDialog)){
+   setActiveDialog(null);
+  }
+ },[data?.signed,activeDialog]);
  const paymentRow=data?.payments.find(p=>p.id===selected);
  const accounted=data?.allocations.filter(a=>a.paymentId===selected)
   .reduce((sum,a)=>sum+a.amountMinor,0)??0;
@@ -156,8 +161,9 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   openDialog(nextTask==='signoff'?'signoff':'review');
  }
  function closeDialog(){if(!busyRef.current)setActiveDialog(null);}
+ const dialogOpen=activeDialog!==null;
  useEffect(()=>{
-  if(!activeDialog)return;
+  if(!dialogOpen)return;
   const previousOverflow=document.body.style.overflow;
   document.body.style.overflow='hidden';
   dialogCloser.current?.focus();
@@ -182,7 +188,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   document.addEventListener('keydown',handleKey);
   return()=>{document.removeEventListener('keydown',handleKey);
    document.body.style.overflow=previousOverflow;dialogOpener.current?.focus();};
- },[activeDialog]);
+ },[dialogOpen]);
 
  const active=()=>!!hotelId&&readSession().hotelId===hotelId;
  async function mutation(path:string,body:Record<string,unknown>,message:string):Promise<boolean>{

@@ -4,7 +4,7 @@ import {getJson,requestJson} from './http';
 import {hotelPath,readSession} from './session';
 
 const id=z.string().regex(/^[1-9]\d*$/);
-const amount=z.number().int().safe();
+const amount=z.number().int().refine(Number.isSafeInteger,'Amount exceeds safe integer range');
 const currency=z.object({
  currency:z.string(),netRecordedChargesMinor:amount,
  staffConfirmedPaymentsMinor:amount,verifiedAllocatedMinor:amount,

@@ -91,7 +91,11 @@ const functionalRoutes=[
   component:FrontDesk}),
  createRoute({getParentRoute:()=>root,path:'/operational-exceptions',component:OperationalExceptions}),
  createRoute({getParentRoute:()=>root,path:'/manager-approvals',component:ManagerApprovals}),
- createRoute({getParentRoute:()=>root,path:'/cashier-shifts',component:CashierShifts}),
+ createRoute({getParentRoute:()=>root,path:'/cashier-shifts',
+  validateSearch:(value:Record<string,unknown>):{booking?:string;hotel?:string}=>({
+   booking:normalizeBillingBookingId(value.booking),
+   hotel:typeof value.hotel==='string'&&/^[1-9][0-9]*$/.test(value.hotel)?value.hotel:undefined,
+  }),component:CashierShifts}),
  createRoute({getParentRoute:()=>root,path:'/occupancy-verification',
   validateSearch:(value:Record<string,unknown>):{room?:string;date?:string}=>({
    room:typeof value.room==='string'&&/^[1-9][0-9]*$/.test(value.room)?value.room:undefined,

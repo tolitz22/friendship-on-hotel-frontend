@@ -296,7 +296,7 @@ export function LiveBookingForm(){
    </div>}
    {pending&&!result&&<div className="rb-pending" role="status"><AlertTriangle size={20}/><div>
     <strong>Booking confirmation needs verification</strong>
-    <p>The server may have saved this booking. Retry the same request instead of creating a duplicate.</p>
+    <p>This booking may already have been saved. Retry the existing request rather than starting a new booking.</p>
     <button type="button" className="btn-primary" disabled={busy} onClick={retry}><RefreshCw size={15}/>{busy?'Checking…':'Retry safely'}</button>
     <button type="button" className="btn-inline" disabled={busy} onClick={reset}>Discard only after checking records</button>
    </div></div>}

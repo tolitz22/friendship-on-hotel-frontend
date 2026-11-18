@@ -1,4 +1,4 @@
-import {test,expect,devices,type Page} from '@playwright/test';
+import {test,expect,type Page} from '@playwright/test';
 
 /**
  * Read-only acceptance of the real live UI. Credentials come exclusively
@@ -80,7 +80,7 @@ for(const viewport of [
    await page.getByRole('navigation',{name:'Hotel workspace navigation'})
     .getByRole('link',{name:'Front desk',exact:true}).click();
    await expect(page.getByRole('heading',{name:'Front desk',exact:true}).first()).toBeVisible();
-   const date=page.getByRole('textbox',{name:'Front desk operational date'});
+   const date=page.getByLabel('Front desk operational date');
    await expect(date).toBeVisible();
    await page.getByRole('button',{name:'Next date'}).click();
    await page.getByRole('button',{name:'Today',exact:true}).click();

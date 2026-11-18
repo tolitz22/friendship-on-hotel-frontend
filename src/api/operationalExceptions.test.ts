@@ -49,6 +49,17 @@ describe('operational exception API safety',()=>{
   expect(parsed.data.items[1].roomNumber).toBe('201');
   expect(parsed.data.items[2].bookingId).toBeNull();
  });
+ it('classifies flagged cashier shifts as urgent without inventing booking IDs',()=>{
+  const base=fixture();
+  const shift={id:'cashier_shift:9',type:'cashier_shift_discrepancy',
+   severity:'critical',bookingId:null,roomId:null,roomNumber:null,ownerName:'Cashier A',
+   reference:'Cashier shift 9',reason:'Flagged reconciliation',suggestion:'Review shift evidence',
+   recordDate:'2026-11-18T05:00:00Z'};
+  const value={...base,data:{...base.data,items:[shift],
+   summary:{total:1,critical:1,attention:0,review:0}}};
+  const parsed=parseOperationalExceptions(value,'1');
+  expect(parsed.data.items[0].type).toBe('cashier_shift_discrepancy');
+ });
  it('rejects mismatched totals rather than silently showing incomplete reporting',()=>{
   const response=fixture();
   response.data.summary.total=2;

@@ -25,6 +25,7 @@ const cleanText=(value:unknown,key:string):string=>{
  if(typeof value==='number')return String(value);
  if(typeof value!=='string')return 'Updated';
  if(key==='dueAt'||key==='completedAt'||key==='resolvedAt')return readableDateTime(value);
+ if(key==='status'&&value==='todo')return 'To Do';
  if(key==='status'||key==='priority'||key==='type')return statusLabel(value);
  if(key==='assignedUserId')return value?'Assigned employee changed':'Unassigned';
  if(key==='assignedTo')return value||'Unassigned';

@@ -59,6 +59,8 @@ const paymentSafetyResult=z.object({data:z.object({
   amountMinor:z.number().int().nonnegative(),
   status:z.string(),createdAt:z.string(),
   recordedByName:z.string().nullable(),
+  duplicateExceptionReason:z.string().nullable(),
+  duplicateApprovedByName:z.string().nullable(),
  })),
  recentMatchingPaymentIds:z.array(id),hasMore:z.boolean(),
  provisionalOnly:z.literal(true),

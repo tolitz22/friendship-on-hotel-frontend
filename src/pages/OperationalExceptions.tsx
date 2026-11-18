@@ -5,6 +5,8 @@ import {useHotelAuth} from '../components/AuthProvider';
 import {Heading} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {useOperationalExceptions,type OperationalException} from '../api/operationalExceptions';
+import {readableDate,readableDateTime,statusLabel} from '../lib/format';
+import {auditActorName} from '../components/ReadableAuditEvent';
 
 type Filter='all'|'critical'|'attention'|'review';
 const descriptions:Record<OperationalException['type'],string>={
@@ -41,8 +43,8 @@ export function OperationalExceptions(){
    <button type="button" className="btn-inline" onClick={()=>void report.refetch()}><RefreshCw size={16}/> Refresh</button>
   </div>
   <section className="ex-context">
-   <div><strong>Operational review · {data?.asOfHotelDate??'Hotel local date'}</strong>
-    <span>{data?'Upcoming arrivals through '+data.windowEndExclusive+' (end exclusive)':'Loading selected hotel records'}</span></div>
+   <div><strong>Operational review · {readableDate(data?.asOfHotelDate)}</strong>
+    <span>{data?'Upcoming arrivals through '+readableDate(data.windowEndExclusive)+' (end exclusive)':'Loading selected hotel records'}</span></div>
    <label>Arrival window
     <select value={days} onChange={event=>setDays(Number(event.target.value))}>
      <option value={1}>1 day</option><option value={7}>7 days</option><option value={14}>14 days</option>
@@ -75,7 +77,7 @@ export function OperationalExceptions(){
      {matches.map(item=><article className="ex-record" key={item.id}>
       <div className="ex-record-top"><span className={'ex-severity '+item.severity}>
        {item.severity==='critical'?'Urgent review':item.severity==='attention'?'Needs attention':'Review pending'}
-      </span><small>{item.recordDate}</small></div>
+      </span><small>{readableDateTime(item.recordDate)}</small></div>
       <h4>{descriptions[item.type]}</h4>
       <div className="ex-record-reference">{item.reference} · Reservation #{item.bookingId}</div>
       <p>{item.reason}</p><p className="ex-next-step"><strong>Suggested next step:</strong> {item.suggestion}</p>
@@ -93,11 +95,11 @@ export function OperationalExceptions(){
      <span>{showActivity?'Hide':'Show'} audit events</span>
     </button>
     {showActivity&&<div className="ex-activity-list">
-     <p>These are ordinary reservation events with recorded actor IDs, not evidence of misconduct.</p>
+     <p>These are ordinary reservation actions attributed to staff, not evidence of misconduct.</p>
      {data.activity.length===0&&<p>No recorded reservation changes within the selected lookback period.</p>}
      {data.activity.map(entry=><div className="ex-activity-item" key={entry.id}>
-      <div><strong>{entry.eventType.replaceAll('_',' ')}</strong>
-       <span>{entry.reference} · Actor ID {entry.actorId} · {entry.createdAt}</span></div>
+      <div><strong>{statusLabel(entry.eventType)}</strong>
+       <span>{entry.reference} · {auditActorName(entry.actorId,entry.actorName,user?.id,user?.name)} · {readableDateTime(entry.createdAt)}</span></div>
       <Link to="/reservations" search={{booking:entry.bookingId}}>Review <ArrowRight size={14}/></Link>
      </div>)}
     </div>}

@@ -1,5 +1,6 @@
 import {useEffect,useMemo,useState} from 'react';
-import {AlertTriangle,ClipboardCheck,RefreshCw} from 'lucide-react';
+import {Link} from '@tanstack/react-router';
+import {AlertTriangle,ArrowRight,ClipboardCheck,RefreshCw} from 'lucide-react';
 import {useHotelAuth} from './AuthProvider';
 import {Panel,Status} from './ui';
 import {QueryFeedback} from './QueryFeedback';
@@ -62,7 +63,7 @@ export function ReadinessDashboardPanel(){
    </div>
    <section>
     <h4>Upcoming confirmed arrivals</h4>
-    <p>{meta.arrivalTotal} confirmed arrival(s) in window · {data.arrivals.filter(a=>a.risk!=='no_current_readiness_issue').length} requiring current readiness attention. Future conditions may change after the report was generated.</p>
+    <p>{meta.arrivalTotal} confirmed arrival(s) in window · {data.arrivals.filter(a=>a.risk!=='no_current_readiness_issue').length} flagged in this response. Future conditions may change after the report was generated.</p>
     <label htmlFor="arrival-risk-filter">Show
      <select id="arrival-risk-filter" value={riskFilter}
       onChange={e=>{setRiskFilter(e.target.value as 'all'|'attention');setArrivalPage(1);}}>
@@ -92,7 +93,8 @@ export function ReadinessDashboardPanel(){
    </section>
    <section>
     <h4>Physical room inspection queue</h4>
-    <p>Room statuses below are from the current server page; totals above cover the full hotel. Use the Rooms catalogue below to open an inspection or submit a new review.</p>
+    <p>Room statuses below are from the current report page; totals above cover the full hotel. Switch to Room inventory to open an inspection or submit it for review.</p>
+    <Link to="/rooms" className="rr-report-link" onClick={()=>window.scrollTo({top:0,behavior:'smooth'})}>Open room inventory <ArrowRight size={15}/></Link>
     <label htmlFor="readiness-room-filter">Filter this room page
      <select id="readiness-room-filter" value={roomFilter}
       onChange={e=>setRoomFilter(e.target.value as typeof roomFilter)}>

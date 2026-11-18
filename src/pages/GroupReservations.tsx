@@ -305,9 +305,9 @@ function GroupDetails({id,billingOpen=false,originHotel}:{id:string;billingOpen?
  </Panel>;
  const dates=group?.checkIn&&group?.checkOut
   ?readableDate(group.checkIn)+' – '+readableDate(group.checkOut):'Stay dates unavailable';
- const assigned=group?.rooms.filter(room=>room.roomId!==null).length??0;
- const arrived=group?.rooms.filter(room=>room.status==='checked_in'||room.status==='checked_out').length??0;
- const departed=group?.rooms.filter(room=>room.status==='checked_out').length??0;
+ const assigned=group?.operations.assignedCount??0;
+ const arrived=group?.operations.checkedInOrOutCount??0;
+ const departed=group?.operations.checkedOutCount??0;
  return <>
   <Link className="gb-back-link" to="/group-reservations" search={{}}><ChevronLeft size={16}/> All Group Bookings</Link>
   <QueryFeedback loading={details.isPending} error={details.error} onRetry={()=>void details.refetch()}/>
@@ -329,18 +329,21 @@ function GroupDetails({id,billingOpen=false,originHotel}:{id:string;billingOpen?
      Open group billing <ArrowRight size={15}/></Link>
    </div>
    <section className="gb-progress" aria-label="Group operational status">
-    <div><small>Room assignment</small><strong>{assigned} / {group.roomCount}</strong>
+    <div><small>Room assignment</small><strong>{group.operations.assignedCount} / {group.roomCount}</strong>
      <span>{assigned===group.roomCount?'All rooms assigned':'Assignment still needed'}</span></div>
-    <div><small>Check-in</small><strong>{arrived} / {group.roomCount}</strong>
+    <div><small>Check-in</small><strong>{group.operations.checkedInOrOutCount} / {group.roomCount}</strong>
      <span>{arrived===group.roomCount?'All guests arrived or departed':'Check individual arrivals'}</span></div>
-    <div><small>Checkout</small><strong>{departed} / {group.roomCount}</strong>
+    <div><small>Checkout</small><strong>{group.operations.checkedOutCount} / {group.roomCount}</strong>
      <span>{departed===group.roomCount?'All rooms checked out':'Not all rooms checked out'}</span></div>
-    <div><small>Readiness</small><strong>Separate approval</strong>
-     <Link to="/rooms" search={{}}>Check room inspections <ArrowRight size={13}/></Link></div>
+    <div><small>Advisory room readiness</small>
+     <strong>{group.operations.readinessAdvisoryReadyCount} / {group.operations.readinessCheckedCount}</strong>
+     <Link to="/rooms" search={{}}>Inspect approval and blockers <ArrowRight size={13}/></Link></div>
     <div><small>Payment & settlement</small><strong>Per folio</strong>
      <Link to="/group-reservations" search={{group:group.id,tab:'billing' as const,hotel:hotelId??undefined}}>
       Review progress <ArrowRight size={13}/></Link></div>
-    <div><small>Housekeeping</small><strong>Separate tasks</strong>
+    <div><small>Checkout housekeeping</small>
+     <strong>{group.operations.checkoutCleaningCompleteCount} / {group.operations.checkedOutCount}</strong>
+     <span>{group.operations.checkoutCleaningPendingCount} pending · {group.operations.checkoutCleaningNoTaskCount} awaiting task</span>
      <Link to="/housekeeping" search={{}}>Review cleaning handoff <ArrowRight size={13}/></Link></div>
    </section>
    {billingOpen&&<div className="gb-workflow-notice" role="status">
@@ -348,7 +351,8 @@ function GroupDetails({id,billingOpen=false,originHotel}:{id:string;billingOpen?
    </div>}
    <GroupFinance groupId={group.id} open={billingOpen}/>
    <Panel title="Rooms and guests">
-    <p className="desk-muted">Each booking is managed independently. The group links the stay,
+    <p className="desk-muted">Readiness figures are advisory only, not a guarantee of check-in eligibility.
+     Cleaning completion never automatically approves a room. Each booking is managed independently. The group links the stay,
      but does not automatically approve readiness, settle payments, or complete housekeeping.</p>
     <div className="reservation-manage-list">
      {group.rooms.map(room=><article className="reservation-manage-card" key={room.bookingId}>

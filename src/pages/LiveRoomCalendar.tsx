@@ -200,8 +200,12 @@ export function LiveRoomCalendar(){
     <div><small>In-house reservations</small><strong>{data.bookings.filter(b=>b.status==='checked_in').length}</strong></div>
     <div><small>Maintenance blocks</small><strong>{data.blocks.length}</strong></div>
     <div className={data.unassignedBookings?'lrc-unassigned-attention':''}>
-     <small>Unassigned reservations</small><strong>{data.unassignedBookings}</strong>
-     {data.unassignedBookings>0&&<Link to="/reservations">Review bookings <ArrowUpRight size={13}/></Link>}
+     <small>{focusGroupId?'Unassigned group bookings':'Unassigned bookings'}</small>
+     <strong>{focusGroupId?data.unassignedGroupTotal:data.unassignedBookings}</strong>
+     {(focusGroupId?data.unassignedGroupTotal:data.unassignedBookings)>0&&
+      (focusGroupId
+       ?<Link to="/group-reservations" search={{group:focusGroupId,hotel:hotelId??undefined}}>Review group <ArrowUpRight size={13}/></Link>
+       :<Link to="/reservations">Review bookings <ArrowUpRight size={13}/></Link>)}
     </div>
    </div>}
    {calendar.isSuccess&&data&&data.unassignedGroupTotal>0&&<section className="lrc-group-lane"
@@ -224,7 +228,10 @@ export function LiveRoomCalendar(){
    </section>}
    {calendar.isSuccess&&data&&<p className="lrc-summary">Showing {data.rooms.length} of {meta?.total??0} registered rooms. Counts for assigned stays and maintenance are limited to the visible room page; unassigned reservations are counted hotel-wide for the selected dates.</p>}
    <QueryFeedback loading={calendar.isPending} error={calendar.error} onRetry={()=>void calendar.refetch()}
-    empty={calendar.isSuccess&&data?.rooms.length===0} emptyMessage={hasFilters?'No rooms match these filters. Clear filters to show the full rack.':'No rooms are registered yet. Add rooms in Rooms & readiness.'}/>
+    empty={calendar.isSuccess&&data?.rooms.length===0} emptyMessage={focusGroupId
+    ?'No rooms are physically assigned to this group yet. Its unassigned bookings remain in the queue above.'
+    :hasFilters?'No rooms match these filters. Clear filters to show the full rack.'
+     :'No rooms are registered yet. Add rooms in Rooms & readiness.'}/>
    {calendar.isSuccess&&data?.rooms.length===0&&hasFilters&&<div className="lrc-empty-action"><button type="button" className="btn-inline" onClick={clearFilters}>Clear filters</button></div>}
    {calendar.isSuccess&&data&&data.rooms.length>0&&<p className="lrc-scroll-hint"><Info size={14}/> Scroll horizontally to see more dates. Room labels and dates stay visible while browsing.</p>}
    {calendar.isSuccess&&data&&data.rooms.length>0&&<div className="lrc-scroll rack-scroll" role="region" aria-label="Scrollable room rack" tabIndex={0}>
@@ -353,22 +360,31 @@ export function LiveRoomCalendar(){
         </div>
        </div>}
        {selectedBookings.length>0&&<div className="lrc-modal-section">
-        <h3>Reservations ({selectedBookings.length})</h3>
+        <h3>Bookings ({selectedBookings.length})</h3>
         {selectedBookings.map(booking=><div key={booking.id} className="lrc-modal-booking">
          <div className="lrc-modal-line"><strong>{booking.guestName??booking.reference}</strong>
           <span>{booking.status?.replaceAll('_',' ')??'Status unknown'}</span>
          </div>
          {booking.guestName&&<p className="lrc-modal-guest-ref">Booking: {booking.reference}</p>}
+         {booking.groupId&&<p className="lrc-modal-guest-ref">
+          Group: <strong>{booking.groupName} · {booking.groupReference}</strong>
+         </p>}
          <p><strong>Arrival:</strong> {dayText(booking.checkIn,{month:'short',day:'numeric',year:'numeric'})}</p>
          <p><strong>Departure:</strong> {dayText(booking.checkOut,{month:'short',day:'numeric',year:'numeric'})}</p>
          <p><strong>Stay:</strong> {(Date.parse(booking.checkOut+'T00:00:00Z')-Date.parse(booking.checkIn+'T00:00:00Z'))/86400000} night(s)</p>
          <div className="lrc-booking-actions">
-          <Link to="/reservations" search={{booking:booking.id}} className="lrc-modal-action" onClick={()=>setSelected(null)}>
+          <Link to="/reservations" search={{booking:booking.id,group:booking.groupId??undefined,
+           hotel:hotelId??undefined,checkIn:booking.checkIn,checkOut:booking.checkOut}} className="lrc-modal-action" onClick={()=>setSelected(null)}>
            Manage booking <ArrowUpRight size={15}/>
           </Link>
-          <Link to="/billing" search={{booking:booking.id}} className="lrc-modal-action" onClick={()=>setSelected(null)}>
+          <Link to="/billing" search={{booking:booking.id,group:booking.groupId??undefined,
+           hotel:hotelId??undefined,checkIn:booking.checkIn,checkOut:booking.checkOut}} className="lrc-modal-action" onClick={()=>setSelected(null)}>
            View folio <ArrowUpRight size={15}/>
           </Link>
+          {booking.groupId&&<Link to="/group-reservations" search={{group:booking.groupId,
+           hotel:hotelId??undefined}} className="lrc-modal-action" onClick={()=>setSelected(null)}>
+           Open group <ArrowUpRight size={15}/>
+          </Link>}
          </div>
         </div>)}
         {selectedBookings.length===1&&<div className="lrc-modal-extra" aria-live="polite">

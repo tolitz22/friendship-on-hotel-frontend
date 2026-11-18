@@ -4,7 +4,7 @@ import {AlertTriangle,ArrowRight,Banknote,CheckCircle2,CreditCard,Info,RefreshCw
 import {Link} from '@tanstack/react-router';
 import {useHotelAuth} from './AuthProvider';
 import {useCurrentCashierShift,openCashierShift,receiveCash} from '../api/cashierShifts';
-import {parseBillingAmount,formatBillingMoney,recordBankEvidence} from '../api/billing';
+import {parseBillingAmount,calculateCashChange,formatBillingMoney,recordBankEvidence} from '../api/billing';
 import {readSession} from '../api/session';
 
 type Method='cash'|'bank';
@@ -36,8 +36,7 @@ export function RecordGuestPayment({bookingId,currency,signed,recordedDifference
  const amountMinor=currency==='PHP'?parseBillingAmount(amount):null;
  const tenderedMinor=currency==='PHP'?parseBillingAmount(tendered):null;
  const floatMinor=openingFloat==='0'||openingFloat==='0.00'?0:parseBillingAmount(openingFloat);
- const changeMinor=amountMinor!==null&&tenderedMinor!==null&&tenderedMinor>=amountMinor
-  ?tenderedMinor-amountMinor:null;
+ const changeMinor=calculateCashChange(amountMinor,tenderedMinor);
  const overDifference=amountMinor!==null&&recordedDifferenceMinor>0&&amountMinor>recordedDifferenceMinor;
  const canSubmit=!!hotelId&&!!allowed&&!signed&&!busy&&amountMinor!==null&&confirmed&&(
   method==='cash'?!!shift.data&&shift.data.status==='open'&&changeMinor!==null:

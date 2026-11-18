@@ -27,6 +27,18 @@ test('housekeeping list supports focused task filters and read-only task review'
  await expect(page.getByRole('button',{name:'Clear filters'})).toBeVisible();
  await page.getByRole('button',{name:'Clear filters'}).click();
  await expect(search).toHaveValue('');
+ const workload=page.getByRole('region',{name:'Housekeeping tasks on current page'});
+ await expect(workload.getByText('Completed · hotel-wide')).toBeVisible();
+ const todoNumber=await workload.locator('.hk-work-metrics > div').nth(0).locator('strong').innerText();
+ const progressNumber=await workload.locator('.hk-work-metrics > div').nth(1).locator('strong').innerText();
+ const doneNumber=await workload.locator('.hk-work-metrics > div').nth(2).locator('strong').innerText();
+ // Counts must stay stable even when selecting a different queue status.
+ await page.getByRole('group',{name:'Task status'}).getByRole('button',{name:'In progress'}).click();
+ await expect(page.getByRole('group',{name:'Task status'}).getByRole('button',{name:'In progress'}))
+  .toHaveAttribute('aria-pressed','true');
+ await expect(workload.locator('.hk-work-metrics > div').nth(0).locator('strong')).toHaveText(todoNumber);
+ await expect(workload.locator('.hk-work-metrics > div').nth(1).locator('strong')).toHaveText(progressNumber);
+ await expect(workload.locator('.hk-work-metrics > div').nth(2).locator('strong')).toHaveText(doneNumber);
  await page.getByRole('group',{name:'Task status'}).getByRole('button',{name:'To do'}).click();
  await expect(page.getByRole('group',{name:'Task status'}).getByRole('button',{name:'To do'}))
   .toHaveAttribute('aria-pressed','true');

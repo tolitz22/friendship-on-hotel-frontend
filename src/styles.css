@@ -1939,3 +1939,50 @@
 :root[data-theme="dark"] .billing-account-tag.complete{background:#1c4733;color:#b6efd1}
 @media(max-width:1250px){.billing-list-labels{display:none}.billing-folio-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.billing-folio-identity{grid-column:1/-1}.billing-open-link{grid-column:2;justify-self:stretch}.billing-folio-amount{grid-column:auto}}
 @media(max-width:650px){.billing-account-totals{grid-template-columns:1fr}.billing-account-totals>div{padding:12px}.billing-account-totals strong{font-size:20px}.billing-folio-row{grid-template-columns:1fr}.billing-folio-identity,.billing-open-link{grid-column:1}.billing-account-overview{padding:13px}.billing-manager-details>summary{padding:14px}.billing-manager-details>summary>div span{max-width:230px}}
+
+/* Guest payment workflow: simple cashier action, audited shift-based receipts */
+.billing-payment-workflow{display:grid;gap:15px;margin:19px 0;padding:20px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+.billing-payment-heading h3{font-size:20px;margin:5px 0}
+.billing-payment-heading p{font-size:12px;color:var(--muted);line-height:1.6;margin:0}
+.billing-payment-methods{display:flex;gap:6px;flex-wrap:wrap;padding:5px;background:var(--canvas);border:1px solid var(--border);border-radius:11px;max-width:600px}
+.billing-payment-methods button{display:inline-flex;align-items:center;justify-content:center;gap:9px;flex:1 1 160px;min-height:43px;padding:9px 12px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted);font-size:12px;font-weight:750}
+.billing-payment-methods button.active{border-color:var(--border);background:var(--surface);color:var(--text);box-shadow:0 2px 9px #0000000d}
+.billing-payment-methods button:disabled{opacity:.5;cursor:not-allowed}
+.billing-payment-fields{display:grid;gap:13px;max-width:620px}
+.billing-payment-fields>label,.billing-open-shift>label:not(.billing-payment-ack){display:grid;gap:7px;font-size:12px;font-weight:700}
+.billing-payment-fields input.wizard-input,.billing-open-shift input.wizard-input{max-width:440px;min-height:42px}
+.billing-payment-fields>.btn-primary,.billing-open-shift>.btn-primary{justify-self:start;display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:42px}
+.billing-shift-status p{font-size:12px;line-height:1.55;color:var(--muted);margin:0}
+.billing-shift-status .billing-active-shift{display:flex;align-items:center;gap:8px;color:var(--text);padding:11px;border:1px solid var(--border);border-radius:9px;background:var(--canvas)}
+.billing-active-shift svg{color:#2e9970;flex-shrink:0}
+.billing-shift-status>div[role=alert]{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted)}
+.billing-open-shift{display:grid;gap:12px;padding:15px;border:1px solid var(--border);border-radius:11px;background:var(--canvas);max-width:610px}
+.billing-open-shift>div strong{font-size:13px}
+.billing-open-shift>div p{margin:6px 0 0}
+.billing-open-shift>a{display:inline-flex;align-items:center;gap:7px;color:var(--accent);font-size:12px;font-weight:700;justify-self:start}
+.billing-payment-ack{display:flex!important;align-items:flex-start;gap:9px;font-size:12px!important;font-weight:550!important;line-height:1.55}
+.billing-payment-ack input{flex-shrink:0;margin-top:3px;accent-color:var(--accent)}
+.billing-change-summary{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px 15px;background:var(--canvas);border:1px solid var(--border);border-radius:11px;padding:15px}
+.billing-change-summary span{font-size:12px;font-weight:650}
+.billing-change-summary strong{font-size:24px;font-variant-numeric:tabular-nums}
+.billing-change-summary small{flex-basis:100%;font-size:11px;color:#ac5b31}
+.billing-payment-caution,.billing-payment-explanation,.billing-payment-success,.billing-payment-error{display:flex;gap:9px;align-items:flex-start;font-size:12px;line-height:1.65;margin:0;padding:10px 12px;border-radius:9px}
+.billing-payment-caution,.billing-payment-explanation{background:var(--canvas);color:var(--muted)}
+.billing-payment-caution svg,.billing-payment-explanation svg,.billing-payment-success svg,.billing-payment-error svg{flex-shrink:0;margin-top:2px}
+.billing-payment-caution svg{color:#cb862d}
+.billing-payment-explanation svg{color:var(--accent)}
+.billing-payment-success{background:color-mix(in srgb,#30966a 9%,var(--surface));color:var(--text)}
+.billing-payment-success svg{color:#30966a}
+.billing-payment-error{border:1px solid color-mix(in srgb,#b94c43 40%,var(--border));background:color-mix(in srgb,#b94c43 7%,var(--surface))}
+.billing-payment-error svg{color:#b94c43}
+.billing-statement-details{border:1px solid var(--border);border-radius:12px;margin:18px 0;overflow:hidden}
+.billing-statement-details>summary{display:flex;align-items:center;justify-content:space-between;gap:15px;background:var(--canvas);padding:17px;cursor:pointer;list-style:none}
+.billing-statement-details>summary::-webkit-details-marker{display:none}
+.billing-statement-details>summary>span:first-child{display:grid;gap:5px}
+.billing-statement-details>summary strong{font-size:14px}
+.billing-statement-details>summary small{font-size:11px;color:var(--muted)}
+.billing-statement-details[open] .billing-expand-hint{font-size:0}
+.billing-statement-details[open] .billing-expand-hint:after{content:"Hide details";font-size:11px}
+.billing-statement-details>.settlement-print-area,.billing-statement-details>.settlement-controls,.billing-statement-details>.night-audit-issues{margin:15px}
+.billing-payment-methods button:focus-visible,.billing-statement-details>summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(max-width:600px){.billing-payment-workflow{padding:13px}.billing-payment-methods button{min-width:0}.billing-payment-fields>.btn-primary,.billing-open-shift>.btn-primary{width:100%}.billing-change-summary strong{font-size:21px}.billing-statement-details>summary{padding:13px}}

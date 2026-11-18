@@ -14,7 +14,7 @@ import {hotelToday,addDays} from '../features/reservations/calendarDate';
 import {readSession} from '../api/session';
 import {useGroupAllotments,createGroupAllotment,releaseGroupAllotment} from '../api/groupAllotments';
 import type {GroupAllotment,GroupHoldInput} from '../api/groupAllotments';
-import {useGroupFinancialSummary} from '../api/groupFinance';
+import {useGroupFinancialSummary,allocateVerifiedGroupPayment} from '../api/groupFinance';
 import {readableDate,readableDateTime,statusLabel} from '../lib/format';
 
 type Room={guestId:string;roomTypeId:string;ratePlanId:string};
@@ -31,6 +31,96 @@ function RoomGuestField({value,index,disabled,onChange}:{value:string;index:numb
    disabled={disabled} onChange={onChange}/>
   {value&&selected.isError&&<small role="alert">Could not verify this guest. Search and choose again.</small>}
  </div>;
+}
+
+function GroupPayerAllocation({groupId,report}:{
+ groupId:string;report:NonNullable<ReturnType<typeof useGroupFinancialSummary>['data']>;
+}){
+ const {hotelId,user}=useHotelAuth();
+ const admin=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
+ const client=useQueryClient();
+ const choices=report.rooms.filter(row=>row.priced&&!row.signed
+  &&row.unallocatedNetChargesMinor>0&&row.eligiblePayments.some(p=>p.remainingMinor>0));
+ const [bookingId,setBookingId]=useState('');
+ const [paymentId,setPaymentId]=useState('');
+ const [amount,setAmount]=useState('');
+ const [pending,setPending]=useState<{
+  hotelId:string;groupId:string;bookingId:string;paymentId:string;
+  input:{requestKey:string;amountMinor:number};
+ }|null>(null);
+ const [busy,setBusy]=useState(false);
+ const [error,setError]=useState<string|null>(null);
+ const [success,setSuccess]=useState(false);
+ if(!admin)return null;
+ const booking=choices.find(row=>row.bookingId===bookingId);
+ const payments=booking&&booking.priced?booking.eligiblePayments.filter(p=>p.remainingMinor>0):[];
+ const payment=payments?.find(p=>p.paymentId===paymentId);
+ const minor=/^\d+(?:\.\d{1,2})?$/.test(amount)?Math.round(Number(amount)*100):NaN;
+ const max=booking&&booking.priced&&payment?Math.min(
+  booking.unallocatedNetChargesMinor,payment.remainingMinor):0;
+ const canSubmit=!pending&&!!booking&&!!payment&&Number.isSafeInteger(minor)
+  &&minor>0&&minor<=max;
+ const reset=()=>{setPending(null);setPaymentId('');setAmount('');setError(null);setSuccess(false);};
+ const send=async(submission:NonNullable<typeof pending>)=>{
+  setBusy(true);setError(null);setSuccess(false);
+  try{
+   await allocateVerifiedGroupPayment(submission.groupId,submission.bookingId,
+    submission.paymentId,submission.input);
+   if(readSession().hotelId!==submission.hotelId)return;
+   setPending(null);setSuccess(true);setPaymentId('');setAmount('');
+   await Promise.all([
+    client.invalidateQueries({queryKey:['live','group-finance',submission.hotelId,submission.groupId]}),
+    client.invalidateQueries({queryKey:['live','settlement',submission.hotelId]})]);
+  }catch(e){
+   if(readSession().hotelId===submission.hotelId)
+    setError(e instanceof Error?e.message:'Unable to confirm payment allocation.');
+  }finally{setBusy(false);}
+ };
+ return <details className="workflow-disclosure">
+  <summary>Allocate an independently verified group payment</summary>
+  <p className="desk-muted">This does not record a new payment. Only independently reviewed,
+   existing payment evidence can be allocated to its own guest folio.
+   The original payment and audit records remain unchanged.</p>
+  {choices.length===0?<p>No eligible verified funds and unpaid recorded charges to allocate.</p>:<>
+   <div className="wizard-fields">
+    <div><label className="wizard-label" htmlFor="group-allocation-booking">Reservation to settle</label>
+     <select id="group-allocation-booking" className="wizard-input" value={bookingId}
+      disabled={!!pending||busy} onChange={e=>{setBookingId(e.target.value);setPaymentId('');setAmount('');}}>
+      <option value="">Choose reservation</option>
+      {choices.map(row=><option key={row.bookingId} value={row.bookingId}>
+       {row.reference} · {row.priced?row.currency:''}</option>)}
+     </select></div>
+    <div><label className="wizard-label" htmlFor="group-allocation-payment">Verified payment</label>
+     <select id="group-allocation-payment" className="wizard-input" value={paymentId}
+      disabled={!!pending||busy||!bookingId} onChange={e=>{setPaymentId(e.target.value);setAmount('');}}>
+      <option value="">Choose verified payment</option>
+      {payments.map(p=><option key={p.paymentId} value={p.paymentId}>
+       {p.reference} · {(p.remainingMinor/100).toFixed(2)} remaining</option>)}
+     </select></div>
+    <div><label className="wizard-label" htmlFor="group-allocation-amount">
+      Amount to allocate {booking&&booking.priced?'('+booking.currency+')':''}</label>
+     <input id="group-allocation-amount" className="wizard-input" inputMode="decimal"
+      placeholder="0.00" value={amount} disabled={!!pending||busy||!payment}
+      onChange={e=>setAmount(e.target.value)}/>
+     {max>0&&<small>Maximum available: {(max/100).toFixed(2)}</small>}
+    </div>
+   </div>
+   {error&&<p className="wizard-error" role="alert">{error}</p>}
+   {success&&<p role="status">The verified payment allocation was recorded. The group totals were refreshed.</p>}
+   {pending?<div>
+    <p role="status">Submission outcome needs confirmation. Retry with the same request key to avoid duplicates.</p>
+    <button className="btn-primary" type="button" disabled={busy}
+     onClick={()=>void send(pending)}>{busy?'Checking…':'Retry allocation safely'}</button>
+    <button className="btn-inline" type="button" disabled={busy} onClick={reset}>Close retry</button>
+   </div>:<button className="btn-primary" type="button" disabled={!canSubmit||busy}
+    onClick={()=>{
+     if(!hotelId||!booking||!payment||!canSubmit)return;
+     const submitted={hotelId,groupId,bookingId:booking.bookingId,
+      paymentId:payment.paymentId,input:{requestKey:crypto.randomUUID(),amountMinor:minor}};
+     setPending(submitted);void send(submitted);
+    }}>Allocate reviewed payment</button>}
+  </>}
+ </details>;
 }
 
 function GroupFinance({groupId}:{groupId:string}){
@@ -57,6 +147,7 @@ function GroupFinance({groupId}:{groupId:string}){
      </dl>
     </div>)}
     {data.rooms.some(row=>!row.priced)&&<p role="status">Some group rooms have no priced folio and are excluded from financial totals.</p>}
+    <GroupPayerAllocation groupId={groupId} report={data}/>
     <p className="desk-muted">Not a final invoice. Open the individual guest bill to review payment records and verification before any group-payer allocation.</p>
    </>}
   </Panel>

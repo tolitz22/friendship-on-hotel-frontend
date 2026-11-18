@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {Link,useNavigate,useSearch} from '@tanstack/react-router';
 import {useQueryClient} from '@tanstack/react-query';
-import {CalendarDays,Plus,ArrowRight,RefreshCw,Trash2,Search,Layers3,Clock3,CheckCircle2,ChevronLeft} from 'lucide-react';
+import {CalendarDays,Plus,ArrowRight,RefreshCw,Trash2,Search,Layers3,Clock3,ChevronLeft} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
@@ -320,7 +320,6 @@ export function GroupReservations(){
  const rates=useLiveRatePlans();
  const [view,setView]=useState<'groups'|'holds'|'new'>('groups');
  const [searchText,setSearchText]=useState('');
- const [creating,setCreating]=useState(false);
  const [selectedAllotment,setSelectedAllotment]=useState<GroupAllotment|null>(null);
  const [name,setName]=useState('');
  const [contact,setContact]=useState('');
@@ -336,7 +335,7 @@ export function GroupReservations(){
   setRooms(old=>old.map((row,index)=>index===i
    ?{...row,[key]:value,...(key==='roomTypeId'?{ratePlanId:''}:{})}:row));
  };
- useEffect(()=>{setCreating(false);setView('groups');setSearchText('');setSelectedAllotment(null);setPage(1);setPending(null);setResult(null);setError(null);},[hotelId]);
+ useEffect(()=>{setView('groups');setSearchText('');setSelectedAllotment(null);setPage(1);setPending(null);setResult(null);setError(null);},[hotelId]);
  const datesValid=validLiveStay({roomTypeId:rooms[0].roomTypeId||'1',checkIn,checkOut})
   &&checkIn>=hotelToday();
  const ready=canBook&&name.trim().length>=2&&datesValid&&rooms.length>=2&&
@@ -388,20 +387,24 @@ export function GroupReservations(){
      <h2>Group Bookings</h2>
      <p>Manage multi-room stays, temporary room holds, and group billing in one workspace.</p>
     </div>
-    {canBook&&view!=='new'&&<button className="btn-primary" type="button"
-     onClick={()=>{setCreating(true);setView('new');setSelectedAllotment(null);}}>
+    {canBook&&view!=='new'&&<button className="btn-primary" type="button" disabled={!!pending||busy}
+     onClick={()=>{setView('new');setSelectedAllotment(null);}}>
      <Plus size={17}/> New group booking</button>}
    </div>
+   {pending&&view!=='new'&&<div className="gb-pending-notice" role="alert">
+    A group booking submission still needs confirmation.
+    <button className="btn-inline" type="button" onClick={()=>setView('new')}>Return to booking</button>
+   </div>}
    <div className="gb-tabs" role="group" aria-label="Group booking workspace">
-    <button type="button" aria-pressed={view==='groups'} className={view==='groups'?'active':''}
-     onClick={()=>{setCreating(false);setView('groups');}}><Layers3 size={16}/> Group bookings</button>
-    <button type="button" aria-pressed={view==='holds'} className={view==='holds'?'active':''}
-     onClick={()=>{setCreating(false);setView('holds');}}><Clock3 size={16}/> Temporary holds</button>
+    <button type="button" disabled={!!pending||busy} aria-pressed={view==='groups'} className={view==='groups'?'active':''}
+     onClick={()=>{setView('groups');}}><Layers3 size={16}/> Group bookings</button>
+    <button type="button" disabled={!!pending||busy} aria-pressed={view==='holds'} className={view==='holds'?'active':''}
+     onClick={()=>{setView('holds');}}><Clock3 size={16}/> Temporary holds</button>
     {canBook&&<button type="button" aria-pressed={view==='new'} className={view==='new'?'active':''}
-     onClick={()=>{setCreating(true);setView('new');}}><Plus size={16}/> Create booking</button>}
+     onClick={()=>{setView('new');}}><Plus size={16}/> Create booking</button>}
    </div>
    {view==='holds'&&hotelId&&<GroupAllotmentsPanel hotelId={hotelId} onConvert={hold=>{
-    setSelectedAllotment(hold);setCreating(true);setView('new');setName(hold.name);
+    setSelectedAllotment(hold);setView('new');setName(hold.name);
     setCheckIn(hold.checkIn);setCheckOut(hold.checkOut);
     setRooms(Array.from({length:hold.quantity},()=>({
      guestId:'',roomTypeId:hold.roomTypeId,ratePlanId:'',
@@ -494,7 +497,7 @@ export function GroupReservations(){
    {groups.data?.data.length===0&&<div className="gb-empty">
     <Layers3 size={26}/><strong>No group bookings yet</strong>
     <p>Start a group booking to keep several rooms under one reference.</p>
-    {canBook&&<button className="btn-primary" type="button" onClick={()=>{setCreating(true);setView('new');}}>
+    {canBook&&<button className="btn-primary" type="button" onClick={()=>{setView('new');}}>
      <Plus size={16}/> New group booking</button>}
    </div>}
    <p className="desk-muted">Filter searches the current page only. Use the page controls to browse older groups.</p>

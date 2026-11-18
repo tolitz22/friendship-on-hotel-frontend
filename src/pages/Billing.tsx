@@ -2,7 +2,7 @@ import {useEffect,useState} from 'react';
 import {Link,useNavigate,useSearch} from '@tanstack/react-router';
 import {
  AlertTriangle,ArrowRight,Banknote,CheckCircle2,ClipboardList,
- FileText,Info,RefreshCcw,Search,ShieldCheck,Wallet,X,
+ FileText,Info,RefreshCcw,Search,ShieldCheck,X,
 } from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {useFolios} from '../api/queries';
@@ -34,7 +34,7 @@ function LiveBilling(){
  const select=(booking:string)=>void navigate({to:'/billing',search:{booking}});
  const clear=()=>void navigate({to:'/billing',search:{}});
  const loadingSearch=debounced!==search.trim();
- const directId=/^[1-9]\\d*$/.test(search.trim())?search.trim():null;
+ const directId=/^[1-9]\d*$/.test(search.trim())?search.trim():null;
  if(!hotelId||!canRead)return <>
   <Heading title="Billing & guest folios" description="Hotel billing is available to authorized reception and finance staff."/>
   <Panel title="Access required"><p>Select an authorized hotel and sign in with a billing-enabled staff account.</p></Panel>

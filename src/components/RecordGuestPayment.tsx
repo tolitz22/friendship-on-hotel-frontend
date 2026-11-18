@@ -177,6 +177,10 @@ export function RecordGuestPayment({bookingId,currency,signed,recordedDifference
         <strong>{p.reference} · {formatBillingMoney(p.amountMinor,currency)}</strong>
         <small>{p.method==='cash'?'Cash':'Bank transfer'} · {p.status==='pending_review'?'Awaiting review':'Staff-confirmed'}
          {' · '}Recorded by {p.recordedByName??'Employee name unavailable'}</small>
+        {p.duplicateExceptionReason&&<small>
+         Separately authorized by {p.duplicateApprovedByName??'An administrator'}:
+         {' '}{p.duplicateExceptionReason}
+        </small>}
        </div>)}
       </div>
      </details>}

@@ -71,7 +71,7 @@ export function CatalogEditDialog({target,roomTypes,onClose,onSaved}:Props){
   <div className="catalog-modal-heading"><h3 id="catalog-edit-title">{target.kind==='room_type'?'Edit room type':'Edit physical room'}</h3>
    <button className="icon-btn" type="button" disabled={saving} onClick={onClose} aria-label="Close edit form"><X size={19}/></button>
   </div>
-  <p>Changes to reservation-linked room types or room capacity may be rejected. Every actual edit is audited by Laravel.</p>
+  <p>Changes to reservation-linked room types or room capacity may be rejected. All saved changes are recorded in the change history.</p>
   <form onSubmit={e=>void save(e)}>
    <div className="guest-fields">
     {target.kind==='room_type'?<>

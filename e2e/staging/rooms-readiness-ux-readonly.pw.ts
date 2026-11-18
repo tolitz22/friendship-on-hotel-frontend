@@ -37,9 +37,7 @@ test('rooms catalogue supports safe filtering, summary and readiness navigation'
   await expect(drawer).toBeVisible();
   await expect(drawer.getByText('Operational blockers')).toBeVisible();
   await expect(drawer.getByText('Recorded readiness audit')).toBeVisible();
-  await expect(drawer.getByRole('group',{name:'Room readiness process'})).toBeVisible().catch(async()=>{
-   await expect(drawer.locator('.rr-readiness-steps')).toBeVisible();
-  });
+  await expect(drawer.locator('.rr-readiness-steps')).toBeVisible();
   const currentApproval=drawer.getByText('Inspection is current.');
   if(await currentApproval.count()){
    await expect(drawer.getByRole('button',{name:'Submit inspection for supervisor review'})).toHaveCount(0);

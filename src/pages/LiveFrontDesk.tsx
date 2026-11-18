@@ -56,8 +56,9 @@ export function LiveFrontDesk(){
   row.assignedRoomId?[row.assignedRoomId]:[]))),[rows]);
  const roomStatus=useRoomInventoryStatus(assignedRoomIds,isToday&&canOperate);
  const statusByRoom=useMemo(()=>new Map(
-  roomStatus.isSuccess?roomStatus.data.data.map(row=>[row.roomId,row] as const):[],
- ),[roomStatus.data,roomStatus.isSuccess]);
+  roomStatus.isSuccess&&roomStatus.data.meta.hotelDate===hotelDate
+   ?roomStatus.data.data.map(row=>[row.roomId,row] as const):[],
+ ),[roomStatus.data,roomStatus.isSuccess,hotelDate]);
  // Maintenance work-order flags are advisory and never actual inventory restrictions.
  const maintenanceNotes=useQuery({
   queryKey:['live','front-desk','maintenance-notes',hotelId],

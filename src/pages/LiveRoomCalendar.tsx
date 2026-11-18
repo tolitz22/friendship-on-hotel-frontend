@@ -50,6 +50,7 @@ export function LiveRoomCalendar(){
  const [floor,setFloor]=useState('all');
  const [roomTypeId,setRoomTypeId]=useState('');
  const [search,setSearch]=useState('');
+ const [showCheckedOut,setShowCheckedOut]=useState(true);
  const [selected,setSelected]=useState<Selection|null>(null);
  const [departure,setDeparture]=useState('');
  const [dragPreview,setDragPreview]=useState<{roomId:string;start:string;end:string}|null>(null);
@@ -152,12 +153,15 @@ export function LiveRoomCalendar(){
     </label>
     <label className="lrc-search"><Search size={16}/><input aria-label="Search room number" value={search}
      onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder="Room number"/></label>
+    <label className="lrc-history-toggle"><input type="checkbox" checked={showCheckedOut}
+     onChange={e=>setShowCheckedOut(e.target.checked)}/> Show checked-out stays</label>
     {hasFilters&&<button type="button" className="btn-inline lrc-clear-filters" onClick={clearFilters}><X size={14}/> Clear filters</button>}
     <button type="button" className="btn-inline" disabled={calendar.isFetching} onClick={()=>void Promise.all([calendar.refetch(),client.invalidateQueries({queryKey:['live','reservation-detail',hotelId]})])}><RotateCw size={14}/> {calendar.isFetching?'Refreshing…':'Refresh'}</button>
    </div>
    <div className="lrc-legend">
     <span><i className="lrc-dot lrc-confirmed"/> Reserved</span>
     <span><i className="lrc-dot lrc-inhouse"/> In house</span>
+    <span><i className="lrc-dot lrc-history"/> Checked out (historical)</span>
     <span><i className="lrc-dot lrc-maintenance"/> Maintenance block</span>
     <span><i className="lrc-dot lrc-conflict"/> Overlap / inspect</span>
     <span><i className="lrc-dot lrc-free"/> No assigned booking</span>
@@ -173,6 +177,24 @@ export function LiveRoomCalendar(){
      {data.unassignedBookings>0&&<Link to="/reservations">Review bookings <ArrowUpRight size={13}/></Link>}
     </div>
    </div>}
+   {calendar.isSuccess&&data&&data.unassignedGroupTotal>0&&<section className="lrc-group-lane"
+    aria-label="Unassigned group bookings">
+    <div className="lrc-group-lane-head"><div><strong>Unassigned group bookings</strong>
+     <p>Guest reservations awaiting a physical room assignment — not occupied rooms.</p></div>
+     <span>{data.unassignedGroupTotal} awaiting assignment</span></div>
+    <div className="lrc-group-items">
+     {data.unassignedGroupBookings.map(booking=><div key={booking.bookingId} className="lrc-group-item">
+      <div><strong>{booking.guestName??'Guest name unavailable'}</strong>
+       <small>{booking.groupName} · {booking.groupReference} · {booking.reference}</small>
+       <small>{dayText(booking.checkIn,{month:'short',day:'numeric',year:'numeric'})}
+        {' – '}{dayText(booking.checkOut,{month:'short',day:'numeric',year:'numeric'})}</small></div>
+      <Link to="/reservations" search={{booking:booking.bookingId,deskAction:'assign'}}>
+       Assign room <ArrowUpRight size={15}/></Link>
+     </div>)}
+    </div>
+    {data.unassignedGroupTruncated&&<p className="desk-muted">Only the first 50 unassigned group bookings are shown.
+     Open Group Bookings or Bookings to find the remaining reservations.</p>}
+   </section>}
    {calendar.isSuccess&&data&&<p className="lrc-summary">Showing {data.rooms.length} of {meta?.total??0} registered rooms. Counts for assigned stays and maintenance are limited to the visible room page; unassigned reservations are counted hotel-wide for the selected dates.</p>}
    <QueryFeedback loading={calendar.isPending} error={calendar.error} onRetry={()=>void calendar.refetch()}
     empty={calendar.isSuccess&&data?.rooms.length===0} emptyMessage={hasFilters?'No rooms match these filters. Clear filters to show the full rack.':'No rooms are registered yet. Add rooms in Rooms & readiness.'}/>
@@ -191,7 +213,7 @@ export function LiveRoomCalendar(){
      </div>
      {data.rooms.map(room=>{
       const entries:RackEntry[]=[
-       ...data.bookings.filter(b=>b.roomId===room.id).map(b=>({
+       ...data.bookings.filter(b=>b.roomId===room.id&&(showCheckedOut||b.status!=='checked_out')).map(b=>({
         ...b,id:'b-'+b.id,kind:'booking' as const,
        })),
        ...data.blocks.filter(b=>b.roomId===room.id).map(b=>({
@@ -206,7 +228,8 @@ export function LiveRoomCalendar(){
         <small>{room.roomTypeName}{room.floor===null?'':' · Floor '+room.floor}</small>
        </div>
        {dates.days.map((day,index)=>{
-        const items=data.bookings.filter(b=>b.roomId===room.id&&b.checkIn<=day&&day<b.checkOut);
+        const items=data.bookings.filter(b=>b.roomId===room.id
+         &&(showCheckedOut||b.status!=='checked_out')&&b.checkIn<=day&&day<b.checkOut);
         const blocks=data.blocks.filter(b=>b.roomId===room.id&&b.checkIn<=day&&day<b.checkOut);
         const occupied=items.length>0||blocks.length>0;
         const highlighted=dragPreview?.roomId===room.id&&day>=dragPreview.start&&day<=dragPreview.end;
@@ -249,7 +272,7 @@ export function LiveRoomCalendar(){
         const label=booking?(bar.item.guestName||bar.item.reference):(bar.item.reason||'Maintenance');
         const visibleDay=bar.item.checkIn<dates.start?dates.start:bar.item.checkIn;
         return <button type="button" key={bar.item.id}
-         className={'rack-booking-bar '+(booking?(bar.item.status==='checked_in'?'rack-bar-inhouse':'rack-bar-reserved'):'rack-bar-block')+(bar.overlap?' rack-bar-conflict':'')}
+         className={'rack-booking-bar '+(booking?(bar.item.status==='checked_out'?'rack-bar-history':bar.item.status==='checked_in'?'rack-bar-inhouse':'rack-bar-reserved'):'rack-bar-block')+(bar.overlap?' rack-bar-conflict':'')}
          style={{gridColumn:bar.startColumn+' / span '+bar.span,gridRow:1,alignSelf:'start',marginTop:7+bar.lane*33}}
          title={label+' · '+bar.item.checkIn+' to '+bar.item.checkOut+(bar.overlap?' · Overlapping records!':'')}
          aria-label={(booking?'Open booking ':'Inspect maintenance ')+label+' in room '+room.number+' from '+bar.item.checkIn+' to '+bar.item.checkOut}

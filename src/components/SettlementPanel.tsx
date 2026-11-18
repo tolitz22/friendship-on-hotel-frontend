@@ -170,6 +170,9 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   ?data?.cashShiftContexts.find(row=>row.paymentId===nextCashPayment.id):undefined;
  const cashShiftStatus=handoff?.cashShiftStatus??'unknown';
  const ownCashierShift=handoff?.cashierId===user?.id;
+ const verificationPreparerName=nextPayment
+  ?data?.cashShiftContexts.find(row=>row.paymentId===nextPayment.id)?.verificationPreparedByName
+  :null;
  const cashNeedsReconciliation=!!nextCashPayment&&cashShiftStatus!=='reconciled';
  const recorderIsCurrent=!!nextPayment&&
   data?.cashShiftContexts.find(row=>row.paymentId===nextPayment.id)?.recordedBy===user?.id;
@@ -209,7 +212,10 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
      ?'Linked cashier shift status is not available yet. Refresh after the backend deployment is complete; do not collect another payment.'
     :'This payment has no matching cashier shift receipt. Ask a manager to investigate; do not create another payment record.'
   :nextTask==='verification'&&cannotVerifyOwn
-   ?'The payment recorder or verification preparer cannot independently approve this evidence. Another authorized manager must review it.'
+   ?(verificationPreparerName
+     ?'Verification was prepared by '+verificationPreparerName+
+      '. A different authorized manager must approve it. The preparer and payment recorder cannot verify their own evidence.'
+     :'A different authorized manager must review. The payment recorder and verification preparer cannot independently approve their own evidence.')
   :nextTask==='verification'
    ?'Review the prepared evidence independently, or prepare verification if it has not been submitted yet.'
   :nextTask==='allocation'

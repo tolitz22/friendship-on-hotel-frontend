@@ -142,7 +142,7 @@ export function ReadableInspectionAuditEvent({event,currentUserId,currentUserNam
  const checklist=checks&&typeof checks==='object'&&!Array.isArray(checks)
   ?checks as Record<string,unknown>:null;
  const note=typeof event.details.note==='string'?event.details.note:null;
- const rows=checklist?[
+ const rows:Array<[string,unknown]>|null=checklist?[
   ['Cleanliness',checklist.cleaningVerified],
   ['Safety',checklist.safetyVerified],
   ['Room amenities',checklist.amenitiesVerified],

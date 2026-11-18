@@ -193,10 +193,17 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
     </div>
     <div className="billing-account-totals">
      <div><span>Recorded charges</span><strong>{money(data.netRecordedChargesMinor,data.currency)}</strong></div>
+     <div><span>Payment evidence already recorded · not necessarily verified</span>
+      <strong>{money(data.payments.filter(p=>['pending_review','staff_confirmed'].includes(p.status))
+       .reduce((total,p)=>total+p.amountMinor,0),data.currency)}</strong></div>
      <div><span>Verified payment allocations</span><strong>{money(data.verifiedAllocatedMinor,data.currency)}</strong></div>
-     <div className="billing-account-difference"><span>Current difference · not final</span>
+     <div className="billing-account-difference"><span>Recorded charges not yet covered by reviewed allocations · not a request to pay again</span>
       <strong>{money(data.remainingMinor,data.currency)}</strong></div>
     </div>
+    {data.payments.some(p=>p.status==='pending_review')&&<p className="billing-payment-pending-banner">
+     <AlertTriangle size={16}/> Payment evidence is already on file and awaiting review.
+     Do not charge the guest again just because verified allocations are incomplete.
+    </p>}
     <div className="billing-account-next">
      {data.signed&&!data.signedSnapshotIntegrity?<><AlertTriangle size={19}/><p><strong>Account needs investigation.</strong> The signed record failed an integrity check. Do not print or complete checkout.</p></>
       :data.signed?<><CheckCircle2 size={19}/><p><strong>Financial sign-off completed.</strong> Check the guest's other checkout requirements before departure.</p></>

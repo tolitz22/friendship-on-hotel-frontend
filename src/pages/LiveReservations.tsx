@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react';
-import {useNavigate,useSearch} from '@tanstack/react-router';
+import {Link,useNavigate,useSearch} from '@tanstack/react-router';
 import {useHotelAuth} from '../components/AuthProvider';
 import {LiveReservationOperations} from './LiveReservationOperations';
 import {LiveBookingForm} from './LiveBookingForm';
@@ -12,7 +12,7 @@ import type {LiveStay} from '../api/liveReservations';
 import {readSession} from '../api/session';
 import {Heading,Panel,Status} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
-import {dateLabel,statusLabel} from '../lib/format';
+import {dateLabel,statusLabel,readableDate} from '../lib/format';
 import {addDays,hotelToday} from '../features/reservations/calendarDate';
 import {nextReservationAction,reservationActionHint} from '../features/reservations/managementWorkflow';
 
@@ -31,8 +31,12 @@ export function LiveReservations(){
  const routeSearch=useSearch({from:'/reservations'});
  const selectedRecordId=routeSearch.booking??null;
  const detail=useLiveReservationDetail(selectedRecordId);
- const openBooking=(booking:string)=>void navigation({to:'/reservations',search:{booking}});
- const closeBooking=()=>void navigation({to:'/reservations',search:{}});
+ const openBooking=(booking:string)=>void navigation({to:'/reservations',search:{booking,
+  group:routeSearch.group,hotel:routeSearch.hotel,checkIn:routeSearch.checkIn,
+  checkOut:routeSearch.checkOut}});
+ const closeBooking=()=>void navigation({to:'/reservations',search:routeSearch.group
+  ?{group:routeSearch.group,hotel:routeSearch.hotel,checkIn:routeSearch.checkIn,
+    checkOut:routeSearch.checkOut}: {}});
  const [page,setPage]=useState(1);
  const [view,setView]=useState<'manage'|'new'>('manage');
  const [filter,setFilter]=useState<'all'|'needs_room'|'arrivals'|'in_house'|'completed'>('all');
@@ -77,6 +81,19 @@ export function LiveReservations(){
  </>;
  return <>
   {!selectedRecordId&&<Heading title="Bookings" description="Find a guest booking, see what needs attention, and complete the next step."/>}
+  {routeSearch.group&&<div className="gb-workflow-notice">
+   {routeSearch.hotel&&routeSearch.hotel!==hotelId
+    ?<strong role="alert">This group belongs to a different property. Select the original hotel before proceeding.</strong>
+    :<><strong>Group booking context</strong>
+     {routeSearch.checkIn&&routeSearch.checkOut&&<span> · {readableDate(routeSearch.checkIn)} – {readableDate(routeSearch.checkOut)}</span>}
+     <div className="gb-context-actions">
+      <Link to="/group-reservations" search={{group:routeSearch.group,hotel:routeSearch.hotel}}>
+       Back to group <ArrowRight size={14}/></Link>
+      {routeSearch.checkIn&&<Link to="/room-calendar" search={{date:routeSearch.checkIn,
+       group:routeSearch.group,hotel:routeSearch.hotel}}>
+       View group on calendar <ArrowRight size={14}/></Link>}
+     </div></>}
+  </div>}
   {selectedRecordId?<>
    <section className="stay-selected-workflow" aria-label="Selected reservation">
     <QueryFeedback loading={detail.isPending} error={detail.error} onRetry={()=>void detail.refetch()}/>

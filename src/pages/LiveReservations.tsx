@@ -136,7 +136,7 @@ export function LiveReservations(){
      empty={records.isSuccess&&!searching&&filtered.length===0}
      emptyMessage={appliedSearch||filter!=='all'
       ?'No matching reservations. Clear the search or change the filter.'
-      :'No reservations yet. Use New reservation to register the first guest stay.'}/>
+      :canOperate?'No reservations yet. Use New reservation to register the first guest stay.':'No reservations are recorded for this property.'}/>
     {records.isSuccess&&!searching&&filtered.length>0&&<div className="reservation-manage-list">
      {filtered.map(record=><article className="reservation-manage-card" key={record.id}>
       <div className="reservation-manage-primary">

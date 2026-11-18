@@ -134,12 +134,13 @@ function GroupPayerAllocation({groupId,report}:{
  </details>;
 }
 
-function GroupFinance({groupId}:{groupId:string}){
+function GroupFinance({groupId,open=false}:{groupId:string;open?:boolean}){
  const report=useGroupFinancialSummary(groupId);
  const data=report.data;
- return <details className="workflow-disclosure">
-  <summary>Consolidated billing overview · read only</summary>
-  <Panel title="Group financial overview">
+ return <details id="group-billing-overview" key={groupId+'-'+String(open)} open={open?true:undefined}
+  className="workflow-disclosure gb-finance-section">
+  <summary>Group billing · consolidated overview and reviewed allocations</summary>
+  <Panel title="Group billing and settlement progress">
    <p className="desk-muted">Amounts are drawn from each reservation's recorded folio.
     Staff-confirmed evidence is not automatically independently verified or bank-settled.
     Group allocations require a separate authorized review.</p>
@@ -157,6 +158,20 @@ function GroupFinance({groupId}:{groupId:string}){
       <div><dt>Unallocated recorded charges</dt><dd>{(total.unallocatedNetChargesMinor/100).toLocaleString('en-PH',{style:'currency',currency:total.currency})}</dd></div>
      </dl>
     </div>)}
+    <div className="gb-billing-progress" aria-label="Group payment and settlement progress">
+     <div><small>Priced guest folios</small><strong>{data.rooms.filter(row=>row.priced).length} / {data.rooms.length}</strong></div>
+     <div><small>Payment evidence recorded</small><strong>{data.rooms.filter(row=>row.priced&&row.staffConfirmedPaymentsMinor>0).length} / {data.rooms.length}</strong></div>
+     <div><small>Verified allocations recorded</small><strong>{data.rooms.filter(row=>row.priced&&row.verifiedAllocatedMinor>0).length} / {data.rooms.length}</strong></div>
+     <div><small>Folio settlement signed</small><strong>{data.rooms.filter(row=>row.priced&&row.signed).length} / {data.rooms.length}</strong></div>
+    </div>
+    <div className="gb-billing-folios">
+     {data.rooms.map(row=><div className="gb-billing-folio" key={row.bookingId}>
+      <div><strong>{row.reference}</strong><small>{row.priced
+       ?row.signed?'Settlement signed':row.verifiedAllocatedMinor>0?'Reviewed allocation recorded':'Settlement incomplete'
+       :'No priced folio available'}</small></div>
+      <Link to="/billing" search={{booking:row.bookingId}}>Review guest folio <ArrowRight size={14}/></Link>
+     </div>)}
+    </div>
     {data.rooms.some(row=>!row.priced)&&<p role="status">Some group rooms have no priced folio and are excluded from financial totals.</p>}
     <GroupPayerAllocation groupId={groupId} report={data}/>
     <p className="desk-muted">Not a final invoice. Open the individual guest bill to review payment records and verification before any group-payer allocation.</p>
@@ -279,42 +294,71 @@ function GroupAllotmentsPanel({hotelId,onConvert}:{hotelId:string;onConvert:(hol
  </section>;
 }
 
-function GroupDetails({id}:{id:string}){
+function GroupDetails({id,billingOpen=false}:{id:string;billingOpen?:boolean}){
+ const {hotelId}=useHotelAuth();
  const details=useGroupBooking(id);
  const group=details.data;
+ const dates=group?.checkIn&&group?.checkOut
+  ?readableDate(group.checkIn)+' – '+readableDate(group.checkOut):'Stay dates unavailable';
+ const assigned=group?.rooms.filter(room=>room.roomId!==null).length??0;
+ const arrived=group?.rooms.filter(room=>room.status==='checked_in'||room.status==='checked_out').length??0;
+ const departed=group?.rooms.filter(room=>room.status==='checked_out').length??0;
  return <>
-  <Link className="gb-back-link" to="/group-reservations" search={{}}><ChevronLeft size={16}/> Back to Group Bookings</Link>
+  <Link className="gb-back-link" to="/group-reservations" search={{}}><ChevronLeft size={16}/> All Group Bookings</Link>
   <QueryFeedback loading={details.isPending} error={details.error} onRetry={()=>void details.refetch()}/>
   {group&&<div className="gb-detail">
-   <div className="gb-detail-head"><div><span className="gb-eyebrow">GROUP BOOKING · {group.reference}</span>
+   <div className="gb-detail-head"><div>
+    <span className="gb-eyebrow">GROUP BOOKING · {group.reference}</span>
     <h2>{group.name}</h2>
-    <p>{group.roomCount} rooms · Created {readableDateTime(group.createdAt)}
-     {group.contactName?' · Contact: '+group.contactName:''}</p></div>
-    <Link className="btn-inline" to="/group-reservations" search={{}}>All groups</Link></div>
-   <div className="gb-summary-strip">
-    <div><small>Booked rooms</small><strong>{group.roomCount}</strong></div>
-    <div><small>Rooms needing assignment</small><strong>{group.rooms.filter(room=>!room.roomNumber&&room.status==='confirmed').length}</strong></div>
-    <div><small>In house</small><strong>{group.rooms.filter(room=>room.status==='checked_in').length}</strong></div>
+    <p><strong>{dates}</strong> · {group.roomCount} rooms
+     {group.contactName?' · Contact: '+group.contactName:''}</p>
+    <small className="desk-muted">Created {readableDateTime(group.createdAt)}</small>
+   </div></div>
+   <div className="gb-context-actions">
+    {group.checkIn&&<Link className="btn-primary" to="/room-calendar"
+     search={{date:group.checkIn,group:group.id,hotel:hotelId??undefined}}>
+     <CalendarDays size={17}/> View group on calendar <ArrowRight size={15}/></Link>}
+    <Link className="rr-secondary-action" to="/group-reservations"
+     search={{group:group.id,tab:'billing' as const,hotel:hotelId??undefined}}>
+     Open group billing <ArrowRight size={15}/></Link>
    </div>
+   <section className="gb-progress" aria-label="Group operational status">
+    <div><small>Room assignment</small><strong>{assigned} / {group.roomCount}</strong>
+     <span>{assigned===group.roomCount?'All rooms assigned':'Assignment still needed'}</span></div>
+    <div><small>Check-in</small><strong>{arrived} / {group.roomCount}</strong>
+     <span>{arrived===group.roomCount?'All guests arrived or departed':'Check individual arrivals'}</span></div>
+    <div><small>Checkout</small><strong>{departed} / {group.roomCount}</strong>
+     <span>{departed===group.roomCount?'All rooms checked out':'Not all rooms checked out'}</span></div>
+    <div><small>Readiness</small><strong>Separate approval</strong>
+     <Link to="/rooms" search={{}}>Check room inspections <ArrowRight size={13}/></Link></div>
+    <div><small>Payment & settlement</small><strong>Per folio</strong>
+     <Link to="/group-reservations" search={{group:group.id,tab:'billing' as const,hotel:hotelId??undefined}}>
+      Review progress <ArrowRight size={13}/></Link></div>
+    <div><small>Housekeeping</small><strong>Separate tasks</strong>
+     <Link to="/housekeeping" search={{}}>Review cleaning handoff <ArrowRight size={13}/></Link></div>
+   </section>
+   {billingOpen&&<div className="gb-workflow-notice" role="status">
+    Group billing is below. All figures are from individual guest folios; no group invoice or external settlement is implied.
+   </div>}
+   <GroupFinance groupId={group.id} open={billingOpen}/>
    <Panel title="Rooms and guests">
-   <p className="desk-muted">Assign rooms and manage check-in individually. Billing remains linked to each guest’s original folio.</p>
-   <div className="reservation-manage-list">
-    {group.rooms.map(room=><article className="reservation-manage-card" key={room.bookingId}>
-     <div className="reservation-manage-primary">
-      <strong>{room.guestName??'Guest name unavailable'}</strong>
-      <p>{room.reference} · {room.roomTypeName} · {room.roomNumber?'Room '+room.roomNumber:'Room not assigned'}</p>
-      <small>{readableDate(room.checkIn)} – {readableDate(room.checkOut)} · {statusLabel(room.status??'Unknown')}</small>
-     </div>
-     <div className="reservation-manage-action">
-      <Link className="btn-primary" to="/reservations" search={{booking:room.bookingId}}>
-       Manage booking <ArrowRight size={16}/>
-      </Link>
-      <Link to="/billing" search={{booking:room.bookingId}}>View individual guest bill</Link>
-     </div>
-    </article>)}
-   </div>
+    <p className="desk-muted">Each booking is managed independently. The group links the stay,
+     but does not automatically approve readiness, settle payments, or complete housekeeping.</p>
+    <div className="reservation-manage-list">
+     {group.rooms.map(room=><article className="reservation-manage-card" key={room.bookingId}>
+      <div className="reservation-manage-primary">
+       <strong>{room.guestName??'Guest name unavailable'}</strong>
+       <p>{room.reference} · {room.roomTypeName} · {room.roomNumber?'Room '+room.roomNumber:'Room not assigned'}</p>
+       <small>{readableDate(room.checkIn)} – {readableDate(room.checkOut)} · {statusLabel(room.status??'Unknown')}</small>
+      </div>
+      <div className="reservation-manage-action">
+       <Link className="btn-primary" to="/reservations" search={{booking:room.bookingId}}>
+        Manage booking <ArrowRight size={16}/></Link>
+       <Link to="/billing" search={{booking:room.bookingId}}>Review guest folio</Link>
+      </div>
+     </article>)}
+    </div>
    </Panel>
-   <GroupFinance groupId={group.id}/>
   </div>}
  </>;
 }
@@ -393,7 +437,7 @@ export function GroupReservations(){
   setPending({hotelId,payload});
   void send(payload,hotelId);
  };
- if(search.group)return <GroupDetails id={search.group}/>;
+ if(search.group)return <GroupDetails id={search.group} billingOpen={search.tab==='billing'}/>;
  return <>
   <div className="gb-page">
    <div className="gb-page-header">
@@ -523,9 +567,17 @@ export function GroupReservations(){
    <div className="reservation-manage-list gb-group-list">
     {groups.data?.data.filter(group=>[group.name,group.reference,group.contactName??'']
      .some(text=>text.toLowerCase().includes(searchText.trim().toLowerCase()))).map(group=><article key={group.id} className="reservation-manage-card">
-     <div><strong>{group.name}</strong><p>{group.reference} · {group.roomCount} rooms</p>
-      <small>{group.contactName??'No contact recorded'} · {readableDateTime(group.createdAt)}</small></div>
-     <Link to="/group-reservations" search={{group:group.id}}>View group <ArrowRight size={16}/></Link>
+     <div><strong>{group.name}</strong>
+      <p className="gb-list-stay">{group.checkIn&&group.checkOut
+       ?readableDate(group.checkIn)+' – '+readableDate(group.checkOut)
+       :'Stay dates unavailable'}</p>
+      <p>{group.reference} · {group.roomCount} rooms</p>
+      <small>{group.contactName??'No contact recorded'} · Created {readableDateTime(group.createdAt)}</small></div>
+     <div className="gb-list-actions">
+      <Link to="/group-reservations" search={{group:group.id}}>View group <ArrowRight size={16}/></Link>
+      {group.checkIn&&<Link to="/room-calendar"
+       search={{date:group.checkIn,group:group.id,hotel:hotelId??undefined}}>View on calendar</Link>}
+     </div>
     </article>)}
    </div>
    {groups.data&&groups.data.data.length>0&&searchText.trim()&&

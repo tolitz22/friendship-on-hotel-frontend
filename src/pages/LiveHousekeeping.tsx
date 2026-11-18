@@ -6,6 +6,7 @@ import {AlertTriangle,ArrowRight,CheckCircle2,ClipboardCheck,Clock3,History,Info
 import {useHotelAuth} from '../components/AuthProvider';
 import {useLiveRooms,useLiveProperty} from '../api/liveCatalogQueries';
 import {hotelToday} from '../features/reservations/calendarDate';
+import {readableDate} from '../lib/format';
 import {
  createHousekeepingTask,getHousekeepingHistory,listHousekeepingTasks,updateHousekeepingTask,
  type LiveHousekeepingTask,type HousekeepingStatus,type HousekeepingType,type TaskFilter,
@@ -223,7 +224,7 @@ export function LiveHousekeeping(){
     <article className="hk-handoff-row" key={task.taskId}>
      <div><strong>Room {task.roomNumber}</strong>
       <small>{task.type.replaceAll('_',' ')} · {task.status.replaceAll('_',' ')}</small>
-      <small>{task.dueAt?'Due: '+task.dueAt:'No due time set'}</small></div>
+      <small>{task.dueAt?'Due: '+readableDate(task.dueAt)+' · '+task.dueAt.slice(11,16):'No due time set'}</small></div>
      <button type="button" className="btn-inline" onClick={()=>
       void navigate({to:'/housekeeping',search:{task:task.taskId}})}>
       Open task <ArrowRight size={15}/></button>

@@ -39,7 +39,19 @@ test('rooms catalogue supports safe filtering, summary and readiness navigation'
  }
  await page.getByRole('button',{name:/Readiness & arrivals/}).click();
  await expect(page.getByRole('button',{name:/Readiness & arrivals/})).toHaveAttribute('aria-pressed','true');
- await expect(page.getByRole('heading',{name:'Room readiness · Operational dashboard'})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'What needs attention?'})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Arrivals that may need action'})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Rooms to inspect or clear'})).toBeVisible();
+ await expect(page.getByRole('group',{name:'Filter arriving reservations'})).toBeVisible();
+ await page.getByRole('button',{name:/^All \(/}).first().click();
+ await expect(page.getByRole('group',{name:'Filter arriving reservations'}).getByRole('button',{name:/^All/}))
+  .toHaveAttribute('aria-pressed','true');
+ const findRoom=page.getByRole('button',{name:'Find room in inventory'}).first();
+ if(await findRoom.count()){
+  await findRoom.click();
+  await expect(page.getByRole('button',{name:/Room inventory/})).toHaveAttribute('aria-pressed','true');
+  await expect(page.getByRole('searchbox',{name:'Search room numbers'})).not.toHaveValue('');
+ }
  await page.getByRole('button',{name:/Room inventory/}).click();
  await expect(page.getByRole('button',{name:/Room inventory/})).toHaveAttribute('aria-pressed','true');
  const widths=await page.evaluate(()=>({

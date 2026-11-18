@@ -211,7 +211,7 @@ export function LiveRoomCalendar(){
         const occupied=items.length>0||blocks.length>0;
         const highlighted=dragPreview?.roomId===room.id&&day>=dragPreview.start&&day<=dragPreview.end;
         return <button key={day} type="button"
-         className={'rack-day '+(day===hotelToday()?'rack-current-day ':'')+(highlighted?'rack-range-preview ':'')+(occupied?'rack-occupied':'rack-empty')}
+         className={'rack-day '+(day===today?'rack-current-day ':'')+(highlighted?'rack-range-preview ':'')+(occupied?'rack-occupied':'rack-empty')}
          style={{gridColumn:index+2,gridRow:1,minHeight:rowHeight}}
          title={occupied?'View room '+room.number+' schedule on '+day:'Choose room '+room.number+' on '+day}
          aria-label={'Room '+room.number+' on '+day+': '+(occupied?'assigned booking or maintenance block':'no assigned booking')+'. View details'}
@@ -343,7 +343,7 @@ export function LiveRoomCalendar(){
           {overlappingBookings.map(b=><p key={b.id}>{b.reference}: {b.checkIn} – {b.checkOut}</p>)}
          </div>
         </div>}
-       {selected.day>=hotelToday()&&selectedBookings.length===0&&selectedBlocks.length===0&&<div className="lrc-stay-picker">
+       {selected.day>=today&&selectedBookings.length===0&&selectedBlocks.length===0&&<div className="lrc-stay-picker">
         <label htmlFor="room-departure">Check-out date</label>
         <input id="room-departure" type="date" value={departure}
          min={addDays(selected.day,1)} max={addDays(selected.day,31)}

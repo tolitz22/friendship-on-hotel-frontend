@@ -13,6 +13,7 @@ const FIELDS:Record<string,string>={
  description:'Description',assignedTo:'Assigned staff',assignedUserId:'Assigned employee',
  dueAt:'Due date',completedAt:'Completed at',resolvedAt:'Resolved at',
  affectsRoom:'Room affected',roomNumber:'Room',note:'Note',
+ number:'Room number',floor:'Floor',name:'Name',maxOccupancy:'Maximum guests',roomTypeId:'Room category',
 };
 const DISPLAY_KEYS=new Set(Object.keys(FIELDS));
 const INTERNAL_KEYS=new Set(['revision','updatedAt','createdAt','id','hotelId','roomId',
@@ -27,6 +28,7 @@ const cleanText=(value:unknown,key:string):string=>{
  if(key==='status'||key==='priority'||key==='type')return statusLabel(value);
  if(key==='assignedUserId')return value?'Assigned employee changed':'Unassigned';
  if(key==='assignedTo')return value||'Unassigned';
+ if(key==='floor'&&value==='0')return 'Ground floor';
  return value.length>160?value.slice(0,160)+'…':value;
 };
 export function describeAuditChanges(before:Record<string,unknown>|null,after:Record<string,unknown>):Change[]{

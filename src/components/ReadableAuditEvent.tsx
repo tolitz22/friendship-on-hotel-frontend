@@ -2,10 +2,10 @@ import {Clock3,History,UserRound} from 'lucide-react';
 import {readableDateTime,statusLabel} from '../lib/format';
 
 type AuditEvent={
- id:string;actorId:string;action:string;before:Record<string,unknown>|null;
+ id:string;actorId:string;actorName?:string|null;action:string;before:Record<string,unknown>|null;
  after:Record<string,unknown>;note:string|null;createdAt:string;
 };
-type CashEvent={id:string;actorId:string;event:string;details:unknown;createdAt:string};
+type CashEvent={id:string;actorId:string;actorName?:string|null;event:string;details:unknown;createdAt:string};
 type Change={label:string;from:string|null;to:string};
 
 const FIELDS:Record<string,string>={
@@ -25,7 +25,7 @@ const cleanText=(value:unknown,key:string):string=>{
  if(typeof value!=='string')return 'Updated';
  if(key==='dueAt'||key==='completedAt'||key==='resolvedAt')return readableDateTime(value);
  if(key==='status'||key==='priority'||key==='type')return statusLabel(value);
- if(key==='assignedUserId')return value?'Staff member #'+value:'Unassigned';
+ if(key==='assignedUserId')return value?'Assigned employee changed':'Unassigned';
  if(key==='assignedTo')return value||'Unassigned';
  return value.length>160?value.slice(0,160)+'…':value;
 };
@@ -51,20 +51,20 @@ const headline=(action:string):string=>{
  };
  return labels[action]??statusLabel(action).replace(/_/g,' ');
 };
-const staff=(id:string,name?:string|null,currentId?:string|null)=>{
- if(name?.trim())return name;
- if(currentId&&id===currentId)return 'You';
- return 'Staff member #'+id;
+export const auditActorName=(id:string,name?:string|null,currentId?:string|null,currentName?:string|null)=>{
+ if(name?.trim())return name.trim();
+ if(currentId&&id===currentId)return currentName?.trim()||'You';
+ return 'Employee name unavailable';
 };
 
-export function ReadableAuditEvent({event,actorName,currentUserId}:{
- event:AuditEvent;actorName?:string|null;currentUserId?:string|null;
+export function ReadableAuditEvent({event,actorName,currentUserId,currentUserName}:{
+ event:AuditEvent;actorName?:string|null;currentUserId?:string|null;currentUserName?:string|null;
 }){
  const changes=describeAuditChanges(event.before,event.after);
  return <article className="readable-audit-event">
   <div className="readable-audit-heading"><span className="readable-audit-icon"><History size={16}/></span>
    <div><strong>{headline(event.action)}</strong><span><UserRound size={13}/>
-    {staff(event.actorId,actorName,currentUserId)} <span aria-hidden="true">·</span>
+    {auditActorName(event.actorId,event.actorName??actorName,currentUserId,currentUserName)} <span aria-hidden="true">·</span>
     <Clock3 size={13}/> {readableDateTime(event.createdAt)}</span></div></div>
   {changes.length>0?<dl className="readable-audit-changes">
    {changes.map(change=><div key={change.label}>
@@ -112,7 +112,7 @@ export function cashEventDetails(event:string,details:unknown):CashDetail[]{
  }
  return result;
 }
-export function ReadableCashAuditEvent({event,actorName,currentUserId}:{
+export function ReadableCashAuditEvent({event,actorName,currentUserId,currentUserName}:{
  event:CashEvent;actorName?:string|null;currentUserId?:string|null;
 }){
  const details=cashEventDetails(event.event,event.details);
@@ -124,5 +124,35 @@ export function ReadableCashAuditEvent({event,actorName,currentUserId}:{
   {details.length>0?<dl className="readable-audit-changes">
    {details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd><strong>{detail.value}</strong></dd></div>)}
   </dl>:<p className="readable-audit-context">Event recorded. No further details are available.</p>}
+ </article>;
+}
+
+type InspectionHistoryEvent={
+ id:string;inspectionId:string;actorId:string;actorName?:string|null;
+ action:'submitted'|'approved'|'rejected';details:Record<string,unknown>;createdAt:string;
+};
+export function ReadableInspectionAuditEvent({event,currentUserId,currentUserName}:{
+ event:InspectionHistoryEvent;currentUserId?:string|null;currentUserName?:string|null;
+}){
+ const action=event.action==='submitted'?'Submitted room inspection':
+  event.action==='approved'?'Approved room inspection':'Rejected room inspection';
+ const checks=event.details.checks;
+ const checklist=checks&&typeof checks==='object'&&!Array.isArray(checks)
+  ?checks as Record<string,unknown>:null;
+ const note=typeof event.details.note==='string'?event.details.note:null;
+ const rows=checklist?[
+  ['Cleanliness',checklist.cleaningVerified],
+  ['Safety',checklist.safetyVerified],
+  ['Room amenities',checklist.amenitiesVerified],
+ ]:null;
+ return <article className="readable-audit-event">
+  <div className="readable-audit-heading"><span className="readable-audit-icon"><History size={16}/></span>
+   <div><strong>{action}</strong><span><UserRound size={13}/>
+    {auditActorName(event.actorId,event.actorName,currentUserId,currentUserName)}
+    <span aria-hidden="true"> · </span><Clock3 size={13}/> {readableDateTime(event.createdAt)}</span></div></div>
+  {rows&&<dl className="readable-audit-changes">{rows.map(([label,checked])=>
+   <div key={String(label)}><dt>{label}</dt><dd><strong>{checked===true?'Checked and verified':checked===false?'Not verified':'Not recorded'}</strong></dd></div>)}</dl>}
+  {note&&<p className="readable-audit-note"><strong>{event.action==='submitted'?'Inspection':'Review'} note:</strong> {note}</p>}
+  {!rows&&!note&&<p className="readable-audit-context">Inspection decision recorded. No additional details were supplied.</p>}
  </article>;
 }

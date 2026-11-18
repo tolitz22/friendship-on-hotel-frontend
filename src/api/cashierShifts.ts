@@ -109,7 +109,7 @@ export async function receiveCash(hotelId:string,shiftId:string,bookingId:string
 export async function getCashShiftHistory(hotelId:string,shiftId:string){
  if(readSession().hotelId!==hotelId)throw new Error('Property changed.');
  return z.object({data:z.array(z.object({
-  id,actorId:id,event:z.string(),details:z.unknown(),createdAt:z.string(),
+  id,actorId:id,actorName:z.string().nullable().optional(),event:z.string(),details:z.unknown(),createdAt:z.string(),
  }))}).parse(await getJson<unknown>(
   hotelPath('/cashier-shifts/'+encodeURIComponent(shiftId)+'/history')));
 }

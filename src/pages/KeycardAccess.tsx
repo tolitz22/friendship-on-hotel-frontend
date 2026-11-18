@@ -44,11 +44,11 @@ function KeycardRow({item,manager,onChanged}:{item:KeycardAuthorization;manager:
    ?<Link to="/reservations" search={{booking:item.bookingId}}>Reservation #{item.bookingId}</Link>
    :'Emergency request (no guest booking)'}</p>
   <p><strong>Reason:</strong> {item.reason}</p>
-  <p className="desk-muted">Requested by {employee(item.requestedBy)} · Valid {readableDate(item.validFrom)} to {readableDate(item.validUntil)}
+  <p className="desk-muted">Requested by {employee(item.requestedBy,item.requestedByName)} · Valid {readableDate(item.validFrom)} to {readableDate(item.validUntil)}
    {' · '}Provider: {item.provider} · No card encoded</p>
   {item.providerReference&&<p className="desk-muted">Simulation reference: {item.providerReference}</p>}
-  {item.reviewNote&&<p>Manager review: {item.reviewNote}</p>}
-  {item.revocationNote&&<p>Revocation note: {item.revocationNote}</p>}
+  {item.reviewNote&&<p><strong>Manager review by {item.reviewedBy?employee(item.reviewedBy,item.reviewedByName):'Employee name unavailable'}:</strong> {item.reviewNote}</p>}
+  {item.revocationNote&&<p><strong>Revoked by {item.revokedBy?employee(item.revokedBy,item.revokedByName):'Employee name unavailable'}:</strong> {item.revocationNote}</p>}
   {manager&&(item.status==='pending_manager'||item.status==='authorized_mock')&&<div className="wizard-fields">
    <label>Manager decision evidence (at least 10 characters)
     <textarea className="wizard-input" rows={2} value={note} maxLength={1000}

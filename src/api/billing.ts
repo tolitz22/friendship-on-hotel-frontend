@@ -52,9 +52,43 @@ export function calculateCashChange(paymentMinor:number|null,tenderedMinor:numbe
   ||!Number.isSafeInteger(tenderedMinor)||paymentMinor<=0||tenderedMinor<paymentMinor)return null;
  return tenderedMinor-paymentMinor;
 }
-export function recordBankEvidence(bookingId:string,requestKey:string,reference:string,amountMinor:number){
+const paymentSafetyResult=z.object({data:z.object({
+ currency:z.string(),
+ payments:z.array(z.object({
+  id,reference:z.string(),method:z.enum(['cash','bank_transfer']),
+  amountMinor:z.number().int().nonnegative(),
+  status:z.string(),createdAt:z.string(),
+  recordedByName:z.string().nullable(),
+ })),
+ recentMatchingPaymentIds:z.array(id),hasMore:z.boolean(),
+ provisionalOnly:z.literal(true),
+})});
+export type PaymentSafety=z.infer<typeof paymentSafetyResult>['data'];
+export function usePaymentSafety(bookingId:string,method?:'cash'|'bank_transfer',amountMinor?:number|null){
+ const {hotelId}=readSession();
+ return useQuery({
+  queryKey:['live','payment-safety',hotelId,bookingId,method,amountMinor],
+  enabled:!!hotelId&&/^[1-9]\\d*$/.test(bookingId),
+  queryFn:async()=>paymentSafetyResult.parse(await getJson<unknown>(
+   hotelPath('/bookings/'+encodeURIComponent(bookingId)+'/payment-safety'),{
+    method,amountMinor:amountMinor??undefined,
+   })).data,
+  retry:false,
+ });
+}
+export function voidFolioPayment(bookingId:string,paymentId:string,requestKey:string,reason:string){
+ return z.object({data:z.object({
+  paymentId:id,status:z.literal('voided'),replayed:z.boolean(),
+ })}).parseAsync(requestJson<unknown>(
+  hotelPath('/bookings/'+encodeURIComponent(bookingId)+'/payment-records/'
+   +encodeURIComponent(paymentId)+'/void'),{method:'POST',body:{requestKey,reason}},
+ )).then(result=>result.data);
+}
+export function recordBankEvidence(bookingId:string,requestKey:string,reference:string,
+ amountMinor:number,duplicateOverrideReason?:string){
  return requestJson<unknown>(hotelPath('/bookings/'+bookingId+'/payment-records'),{
-  method:'POST',body:{requestKey,method:'bank_transfer',reference,amountMinor},
+  method:'POST',body:{requestKey,method:'bank_transfer',reference,amountMinor,
+   ...(duplicateOverrideReason?{duplicateOverrideReason}:{})},
  });
 }
 export function recordFolioAdjustment(bookingId:string,requestKey:string,kind:'credit'|'debit',amountMinor:number,reason:string){

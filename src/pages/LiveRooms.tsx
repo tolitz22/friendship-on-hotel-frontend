@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
-import {Link} from '@tanstack/react-router';
+import {Link,useSearch} from '@tanstack/react-router';
 import {
  AlertTriangle,ArrowRight,BedDouble,CheckCircle2,ClipboardCheck,
  Clock3,Filter,Info,Layers3,Plus,RefreshCw,Search,Settings2,
@@ -56,6 +56,7 @@ const attentionLabels:Record<AttentionFilter,string>={
 };
 
 export function LiveRooms(){
+ const {room:linkedRoomNumber}=useSearch({from:'/rooms'});
  const {user,hotelId}=useHotelAuth();
  const role=user?.hotels.find(h=>h.id===hotelId)?.role;
  const admin=role==='admin';
@@ -108,8 +109,8 @@ export function LiveRooms(){
  const resetFilters=()=>{setFloor('all');setSearch('');setAttentionFilter('all');setPage(1);};
  useEffect(()=>{
   setView('catalog');setShowCreate(false);setEditingRoom(null);setReadinessRoom(null);
-  setFloor('all');setSearch('');setPage(1);setAttentionFilter('all');
- },[hotelId]);
+  setFloor('all');setSearch(linkedRoomNumber??'');setPage(1);setAttentionFilter('all');
+ },[hotelId,linkedRoomNumber]);
  useEffect(()=>{
   if(!readinessRoom)return;
   const previousOverflow=document.body.style.overflow;

@@ -218,7 +218,7 @@ export function CashierShifts(){
    <div><span>3</span><strong>Count & submit</strong><small>Hide expected cash until you submit your physical count</small></div>
    <div><span>4</span><strong>Independent review</strong><small>A different manager reconciles or flags the shift</small></div>
   </section>}
-  <section className="cashier-drawer-panel" aria-label="My cash drawer"><div className="cashier-panel-heading">
+  {(!context.shift||linkedShift.data?.id===active?.id)&&<section className="cashier-drawer-panel" aria-label="My cash drawer"><div className="cashier-panel-heading">
    <div><h2>My cash drawer</h2><p>One shift per cashier. Opening cash is the money already in your drawer for giving change.</p></div>
    <button type="button" className="rr-secondary-action" disabled={ownOpenShift.isFetching} onClick={()=>void refresh()}><RefreshCw size={15}/> Refresh</button></div>
    <QueryFeedback loading={ownOpenShift.isPending} error={ownOpenShift.error} onRetry={()=>void ownOpenShift.refetch()}/>

@@ -57,8 +57,7 @@ export function NightAuditPreview(){
     </button>
    </div>
    <p className="night-audit-warning"><AlertTriangle size={18}/>
-    This is a <strong>read-only preview, NOT a night close.</strong> It does not post nightly charges,
-    roll the business date, lock transactions, calculate VAT, or confirm gateway settlement.
+    The preflight above is <strong>read-only and does not close the day.</strong> The separate financial-close control below advances the business date only after manager review and reconciliation. Neither action calculates VAT or verifies gateway settlement.
     Existing room nights are already posted when priced bookings are created.</p>
    <QueryFeedback loading={query.isPending} error={query.error}
     onRetry={()=>void query.refetch()}/>

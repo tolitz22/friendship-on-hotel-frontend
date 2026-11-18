@@ -451,7 +451,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
      <AlertTriangle size={18}/>
      Final settlement is not yet enabled for this hotel. A finance administrator must complete the required checks before activating it. You can still review the recorded statement.
     </div>}
-    {unconfirmed.length>0&&<BillingActions bookingId={bookingId} signed={data.signed} mode="review"/>}
+    <BillingActions bookingId={bookingId} signed={data.signed} mode="review"/>
     <h4>Manager payment verification & allocation</h4>
     <p className="desk-muted">Bank transfer evidence requires a different administrator to verify the supporting statement. Cash evidence requires a reconciled shift. These controls never initiate a bank payment or refund.</p>
     <div className="settlement-payment-choice">

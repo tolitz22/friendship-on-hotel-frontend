@@ -1,4 +1,5 @@
-import {useEffect,useMemo,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
 import {Link} from '@tanstack/react-router';
 import {
  AlertTriangle,ArrowRight,BedDouble,CheckCircle2,ClipboardCheck,
@@ -67,6 +68,8 @@ export function LiveRooms(){
  const [page,setPage]=useState(1);
  const [attentionFilter,setAttentionFilter]=useState<AttentionFilter>('all');
  const [showEvidence,setShowEvidence]=useState(false);
+ const inspectionTrigger=useRef<HTMLButtonElement|null>(null);
+ const inspectionDialog=useRef<HTMLElement|null>(null);
  const roomTypes=useLiveRoomTypes();
  const summary=useLiveCatalogSummary();
  const rooms=useLiveRooms({
@@ -107,6 +110,26 @@ export function LiveRooms(){
   setView('catalog');setShowCreate(false);setEditingRoom(null);setReadinessRoom(null);
   setFloor('all');setSearch('');setPage(1);setAttentionFilter('all');setShowEvidence(false);
  },[hotelId]);
+ useEffect(()=>{
+  if(!readinessRoom)return;
+  const previousOverflow=document.body.style.overflow;
+  document.body.style.overflow='hidden';
+  inspectionDialog.current?.focus();
+  const handleKey=(event:KeyboardEvent)=>{
+   if(event.key==='Escape'){event.preventDefault();setReadinessRoom(null);return;}
+   if(event.key!=='Tab'||!inspectionDialog.current)return;
+   const candidates=Array.from(inspectionDialog.current.querySelectorAll<HTMLElement>(
+    'button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled])'
+   ));
+   if(candidates.length===0){event.preventDefault();inspectionDialog.current.focus();return;}
+   const first=candidates[0],last=candidates[candidates.length-1];
+   if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+   else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+  };
+  window.addEventListener('keydown',handleKey);
+  return ()=>{document.body.style.overflow=previousOverflow;
+   window.removeEventListener('keydown',handleKey);inspectionTrigger.current?.focus();};
+ },[readinessRoom]);
  const changeView=(next:View)=>{
   setView(next);setEditingRoom(null);setReadinessRoom(null);
  };
@@ -238,7 +261,7 @@ export function LiveRooms(){
         <Info size={16}/><span>{canSeeStay?'Operational status unavailable. Open the inspection record for details.':'Operational status is not available in this workspace.'}</span>
        </div>}
        <div className="rr-card-actions">
-        <button type="button" className="rr-primary-card-action" onClick={()=>setReadinessRoom(room)}>
+        <button type="button" className="rr-primary-card-action" onClick={event=>{inspectionTrigger.current=event.currentTarget;setReadinessRoom(room);}}>
          <ShieldCheck size={16}/> {status?.cleaning==='awaiting_inspection'?'Review inspection':'View readiness'} <ArrowRight size={15}/>
         </button>
         {admin&&<button type="button" className="rr-edit-action" onClick={()=>setEditingRoom(room)}><Settings2 size={15}/> Edit room</button>}
@@ -264,8 +287,13 @@ export function LiveRooms(){
     <ReadinessEnforcementPanel/>
    </details>}
   </div>}
-  {readinessRoom&&<RoomReadinessPanel key={hotelId+'-'+readinessRoom.id} room={readinessRoom}
-   onClose={()=>setReadinessRoom(null)}/>}
+    {readinessRoom&&createPortal(<div className="rr-drawer-backdrop" role="presentation">
+   <section className="rr-drawer" role="dialog" aria-modal="true" aria-label={'Room '+readinessRoom.number+' inspection and readiness'}
+    tabIndex={-1} ref={inspectionDialog}>
+    <RoomReadinessPanel key={hotelId+'-'+readinessRoom.id} room={readinessRoom}
+     onClose={()=>setReadinessRoom(null)}/>
+   </section>
+  </div>,document.body)}
   {editingRoom&&admin&&<CatalogEditDialog key={'edit-'+hotelId+'-'+editingRoom.id}
    target={{kind:'room',record:editingRoom}} roomTypes={roomTypes.data?.data??[]}
    onClose={()=>setEditingRoom(null)} onSaved={()=>setEditingRoom(null)}/>}

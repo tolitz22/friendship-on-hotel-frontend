@@ -13,6 +13,7 @@ import {readSession} from '../api/session';
 import {listHotelStaff} from '../api/liveStaff';
 import {Heading} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
+import {ReadableAuditEvent} from '../components/ReadableAuditEvent';
 
 const priorities:MaintenancePriority[]=['low','medium','high','urgent'];
 const statusLabels:Record<MaintenanceStatus,string>={open:'Open',in_progress:'In progress',resolved:'Resolved',closed:'Closed'};
@@ -259,8 +260,9 @@ export function LiveMaintenance(){
     {selected&&<div className="catalog-audit-section">
      <button className="btn-inline" type="button" onClick={()=>setHistoryVisible(value=>!value)}><History size={15}/>{historyVisible?'Hide':'View'} recorded history</button>
      {historyVisible&&<><QueryFeedback loading={history.isPending} error={history.error}/>
-      {history.data?.data.map(e=><article className="maintenance-history-event" key={e.id}><strong>{e.action} · Staff #{e.actorId}</strong>
-       <small>{e.createdAt}</small>{e.note&&<p>{e.note}</p>}</article>)}
+      {history.data?.data.map(event=><ReadableAuditEvent key={event.id} event={event}
+       actorName={staff.data?.data.find(member=>member.userId===event.actorId)?.name}
+       currentUserId={user?.id}/>)}
       {history.data&&<div className="guest-pagination">
        <span>History page {history.data.meta.page} of {Math.max(1,history.data.meta.totalPages)}</span>
        <div><button type="button" className="btn-inline" disabled={historyPage<=1}

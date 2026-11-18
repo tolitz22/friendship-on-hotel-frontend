@@ -7,7 +7,9 @@ import {formatBillingMoney,parseBillingAmount,recordFolioAdjustment,reviewFolioP
 import {readSession} from '../api/session';
 import {QueryFeedback} from './QueryFeedback';
 
-export function BillingActions({bookingId,signed}:{bookingId:string;signed:boolean}){
+export function BillingActions({bookingId,signed,mode='full'}:{
+ bookingId:string;signed:boolean;mode?:'full'|'review';
+}){
  const {hotelId,user}=useHotelAuth();
  const manager=!!hotelId&&user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const client=useQueryClient();
@@ -65,6 +67,7 @@ export function BillingActions({bookingId,signed}:{bookingId:string;signed:boole
  };
  if(!manager||signed)return null;
  return <section className="billing-actions" aria-label="Manager folio actions">
+  {mode==='full'&&<>
   <div className="billing-section-heading"><div><h3>Update the guest's bill</h3>
    <p>Add an extra service or correct an existing charge. This does not record a payment.</p></div></div>
   <div className="billing-adjust-choice" role="group" aria-label="Bill change type">
@@ -111,7 +114,11 @@ export function BillingActions({bookingId,signed}:{bookingId:string;signed:boole
    <button type="button" className="btn-primary" disabled={!canWrite||!parsedAmount||!confirm||reason.trim().length<3}
     onClick={()=>void submit()}>{busy?'Saving…':kind==='debit'?'Add charge to guest bill':'Apply bill correction'}</button>
   </div>
-  <details className="billing-review-list billing-review-details"><summary><strong>Payment records waiting for manager review</strong><span>View reviews</span></summary>
+  </>}
+  <details className="billing-review-list billing-review-details"
+   open={mode==='review'?true:undefined}>
+   <summary><strong>Payment records waiting for manager review</strong>
+    <span>{mode==='review'?'Independent manager confirmation':'View reviews'}</span></summary>
    <QueryFeedback loading={ledger.isPending} error={ledger.error} onRetry={()=>void ledger.refetch()}/>
    {ledger.data?.data.payments.filter(p=>p.status==='pending_review').map(p=><div className="billing-review-item" key={p.id}>
     <div><strong>Payment #{p.id} · {p.method==='bank_transfer'?'Bank transfer':'Cash'}</strong>

@@ -2578,3 +2578,53 @@
 .billing-compact-toolbar span{font-size:11px;color:var(--muted);font-weight:800;letter-spacing:.07em;text-transform:uppercase}
 .billing-compact-toolbar button{display:inline-flex;align-items:center;gap:5px}
 @media(max-width:580px){.settlement-review-steps button{flex:1 1 100%}}
+
+
+/* Billing: operational task first, compact account figures second. */
+.billing-workspace:has(.billing-selected){gap:8px}
+.billing-selected{padding:14px 16px}
+.billing-selected-compact-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:36px;margin-bottom:7px}
+.billing-selected-compact-nav>span{font-weight:700;font-size:12px;color:var(--muted)}
+.billing-selected-compact-nav .btn-inline{display:inline-flex;align-items:center;gap:6px;font-size:12px}
+.billing-selected .billing-compact-toolbar{margin:0 0 6px}
+.billing-selected .settlement-page{display:flex;flex-direction:column;gap:10px}
+.billing-selected .billing-account-overview.billing-account-compact{margin:0;border:0;background:transparent;border-radius:0;padding:5px 0 0}
+.billing-selected .billing-account-overview-head h3{font-size:16px;letter-spacing:0;margin:2px 0 4px}
+.billing-selected .billing-account-overview-head p{font-size:11px;line-height:1.5}
+.billing-selected .billing-account-tag{font-size:10px}
+.billing-selected .checkout-guide{margin:0!important;padding:14px;border-radius:12px;gap:10px}
+.billing-selected .checkout-guide-header h3{font-size:16px;margin:3px 0 0}
+.billing-selected .checkout-guide-header p{display:none}
+.billing-selected .checkout-guide-next{padding:12px 14px;background:var(--canvas)}
+.billing-selected .checkout-guide-next h4{font-size:15px;margin:5px 0 4px}
+.billing-selected .checkout-guide-next>p{font-size:12px;line-height:1.5}
+.billing-selected .checkout-guide-actions{margin-top:10px}
+.billing-selected .checkout-guide-shift{margin-top:10px;padding:10px}
+.billing-selected .checkout-guide-shift p{margin:3px 0}
+.billing-selected .checkout-guide-blockers{margin-top:0}
+.billing-compact-numbers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.billing-compact-numbers>div{display:flex;flex-direction:column;gap:4px;min-width:0;border:1px solid var(--border);border-radius:10px;background:var(--canvas);padding:12px 14px}
+.billing-compact-numbers small{font-size:11px;color:var(--muted);line-height:1.4}
+.billing-compact-numbers strong{font-size:20px;line-height:1.25;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.billing-compact-numbers span{color:var(--muted);font-size:10px;line-height:1.4}
+.billing-figures-details{margin:0;font-size:12px;color:var(--muted);border:1px solid var(--border);border-radius:9px;background:var(--surface);padding:10px 12px}
+.billing-figures-details>summary{cursor:pointer;font-weight:700;font-size:12px}
+.billing-figures-details>.billing-account-totals{margin-top:14px}
+.billing-figures-details .billing-account-totals>div{padding:10px;gap:4px}
+.billing-figures-details .billing-account-totals strong{font-size:16px}
+.billing-figures-details>.desk-muted{margin:12px 0 0}
+.billing-selected .billing-statement-details,.billing-selected .billing-more-tools{margin:0}
+.billing-selected .billing-statement-details>summary{padding:12px 14px}
+.billing-selected .billing-more-tools{padding:11px 14px}
+.billing-selected .billing-statement-details>summary strong{font-size:12px}
+@media(max-width:850px){.billing-compact-numbers{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:650px){
+ .billing-selected{padding:12px}
+ .billing-compact-numbers{grid-template-columns:1fr}
+ .billing-compact-numbers>div{padding:10px 12px}
+ .billing-compact-numbers strong{font-size:18px}
+ .billing-selected-compact-nav{flex-wrap:wrap}
+ .billing-selected-compact-nav>span{display:none}
+ .billing-selected .checkout-guide-header{flex-direction:row;align-items:flex-start}
+ .billing-selected .checkout-guide-status{font-size:10px}
+}

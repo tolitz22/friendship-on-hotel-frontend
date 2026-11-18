@@ -35,6 +35,7 @@ import {Maintenance} from './pages/Maintenance';
 import {LiveMaintenance} from './pages/LiveMaintenance';
 import {Reports} from './pages/Reports';
 import {Settings} from './pages/Settings';import './styles.css';
+import {normalizeBillingBookingId} from './features/billing/bookingLink';
 const root=createRootRoute({component:AppShell});
 function Home(){const {user,hotelId}=useHotelAuth();
  return selectedRole(user?.hotels,hotelId)==='admin'?<LiveDashboard/>:<RoleHome/>;
@@ -81,7 +82,7 @@ const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/guests',component:Guests}),
  createRoute({getParentRoute:()=>root,path:'/billing',
   validateSearch:(value:Record<string,unknown>):{booking?:string}=>({
-   booking:typeof value.booking==='string'&&/^[1-9][0-9]*$/.test(value.booking)?value.booking:undefined,
+   booking:normalizeBillingBookingId(value.booking),
   }),component:Billing}),
  createRoute({getParentRoute:()=>root,path:'/housekeeping',
   validateSearch:(value:Record<string,unknown>):{task?:string}=>({

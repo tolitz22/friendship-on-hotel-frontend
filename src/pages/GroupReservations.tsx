@@ -245,7 +245,7 @@ function GroupAllotmentsPanel({hotelId,onConvert}:{hotelId:string;onConvert:(hol
       <button className="btn-inline" type="button" disabled={busy}
        onClick={()=>void release(hold.id)}>Release hold</button>
      </div>}
-     {hold.convertedGroupId&&<Link to="/group-reservations" search={{group:hold.convertedGroupId}}>Open group</Link>}
+     {hold.convertedGroupId&&<Link to="/group-reservations" search={{group:hold.convertedGroupId,hotel:hotelId}}>Open group</Link>}
     </article>)}
    </div>
    {admin&&<details className="gb-hold-form">
@@ -503,7 +503,7 @@ export function GroupReservations(){
    {result?<div role="status">
     <h3>Group reservation confirmed</h3>
     <p>{result.reference} · {result.roomCount} rooms were created.</p>
-    <button className="btn-primary" onClick={()=>void navigate({to:'/group-reservations',search:{group:result.id}})}>
+    <button className="btn-primary" onClick={()=>void navigate({to:'/group-reservations',search:{group:result.id,hotel:hotelId??undefined}})}>
      View group and assign rooms <ArrowRight size={16}/></button>
    </div>:<>
     <div className="gb-form-step"><span>1</span><div><strong>Group and stay details</strong>
@@ -605,7 +605,7 @@ export function GroupReservations(){
       <p>{group.reference} · {group.roomCount} rooms</p>
       <small>{group.contactName??'No contact recorded'} · Created {readableDateTime(group.createdAt)}</small></div>
      <div className="gb-list-actions">
-      <Link to="/group-reservations" search={{group:group.id}}>View group <ArrowRight size={16}/></Link>
+      <Link to="/group-reservations" search={{group:group.id,hotel:hotelId??undefined}}>View group <ArrowRight size={16}/></Link>
       {group.checkIn&&<Link to="/room-calendar"
        search={{date:group.checkIn,end:group.checkOut??undefined,
       group:group.id,hotel:hotelId??undefined}}>View on calendar</Link>}

@@ -178,52 +178,77 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   data?.cashShiftContexts.find(row=>row.paymentId===nextPayment.id)?.recordedBy===user?.id;
  const cannotVerifyOwn=!!nextPayment&&(pendingOtherReviewer||recorderIsCurrent);
  const hasExistingMoney=recordedTotal>0;
- const nextHeading=data?.signed?'Financial account signed'
-  :nextTask==='disabled'?'Final settlement is unavailable'
-  :nextTask==='confirmation'?'Manager must confirm payment evidence'
-  :nextTask==='verification'&&cashNeedsReconciliation
-   ?cashShiftStatus==='open'?'Cashier must submit the cash count'
-    :cashShiftStatus==='submitted'?'Manager must reconcile the cashier shift'
-    :cashShiftStatus==='flagged'?'Cashier shift requires investigation'
-    :cashShiftStatus==='unknown'?'Cashier shift status unavailable'
-    :'Cash receipt needs investigation'
-  :nextTask==='verification'&&cannotVerifyOwn?'Awaiting another authorized manager'
-  :nextTask==='verification'?'Independent payment verification required'
-  :nextTask==='allocation'?'Apply verified payment to the bill'
-  :nextTask==='signoff'?'Manager must sign off the guest account'
-  :'Resolve remaining settlement checks';
- const nextDescription=nextTask==='disabled'
-  ?'Payment records remain on file. Final settlement cannot proceed until the hotel enables approved verification controls.'
-  :nextTask==='confirmation'
-   ?'The payment is recorded but still needs manager confirmation. Do not collect the same payment again.'
-  :nextTask==='verification'&&cashNeedsReconciliation
-   ?cashShiftStatus==='open'
-    ?'Cashier shift '+(handoff?.cashShiftId??'unknown')+
-     ' is open'+(handoff?.cashierName?' under '+handoff.cashierName:'')+
-     '. The cashier must count and submit physical cash before a different manager reconciles it.'
-    :cashShiftStatus==='submitted'
-     ?'Cashier shift '+(handoff?.cashShiftId??'unknown')+
-      (ownCashierShift
-       ?' was submitted. Another authorized manager must reconcile your shift; you cannot approve your own cash count.'
-       :' was submitted and needs independent manager reconciliation before cash verification.')
-    :cashShiftStatus==='flagged'
-     ?'This cash shift was flagged for a discrepancy. A manager must investigate; it cannot be treated as reconciled.'
+ // Operational handoff: a payment is already recorded; the question is WHO
+ // can complete the next control. Never confuse staff confirmation with
+ // independently verified funds or a completed checkout.
+ const canSubmitOwnCount=nextTask==='verification'&&cashNeedsReconciliation
+  &&cashShiftStatus==='open'&&ownCashierShift;
+ const canReviewShift=nextTask==='verification'&&cashNeedsReconciliation
+  &&cashShiftStatus==='submitted'&&manager&&!ownCashierShift;
+ const mustWaitForCashier=nextTask==='verification'&&cashNeedsReconciliation
+  &&cashShiftStatus==='open'&&!ownCashierShift;
+ const mustWaitForOtherManager=nextTask==='verification'&&cashNeedsReconciliation
+  &&cashShiftStatus==='submitted'&&(!manager||ownCashierShift);
+ const mustWaitForVerifier=nextTask==='verification'&&!cashNeedsReconciliation
+  &&(!manager||cannotVerifyOwn);
+ const needsCashInvestigation=nextTask==='verification'&&cashNeedsReconciliation
+  &&!['open','submitted'].includes(cashShiftStatus);
+ const actionIsWaiting=mustWaitForCashier||mustWaitForOtherManager||mustWaitForVerifier;
+ const paymentStatus=data?.signed
+  ?data.signedSnapshotIntegrity?'Financial approval complete':'Account requires investigation'
+  :!hasExistingMoney?'No payment recorded'
+  :needsCashInvestigation?'Payment needs investigation'
+  :nextTask==='disabled'?'Payment recorded — approval unavailable'
+  :nextTask==='signoff'?'Payment verified — final approval needed'
+  :nextTask==='allocation'?'Payment verified — apply to bill'
+  :nextTask==='verification'&&cashNeedsReconciliation?'Payment recorded — cash check pending'
+  :nextTask==='verification'?'Payment confirmed — approval pending'
+  :nextTask==='confirmation'?'Payment recorded — confirmation pending'
+  :'Payment recorded — review pending';
+ const operationalAction=canSubmitOwnCount?'Submit your cash count'
+  :canReviewShift?'Reconcile cashier shift'
+  :mustWaitForCashier?'Waiting for cashier cash count'
+  :mustWaitForOtherManager?'Waiting for independent manager'
+  :needsCashInvestigation?'Cash receipt requires investigation'
+  :mustWaitForVerifier?'Waiting for independent manager'
+  :nextTask==='confirmation'?'Confirm recorded payment'
+  :nextTask==='verification'?'Review payment verification'
+  :nextTask==='allocation'?'Apply verified payment'
+  :nextTask==='signoff'?'Authorize settlement'
+  :nextTask==='disabled'?'Final approval unavailable'
+  :'Review settlement checks';
+ const shiftLabel=handoff?.cashShiftId?'Shift '+handoff.cashShiftId:'Cashier shift';
+ const operationalDescription=canSubmitOwnCount
+  ?'The payment was already recorded and confirmed. Count the cash in your drawer and submit '+shiftLabel+'. No additional guest payment is needed.'
+  :mustWaitForCashier
+   ?'The payment was already confirmed. '+(handoff?.cashierName??'The assigned cashier')+
+    ' must count and submit '+shiftLabel+' before a separate manager can reconcile it.'
+  :canReviewShift
+   ?'The cashier submitted '+shiftLabel+'. Review the physical cash count and receipts before reconciling. You cannot reconcile your own shift.'
+  :mustWaitForOtherManager
+   ?'The cash count for '+shiftLabel+' was submitted. '+(ownCashierShift?'You cannot reconcile your own shift. ':'')+
+    'A different authorized manager must reconcile it.'
+  :needsCashInvestigation
+   ?cashShiftStatus==='flagged'
+    ?shiftLabel+' has a flagged discrepancy. An authorized manager must investigate before further financial verification.'
     :cashShiftStatus==='unknown'
-     ?'Linked cashier shift status is not available yet. Refresh after the backend deployment is complete; do not collect another payment.'
-    :'This payment has no matching cashier shift receipt. Ask a manager to investigate; do not create another payment record.'
-  :nextTask==='verification'&&cannotVerifyOwn
-   ?(verificationPreparerName
-     ?'Verification was prepared by '+verificationPreparerName+
-      '. A different authorized manager must approve it. The preparer and payment recorder cannot verify their own evidence.'
-     :'A different authorized manager must review. The payment recorder and verification preparer cannot independently approve their own evidence.')
+     ?'Cashier-shift information is unavailable. Refresh after the backend update; do not collect the payment again.'
+     :'No matching cash receipt could be found for this payment. An authorized manager must investigate.'
+  :mustWaitForVerifier
+   ?'The payment has already been staff-confirmed. '+(
+     verificationPreparerName?'Verification was prepared by '+verificationPreparerName+'. ':'')+
+    'A separate authorized manager must verify it.'
+  :nextTask==='confirmation'
+   ?'The payment is already recorded. An authorized manager needs to review the supporting receipt, not collect the money again.'
   :nextTask==='verification'
-   ?'Review the prepared evidence independently, or prepare verification if it has not been submitted yet.'
+   ?'The cash reconciliation or supporting evidence is ready for an authorized independent verification.'
   :nextTask==='allocation'
-   ?'The payment is independently verified but not yet fully applied to the guest charges.'
+   ?'The funds were independently verified. Apply them to the guest charges; do not record another receipt.'
   :nextTask==='signoff'
-   ?'The folio is eligible for final authorized sign-off. Confirm it separately before checkout.'
-  :'Review outstanding checks before completing settlement. A recorded payment is not proof of external settlement.';
-
+   ?'Payment review is complete. An authorized manager must sign the financial statement before operational checkout.'
+  :nextTask==='disabled'
+   ?'Payment evidence is on file, but the hotel has not enabled financial sign-off. Ask the manager to verify the approved configuration.'
+  :'Check the remaining conditions before settlement. Recorded cash is not an instruction to collect again.';
  function openDialog(which:'payment'|'charges'|'review'|'refunds'|'signoff'){
   dialogOpener.current=document.activeElement instanceof HTMLElement?document.activeElement:null;
   setActiveDialog(which);
@@ -306,90 +331,79 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       {data.signed?'Settlement signed':'Settlement not final'}</span>
     </div>
    </div>
-   <section className="frontdesk-payment-hub" aria-label="Front desk payment status">
-    <div className="frontdesk-payment-amounts" aria-label="Guest bill and recorded payment">
-     <div><small>Total recorded charges</small>
+   <section className="frontdesk-payment-hub" aria-label="Front desk payment and checkout">
+    <div className="frontdesk-payment-amounts">
+     <div><small>Guest bill · recorded charges</small>
       <strong>{money(data.netRecordedChargesMinor,data.currency)}</strong></div>
-     <div><small>Payment evidence already recorded</small>
+     <div><small>Payment recorded</small>
       <strong>{money(recordedTotal,data.currency)}</strong>
-      <span>{recordedTotal>0?'Already on file · do not collect again without checking':'No active payment evidence recorded'}</span></div>
+      <span>{hasExistingMoney?'Already on file — do not collect again without checking':'No recorded payment yet'}</span></div>
     </div>
     <div className="frontdesk-payment-status" role="status">
      <div className="frontdesk-payment-status-title">
-      <div><span className="rr-eyebrow">NEXT STEP</span>
-       <h3>{data.signed?(data.signedSnapshotIntegrity?'Financial sign-off completed':'Signed statement needs investigation'):nextHeading}</h3></div>
+      <div><span className="rr-eyebrow">PAYMENT STATUS</span>
+       <h3>{paymentStatus}</h3></div>
       <span className="checkout-guide-status">{data.signed
-       ?data.signedSnapshotIntegrity?'Signed':'Integrity issue'
-       :nextTask==='signoff'?'Ready for sign-off':'Action needed'}</span>
+       ?data.signedSnapshotIntegrity?'Approved':'Investigate'
+       :hasExistingMoney?'Payment on file':'Payment needed'}</span>
      </div>
      <p>{data.signed
-      ?data.signedSnapshotIntegrity?'The signed financial statement passed its integrity check. Operational checkout remains separate.'
-       :'The signed financial statement failed its integrity check. Stop and request independent investigation.'
-      :nextDescription}</p>
+      ?data.signedSnapshotIntegrity
+       ?'The financial account has been signed. Check the separate operational checkout requirements.'
+       :'The signed statement failed its integrity check. Stop checkout and request investigation.'
+      :operationalDescription}</p>
      {!data.signed&&<div className="frontdesk-payment-primary">
-      {nextTask==='verification'&&cashNeedsReconciliation
+      {canSubmitOwnCount||canReviewShift||needsCashInvestigation
        ?<Link to="/cashier-shifts" search={{booking:bookingId,hotel:hotelId??undefined}}
-         className="btn-primary">{cashShiftStatus==='open'?'Open cash count'
-          :cashShiftStatus==='submitted'
-           ?ownCashierShift?'View submitted cash shift':'Review shift reconciliation'
-           :'Investigate cashier shift'}
-          <ArrowRight size={16}/></Link>
+         className="btn-primary">{operationalAction}<ArrowRight size={16}/></Link>
+       :actionIsWaiting||nextTask==='disabled'&&hasExistingMoney
+       ?<div className="frontdesk-payment-waiting">
+         <ShieldCheck size={16}/><strong>{operationalAction}</strong>
+         <span>No additional payment is required at this stage.</span>
+        </div>
        :!manager&&hasExistingMoney
-       ?<button type="button" className="rr-secondary-action" onClick={()=>{
-          const history=document.getElementById('billing-account-history');
-          if(history instanceof HTMLDetailsElement)history.open=true;
-          history?.scrollIntoView({behavior:'smooth',block:'start'});
-         }}>View recorded payment <ArrowRight size={16}/></button>
-       :manager&&nextTask==='verification'&&cannotVerifyOwn
        ?<span className="frontdesk-payment-waiting"><ShieldCheck size={16}/>
-        Another authorized manager must complete the review</span>
-       :manager&&nextTask!=='disabled'&&hasExistingMoney
-       ?<button type="button" className="btn-primary" disabled={busy}
-         onClick={openPaymentReview}><ShieldCheck size={16}/>
-         {nextTask==='confirmation'?'Review payment evidence'
-          :nextTask==='verification'?'Review payment verification'
-          :nextTask==='allocation'?'Apply verified payment'
-          :nextTask==='signoff'?'Authorize final settlement':'Review settlement checks'}</button>
+         Waiting for authorized finance review. No additional payment needed.</span>
+       :manager&&hasExistingMoney&&nextTask!=='disabled'
+       ?<button type="button" className="btn-primary" disabled={busy} onClick={openPaymentReview}>
+         <ShieldCheck size={16}/>{operationalAction}</button>
        :hasExistingMoney
-       ?<button type="button" className="rr-secondary-action" onClick={()=>{
-          const history=document.getElementById('billing-account-history');
-          if(history instanceof HTMLDetailsElement)history.open=true;
-          history?.scrollIntoView({behavior:'smooth',block:'start'});
-         }}>View existing payment <ArrowRight size={16}/></button>
+       ?<span className="frontdesk-payment-waiting">Payment is recorded; finance approval is unavailable.</span>
        :<button type="button" className="btn-primary" disabled={busy}
-        onClick={()=>openDialog('payment')}><Banknote size={16}/> Record a new payment</button>}
+        onClick={()=>openDialog('payment')}><Banknote size={16}/> Record payment</button>}
      </div>}
      {data.signed&&data.signedSnapshotIntegrity&&<Link to="/reservations"
-      search={{booking:bookingId}}>Continue operational checkout <ArrowRight size={15}/></Link>}
+      search={{booking:bookingId}}>Continue checkout <ArrowRight size={15}/></Link>}
     </div>
-    {!data.signed&&<div className="frontdesk-payment-stages" aria-label="Payment review stages">
-     <div><CheckCircle2 size={15}/> Payment record
-      <strong>{hasExistingMoney?'On file':'Not recorded'}</strong></div>
-     <div><ShieldCheck size={15}/> Independent review
-      <strong>{data.verifiedPaymentsMinor>0?'Verified'
-       :confirmedPendingVerification.length>0?'Staff-confirmed · awaiting verification'
-       :unconfirmed.length>0?'Awaiting confirmation':'Not verified'}</strong></div>
-     <div><ClipboardCheck size={15}/> Applied to bill
-      <strong>{data.verifiedAllocatedMinor>0
-       ?money(data.verifiedAllocatedMinor,data.currency):'Not yet applied'}</strong></div>
-    </div>}
-    {nextCashPayment&&<div className="frontdesk-payment-shift">
-     <div><strong>Cash receipt · {handoff?.cashShiftId?'Shift '+handoff.cashShiftId:'Shift not linked'}</strong>
-      <span>{cashShiftStatus==='open'?'Cash drawer open; count not submitted'
-       :cashShiftStatus==='submitted'?'Cash count submitted; awaiting independent review'
-       :cashShiftStatus==='reconciled'?'Shift independently reconciled'
-       :cashShiftStatus==='flagged'?'Discrepancy flagged for investigation'
-       :cashShiftStatus==='unknown'?'Cash shift information unavailable; refresh after backend update'
-       :'No matching shift receipt found'}</span>
-      {handoff?.cashierName&&<small>Cashier: {handoff.cashierName}</small>}
-      {handoff?.reconciledByName&&<small>Reconciled by: {handoff.reconciledByName}</small>}
+    {!data.signed&&hasExistingMoney&&<details className="frontdesk-payment-more">
+     <summary>Payment processing details · confirmations, verification and cashier shift</summary>
+     <div className="frontdesk-payment-stages" aria-label="Payment review stages">
+      <div><CheckCircle2 size={15}/> Payment recorded<strong>On file</strong></div>
+      <div><ShieldCheck size={15}/> Payment approval
+       <strong>{data.verifiedPaymentsMinor>0?'Independently verified'
+        :confirmedPendingVerification.length>0?'Staff-confirmed; independent verification pending'
+        :unconfirmed.length>0?'Awaiting staff confirmation':'Awaiting review'}</strong></div>
+      <div><ClipboardCheck size={15}/> Applied to bill
+       <strong>{data.verifiedAllocatedMinor>0
+        ?money(data.verifiedAllocatedMinor,data.currency):'Not yet applied'}</strong></div>
      </div>
-     <Link to="/cashier-shifts" search={{booking:bookingId,hotel:hotelId??undefined}}>
-      View cashier shifts <ArrowRight size={14}/></Link>
-    </div>}
-    {data.blockers.length>0&&!data.signed&&<details className="checkout-guide-blockers">
-     <summary>{data.blockers.length} settlement check{data.blockers.length===1?'':'s'} outstanding</summary>
-     <ul>{data.blockers.map((blocker,i)=><li key={i}>{blocker}</li>)}</ul>
+     {nextCashPayment&&<div className="frontdesk-payment-shift">
+      <div><strong>Payment linked to {shiftLabel}</strong>
+       <span>{cashShiftStatus==='open'?'Cash drawer open — cash count not submitted'
+        :cashShiftStatus==='submitted'?'Cash count submitted — awaiting independent reconciliation'
+        :cashShiftStatus==='reconciled'?'Independently reconciled'
+        :cashShiftStatus==='flagged'?'Discrepancy flagged'
+        :'Linked cashier-shift status requires investigation'}</span>
+       {handoff?.cashierName&&<small>Cashier: {handoff.cashierName}</small>}
+       {handoff?.reconciledByName&&<small>Reconciled by: {handoff.reconciledByName}</small>}
+      </div>
+      <Link to="/cashier-shifts" search={{booking:bookingId,hotel:hotelId??undefined}}>
+       Open cashier shifts <ArrowRight size={14}/></Link>
+     </div>}
+     {data.blockers.length>0&&<div className="frontdesk-payment-checks">
+      <strong>{data.blockers.length} outstanding finance checks</strong>
+      <ul>{data.blockers.map((blocker,i)=><li key={i}>{blocker}</li>)}</ul>
+     </div>}
     </details>}
    </section>
    <details className="billing-figures-details">

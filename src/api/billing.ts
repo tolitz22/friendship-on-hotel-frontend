@@ -5,7 +5,7 @@ import {hotelPath,readSession} from './session';
 
 const id=z.string().regex(/^[1-9]\d*$/);
 const row=z.object({
- bookingId:id,folioId:id,reference:z.string(),checkIn:z.string(),checkOut:z.string(),
+ bookingId:id,folioId:id,reference:z.string(),guestName:z.string().nullable(),checkIn:z.string(),checkOut:z.string(),
  status:z.string(),currency:z.string(),
  netRecordedChargesMinor:z.number().int(),
  staffConfirmedPaymentsMinor:z.number().int(),

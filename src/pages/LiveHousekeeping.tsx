@@ -238,7 +238,7 @@ export function LiveHousekeeping(){
   {form&&<div className="guest-modal-backdrop" role="presentation"><section className="guest-modal" role="dialog" aria-modal="true" aria-labelledby="hk-dialog-title">
    <div className="catalog-modal-heading"><h3 id="hk-dialog-title">{selected?'Housekeeping task HK-'+selected.id:'Create housekeeping task'}</h3>
     <button type="button" className="icon-btn" aria-label="Close" disabled={saving} onClick={close}><X size={19}/></button></div>
-   <p>This task records cleaning work only. A completed task does not automatically approve room readiness.</p>
+   <div className="hk-dialog-guide"><Info size={17}/><p><strong>Cleaning record only.</strong> Saving this task updates work progress; it does not approve the room for guests. A separate readiness check may still be required.</p></div>
    {selected&&<>
     <QueryFeedback loading={maintenance.isPending} error={maintenance.error}/>
     {maintenance.isSuccess&&<>
@@ -264,7 +264,7 @@ export function LiveHousekeeping(){
      <option value="">Choose a room</option>{rooms.data?.data.map(r=><option key={r.id} value={r.id}>Room {r.number}</option>)}</select></label>
     <label>Task type<select disabled={!!selected||!admin||saving} value={form.type} onChange={e=>change('type',e.target.value as HousekeepingType)}>
      {taskTypes.map(type=><option key={type} value={type}>{taskNames[type]}</option>)}</select></label>
-    <label>Status<select disabled={!selected||!maySave||saving} value={form.status} onChange={e=>change('status',e.target.value as HousekeepingStatus)}>
+    <label>Cleaning progress<select disabled={!selected||!maySave||saving} value={form.status} onChange={e=>change('status',e.target.value as HousekeepingStatus)}>
      {[selected?.status??'todo',...(transitions[selected?.status??'todo']??[])].map(status=><option key={status} value={status}>{statusNames[status]}</option>)}</select></label>
     {admin&&<label>Assign staff member<select value={form.assignedUserId} disabled={saving} onChange={e=>change('assignedUserId',e.target.value)}>
      <option value="">No linked account</option>
@@ -277,7 +277,7 @@ export function LiveHousekeeping(){
    {Object.entries(fieldErrors).flatMap(([field,messages])=>messages.map((m,i)=><p key={field+i} className="catalog-field-error" role="alert">{field}: {m}</p>))}
    {error&&<p role="alert" className="auth-error">{error}</p>}
    <div className="guest-modal-actions"><button type="button" className="btn-inline" disabled={saving} onClick={close}>Close</button>
-    {maySave&&<button type="submit" className="btn-primary" disabled={saving}>{saving?'Saving…':selected?'Save changes':'Create task'}</button>}</div>
+    {maySave&&<button type="submit" className="btn-primary" disabled={saving}>{saving?'Saving…':selected?'Save task updates':'Create task'}</button>}</div>
    </form>
    {selected&&<div className="catalog-audit-section">
     <button type="button" className="btn-inline" onClick={()=>setHistoryOpen(v=>!v)}><History size={16}/>{historyOpen?'Hide':'View'} task history</button>

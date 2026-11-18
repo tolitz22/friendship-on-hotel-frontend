@@ -76,13 +76,13 @@ export function usePaymentSafety(bookingId:string,method?:'cash'|'bank_transfer'
   retry:false,
  });
 }
-export function voidFolioPayment(bookingId:string,paymentId:string,requestKey:string,reason:string){
+export async function voidFolioPayment(bookingId:string,paymentId:string,requestKey:string,reason:string){
+ const response=await requestJson<unknown>(
+  hotelPath('/bookings/'+encodeURIComponent(bookingId)+'/payment-records/'
+   +encodeURIComponent(paymentId)+'/void'),{method:'POST',body:{requestKey,reason}});
  return z.object({data:z.object({
   paymentId:id,status:z.literal('voided'),replayed:z.boolean(),
- })}).parseAsync(requestJson<unknown>(
-  hotelPath('/bookings/'+encodeURIComponent(bookingId)+'/payment-records/'
-   +encodeURIComponent(paymentId)+'/void'),{method:'POST',body:{requestKey,reason}},
- )).then(result=>result.data);
+ })}).parse(response).data;
 }
 export function recordBankEvidence(bookingId:string,requestKey:string,reference:string,
  amountMinor:number,duplicateOverrideReason?:string){

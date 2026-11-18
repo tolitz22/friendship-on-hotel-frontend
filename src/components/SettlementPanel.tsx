@@ -56,7 +56,7 @@ const statement=z.object({
  hotelId:id,bookingId:id,folioId:id,reservationReference:z.string(),
  checkIn:z.string(),checkOut:z.string(),status:z.string(),currency:z.string(),
  charges:z.array(charge),adjustments:z.array(adjustment),
- payments:z.array(payment),cashShiftContexts:z.array(paymentHandoff),
+ payments:z.array(payment),cashShiftContexts:z.array(paymentHandoff).default([]),
  allocations:z.array(allocation),taxAllocations:z.array(tax),
  refunds:z.array(refund),verifiedRefundsMinor:z.number().int(),
  netRecordedChargesMinor:z.number().int(),
@@ -168,7 +168,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   ?nextPayment:null;
  const handoff=nextCashPayment
   ?data?.cashShiftContexts.find(row=>row.paymentId===nextCashPayment.id):undefined;
- const cashShiftStatus=handoff?.cashShiftStatus??'unlinked';
+ const cashShiftStatus=handoff?.cashShiftStatus??'unknown';
  const ownCashierShift=handoff?.cashierId===user?.id;
  const cashNeedsReconciliation=!!nextCashPayment&&cashShiftStatus!=='reconciled';
  const recorderIsCurrent=!!nextPayment&&
@@ -182,6 +182,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
    ?cashShiftStatus==='open'?'Cashier must submit the cash count'
     :cashShiftStatus==='submitted'?'Manager must reconcile the cashier shift'
     :cashShiftStatus==='flagged'?'Cashier shift requires investigation'
+    :cashShiftStatus==='unknown'?'Cashier shift status unavailable'
     :'Cash receipt needs investigation'
   :nextTask==='verification'&&cannotVerifyOwn?'Awaiting another authorized manager'
   :nextTask==='verification'?'Independent payment verification required'
@@ -204,6 +205,8 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        :' was submitted and needs independent manager reconciliation before cash verification.')
     :cashShiftStatus==='flagged'
      ?'This cash shift was flagged for a discrepancy. A manager must investigate; it cannot be treated as reconciled.'
+    :cashShiftStatus==='unknown'
+     ?'Linked cashier shift status is not available yet. Refresh after the backend deployment is complete; do not collect another payment.'
     :'This payment has no matching cashier shift receipt. Ask a manager to investigate; do not create another payment record.'
   :nextTask==='verification'&&cannotVerifyOwn
    ?'The payment recorder or verification preparer cannot independently approve this evidence. Another authorized manager must review it.'
@@ -370,6 +373,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        :cashShiftStatus==='submitted'?'Cash count submitted; awaiting independent review'
        :cashShiftStatus==='reconciled'?'Shift independently reconciled'
        :cashShiftStatus==='flagged'?'Discrepancy flagged for investigation'
+       :cashShiftStatus==='unknown'?'Cash shift information unavailable; refresh after backend update'
        :'No matching shift receipt found'}</span>
       {handoff?.cashierName&&<small>Cashier: {handoff.cashierName}</small>}
       {handoff?.reconciledByName&&<small>Reconciled by: {handoff.reconciledByName}</small>}

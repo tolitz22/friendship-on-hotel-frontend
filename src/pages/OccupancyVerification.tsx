@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
-import {Link} from '@tanstack/react-router';
+import {Link,useSearch,useNavigate} from '@tanstack/react-router';
 import {AlertTriangle,ArrowRight,ClipboardCheck,Info,Plus,RefreshCw,ShieldCheck,X} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
@@ -134,6 +134,8 @@ function CheckCard({check,manager,isCurrentDate,onChanged}:{check:OccupancyVerif
 }
 
 export function OccupancyVerification(){
+ const {room:linkedRoom,date:linkedDate}=useSearch({from:'/occupancy-verification'});
+ const navigate=useNavigate();
  const {hotelId,user}=useHotelAuth();
  const role=user?.hotels.find(h=>h.id===hotelId)?.role;
  const manager=role==='admin';
@@ -142,7 +144,7 @@ export function OccupancyVerification(){
  const [selectedDate,setSelectedDate]=useState('');
  const property=useLiveProperty();
  const hotelDate=hotelToday(new Date(),property.data?.data.timeZone??'Asia/Manila');
- const displayDate=selectedDate||hotelDate;
+ const displayDate=selectedDate||linkedDate||hotelDate;
  const [status,setStatus]=useState('all');
  const [roomId,setRoomId]=useState('');
  const [assignee,setAssignee]=useState('');
@@ -151,7 +153,7 @@ export function OccupancyVerification(){
  const [saving,setSaving]=useState(false);
  const [showAssign,setShowAssign]=useState(false);
  const client=useQueryClient();
- const checks=useOccupancyVerifications(allowed,page,status==='all'?undefined:status as OccupancyVerification['status'],displayDate);
+ const checks=useOccupancyVerifications(allowed,page,status==='all'?undefined:status as OccupancyVerification['status'],displayDate,linkedRoom);
  const rooms=useLiveRooms({page:1,perPage:100});
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:manager});
  const eligible=staff.data?.data.filter(person=>person.role==='housekeeping'&&person.isActive)??[];
@@ -177,7 +179,7 @@ export function OccupancyVerification(){
    <Heading title="Room occupancy checks" description={manager
     ?'Assign independent room observations and review what differs from the hotel records.'
     :'Report what you can safely observe in your assigned rooms.'}/></div>
-   {manager&&<button type="button" className="btn-primary occ-nav-link" onClick={()=>setShowAssign(true)}>
+   {manager&&displayDate===hotelDate&&<button type="button" className="btn-primary occ-nav-link" onClick={()=>{if(linkedRoom)setRoomId(linkedRoom);setShowAssign(true);}}>
     <Plus size={16}/> Assign a room check</button>}</div>
   {manager&&<div className="occ-report-link"><Link to="/occupancy-coverage">
    View room occupancy report <ArrowRight size={15}/></Link></div>}
@@ -209,7 +211,11 @@ export function OccupancyVerification(){
    {error&&<p role="alert" className="auth-error">{error}</p>}
    {message&&<p role="status">{message}</p>}
    </Panel></section></div>}
-  <Panel title={manager?'Room checks':'My assigned rooms'}>
+  <Panel title={linkedRoom?'Selected room checks':manager?'Room checks':'My assigned rooms'}>
+   {linkedRoom&&<div className="occ-room-deeplink">
+    <span>Showing room {rooms.data?.data.find(room=>room.id===linkedRoom)?.number??'selected'} on {readableDate(displayDate)}</span>
+    <button type="button" className="btn-inline" onClick={()=>void navigate({to:'/occupancy-verification',search:{}})}>Show all rooms</button>
+   </div>}
    <div className="desk-tools">
     <label>Check date
      <input className="wizard-input" type="date" max={hotelDate}

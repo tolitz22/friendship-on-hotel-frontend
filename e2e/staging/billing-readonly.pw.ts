@@ -30,7 +30,8 @@ test('real priced folio directory and settlement statement are accessible withou
  if(await row.count()){
   await row.getByRole('link',{name:/Open folio for booking/}).click();
   await expect(page.locator('.billing-account-overview')).toBeVisible();
-  const payment=page.getByRole('region',{name:'Record guest payment'});
+  await page.getByRole('button',{name:'Record payment',exact:true}).click();
+  const payment=page.getByRole('dialog',{name:'Record guest payment'});
   if(await payment.count()){
    await expect(payment.getByRole('button',{name:'Cash',exact:true})).toBeVisible();
    if(await payment.getByLabel('Payment amount (₱)').count()){
@@ -40,6 +41,7 @@ test('real priced folio directory and settlement statement are accessible withou
     await expect(payment.getByRole('button',{name:/Record cash payment/})).toBeDisabled();
    }
   }
+  await payment.getByRole('button',{name:'Close dialog'}).click();
   await page.locator('.billing-statement-details > summary').click();
   await expect(page.getByRole('heading',{name:'Guest account statement'})).toBeVisible();
   await expect(page.getByText('This is an internal PMS guest-account statement',{exact:false})).toBeVisible();
@@ -56,8 +58,10 @@ test('manager can preview adding charges without submitting financial writes',as
  const row=page.locator('.billing-folio-row').first();
  if(!await row.count())return;
  await row.getByRole('link',{name:/Open folio for booking/}).click();
- const manager=page.getByRole('region',{name:'Manager folio actions'});
- if(!await manager.count())return; // Signed accounts do not permit new charges.
+ const add=page.getByRole('button',{name:'Add charge or correction'});
+ if(!await add.count())return; // Signed accounts cannot be adjusted.
+ await add.click();
+ const manager=page.getByRole('dialog',{name:'Update guest bill'}); // Signed accounts do not permit new charges.
  await expect(manager.getByRole('button',{name:/Add a charge/})).toHaveAttribute('aria-pressed','true');
  await manager.getByLabel('Description of charge').fill('Two bottled waters');
  await manager.getByLabel('Amount to add (₱)').fill('100.00');
@@ -79,7 +83,8 @@ test('front-desk account can review folios without manager-only financial write 
   await row.getByRole('link',{name:/Open folio for booking/}).click();
   await expect(page.locator('.billing-account-overview')).toBeVisible();
   await expect(page.getByRole('region',{name:'Manager folio actions'})).toHaveCount(0);
-  const payment=page.getByRole('region',{name:'Record guest payment'});
+  await page.getByRole('button',{name:'Record payment',exact:true}).click();
+  const payment=page.getByRole('dialog',{name:'Record guest payment'});
   if(await payment.count())
    await expect(payment.getByRole('button',{name:/Bank transfer/})).toBeDisabled();
  }

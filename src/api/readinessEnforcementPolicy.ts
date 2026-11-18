@@ -13,7 +13,7 @@ const policy=z.object({data:z.object({
 })});
 const history=z.object({
  data:z.array(z.object({
-  id,actorId:id,previousEnabled:z.boolean(),nextEnabled:z.boolean(),
+  id,actorId:id,actorName:z.string().nullable().optional(),previousEnabled:z.boolean(),nextEnabled:z.boolean(),
   revision:z.number().int().positive(),reason:z.string(),createdAt:z.string(),
  })),
  meta:z.object({

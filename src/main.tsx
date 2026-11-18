@@ -57,8 +57,10 @@ const reservations=createRoute({getParentRoute:()=>root,path:'/reservations',
   checkOut:typeof value.checkOut==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.checkOut)&&!Number.isNaN(Date.parse(value.checkOut+'T00:00:00Z'))&&new Date(value.checkOut+'T00:00:00Z').toISOString().slice(0,10)===value.checkOut?value.checkOut:undefined,
  }),component:Reservations});
 const groupReservations=createRoute({getParentRoute:()=>root,path:'/group-reservations',
- validateSearch:(value:Record<string,unknown>):{group?:string}=>({
+ validateSearch:(value:Record<string,unknown>):{group?:string;tab?:'billing';hotel?:string}=>({
   group:typeof value.group==='string'&&/^[1-9][0-9]*$/.test(value.group)?value.group:undefined,
+  tab:value.tab==='billing'?'billing':undefined,
+  hotel:typeof value.hotel==='string'&&/^[1-9][0-9]*$/.test(value.hotel)?value.hotel:undefined,
  }),component:GroupReservations});
 const rooms=createRoute({getParentRoute:()=>root,path:'/rooms',
  validateSearch:(value:Record<string,unknown>):{room?:string}=>({
@@ -66,7 +68,15 @@ const rooms=createRoute({getParentRoute:()=>root,path:'/rooms',
    ?value.room.trim()||undefined:undefined,
  }),
  component:dataMode==='api'?LiveRooms:Rooms});
-const roomCalendar=createRoute({getParentRoute:()=>root,path:'/room-calendar',component:LiveRoomCalendar});
+const roomCalendar=createRoute({getParentRoute:()=>root,path:'/room-calendar',
+ validateSearch:(value:Record<string,unknown>):{date?:string;group?:string;hotel?:string}=>({
+  date:typeof value.date==='string'&&/^\\d{4}-\\d{2}-\\d{2}$/.test(value.date)
+    &&!Number.isNaN(Date.parse(value.date+'T00:00:00Z'))
+    &&new Date(value.date+'T00:00:00Z').toISOString().slice(0,10)===value.date
+     ?value.date:undefined,
+  group:typeof value.group==='string'&&/^[1-9][0-9]*$/.test(value.group)?value.group:undefined,
+  hotel:typeof value.hotel==='string'&&/^[1-9][0-9]*$/.test(value.hotel)?value.hotel:undefined,
+ }),component:LiveRoomCalendar});
 const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/front-desk',
   validateSearch:(value:Record<string,unknown>):{queue?:'arrivals'|'departures'|'in_house'}=>({

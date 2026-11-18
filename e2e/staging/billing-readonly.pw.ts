@@ -19,11 +19,11 @@ test('real priced folio directory and settlement statement are accessible withou
  const password=process.env.PMS_STAGING_ADMIN_PASSWORD??process.env.PMS_STAGING_PASSWORD;
  if(!email||!password)throw Error('Provide dedicated staging finance staff account.');
  await openBilling(page,email,password);
- await expect(page.getByRole('heading',{name:'Find a guest folio'})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Find a guest or booking'})).toBeVisible();
  await expect(page.locator('text=Sample folio overview')).toHaveCount(0);
  const search=page.getByRole('searchbox',{name:'Search folios'});
  await search.fill('nonexistent-folio-999891');
- await expect(page.getByText(/No matching priced folios/)).toBeVisible();
+ await expect(page.getByText('No matching guest accounts')).toBeVisible();
  await page.getByRole('button',{name:'Clear search'}).click();
  await expect(search).toHaveValue('');
  const row=page.locator('.billing-folio-row').first();
@@ -31,7 +31,7 @@ test('real priced folio directory and settlement statement are accessible withou
   await row.getByRole('link',{name:/Open folio for booking/}).click();
   await expect(page.getByRole('heading',{name:'Guest folio statement'})).toBeVisible();
   await expect(page.getByText('This is an internal PMS guest-account statement',{exact:false})).toBeVisible();
-  await page.getByRole('button',{name:'Close folio'}).click();
+  await page.getByRole('button',{name:'Back to guest accounts'}).click();
   await expect(page.getByRole('heading',{name:'Guest folio statement'})).toHaveCount(0);
  }
  const sizes=await page.evaluate(()=>[document.documentElement.scrollWidth,document.documentElement.clientWidth]);
@@ -42,7 +42,7 @@ test('front-desk account can review folios without manager-only financial write 
  const password=process.env.PMS_STAGING_FRONT_DESK_PASSWORD;
  test.skip(!email||!password,'Dedicated reception staging account required.');
  await openBilling(page,email!,password!);
- await expect(page.getByRole('heading',{name:'Find a guest folio'})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Find a guest or booking'})).toBeVisible();
  const row=page.locator('.billing-folio-row').first();
  if(await row.count()){
   await row.getByRole('link',{name:/Open folio for booking/}).click();

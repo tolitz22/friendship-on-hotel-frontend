@@ -109,7 +109,7 @@ export function CatalogEditDialog({target,roomTypes,onClose,onSaved}:Props){
       key,key==='roomTypeId'?roomTypes.find(type=>type.id===String(value))?.name??'Room category changed':value,
      ])),
      note:null,createdAt:event.createdAt,
-    }} actorName={staff.data?.data.find(member=>member.userId===event.actorId)?.name}
+    }} actorName={event.actorName??staff.data?.data.find(member=>member.userId===event.actorId)?.name}
      currentUserId={user?.id} currentUserName={user?.name}/>)}
    </div>}
   </div>

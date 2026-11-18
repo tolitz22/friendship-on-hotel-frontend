@@ -302,6 +302,11 @@ function GroupDetails({id,billingOpen=false,originHotel}:{id:string;billingOpen?
  const mismatch=!!originHotel&&originHotel!==hotelId;
  const details=useGroupBooking(mismatch?null:id);
  const group=details.data;
+ useEffect(()=>{
+  if(billingOpen&&group?.id===id){
+   document.getElementById('group-billing-overview')?.scrollIntoView({block:'start',behavior:'smooth'});
+  }
+ },[billingOpen,group?.id,id]);
  if(mismatch)return <Panel title="Select the original property">
   <p role="alert">This group booking link belongs to another hotel. Select that hotel in the property selector to open the original group safely.</p>
   <Link to="/group-reservations" search={{}}>Back to Group Bookings</Link>

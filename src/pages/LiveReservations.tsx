@@ -89,7 +89,7 @@ export function LiveReservations(){
      <div className="gb-context-actions">
       <Link to="/group-reservations" search={{group:routeSearch.group,hotel:routeSearch.hotel}}>
        Back to group <ArrowRight size={14}/></Link>
-      {routeSearch.checkIn&&<Link to="/room-calendar" search={{date:routeSearch.checkIn,
+      {routeSearch.checkIn&&<Link to="/room-calendar" search={{date:routeSearch.checkIn,end:routeSearch.checkOut,
        group:routeSearch.group,hotel:routeSearch.hotel}}>
        View group on calendar <ArrowRight size={14}/></Link>}
      </div></>}

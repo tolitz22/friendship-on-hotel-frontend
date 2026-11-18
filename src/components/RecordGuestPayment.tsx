@@ -4,7 +4,7 @@ import {AlertTriangle,ArrowRight,Banknote,CheckCircle2,CreditCard,Info,RefreshCw
 import {Link} from '@tanstack/react-router';
 import {useHotelAuth} from './AuthProvider';
 import {useCurrentCashierShift,openCashierShift,receiveCash} from '../api/cashierShifts';
-import {parseBillingAmount,calculateCashChange,formatBillingMoney,recordBankEvidence} from '../api/billing';
+import {parseBillingAmount,calculateCashChange,formatBillingMoney,recordBankEvidence,usePaymentSafety} from '../api/billing';
 import {readSession} from '../api/session';
 
 type Method='cash'|'bank';
@@ -31,16 +31,28 @@ export function RecordGuestPayment({bookingId,currency,signed,recordedDifference
  const [busy,setBusy]=useState(false);
  const [notice,setNotice]=useState('');
  const [paymentSaved,setPaymentSaved]=useState(false);
+ const [duplicateReason,setDuplicateReason]=useState('');
+ const [duplicateConfirmed,setDuplicateConfirmed]=useState(false);
  const [error,setError]=useState('');
  const idempotencyKey=useRef(crypto.randomUUID());
  const receiptReference=useRef(makeReference());
  const shift=useCurrentCashierShift(!!allowed&&!signed);
  const amountMinor=currency==='PHP'?parseBillingAmount(amount):null;
+ const safety=usePaymentSafety(bookingId,method==='cash'?'cash':'bank_transfer',amountMinor);
+ const matches=safety.data?.recentMatchingPaymentIds??[];
+ const potentialDuplicate=amountMinor!==null&&matches.length>0;
+ const allowSecond=manager&&duplicateConfirmed&&duplicateReason.trim().length>=12;
+ const activePayments=safety.data?.payments.filter(p=>
+  p.status==='pending_review'||p.status==='staff_confirmed')??[];
+ const alreadyRecordedMinor=activePayments.reduce((sum,p)=>sum+p.amountMinor,0);
+ const pendingMinor=activePayments.filter(p=>p.status==='pending_review')
+  .reduce((sum,p)=>sum+p.amountMinor,0);
  const tenderedMinor=currency==='PHP'?parseBillingAmount(tendered):null;
  const floatMinor=openingFloat==='0'||openingFloat==='0.00'?0:parseBillingAmount(openingFloat);
  const changeMinor=calculateCashChange(amountMinor,tenderedMinor);
  const overDifference=amountMinor!==null&&recordedDifferenceMinor>0&&amountMinor>recordedDifferenceMinor;
- const canSubmit=!!hotelId&&!!allowed&&!signed&&!busy&&amountMinor!==null&&confirmed&&(
+ const canSubmit=!!hotelId&&!!allowed&&!signed&&!busy&&amountMinor!==null&&confirmed
+  &&safety.isSuccess&&(!potentialDuplicate||allowSecond)&&(
   method==='cash'?shift.isSuccess&&!shift.isFetching&&!!shift.data&&shift.data.status==='open'&&changeMinor!==null:
   manager&&bankReference.trim().length>=3
  );
@@ -48,6 +60,7 @@ export function RecordGuestPayment({bookingId,currency,signed,recordedDifference
   idempotencyKey.current=crypto.randomUUID();
   receiptReference.current=makeReference();
   setConfirmed(false);setNotice('');setPaymentSaved(false);setError('');
+  setDuplicateConfirmed(false);setDuplicateReason('');
  };
  const refresh=()=>{
   void Promise.all([
@@ -82,12 +95,14 @@ export function RecordGuestPayment({bookingId,currency,signed,recordedDifference
     if(!shift.data||changeMinor===null)return;
     const result=await receiveCash(hotelId,shift.data.id,bookingId,{
      requestKey,reference:receiptReference.current,amountMinor,
+     ...(potentialDuplicate&&allowSecond?{duplicateOverrideReason:duplicateReason.trim()}:{}),
     });
     if(readSession().hotelId!==hotelId)return;
     setNotice('Cash receipt #'+result.paymentId+' recorded in your shift. Give the guest '+
      formatBillingMoney(changeMinor,currency)+' in change. The receipt still needs independent review.');
    }else{
-    await recordBankEvidence(bookingId,requestKey,bankReference.trim(),amountMinor);
+    await recordBankEvidence(bookingId,requestKey,bankReference.trim(),amountMinor,
+     potentialDuplicate&&allowSecond?duplicateReason.trim():undefined);
     if(readSession().hotelId!==hotelId)return;
     setNotice('Bank-transfer evidence recorded. An independent manager must review it before settlement.');
    }
@@ -144,6 +159,30 @@ export function RecordGuestPayment({bookingId,currency,signed,recordedDifference
      placeholder="Reference shown on the transfer evidence" maxLength={120}
      onChange={e=>{setBankReference(e.target.value);resetAttempt();}}/>
    </label>}
+   <section className="billing-payment-existing" aria-label="Existing guest payments">
+    <div className="billing-payment-existing-heading"><strong>Before collecting another payment</strong>
+     <button type="button" className="btn-inline" disabled={safety.isFetching}
+      onClick={()=>void safety.refetch()}><RefreshCw size={14}/> Refresh payments</button></div>
+    {safety.isPending&&<p>Checking existing payment records…</p>}
+    {safety.isError&&<p role="alert">Could not verify existing records. Payment entry is paused until this check succeeds.</p>}
+    {safety.isSuccess&&<>
+     <div className="billing-payment-existing-totals">
+      <span>Already recorded (not necessarily verified): <strong>{formatBillingMoney(alreadyRecordedMinor,currency)}</strong></span>
+      <span>Awaiting review: <strong>{formatBillingMoney(pendingMinor,currency)}</strong></span>
+     </div>
+     {activePayments.length>0&&<details>
+      <summary>Review {activePayments.length} existing payment record{activePayments.length===1?'':'s'}</summary>
+      <div className="billing-payment-existing-list">
+       {activePayments.slice(0,15).map(p=><div key={p.id}>
+        <strong>{p.reference} · {formatBillingMoney(p.amountMinor,currency)}</strong>
+        <small>{p.method==='cash'?'Cash':'Bank transfer'} · {p.status==='pending_review'?'Awaiting review':'Staff-confirmed'}
+         {' · '}Recorded by {p.recordedByName??'Employee name unavailable'}</small>
+       </div>)}
+      </div>
+     </details>}
+     {safety.data.hasMore&&<p>There are older records not shown here. Review the full folio history before recording another payment.</p>}
+    </>}
+   </section>
    <label>Payment amount (₱)
     <input className="wizard-input" inputMode="decimal" disabled={busy} value={amount}
      placeholder="0.00" onChange={e=>{setAmount(e.target.value);resetAttempt();}}/>
@@ -160,6 +199,23 @@ export function RecordGuestPayment({bookingId,currency,signed,recordedDifference
    </div>}
    {overDifference&&<p className="billing-payment-caution"><AlertTriangle size={16}/>
     This payment exceeds the current recorded difference. Check the guest's bill and any deposits before proceeding.</p>}
+   {potentialDuplicate&&<section className="billing-payment-duplicate" role="alert">
+    <div><AlertTriangle size={19}/><strong>Possible duplicate payment — recording is blocked</strong></div>
+    <p>The same payment method and amount were recorded within the last 24 hours on this guest folio.
+     Review the existing record and confirm whether the guest actually paid again.</p>
+    {manager?<div className="billing-payment-duplicate-override">
+     <label>Why is this a separate payment?
+      <textarea className="wizard-input" rows={2} maxLength={500} disabled={busy}
+       placeholder="Describe the additional cash received or separate bank transfer."
+       value={duplicateReason} onChange={e=>{setDuplicateReason(e.target.value);setDuplicateConfirmed(false);}}/>
+     </label>
+     <label className="billing-payment-ack">
+      <input type="checkbox" checked={duplicateConfirmed} disabled={busy||duplicateReason.trim().length<12}
+       onChange={e=>setDuplicateConfirmed(e.target.checked)}/>
+      I independently checked that the guest made another distinct payment and authorize an audited exception.
+     </label>
+    </div>:<p>An authorized manager must review an additional payment. Do not collect the same money twice.</p>}
+   </section>}
    <label className="billing-payment-ack"><input type="checkbox" checked={confirmed}
     disabled={busy} onChange={e=>setConfirmed(e.target.checked)}/>
     I checked the guest, the payment amount and {method==='cash'?'the cash received':'the transfer reference'}.

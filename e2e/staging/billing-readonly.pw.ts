@@ -23,7 +23,7 @@ test('real priced folio directory and settlement statement are accessible withou
  await expect(page.locator('text=Sample folio overview')).toHaveCount(0);
  const search=page.getByRole('searchbox',{name:'Search folios'});
  await search.fill('nonexistent-folio-999891');
- await expect(page.getByText('No matching priced folios.')).toBeVisible();
+ await expect(page.getByText(/No matching priced folios/)).toBeVisible();
  await page.getByRole('button',{name:'Clear search'}).click();
  await expect(search).toHaveValue('');
  const row=page.locator('.billing-folio-row').first();

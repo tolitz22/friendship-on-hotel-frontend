@@ -85,7 +85,7 @@ export function ManagerApprovals(){
  const [page,setPage]=useState(1);
  const approvals=useApprovalRequests({enabled:manager,page,status:filter==='all'?undefined:filter});
  if(!manager)return <><Heading title="Manager approvals" description="Only authorized hotel managers can review staff exceptions."/>
-  <Panel title="Restricted"><p role="status"><ShieldCheck size={18}/> Manager access is required. Laravel enforces this restriction.</p></Panel></>;
+  <Panel title="Restricted"><p role="status"><ShieldCheck size={18}/> Only authorized managers can access this page.</p></Panel></>;
  return <>
   <div className="ex-heading"><Heading title="Manager approvals" description="Independently review and execute narrow reservation exceptions with an audit trail."/>
    <button className="btn-inline" type="button" onClick={()=>void approvals.refetch()}><RefreshCw size={15}/> Refresh</button></div>

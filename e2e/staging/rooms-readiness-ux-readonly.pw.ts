@@ -16,7 +16,7 @@ async function enterRooms(page:Page,mobile=false){
  if(mobile)await page.getByRole('button',{name:'Open navigation'}).click();
  await page.getByRole('navigation',{name:'Hotel workspace navigation'})
   .getByRole('link',{name:'Rooms & readiness'}).click();
- await expect(page.getByRole('heading',{name:'Rooms & readiness'})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Rooms & readiness'}).first()).toBeVisible();
 }
 test('rooms catalogue supports safe filtering, summary and readiness navigation',async({page})=>{
  await enterRooms(page);

@@ -83,9 +83,8 @@ export function BillingActions({bookingId,signed}:{bookingId:string;signed:boole
     onChange={e=>setConfirm(e.target.checked)}/>
     I checked the amount, reservation, and supporting evidence. I understand this will create a financial record.
    </label>
-   <button type="button" className="btn-primary" disabled={!canWrite||!parsedAmount||!confirm||reason.trim().length<3
+   <button type="button" className="btn-primary" disabled={!canWrite||!parsedAmount||!confirm||reason.trim().length<3}
     onClick={()=>void submit()}>{busy?'Saving…':'Save charge or credit'}</button>
-   {action==='bank'&&<p className="billing-advisory"><AlertTriangle size={15}/> Cash receipts must be recorded through an open cashier shift. A bank-transfer reference is not independent payment verification.</p>}
   </div>
   <div className="billing-review-list">
    <h4>Pending payment evidence review</h4>

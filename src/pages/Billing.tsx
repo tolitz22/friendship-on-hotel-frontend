@@ -14,7 +14,8 @@ import {SettlementPanel} from '../components/SettlementPanel';
 import {currency,statusLabel,readableDate} from '../lib/format';
 
 function LiveBilling(){
- const {booking:requestedBooking}=useSearch({from:'/billing'});
+ const {booking:requestedBooking,group:originGroup,hotel:originHotel,
+  checkIn:groupCheckIn,checkOut:groupCheckOut}=useSearch({from:'/billing'});
  const navigate=useNavigate();
  const {hotelId,user}=useHotelAuth();
  const role=user?.hotels.find(h=>h.id===hotelId)?.role;
@@ -31,7 +32,8 @@ function LiveBilling(){
  const fallback=useBillingReservationFallback(folios.isError,page,debounced);
  const selectedId=requestedBooking??null;
  const select=(booking:string)=>void navigate({to:'/billing',search:{booking}});
- const clear=()=>void navigate({to:'/billing',search:{}});
+ const clear=()=>void navigate({to:'/billing',search:originGroup&&(!originHotel||originHotel===hotelId)
+  ?{group:originGroup,hotel:originHotel,checkIn:groupCheckIn,checkOut:groupCheckOut}:{}});
  const loadingSearch=debounced!==search.trim();
  const directId=/^[1-9]\d*$/.test(search.trim())?search.trim():null;
  if(!hotelId||!canRead)return <>
@@ -44,9 +46,21 @@ function LiveBilling(){
     <Heading title="Guest billing" description="Find a guest, review their bill, and manage payments or checkout statements."/></div>
    <div className="billing-header-actions">
     <Link to="/cashier-shifts" className="rr-secondary-action"><Banknote size={16}/> Cashier shifts</Link>
-    <Link to="/reservations" className="rr-secondary-action"><ClipboardList size={16}/> Reservations</Link>
+    <Link to="/reservations" className="rr-secondary-action"><ClipboardList size={16}/> Bookings</Link>
    </div>
   </div>
+  {originGroup&&<div className="gb-workflow-notice">
+   {originHotel&&originHotel!==hotelId
+    ?<strong role="alert">This group link belongs to a different property. Select the original hotel before continuing.</strong>
+    :<><strong>Opened from a group booking</strong>
+     {groupCheckIn&&groupCheckOut&&<span> · {readableDate(groupCheckIn)} – {readableDate(groupCheckOut)}</span>}
+     <div className="gb-context-actions">
+      <Link to="/group-reservations" search={{group:originGroup,tab:'billing' as const,
+       hotel:originHotel??undefined}}>Return to group billing <ArrowRight size={14}/></Link>
+      {groupCheckIn&&<Link to="/room-calendar" search={{date:groupCheckIn,group:originGroup,
+       hotel:originHotel??undefined}}>View group calendar <ArrowRight size={14}/></Link>}
+     </div></>}
+  </div>}
   <div className="billing-guidance"><Info size={18}/><p><strong>Before collecting or closing an account:</strong> Check recorded charges and payment reviews. Displayed differences are not final amounts due until finance verifies the account.</p></div>
   {!selectedId&&<section className="billing-index" aria-label="Guest folio directory">
    <div className="billing-section-heading">

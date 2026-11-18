@@ -39,7 +39,7 @@ export function RecordGuestPayment({bookingId,currency,signed,recordedDifference
  const changeMinor=calculateCashChange(amountMinor,tenderedMinor);
  const overDifference=amountMinor!==null&&recordedDifferenceMinor>0&&amountMinor>recordedDifferenceMinor;
  const canSubmit=!!hotelId&&!!allowed&&!signed&&!busy&&amountMinor!==null&&confirmed&&(
-  method==='cash'?!!shift.data&&shift.data.status==='open'&&changeMinor!==null:
+  method==='cash'?shift.isSuccess&&!shift.isFetching&&!!shift.data&&shift.data.status==='open'&&changeMinor!==null:
   manager&&bankReference.trim().length>=3
  );
  const resetAttempt=()=>{

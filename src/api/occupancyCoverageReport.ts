@@ -10,6 +10,8 @@ const rowSchema=z.object({
  roomId:id,roomNumber:z.string(),floor:z.number().int().nullable(),
  verificationId:id.nullable(),
  status:z.enum(['missing','assigned','submitted','verified','flagged']),
+ investigationStatus:z.enum(['open','closed']).nullable(),
+ investigationResolution:z.enum(['registration_corrected','observation_unconfirmed','authorized_stay_confirmed','escalated_elsewhere']).nullable(),
  discrepancy:z.enum(['unverified','match','unexpected_occupied','expected_occupied_vacant']).nullable(),
  expectedOccupancy:z.enum(['occupied','vacant']).nullable(),
  observedOccupancy:z.enum(['occupied','vacant','unknown']).nullable(),
@@ -25,6 +27,7 @@ const summarySchema=z.object({
  verified:z.number().int().nonnegative(),flagged:z.number().int().nonnegative(),
  observed:z.number().int().nonnegative(),checked:z.number().int().nonnegative(),
  reviewed:z.number().int().nonnegative(),unresolved:z.number().int().nonnegative(),
+ resolvedInvestigations:z.number().int().nonnegative(),
  unexpectedOccupied:z.number().int().nonnegative(),expectedOccupiedVacant:z.number().int().nonnegative(),
  unverified:z.number().int().nonnegative(),matching:z.number().int().nonnegative(),
  coveragePercent:z.number().min(0).max(100),observationPercent:z.number().min(0).max(100),
@@ -46,7 +49,7 @@ export function parseCoverageReport(value:unknown,hotelId:string,filter:Coverage
  if(result.summary.checked+result.summary.missing!==result.summary.roomCount
   ||result.summary.observed!==result.summary.submitted+result.summary.verified+result.summary.flagged
   ||result.summary.reviewed!==result.summary.verified+result.summary.flagged
-  ||result.summary.unresolved!==result.summary.missing+result.summary.assigned+result.summary.submitted+result.summary.flagged
+  ||result.summary.unresolved!==result.summary.missing+result.summary.assigned+result.summary.submitted+result.summary.flagged-result.summary.resolvedInvestigations
   ||result.data.some(row=>row.status==='missing'&&row.verificationId!==null))
   throw new Error('The occupancy coverage totals are inconsistent.');
  return result;

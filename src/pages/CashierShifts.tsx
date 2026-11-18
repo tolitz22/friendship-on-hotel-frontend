@@ -5,7 +5,7 @@ import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {readSession} from '../api/session';
-import {getCashShiftHistory,openCashierShift,receiveCash,reconcileCashShift,submitCashCount,useCashierShifts,useCashierShiftDetails} from '../api/cashierShifts';
+import {getCashShiftHistory,openCashierShift,receiveCash,reconcileCashShift,submitCashCount,useCashierShifts,useCashierShiftDetails,useCurrentCashierShift} from '../api/cashierShifts';
 import type {CashierShift} from '../api/cashierShifts';
 
 const validMoney=(s:string)=>/^\d+(\.\d{1,2})?$/.test(s)&&Number.isSafeInteger(Math.round(Number(s)*100))&&Number(s)<=1_000_000_000;
@@ -14,7 +14,7 @@ const money=(n:number,currency:string)=>currency==='PHP'
  ?new Intl.NumberFormat('en-PH',{style:'currency',currency:'PHP'}).format(n/100)
  :n.toLocaleString()+' '+currency+' minor units';
 
-function ShiftRow({shift,manager,onChange}:{shift:CashierShift;manager:boolean;onChange:()=>void}){
+function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:boolean;ownShift:boolean;onChange:()=>void}){
  const {hotelId}=useHotelAuth();
  const [count,setCount]=useState('');
  const [note,setNote]=useState('');
@@ -55,7 +55,7 @@ function ShiftRow({shift,manager,onChange}:{shift:CashierShift;manager:boolean;o
    <strong>Variance {money(shift.varianceMinor!,shift.currency)}</strong></div>}
   {shift.unconfirmedReceiptCount>0&&<p className="desk-attention"><AlertTriangle size={15}/>
    {shift.unconfirmedReceiptCount} payment(s) not staff-confirmed. Manager must investigate before reconciling.</p>}
-  {!manager&&shift.status==='open'&&<div className="wizard-fields">
+  {ownShift&&shift.status==='open'&&<div className="wizard-fields">
    <label>Counted cash (major currency units)
     <input className="wizard-input" type="text" inputMode="decimal" value={count}
      onChange={e=>setCount(e.target.value)} placeholder="0.00"/></label>
@@ -64,7 +64,7 @@ function ShiftRow({shift,manager,onChange}:{shift:CashierShift;manager:boolean;o
    <button className="btn-primary" type="button" disabled={busy||!validMoney(count)}
     onClick={()=>void run('close')}>Submit counted cash</button>
   </div>}
-  {manager&&shift.status==='submitted'&&<div>
+  {manager&&!ownShift&&shift.status==='submitted'&&<div>
    <h4>Recorded receipts for independent verification</h4>
    <QueryFeedback loading={detail.isPending} error={detail.error} onRetry={()=>void detail.refetch()}/>
    {detail.data&&<div className="table-scroll"><table><thead><tr><th>Payment</th><th>Reservation</th><th>Reference</th><th>Amount</th><th>Review status</th></tr></thead><tbody>
@@ -81,6 +81,7 @@ function ShiftRow({shift,manager,onChange}:{shift:CashierShift;manager:boolean;o
      onClick={()=>void run('flag')}><AlertTriangle size={16}/> Flag discrepancy</button>
    </div>
   </div>}
+  {ownShift&&shift.status==='submitted'&&<p className="desk-attention"><AlertTriangle size={15}/> Your shift is awaiting independent manager review. You cannot open another shift until it is reconciled.</p>}
   {shift.managerNote&&<p><strong>Manager note:</strong> {shift.managerNote}</p>}
   <button type="button" className="btn-inline" onClick={()=>setHistoryOpen(v=>!v)}
    aria-expanded={historyOpen}>{historyOpen?'Hide':'Show'} audit events</button>
@@ -115,13 +116,17 @@ export function CashierShifts(){
   setAmount('');setMessage('');setError('');key.current=null;
  },[hotelId]);
  const shifts=useCashierShifts(allowed,page,status==='all'?undefined:status as CashierShift['status']);
- const openShifts=useCashierShifts(allowed,1,'open');
- const active=openShifts.data?.data.find(s=>s.status==='open' && String(s.cashierId)===String(user?.id));
- const refresh=()=>hotelId&&client.invalidateQueries({queryKey:['live','cashier-shifts',hotelId]});
+ const ownOpenShift=useCurrentCashierShift(allowed);
+ const ownPendingShifts=useCashierShifts(allowed&&!manager,1,'submitted');
+ const active=ownOpenShift.data??null;
+ const refresh=()=>hotelId&&Promise.all([
+  client.invalidateQueries({queryKey:['live','cashier-shifts',hotelId]}),
+  client.invalidateQueries({queryKey:['live','current-cashier-shift',hotelId]}),
+ ]);
  async function start(){
-  if(!hotelId||openBusy||!validMoney(float))return;
+  if(!hotelId||openBusy||ownOpenShift.isFetching||!ownOpenShift.isSuccess||active||!validMoney(float))return;
   setOpenBusy(true);setError('');setMessage('');
-  try{await openCashierShift(hotelId,minor(float));setMessage('Shift opened.');void refresh();}
+  try{await openCashierShift(hotelId,minor(float));setMessage('Your cashier shift is now open. You can record guest cash payments.');void refresh();}
   catch(e){setError(e instanceof Error?e.message:'Unable to open shift.');}
   finally{setOpenBusy(false);}
  }
@@ -147,29 +152,41 @@ export function CashierShifts(){
   <Heading title={manager?'Cash reconciliation':'Cashier shift'} description={manager
    ?'Independently reconcile submitted drawers and investigate discrepancies.'
    :'Record every cash receipt to a priced reservation and count your drawer before closing.'}/>
-  {!manager&&<Panel title="My cash drawer">
-   {!active&&<div className="wizard-fields">
-    <label>Opening float (e.g. 500.00)
-     <input className="wizard-input" value={float} inputMode="decimal" onChange={e=>setFloat(e.target.value)}/></label>
-    <button type="button" className="btn-primary" disabled={openBusy||!validMoney(float)}
-     onClick={()=>void start()}><Banknote size={16}/> Open cashier shift</button>
+  <Panel title="My cash drawer">
+   <p className="desk-muted">Your drawer belongs to your staff account. Open it once at the start of collecting cash, and submit your cash count at the end of your shift.</p>
+   <QueryFeedback loading={ownOpenShift.isPending} error={ownOpenShift.error} onRetry={()=>void ownOpenShift.refetch()}/>
+   {ownOpenShift.isSuccess&&!active&&<div className="wizard-fields">
+    {!manager&&ownPendingShifts.isSuccess&&ownPendingShifts.data.data.length>0&&
+     <p className="desk-attention"><AlertTriangle size={15}/> Your previous cash shift is awaiting manager reconciliation. You cannot open another one yet.</p>}
+    <label>Opening cash in drawer (₱)
+     <input className="wizard-input" value={float} inputMode="decimal" disabled={openBusy}
+      onChange={e=>setFloat(e.target.value)} placeholder="0.00"/></label>
+    <p className="desk-muted">Enter the cash already in your drawer for giving change. Enter 0.00 if it's empty.</p>
+    <button type="button" className="btn-primary" disabled={openBusy||!validMoney(float)||
+     (!manager&&ownPendingShifts.isSuccess&&ownPendingShifts.data.data.length>0)}
+     onClick={()=>void start()}><Banknote size={16}/> {openBusy?'Opening…':'Open my cashier shift'}</button>
    </div>}
    {active&&<div>
-    <p><ClipboardCheck size={17}/> Current open shift #{active.id}. Payment evidence remains pending independent review.</p>
+    <p><ClipboardCheck size={17}/> Your open shift #{active.id}. Payment records remain subject to independent review.</p>
     <div className="wizard-fields">
-     <label>Priced reservation ID
-      <input className="wizard-input" value={booking} disabled={paymentBusy} onChange={e=>{setBooking(e.target.value);key.current=null;}} inputMode="numeric"/></label>
-     <label>Unique cash receipt reference
-      <input className="wizard-input" value={reference} disabled={paymentBusy} onChange={e=>{setReference(e.target.value);key.current=null;}} maxLength={120}/></label>
-     <label>Cash collected (major currency units)
-      <input className="wizard-input" value={amount} disabled={paymentBusy} onChange={e=>{setAmount(e.target.value);key.current=null;}} inputMode="decimal"/></label>
-     <button type="button" className="btn-primary" disabled={paymentBusy||!validMoney(amount)||minor(amount)<1||!(/^[1-9]\d*$/.test(booking))||reference.trim().length<3}
+     <label>Reservation ID
+      <input className="wizard-input" value={booking} disabled={paymentBusy}
+       onChange={e=>{setBooking(e.target.value);key.current=null;}} inputMode="numeric"/></label>
+     <label>Cash receipt reference
+      <input className="wizard-input" value={reference} disabled={paymentBusy}
+       onChange={e=>{setReference(e.target.value);key.current=null;}} maxLength={120}/></label>
+     <label>Cash payment (₱)
+      <input className="wizard-input" value={amount} disabled={paymentBusy}
+       onChange={e=>{setAmount(e.target.value);key.current=null;}} inputMode="decimal"/></label>
+     <button type="button" className="btn-primary" disabled={paymentBusy||!validMoney(amount)||minor(amount)<1||
+      !(/^[1-9]\\d*$/.test(booking))||reference.trim().length<3}
       onClick={()=>void collect()}>{paymentBusy?'Saving…':'Record cash receipt'}</button>
     </div>
+    <ShiftRow shift={active} manager={manager} ownShift onChange={()=>void refresh()}/>
    </div>}
    {message&&<p role="status">{message}</p>}
-   {error&&<p className="auth-error" role="alert">{error} Check the current shift before retrying.</p>}
-  </Panel>}
+   {error&&<p className="auth-error" role="alert">{error} Check your shift before trying again.</p>}
+  </Panel>
   <Panel title={manager?'All hotel cashier shifts':'My shift history'}>
    <div className="desk-tools">
     <label>Filter by status <select className="wizard-input" value={status} onChange={e=>{setStatus(e.target.value);setPage(1);}}>
@@ -180,8 +197,8 @@ export function CashierShifts(){
     <button className="btn-inline" onClick={()=>void shifts.refetch()}><RefreshCw size={15}/> Refresh</button>
    </div>
    <QueryFeedback loading={shifts.isPending} error={shifts.error} empty={shifts.isSuccess&&shifts.data.data.length===0}/>
-   {shifts.data?.data.map(shift=><ShiftRow key={hotelId+'-'+shift.id} shift={shift}
-    manager={manager} onChange={()=>void refresh()}/>)}
+   {shifts.data?.data.filter(shift=>shift.id!==active?.id).map(shift=><ShiftRow key={hotelId+'-'+shift.id} shift={shift}
+    manager={manager} ownShift={String(shift.cashierId)===String(user?.id)} onChange={()=>void refresh()}/>)}
    {shifts.data&&<div className="desk-tools"><span>Page {shifts.data.meta.page} / {Math.max(1,shifts.data.meta.totalPages)}</span>
     <div className="desk-date-nav">
      <button className="btn-inline" disabled={page===1} onClick={()=>setPage(p=>p-1)}>Previous</button>

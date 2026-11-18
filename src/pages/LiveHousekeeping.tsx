@@ -60,6 +60,22 @@ export function LiveHousekeeping(){
   queryFn:async()=>parseLiveHousekeeping(await listHousekeepingTasks(page,20,filter),hotelId!),
   retry:false,
  });
+ // Independent count queries: switching queue tabs must not reset other status totals.
+ // Each query requests one task and reads the server's filtered total.
+ const statusTotals=useQuery({
+  queryKey:['live-housekeeping-status-totals',hotelId],
+  enabled:!!hotelId,
+  queryFn:async()=>{
+   const [todo,inProgress,done]=await Promise.all([
+    listHousekeepingTasks(1,1,{status:'todo'}),
+    listHousekeepingTasks(1,1,{status:'in_progress'}),
+    listHousekeepingTasks(1,1,{status:'done'}),
+   ]);
+   const totals=[todo,inProgress,done].map(result=>parseLiveHousekeeping(result,hotelId!).meta.total);
+   return {todo:totals[0],in_progress:totals[1],done:totals[2]};
+  },
+  retry:false,
+ });
  const rooms=useLiveRooms({page:1,perPage:100});
  const [selected,setSelected]=useState<LiveHousekeepingTask|null>(null);
  const [form,setForm]=useState<FormState|null>(null);
@@ -118,6 +134,7 @@ export function LiveHousekeeping(){
    // Failed cache refresh must not make an already committed update look failed.
    void Promise.all([
     client.invalidateQueries({queryKey:['live-housekeeping',hotelId]}),
+    client.invalidateQueries({queryKey:['live-housekeeping-status-totals',hotelId]}),
     client.invalidateQueries({queryKey:['housekeeping-history',hotelId]}),
     client.invalidateQueries({queryKey:['live','front-desk','manifest',hotelId]}),
     client.invalidateQueries({queryKey:['live','readiness-dashboard',hotelId]}),
@@ -139,9 +156,7 @@ export function LiveHousekeeping(){
  const filtered=data.filter(task=>(!mineOnly||task.assignedUserId===user?.id)&&(!matchText||[
   task.roomNumber,task.type,task.status,task.assignedTo??'',task.id,
  ].some(value=>value.toLocaleLowerCase().includes(matchText))));
- const pageCounts={todo:data.filter(t=>t.status==='todo').length,in_progress:data.filter(t=>t.status==='in_progress').length,
-  done:data.filter(t=>t.status==='done').length};
- const overdueCount=data.filter(t=>t.status!=='done'&&t.dueAt&&t.dueAt.slice(0,10)<hotelDate).length;
+  const overdueCount=data.filter(t=>t.status!=='done'&&t.dueAt&&t.dueAt.slice(0,10)<hotelDate).length;
  const hasFilters=!!statusFilter||!!typeFilter||!!textFilter.trim()||mineOnly;
  const resetFilters=()=>{setPage(1);setStatusFilter('');setTypeFilter('');setTextFilter('');setMineOnly(false);};
  const assignedName=(task:LiveHousekeepingTask)=>task.assignedUserId
@@ -166,16 +181,17 @@ export function LiveHousekeeping(){
   </div>
   <div className="hk-guidance"><Info size={18}/><p><strong>Cleaning done is not room approved.</strong> Completing a task updates housekeeping records only. Room inspection, maintenance restrictions, and guest check-in are checked separately.</p></div>
   <section className="hk-work-summary" aria-label="Housekeeping tasks on current page">
-   <div className="hk-work-heading"><div><span className="rr-eyebrow">CURRENT PAGE</span><h3>Cleaning workload</h3>
-    <p>Counts below describe the {data.length} loaded tasks, not every room in the hotel.</p></div>
-    <button type="button" className="rr-secondary-action" disabled={tasks.isFetching} onClick={()=>void tasks.refetch()}><RefreshCcw size={16}/>{tasks.isFetching?'Refreshing…':'Refresh tasks'}</button>
+   <div className="hk-work-heading"><div><span className="rr-eyebrow">HOTEL-WIDE TASKS</span><h3>Cleaning workload</h3>
+    <p>To do, In progress and Completed show totals across this hotel, even when you change the queue filter. Past due is based on the current task page.</p></div>
+    <button type="button" className="rr-secondary-action" disabled={tasks.isFetching||statusTotals.isFetching} onClick={()=>void Promise.all([tasks.refetch(),statusTotals.refetch()])}><RefreshCcw size={16}/>{tasks.isFetching?'Refreshing…':'Refresh tasks'}</button>
    </div>
    <div className="hk-work-metrics">
-    <div><Clock3 size={19}/><span>To do</span><strong>{tasks.isSuccess?pageCounts.todo:'—'}</strong></div>
-    <div><ClipboardCheck size={19}/><span>In progress</span><strong>{tasks.isSuccess?pageCounts.in_progress:'—'}</strong></div>
-    <div><CheckCircle2 size={19}/><span>Completed</span><strong>{tasks.isSuccess?pageCounts.done:'—'}</strong></div>
-    <div className="hk-metric-alert"><AlertTriangle size={19}/><span>Past due date</span><strong>{tasks.isSuccess?overdueCount:'—'}</strong></div>
+    <div><Clock3 size={19}/><span>To do · hotel-wide</span><strong>{statusTotals.isSuccess?statusTotals.data.todo:'—'}</strong></div>
+    <div><ClipboardCheck size={19}/><span>In progress · hotel-wide</span><strong>{statusTotals.isSuccess?statusTotals.data.in_progress:'—'}</strong></div>
+    <div><CheckCircle2 size={19}/><span>Completed · hotel-wide</span><strong>{statusTotals.isSuccess?statusTotals.data.done:'—'}</strong></div>
+    <div className="hk-metric-alert"><AlertTriangle size={19}/><span>Past due · current page</span><strong>{tasks.isSuccess?overdueCount:'—'}</strong></div>
    </div>
+   {statusTotals.isError&&<div className="hk-total-error" role="status">Hotel-wide task totals could not be loaded. <button type="button" className="btn-inline" onClick={()=>void statusTotals.refetch()}>Retry totals</button></div>}
   </section>
   <section className="hk-queue-section" aria-labelledby="hk-queue-title">
    <div className="hk-queue-head">

@@ -169,6 +169,7 @@ export function LiveFrontDesk(){
          <span><strong>{signal.title}</strong><small>{signal.action}</small></span>
         </div>:<span className="fdc-check-unavailable">{roomStatus.isPending?'Checking room status…':'Room status not available · verify before check-in'}</span>}
         {advisoryCount>0&&<span className="fdc-maint-note"><Info size={13}/>{advisoryCount} open room-impact work order{advisoryCount===1?'':'s'} (note only)</span>}
+        <Link to="/rooms" search={{room:row.roomNumber??''}} className="ops-room-link">Review room details <ArrowRight size={13}/></Link>
         {maintenanceNotes.isError&&<span className="fdc-check-unavailable">Repair notes could not be checked.</span>}
         {maintenanceNotes.isSuccess&&!noteCoverageComplete&&<span className="fdc-check-unavailable">Repair notes may be incomplete; see Maintenance.</span>}
         </div>}

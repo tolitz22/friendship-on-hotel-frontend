@@ -91,10 +91,10 @@ export function GroupReservations(){
    &&Number(room.ratePlanId)>0
    &&rates.data?.data.some(rate=>rate.active&&rate.id===room.ratePlanId&&rate.roomTypeId===room.roomTypeId));
  const locked=!!pending||busy||!!result;
- const estimate=rooms.reduce((sum,room)=>{
-  const rate=rates.data?.data.find(item=>item.id===room.ratePlanId&&item.active);
-  return rate?.currency==='PHP'?sum+rate.nightlyMinor:sum;
- },0)*Math.max(0,(Date.parse(checkOut+'T00:00:00Z')-Date.parse(checkIn+'T00:00:00Z'))/86400000);
+ const selectedRates=rooms.map(room=>rates.data?.data.find(item=>item.id===room.ratePlanId&&item.active));
+ const allPhp=selectedRates.every(rate=>rate?.currency==='PHP');
+ const estimate=allPhp?selectedRates.reduce((sum,rate)=>sum+(rate?.nightlyMinor??0),0)
+  *Math.max(0,(Date.parse(checkOut+'T00:00:00Z')-Date.parse(checkIn+'T00:00:00Z'))/86400000):null;
  const send=async(payload:GroupBookingInput,submittedHotel:string)=>{
   if(sending.current)return;
   sending.current=true;setBusy(true);setError(null);
@@ -195,7 +195,7 @@ export function GroupReservations(){
     <div className="rb-review">
      <h4>Review group booking</h4>
      <p>{rooms.length} rooms · {readableDate(checkIn)} – {readableDate(checkOut)}</p>
-     <p><strong>Estimated room subtotal: {money(estimate,'PHP')}</strong></p>
+     <p><strong>Estimated room subtotal: {estimate===null?'Mixed currencies — review individual rates':money(estimate,'PHP')}</strong></p>
      <p className="desk-muted">Estimated room charges only. Taxes, service fees, discounts, deposits, and payments are separate. Inventory is verified again when you confirm.</p>
      {error&&<p role="alert" className="wizard-error">{error}</p>}
      {pending?<button className="btn-primary" type="button" disabled={busy}

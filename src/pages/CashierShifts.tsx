@@ -142,7 +142,7 @@ export function CashierShifts(){
   finally{setPaymentBusy(false);}
  }
  if(!allowed)return <><Heading title="Cashier shifts" description="Only active receptionists and hotel managers can view cashier records."/>
-  <Panel title="Restricted"><p>Laravel enforces cashier permissions for this property.</p></Panel></>;
+  <Panel title="Restricted"><p>Only staff with cashier permissions for this hotel can access this page.</p></Panel></>;
  return <>
   <Heading title={manager?'Cash reconciliation':'Cashier shift'} description={manager
    ?'Independently reconcile submitted drawers and investigate discrepancies.'

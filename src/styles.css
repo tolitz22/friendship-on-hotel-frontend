@@ -1896,3 +1896,46 @@
 .billing-selected-heading .rr-secondary-action{display:inline-flex;align-items:center;gap:7px}
 @media(max-width:600px){.billing-primary-search .billing-list-search{flex-basis:100%}.billing-primary-search .btn-primary{width:100%;justify-content:center}
 .billing-fallback-booking{align-items:flex-start;flex-direction:column}.billing-selected-heading .rr-secondary-action{width:100%;justify-content:center}}
+
+/* Guest-first billing navigation: concise list and approachable statement */
+.billing-list-labels{display:grid;grid-template-columns:minmax(165px,1.45fr) minmax(110px,.9fr) minmax(130px,1.1fr) minmax(125px,1.05fr) auto;gap:13px;padding:10px 16px;font-size:10px;font-weight:750;letter-spacing:.02em;color:var(--muted)}
+.billing-folio-list{border-radius:13px}
+.billing-folio-row{grid-template-columns:minmax(165px,1.45fr) minmax(110px,.9fr) minmax(130px,1.1fr) minmax(125px,1.05fr) auto;padding:17px 16px}
+.billing-folio-identity strong{font-size:14px}
+.billing-folio-identity small{font-size:11px}
+.billing-stay-status{display:inline-flex;align-self:start;font-size:10px;color:var(--muted)}
+.billing-folio-difference strong{font-size:15px}
+.billing-folio-difference .billing-provisional{justify-self:start;font-size:10px}
+.billing-open-link{background:var(--accent);border-color:var(--accent);color:#222326;min-height:40px}
+.billing-open-link:hover{color:#222326;filter:brightness(.95)}
+.billing-account-overview{display:grid;gap:16px;border:1px solid var(--border);border-radius:13px;padding:19px;background:var(--canvas);margin:18px 0 21px}
+.billing-account-overview-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.billing-account-overview-head h3{font-size:20px;margin:5px 0}
+.billing-account-overview-head p{font-size:11px;color:var(--muted);margin:0}
+.billing-account-tag{display:inline-flex;align-items:center;padding:7px 10px;border-radius:8px;font-size:11px;font-weight:750}
+.billing-account-tag.pending{color:#855900;background:#fff0d5}
+.billing-account-tag.complete{color:#166534;background:#e1f4e8}
+.billing-account-totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.billing-account-totals>div{display:grid;gap:9px;border-radius:10px;background:var(--surface);border:1px solid var(--border);padding:15px;min-width:0}
+.billing-account-totals span{font-size:11px;color:var(--muted);line-height:1.4}
+.billing-account-totals strong{font-size:22px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.billing-account-totals .billing-account-difference{border-left:3px solid var(--accent)}
+.billing-account-next{display:flex;gap:10px;align-items:flex-start;border-top:1px solid var(--border);padding-top:13px}
+.billing-account-next svg{color:var(--accent);flex-shrink:0;margin-top:1px}
+.billing-account-next p{margin:0;font-size:12px;line-height:1.65;color:var(--muted)}
+.billing-account-next strong{color:var(--text)}
+.billing-manager-details{margin:20px 0;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.billing-manager-details>summary{display:flex;align-items:center;justify-content:space-between;gap:16px;cursor:pointer;padding:18px;background:var(--canvas);list-style:none}
+.billing-manager-details>summary::-webkit-details-marker{display:none}
+.billing-manager-details>summary>div{display:grid;gap:5px}
+.billing-manager-details>summary strong{font-size:14px}
+.billing-manager-details>summary span{font-size:11px;line-height:1.5;color:var(--muted)}
+.billing-expand-hint{font-weight:750;color:var(--accent)!important;white-space:nowrap}
+.billing-manager-details[open] .billing-expand-hint{font-size:0}
+.billing-manager-details[open] .billing-expand-hint::after{content:"Hide tools";font-size:11px}
+.billing-manager-details>.billing-actions,.billing-manager-details>.night-audit-warning{margin:16px}
+.billing-manager-details>h4,.billing-manager-details>p,.billing-manager-details>.settlement-payment-choice,.billing-manager-details>.settlement-action-panel,.billing-manager-details>.settlement-signoff,.billing-manager-details>.ex-record{margin-left:16px;margin-right:16px}
+:root[data-theme="dark"] .billing-account-tag.pending{background:#59441e;color:#ffe4ae}
+:root[data-theme="dark"] .billing-account-tag.complete{background:#1c4733;color:#b6efd1}
+@media(max-width:1250px){.billing-list-labels{display:none}.billing-folio-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.billing-folio-identity{grid-column:1/-1}.billing-open-link{grid-column:2;justify-self:stretch}.billing-folio-amount{grid-column:auto}}
+@media(max-width:650px){.billing-account-totals{grid-template-columns:1fr}.billing-account-totals>div{padding:12px}.billing-account-totals strong{font-size:20px}.billing-folio-row{grid-template-columns:1fr}.billing-folio-identity,.billing-open-link{grid-column:1}.billing-account-overview{padding:13px}.billing-manager-details>summary{padding:14px}.billing-manager-details>summary>div span{max-width:230px}}

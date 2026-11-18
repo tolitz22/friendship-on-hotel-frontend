@@ -36,6 +36,9 @@ function LiveBilling(){
   ?{group:originGroup,hotel:originHotel,checkIn:groupCheckIn,checkOut:groupCheckOut}:{}});
  const loadingSearch=debounced!==search.trim();
  const directId=/^[1-9]\d*$/.test(search.trim())?search.trim():null;
+ if(originHotel&&originHotel!==hotelId)return <Panel title="Select the original property">
+  <p role="alert">This billing link is for a different hotel. Select the original hotel before opening the guest folio.</p>
+ </Panel>;
  if(!hotelId||!canRead)return <>
   <Heading title="Guest billing" description="Hotel billing is available to authorized reception and finance staff."/>
   <Panel title="Access required"><p>Select an authorized hotel and sign in with a billing-enabled staff account.</p></Panel>

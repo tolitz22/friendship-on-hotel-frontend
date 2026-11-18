@@ -7,6 +7,7 @@ import {hotelPath,readSession} from '../api/session';
 import {useHotelAuth} from './AuthProvider';
 import {QueryFeedback} from './QueryFeedback';
 import {BillingActions} from './BillingActions';
+import {parseBillingAmount} from '../api/billing';
 import './settlement-print.css';
 
 const id=z.string().regex(/^[1-9]\d*$/);
@@ -113,6 +114,11 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const accounted=data?.allocations.filter(a=>a.paymentId===selected)
   .reduce((sum,a)=>sum+a.amountMinor,0)??0;
  const available=paymentRow?paymentRow.amountMinor-accounted:0;
+ const minorInput=(text:string):number|null=>data?.currency==='PHP'
+  ?parseBillingAmount(text)
+  :/^\d+$/.test(text)&&Number.isSafeInteger(Number(text))&&Number(text)>0?Number(text):null;
+ const allocationMinor=minorInput(amount);
+ const refundMinor=minorInput(refundAmount);
  const active=()=>!!hotelId&&readSession().hotelId===hotelId;
  async function mutation(path:string,body:Record<string,unknown>,message:string):Promise<boolean>{
   if(!active()||!manager||!data?.settlementWorkflowEnabled||busy||data.signed)return false;
@@ -134,7 +140,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   finally{setBusy(false);}
  }
  function selectPayment(p:Payment){
-  setSelected(p.id);setReference(p.evidenceReference??'');setAmount(String(p.amountMinor));
+  setSelected(p.id);setReference(p.evidenceReference??'');setAmount(data?.currency==='PHP'?(p.amountMinor/100).toFixed(2):String(p.amountMinor));
   setPayerRef('');setPayerKind('guest');setEntryId('');setAck(false);
   setError('');setSuccess('');
  }
@@ -315,7 +321,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
          <input className="wizard-input" value={payerRef} maxLength={120}
           onChange={e=>setPayerRef(e.target.value)} placeholder="Guest/organization reference"/>
         </label>
-        <label>Allocation amount (centavos)
+        <label>Allocation amount ({data.currency==='PHP'?'PHP':'minor units'})
          <input className="wizard-input" inputMode="numeric" value={amount}
           onChange={e=>setAmount(e.target.value)}/>
         </label>
@@ -330,12 +336,12 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        </div>
        <button type="button" className="btn-primary"
         disabled={busy||!data.settlementWorkflowEnabled||available<1||
-         !/^\d+$/.test(amount)||Number(amount)<1||Number(amount)>available||payerRef.trim().length<3}
+         allocationMinor===null||allocationMinor>available||payerRef.trim().length<3}
         onClick={()=>void (async()=>{
          const priorKey=requestKey;
          const ok=await mutation(endpoint+'/payment-records/'+paymentRow.id+'/allocations',{
           requestKey:priorKey,payerKind,payerReference:payerRef.trim(),
-          amountMinor:Number(amount),folioEntryId:entryId?Number(entryId):null,
+          amountMinor:allocationMinor,folioEntryId:entryId?Number(entryId):null,
          },'Verified payment allocation recorded.');
          if(ok){
           // The same key must not be reused for a different allocation.
@@ -358,7 +364,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
          .map(p=><option key={p.id} value={p.id}>#{p.id} · {money(p.amountMinor,data.currency)}</option>)}
        </select>
       </label>
-      <label>Refund amount (centavos)
+      <label>Refund amount ({data.currency==='PHP'?'PHP':'minor units'})
        <input className="wizard-input" inputMode="numeric" value={refundAmount}
         onChange={e=>setRefundAmount(e.target.value)} placeholder="Amount within unallocated deposit"/>
       </label>
@@ -368,11 +374,11 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        onChange={e=>setRefundReason(e.target.value)}/>
      </label>
      <button type="button" className="btn-inline" disabled={busy||!data.settlementWorkflowEnabled||
-      !refundPayment||!/^\d+$/.test(refundAmount)||Number(refundAmount)<1||refundReason.trim().length<5}
+      !refundPayment||refundMinor===null||refundReason.trim().length<5}
       onClick={()=>void (async()=>{
        const ok=await mutation(endpoint+'/refund-requests',{
         requestKey:refundKey,paymentRecordId:Number(refundPayment),
-        amountMinor:Number(refundAmount),reason:refundReason.trim(),
+        amountMinor:refundMinor,reason:refundReason.trim(),
        },'Refund requested. A different administrator must approve before any external payout.');
        if(ok){setRefundKey(crypto.randomUUID());setRefundAmount('');setRefundReason('');}
       })()}>

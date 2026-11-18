@@ -1,5 +1,5 @@
 import {Clock3,History,UserRound} from 'lucide-react';
-import {readableDate,readableDateTime,statusLabel} from '../lib/format';
+import {readableDateTime,statusLabel} from '../lib/format';
 
 type AuditEvent={
  id:string;actorId:string;action:string;before:Record<string,unknown>|null;

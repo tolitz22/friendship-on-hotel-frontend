@@ -8,6 +8,7 @@ const day=z.iso.date();
 const resultSchema=z.object({
  data:z.object({
   hotelId:id,start:day,end:day,
+  focusedGroupId:id.nullable(),
   rooms:z.array(z.object({id,number:z.string(),floor:z.number().nullable(),roomTypeId:id,roomTypeName:z.string()})),
   bookings:z.array(z.object({id,reference:z.string(),roomId:id,checkIn:day,checkOut:day,status:z.string().nullable(),guestName:z.string().nullable().optional(),
    groupId:id.nullable(),groupName:z.string().nullable(),groupReference:z.string().nullable()})),
@@ -28,7 +29,7 @@ const resultSchema=z.object({
 });
 export type RoomCalendarData=z.infer<typeof resultSchema>['data'];
 export function useRoomCalendar(params:{
- start:string;end:string;page:number;floor:string;roomTypeId:string;search:string;
+ start:string;end:string;page:number;floor:string;roomTypeId:string;search:string;groupId?:string;
 }){
  const {hotelId}=readSession();
  return useQuery({
@@ -39,9 +40,11 @@ export function useRoomCalendar(params:{
     start:params.start,end:params.end,page:params.page,per_page:30,
     floor:params.floor==='all'?undefined:params.floor,
     room_type_id:params.roomTypeId||undefined,
+    group_id:params.groupId||undefined,
     search:params.search.trim()||undefined,
    }));
-   if(response.data.hotelId!==hotelId||response.data.start!==params.start||response.data.end!==params.end)
+   if(response.data.hotelId!==hotelId||response.data.start!==params.start||response.data.end!==params.end
+    ||response.data.focusedGroupId!==(params.groupId??null))
     throw new Error('Room calendar returned data for another property or date range.');
    const selected=new Set(response.data.rooms.map(r=>r.id));
    if(response.data.bookings.some(r=>!selected.has(r.roomId))

@@ -41,7 +41,7 @@ export function LiveReservationDemand(){
   {range&&<><QueryFeedback loading={query.isPending} error={query.error}/>
    {query.data&&<><div className="demand-summary">
     <strong>{query.data.data.matchingRecordCount}</strong>
-    <span>Stored reservation records overlapping {query.data.meta.from} through {query.data.meta.to} (checkout-exclusive)</span>
+    <span>Reservations overlapping {query.data.meta.from} through {query.data.meta.to} (departure date not counted as an occupied night)</span>
    </div>
    <Panel title="Nightly structural records">
     <div className="table-scroll"><table><thead><tr><th>Night</th><th>Room type</th><th>Registered rooms</th><th>Assigned records</th><th>Unassigned records</th><th>Total records</th></tr></thead><tbody>

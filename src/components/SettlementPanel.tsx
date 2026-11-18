@@ -231,34 +231,13 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   </div>
   <QueryFeedback loading={query.isPending} error={query.error} onRetry={()=>void query.refetch()}/>
   {data&&<>
-   <div className="billing-account-overview" aria-label="Guest account overview">
+   <div className="billing-account-overview billing-account-compact" aria-label="Guest account overview">
     <div className="billing-account-overview-head">
      <div><span className="rr-eyebrow">ACCOUNT SUMMARY</span>
       <h3>{data.reservationReference}</h3><p>{readableDate(data.checkIn)} to {readableDate(data.checkOut)} · Guest account</p></div>
      <span className={'billing-account-tag '+(data.signed?'complete':'pending')}>
       {data.signed?'Settlement signed':'Settlement not final'}</span>
     </div>
-    <div className="billing-account-totals">
-     <div><span>Recorded charges</span><strong>{money(data.netRecordedChargesMinor,data.currency)}</strong></div>
-     <div><span>Payments recorded · awaiting or completed review</span>
-      <strong>{money(recordedTotal,data.currency)}</strong>
-      <small>{unconfirmed.length} awaiting confirmation · {confirmedPendingVerification.length} confirmed, awaiting verification</small></div>
-     <div><span>Independently verified funds</span><strong>{money(verifiedTotal,data.currency)}</strong>
-      <small>Internal review, not external bank settlement</small></div>
-     <div><span>Verified funds applied to charges</span><strong>{money(data.verifiedAllocatedMinor,data.currency)}</strong>
-      <small>Only allocated funds reduce the recorded balance</small></div>
-     <div className="billing-account-difference"><span>Recorded charges not yet covered by reviewed allocations · not a request to pay again</span>
-      <strong>{money(data.remainingMinor,data.currency)}</strong></div>
-    </div>
-    {recordedTotal>0&&data.verifiedAllocatedMinor<recordedTotal&&<p className="billing-payment-pending-banner">
-     <AlertTriangle size={16}/>
-     {confirmedPendingVerification.length>0
-      ?'Payment confirmation succeeded, but independent verification is still required.'
-      :unconfirmed.length>0?'Payment recorded — staff confirmation is pending.'
-      :'Payment funds are verified but not fully allocated to charges.'}
-     {' '}Do not charge the guest again just because the balance is not yet covered by verified allocations.
-    </p>}
-
    </div>
    <section className="checkout-guide" aria-label="Guided payment and checkout">
     <div className="checkout-guide-header">
@@ -275,8 +254,10 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
     {!data.signed&&<div className="checkout-guide-next">
      <span className="rr-eyebrow">YOUR NEXT ACTION</span>
      {nextTask==='disabled'?<>
-      <h4>Financial settlement is not enabled</h4>
-      <p>Payments can be recorded and reviewed, but final sign-off needs the hotel's approved finance configuration.</p>
+      <h4>{recordedTotal>0?'Payment recorded — final settlement unavailable':'Final settlement is not enabled'}</h4>
+      <p>{recordedTotal>0
+       ?'This guest already has payment evidence on file. Do not collect it again. Independent verification, allocation and final sign-off are unavailable until the hotel enables its approved settlement workflow.'
+       :'The hotel has not enabled independent settlement verification. Record genuine new payments only; final sign-off requires approved finance configuration.'}</p>
      </>:nextTask==='confirmation'?<>
       <h4>Review recorded payment evidence</h4>
       <p>{unconfirmed.length} payment record{unconfirmed.length===1?'':'s'} still need staff confirmation before independent verification.</p>
@@ -298,7 +279,13 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       <p>Review the server-reported blockers below; do not assume the displayed difference is a final amount due.</p>
      </>}
      <div className="checkout-guide-actions">
-      {manager&&(nextTask==='confirmation'||(data.settlementWorkflowEnabled&&
+      {nextTask==='disabled'&&recordedTotal>0
+       ?<button type="button" className="rr-secondary-action" onClick={()=>{
+          const history=document.getElementById('billing-account-history');
+          if(history instanceof HTMLDetailsElement)history.open=true;
+          history?.scrollIntoView({behavior:'smooth',block:'start'});
+         }}>View recorded payments <ArrowRight size={15}/></button>
+       :manager&&(nextTask==='confirmation'||(data.settlementWorkflowEnabled&&
        (nextTask==='verification'||nextTask==='allocation'||nextTask==='signoff'||nextTask==='review')))
        ?<button type="button" className="btn-primary" disabled={busy}
         onClick={openPaymentReview}><ShieldCheck size={16}/>
@@ -324,14 +311,14 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        <Link to="/cashier-shifts" search={{booking:bookingId,hotel:hotelId??undefined}}>
         Review cashier shifts <ArrowRight size={14}/></Link></div>
      </div>}
-     {shift.isSuccess&&!shift.data&&<div className="checkout-guide-shift">
+     {nextTask!=='disabled'&&shift.isSuccess&&!shift.data&&<div className="checkout-guide-shift">
       <AlertTriangle size={16}/>
       <div><strong>No active cash shift for your account.</strong>
        <p>Open your cashier shift before accepting physical cash. Bank-transfer evidence follows its separate verification process.</p>
        <Link to="/cashier-shifts" search={{booking:bookingId,hotel:hotelId??undefined}}>
         Open my cashier shift <ArrowRight size={14}/></Link></div>
      </div>}
-     {shift.isSuccess&&shift.data&&<p className="checkout-guide-shift-ok">
+     {nextTask!=='disabled'&&shift.isSuccess&&shift.data&&<p className="checkout-guide-shift-ok">
       <CheckCircle2 size={15}/> Your cash shift is open. Cash receipts will be linked to this drawer.</p>}
     </div>}
     {data.signed&&(data.signedSnapshotIntegrity
@@ -349,6 +336,28 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
      <ul>{data.blockers.map((blocker,index)=><li key={index}>{blocker}</li>)}</ul>
     </details>}
    </section>
+   <div className="billing-compact-numbers" aria-label="Financial account figures">
+    <div><small>Recorded charges</small><strong>{money(data.netRecordedChargesMinor,data.currency)}</strong></div>
+    <div><small>Payment evidence on file</small><strong>{money(recordedTotal,data.currency)}</strong>
+     <span>{confirmedPendingVerification.length>0
+      ?confirmedPendingVerification.length+' confirmed, awaiting verification'
+      :unconfirmed.length>0?unconfirmed.length+' awaiting confirmation'
+      :'Recorded payment history'}</span></div>
+    <div><small>Verified funds applied</small><strong>{money(data.verifiedAllocatedMinor,data.currency)}</strong></div>
+   </div>
+   <details className="billing-figures-details">
+    <summary>How are these payment amounts calculated?</summary>
+    <div className="billing-account-totals">
+     <div><span>Recorded charges</span><strong>{money(data.netRecordedChargesMinor,data.currency)}</strong></div>
+     <div><span>Recorded payment evidence</span><strong>{money(recordedTotal,data.currency)}</strong></div>
+     <div><span>Independently reviewed funds</span><strong>{money(verifiedTotal,data.currency)}</strong></div>
+     <div><span>Verified funds applied to charges</span><strong>{money(data.verifiedAllocatedMinor,data.currency)}</strong></div>
+     <div className="billing-account-difference"><span>Charges not covered by verified allocations — not an instruction to charge again</span>
+      <strong>{money(data.remainingMinor,data.currency)}</strong></div>
+    </div>
+    <p className="desk-muted">Payment evidence, staff confirmation, independent verification and allocation
+     are separate stages. An unallocated amount does not mean the guest needs to pay twice.</p>
+   </details>
    {(activeDialog==='payment'||activeDialog==='charges')&&<div className="billing-modal-backdrop">
     <section id="settlement-current-dialog" className="billing-action-modal" role="dialog" aria-modal="true"
      aria-label={activeDialog==='payment'?'Record guest payment':'Update guest bill'}>
@@ -367,7 +376,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       :<BillingActions bookingId={bookingId} signed={data.signed}/>}
     </section>
    </div>}
-   <details className="billing-statement-details">
+   <details id="billing-account-history" className="billing-statement-details">
     <summary><span><strong>View itemized bill and payment history</strong>
      <small>Room charges, payment reviews, refunds and printable statement</small></span>
      <span className="billing-expand-hint">Show details</span></summary>

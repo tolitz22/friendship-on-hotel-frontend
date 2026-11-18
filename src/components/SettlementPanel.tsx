@@ -26,6 +26,13 @@ const allocation=z.object({
  id,paymentId:id,folioEntryId:id.nullable(),payerKind:z.string(),
  payerReference:z.string(),amountMinor:z.number().int(),
 });
+const refund=z.object({
+ id,paymentId:id,amountMinor:z.number().int(),reason:z.string(),
+ status:z.string(),requestedBy:id,reviewedBy:id.nullable(),
+ evidenceId:id.nullable(),evidenceStatus:z.string().nullable(),
+ evidenceRecordedBy:id.nullable(),evidenceReviewedBy:id.nullable(),
+ externalReference:z.string().nullable(),
+});
 const tax=z.object({
  folioEntryId:id,stayDate:z.string(),status:z.string(),grossMinor:z.number(),
  vatMinor:z.number(),roomRevenueMinor:z.number(),folioCreditMinor:z.number(),benefitKind:z.string(),
@@ -35,6 +42,7 @@ const statement=z.object({
  checkIn:z.string(),checkOut:z.string(),status:z.string(),currency:z.string(),
  charges:z.array(charge),adjustments:z.array(adjustment),payments:z.array(payment),
  allocations:z.array(allocation),taxAllocations:z.array(tax),
+ refunds:z.array(refund),verifiedRefundsMinor:z.number().int(),
  netRecordedChargesMinor:z.number().int(),
  verifiedPaymentsMinor:z.number().int(),verifiedAllocatedMinor:z.number().int(),
  unallocatedVerifiedDepositsMinor:z.number().int(),remainingMinor:z.number().int(),
@@ -66,6 +74,13 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const [amount,setAmount]=useState('');
  const [entryId,setEntryId]=useState('');
  const [requestKey,setRequestKey]=useState(()=>crypto.randomUUID());
+ const [refundPayment,setRefundPayment]=useState('');
+ const [refundAmount,setRefundAmount]=useState('');
+ const [refundReason,setRefundReason]=useState('');
+ const [refundKey,setRefundKey]=useState(()=>crypto.randomUUID());
+ const [refundEvidence,setRefundEvidence]=useState('');
+ const [refundNote,setRefundNote]=useState('');
+
  const [ack,setAck]=useState(false);
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState('');
@@ -76,6 +91,8 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   setSelected('');setReference('');setReviewNote('');setPayerKind('guest');
   setPayerRef('');setAmount('');setEntryId('');setAck(false);setBusy(false);
   setError('');setSuccess('');setRequestKey(crypto.randomUUID());
+  setRefundPayment('');setRefundAmount('');setRefundReason('');
+  setRefundKey(crypto.randomUUID());setRefundEvidence('');setRefundNote('');
  },[hotelId,bookingId]);
  const query=useQuery({
   queryKey:['live','settlement-statement',hotelId,bookingId],
@@ -95,8 +112,8 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   .reduce((sum,a)=>sum+a.amountMinor,0)??0;
  const available=paymentRow?paymentRow.amountMinor-accounted:0;
  const active=()=>!!hotelId&&readSession().hotelId===hotelId;
- async function mutation(path:string,body:Record<string,unknown>,message:string){
-  if(!active()||!manager||!data?.settlementWorkflowEnabled||busy||data.signed)return;
+ async function mutation(path:string,body:Record<string,unknown>,message:string):Promise<boolean>{
+  if(!active()||!manager||!data?.settlementWorkflowEnabled||busy||data.signed)return false;
   setBusy(true);setError('');setSuccess('');
   try{
    await requestJson<unknown>(hotelPath(path),{method:'POST',body});
@@ -105,7 +122,8 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
    await client.invalidateQueries({queryKey:['live','settlement-statement',hotelId,bookingId]});
    await client.invalidateQueries({queryKey:['live','folio-ledger',hotelId]});
    await client.invalidateQueries({queryKey:['live','cashier-shifts',hotelId]});
-  }catch(e){if(active())setError(e instanceof Error?e.message:'Settlement action failed.');}
+   return true;
+  }catch(e){if(active())setError(e instanceof Error?e.message:'Settlement action failed.');return false;}
   finally{setBusy(false);}
  }
  function selectPayment(p:Payment){
@@ -186,6 +204,17 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        <td>{a.payerKind} · {a.payerReference}</td>
        <td>Payment #{a.paymentId}{a.folioEntryId?' · Night #'+a.folioEntryId:''}</td>
        <td>{money(a.amountMinor,data.currency)}</td>
+      </tr>)}</tbody>
+     </table></div>
+    </>}
+    {data.refunds.length>0&&<>
+     <h4>Refund requests and external disbursement evidence</h4>
+     <div className="table-scroll"><table className="settlement-table">
+      <thead><tr><th>Payment / reason</th><th>Review status</th><th>Amount</th></tr></thead>
+      <tbody>{data.refunds.map(r=><tr key={r.id}>
+       <td>Payment #{r.paymentId} · {r.reason}</td>
+       <td>{r.status} · {r.evidenceStatus??'no disbursement proof'}</td>
+       <td>{money(r.amountMinor,data.currency)}</td>
       </tr>)}</tbody>
      </table></div>
     </>}
@@ -292,18 +321,108 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
          !/^\d+$/.test(amount)||Number(amount)<1||Number(amount)>available||payerRef.trim().length<3}
         onClick={()=>void (async()=>{
          const priorKey=requestKey;
-         await mutation(endpoint+'/payment-records/'+paymentRow.id+'/allocations',{
+         const ok=await mutation(endpoint+'/payment-records/'+paymentRow.id+'/allocations',{
           requestKey:priorKey,payerKind,payerReference:payerRef.trim(),
           amountMinor:Number(amount),folioEntryId:entryId?Number(entryId):null,
          },'Verified payment allocation recorded.');
-         // The same key must not be reused for a different allocation.
-         setRequestKey(crypto.randomUUID());
-         setAmount('');
+         if(ok){
+          // The same key must not be reused for a different allocation.
+          setRequestKey(crypto.randomUUID());
+          setAmount('');
+         }
         })()}>
         Allocate verified payment
        </button>
       </>:<p role="alert">Rejected verification cannot be allocated. Manager investigation required.</p>}
     </div>}
+    <div className="settlement-action-panel">
+     <h4>Refunds · reviewed external bank disbursement only</h4>
+     <p className="desk-muted">The PMS does NOT send refunds. First request and independently approve a refund of an unallocated bank deposit, then record a bank reference and obtain an independent evidence review.</p>
+     <div className="desk-tools">
+      <label>Verified bank payment
+       <select className="wizard-input" value={refundPayment} onChange={e=>setRefundPayment(e.target.value)}>
+        <option value="">Select bank payment</option>
+        {data.payments.filter(p=>p.method==='bank_transfer'&&p.verificationStatus==='verified')
+         .map(p=><option key={p.id} value={p.id}>#{p.id} · {money(p.amountMinor,data.currency)}</option>)}
+       </select>
+      </label>
+      <label>Refund amount (centavos)
+       <input className="wizard-input" inputMode="numeric" value={refundAmount}
+        onChange={e=>setRefundAmount(e.target.value)} placeholder="Amount within unallocated deposit"/>
+      </label>
+     </div>
+     <label>Refund justification
+      <textarea className="wizard-input" rows={2} value={refundReason} maxLength={500}
+       onChange={e=>setRefundReason(e.target.value)}/>
+     </label>
+     <button type="button" className="btn-inline" disabled={busy||!data.settlementWorkflowEnabled||
+      !refundPayment||!/^\\d+$/.test(refundAmount)||Number(refundAmount)<1||refundReason.trim().length<5}
+      onClick={()=>void (async()=>{
+       const ok=await mutation(endpoint+'/refund-requests',{
+        requestKey:refundKey,paymentRecordId:Number(refundPayment),
+        amountMinor:Number(refundAmount),reason:refundReason.trim(),
+       },'Refund requested. A different administrator must approve before any external payout.');
+       if(ok){setRefundKey(crypto.randomUUID());setRefundAmount('');setRefundReason('');}
+      })()}>
+      Request documented refund
+     </button>
+     {data.refunds.map(r=><div className="ex-record" key={r.id}>
+      <strong>Refund #{r.id} · {money(r.amountMinor,data.currency)} · {r.status}</strong>
+      <p className="desk-muted">{r.reason} · Requested by #{r.requestedBy}
+       {r.reviewedBy?' · Approved/reviewed by #'+r.reviewedBy:''}</p>
+      {r.status==='requested'&&<>
+       <label>Independent refund review note
+        <textarea className="wizard-input" rows={2} value={refundNote}
+         onChange={e=>setRefundNote(e.target.value)}/>
+       </label>
+       <div className="desk-tools">
+        <button type="button" className="btn-inline" disabled={busy||r.requestedBy===user?.id||
+         !data.settlementWorkflowEnabled||refundNote.trim().length<5}
+         onClick={()=>void mutation(endpoint+'/refund-requests/'+r.id+'/review',{
+          decision:'approve',note:refundNote.trim(),
+         },'Refund request approved. External funds have NOT been sent.')}>Approve request</button>
+        <button type="button" className="btn-inline" disabled={busy||!data.settlementWorkflowEnabled||refundNote.trim().length<5}
+         onClick={()=>void mutation(endpoint+'/refund-requests/'+r.id+'/review',{
+          decision:'reject',note:refundNote.trim(),
+         },'Refund request rejected.')}>Reject request</button>
+       </div>
+      </>}
+      {r.status==='approved'&&!r.evidenceId&&<>
+       <label>External bank refund reference
+        <input className="wizard-input" value={refundEvidence} maxLength={160}
+         onChange={e=>setRefundEvidence(e.target.value)} placeholder="Externally issued refund identifier"/>
+       </label>
+       <button type="button" className="btn-inline" disabled={busy||!data.settlementWorkflowEnabled||refundEvidence.trim().length<8}
+        onClick={()=>void mutation(endpoint+'/refund-requests/'+r.id+'/disbursement-evidence',{
+         externalReference:refundEvidence.trim(),
+        },'External refund evidence recorded. A second administrator must independently verify it.')}>
+        Record external disbursement evidence
+       </button>
+      </>}
+      {r.evidenceStatus==='pending'&&r.evidenceId&&<>
+       <p>Recorded by #{r.evidenceRecordedBy}. A different administrator must confirm the bank evidence.</p>
+       <label>Independent evidence review note
+        <textarea className="wizard-input" rows={2} value={refundNote}
+         onChange={e=>setRefundNote(e.target.value)}/>
+       </label>
+       <div className="desk-tools">
+        <button type="button" className="btn-inline" disabled={busy||!data.settlementWorkflowEnabled||
+         r.evidenceRecordedBy===user?.id||refundNote.trim().length<10}
+         onClick={()=>void mutation(endpoint+'/refund-disbursements/'+r.evidenceId+'/review',{
+          decision:'verify',note:refundNote.trim(),
+         },'External refund evidence independently reviewed.')}>
+         Verify disbursement evidence
+        </button>
+        <button type="button" className="btn-inline" disabled={busy||!data.settlementWorkflowEnabled||refundNote.trim().length<10}
+         onClick={()=>void mutation(endpoint+'/refund-disbursements/'+r.evidenceId+'/review',{
+          decision:'reject',note:refundNote.trim(),
+         },'Refund evidence rejected pending investigation.')}>Reject evidence</button>
+       </div>
+      </>}
+      {r.evidenceStatus==='verified'&&<p className="night-audit-clean"><CheckCircle2 size={16}/>
+       External refund evidence reviewed · {r.externalReference}. No funds were sent by the PMS.</p>}
+     </div>)}
+    </div>
     <div className="settlement-signoff">
      <h4>Final settlement authorization</h4>
      <p>Signing freezes the statement and prevents ordinary corrections, new collections, and refund reviews. The booking must be checked in and at or after its departure date.</p>

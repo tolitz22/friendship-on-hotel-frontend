@@ -144,8 +144,8 @@ export function LiveHousekeeping(){
    <QueryFeedback loading={directTask.isPending} error={directTask.error}
     onRetry={()=>void directTask.refetch()}/>
   </section>}
-  <div className="notice"><strong>Live housekeeping tasks</strong> · Cleaning assignments and completion are stored in Laravel. Completing a task does not set room readiness, block reservations, or change occupancy.</div>
-  <Heading title="Housekeeping" description="Property-scoped cleaning tasks with revision tracking and recorded history" action={admin?
+  <div className="notice"><strong>Housekeeping tasks</strong> · Track assigned cleaning work and completion. Finishing a cleaning task does not automatically approve a room for check-in or change its occupancy.</div>
+  <Heading title="Housekeeping" description="Manage cleaning assignments, progress, and task history for this hotel" action={admin?
    <button type="button" className="btn-primary" onClick={openCreate}><Plus size={16}/> Create task</button>:undefined}/>
   <div className="mnt-summary">
    <div><ClipboardCheck size={20}/><span>To do on this page</span><strong>{data.filter(x=>x.status==='todo').length}</strong></div>
@@ -168,14 +168,14 @@ export function LiveHousekeeping(){
     <label>Search current page <input aria-label="Search current task page" value={textFilter}
      onChange={e=>setTextFilter(e.target.value)}/></label>
    </div>
-   <p className="hk-notice">Status and task type filters run on Laravel. Text search filters the current page only. Counts describe the visible page, not all hotel rooms.</p>
+   <p className="hk-notice">Status and task type filters cover all matching tasks. Text search checks only the tasks on this page. Counts reflect the current page, not every hotel room.</p>
    <QueryFeedback loading={tasks.isPending} error={tasks.error} empty={!!tasks.data&&filtered.length===0}/>
    {filtered.length>0&&<div className="mnt-order-grid">{filtered.map(task=><article className="mnt-order" key={task.id}>
     <div className="mnt-order-top"><strong>HK-{task.id}</strong><span className="status">{task.status.replaceAll('_',' ')}</span></div>
     <h3>Room {task.roomNumber}</h3>
     <p>{task.type.replaceAll('_',' ')} · Assigned: {task.assignedUserId?(admin?staff.data?.data.find(m=>m.userId===task.assignedUserId)?.name??('Staff #'+task.assignedUserId):task.assignedUserId===user?.id?'You':'Linked staff #'+task.assignedUserId):task.assignedTo??'Unassigned'}</p>
     <div className="mnt-order-info"><span>Due</span><strong>{task.dueAt??'Not scheduled'}</strong></div>
-    <div className="mnt-order-info"><span>Revision</span><strong>{task.revision}</strong></div>
+    <div className="mnt-order-info"><span>Update version</span><strong>{task.revision}</strong></div>
     <button type="button" className="btn-inline mnt-review" onClick={()=>openEdit(task)}>{canUpdate(task)?'Manage task':'View task'} <ClipboardCheck size={15}/></button>
    </article>)}</div>}
    {tasks.data&&<div className="guest-pagination"><span>Page {tasks.data.meta.page} of {Math.max(1,tasks.data.meta.totalPages)}</span>

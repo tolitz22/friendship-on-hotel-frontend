@@ -2,7 +2,7 @@ import {useEffect,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {Link} from '@tanstack/react-router';
 import {z} from 'zod';
-import {AlertTriangle,CheckCircle2,ClipboardCheck,Printer,RefreshCw,ShieldCheck,Wallet,Banknote,PlusCircle,ArrowRight,X} from 'lucide-react';
+import {AlertTriangle,CheckCircle2,ClipboardCheck,Printer,RefreshCw,ShieldCheck,Wallet,Banknote,ArrowRight,X} from 'lucide-react';
 import {getJson,requestJson} from '../api/http';
 import {hotelPath,readSession} from '../api/session';
 import {useHotelAuth} from './AuthProvider';
@@ -126,7 +126,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   :/^\d+$/.test(text)&&Number.isSafeInteger(Number(text))&&Number(text)>0?Number(text):null;
  const allocationMinor=minorInput(amount);
  const refundMinor=minorInput(refundAmount);
- const unconfirmed=data?.payments.filter(p=>p.status!=='staff_confirmed')??[];
+ const unconfirmed=data?.payments.filter(p=>p.status==='pending_review')??[];
  const unverified=data?.payments.filter(p=>p.status==='staff_confirmed'
   &&p.verificationStatus!=='verified')??[];
  const verifiedUnallocated=data?.payments.filter(p=>p.status==='staff_confirmed'
@@ -136,8 +136,8 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const nextPayment=unverified[0]??verifiedUnallocated[0]??null;
  const pendingOtherReviewer=nextPayment?.verificationStatus==='pending'
   &&nextPayment.verificationPreparedBy===user?.id;
- const nextTask=data?.signed?'signed':!data?.settlementWorkflowEnabled?'disabled'
-  :unconfirmed.length>0?'confirmation':unverified.length>0?'verification'
+ const nextTask=data?.signed?'signed':unconfirmed.length>0?'confirmation'
+  :!data?.settlementWorkflowEnabled?'disabled':unverified.length>0?'verification'
   :verifiedUnallocated.length>0?'allocation':data?.canSignOff?'signoff':'review';
  function openPaymentReview(){
   if(nextPayment)selectPayment(nextPayment);
@@ -238,17 +238,22 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       <p>Review the server-reported blockers below; do not assume the displayed difference is a final amount due.</p>
      </>}
      <div className="checkout-guide-actions">
-      <button type="button" className="btn-primary" disabled={busy||data.signed}
-       onClick={()=>setActiveDialog('payment')}><Banknote size={16}/> Record a payment</button>
-      {manager&&data.settlementWorkflowEnabled&&nextTask!=='confirmation'&&
-       <button type="button" className="rr-secondary-action"
+      {manager&&(nextTask==='confirmation'||(data.settlementWorkflowEnabled&&
+       (nextTask==='verification'||nextTask==='allocation'||nextTask==='signoff'||nextTask==='review')))
+       ?<button type="button" className="btn-primary" disabled={busy}
         onClick={openPaymentReview}><ShieldCheck size={16}/>
-        {nextTask==='signoff'?'Open final authorization':'Continue manager review'}
-       </button>}
-      {nextTask==='confirmation'&&manager&&<button type="button" className="rr-secondary-action"
-       onClick={openPaymentReview}><ShieldCheck size={16}/> Review payment evidence</button>}
+        {nextTask==='confirmation'?'Review payment evidence'
+         :nextTask==='signoff'?'Open final authorization':'Continue manager review'}
+       </button>
+       :<button type="button" className="btn-primary" disabled={busy}
+        onClick={()=>setActiveDialog('payment')}><Banknote size={16}/> Record payment</button>}
+      {manager&&data.remainingMinor>0&&nextTask!=='disabled'&&
+       <button type="button" className="rr-secondary-action"
+        onClick={()=>setActiveDialog('payment')}><Banknote size={15}/> Record another payment</button>}
       {nextTask==='confirmation'&&!manager&&
-       <span className="checkout-guide-review-wait">An authorized manager must confirm the payment evidence.</span>}
+       <span className="checkout-guide-review-wait">An authorized manager must confirm the recorded evidence.</span>}
+      {manager&&<button type="button" className="btn-inline"
+       onClick={()=>setActiveDialog('charges')}>Add charge or correction</button>}
      </div>
      {shift.isSuccess&&!shift.data&&<div className="checkout-guide-shift">
       <AlertTriangle size={16}/>
@@ -268,9 +273,9 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
      <ul>{data.blockers.map((blocker,index)=><li key={index}>{blocker}</li>)}</ul>
     </details>}
    </section>
-   <section className="settlement-progress" aria-label="Financial settlement stages">
-    <div className="settlement-progress-title"><ClipboardCheck size={17}/>
-     <strong>Payment and checkout progress</strong></div>
+   <details className="settlement-progress" aria-label="Detailed financial settlement stages">
+    <summary className="settlement-progress-title"><ClipboardCheck size={17}/>
+     <strong>Detailed verification and allocation statuses</strong></summary>
     <ol>
      <li><strong>1. Staff confirmation</strong><span>{data.payments.some(p=>p.status==='staff_confirmed')
       ?'Staff-confirmed payment recorded':'Awaiting a staff-confirmed payment'}</span></li>
@@ -289,15 +294,8 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
     </p>}
     <p className="desk-muted">Staff confirmation is not bank verification. Internal documentary review is not
      provider settlement, and allocating a payment does not sign off the guest account.</p>
-   </section>
-   {!data.signed&&<div className="billing-main-actions" aria-label="Guest bill actions">
-    <button type="button" className="btn-primary" onClick={()=>setActiveDialog('payment')}>
-     <Banknote size={18}/> Record payment
-    </button>
-    {manager&&<button type="button" className="rr-secondary-action" onClick={()=>setActiveDialog('charges')}>
-     <PlusCircle size={18}/> Add charge or correction
-    </button>}
-   </div>}
+   </details>
+
    {activeDialog&&<div className="billing-modal-backdrop">
     <section className="billing-action-modal" role="dialog" aria-modal="true"
      aria-label={activeDialog==='payment'?'Record guest payment':'Update guest bill'}>

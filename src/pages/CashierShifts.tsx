@@ -10,7 +10,7 @@ import {getCashShiftHistory,openCashierShift,reconcileCashShift,submitCashCount,
 import type {CashierShift} from '../api/cashierShifts';
 import {readableDateTime} from '../lib/format';
 import {listHotelStaff} from '../api/liveStaff';
-import {ReadableCashAuditEvent} from '../components/ReadableAuditEvent';
+import {ReadableCashAuditEvent,auditActorName} from '../components/ReadableAuditEvent';
 
 const validMoney=(s:string)=>/^\d+(\.\d{1,2})?$/.test(s)&&Number.isSafeInteger(Math.round(Number(s)*100))&&Number(s)<=1_000_000_000;
 const minor=(s:string)=>Math.round(Number(s)*100);
@@ -21,6 +21,7 @@ const money=(n:number,currency:string)=>currency==='PHP'
 function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:boolean;ownShift:boolean;onChange:()=>void}){
  const {hotelId,user}=useHotelAuth();
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:manager&&!!hotelId});
+ const cashierName=auditActorName(shift.cashierId,staff.data?.data.find(member=>member.userId===shift.cashierId)?.name,user?.id,user?.name);
  const [count,setCount]=useState('');
  const [note,setNote]=useState('');
  const [busy,setBusy]=useState(false);
@@ -54,7 +55,7 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
  return <article className="cash-shift-card" aria-label={'Cash shift '+shift.id}>
   <div className="cash-shift-card-header">
    <div><span className="rr-eyebrow">SHIFT #{shift.id}</span>
-    <h3>{ownShift?'Your cash drawer':'Cash drawer · Staff #'+shift.cashierId}</h3>
+    <h3>{ownShift?'Your cash drawer':'Cash drawer · '+cashierName}</h3>
     <p>Opened {readableDateTime(shift.openedAt)}</p></div>
    <span className={'cash-shift-pill cash-shift-'+shift.status}>{shift.status==='open'?'Open':shift.status==='submitted'?'Awaiting review':shift.status==='reconciled'?'Reconciled':'Flagged for review'}</span>
   </div>
@@ -134,8 +135,8 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
    aria-expanded={historyOpen}><History size={15}/>{historyOpen?'Hide':'View'} shift activity</button>
   {historyOpen&&<div><QueryFeedback loading={log.isPending} error={log.error}/>
    {log.data?.data.map(event=><ReadableCashAuditEvent key={event.id} event={event}
-    actorName={staff.data?.data.find(member=>member.userId===event.actorId)?.name}
-    currentUserId={user?.id}/>)}</div>}
+    actorName={event.actorName??staff.data?.data.find(member=>member.userId===event.actorId)?.name}
+    currentUserId={user?.id} currentUserName={user?.name}/>)}</div>}
   {error&&<p role="alert" className="auth-error">{error}. Refresh the shift before retrying.</p>}
   {result&&<p role="status">{result}</p>}
  </article>;

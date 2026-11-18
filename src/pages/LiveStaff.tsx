@@ -128,13 +128,13 @@ export function LiveStaff(){
   <Panel title="Membership audit history" action={<button type="button" className="btn-inline" onClick={()=>setHistoryOpen(v=>!v)}><History size={16}/>{historyOpen?'Hide':'View'} history</button>}>
    {historyOpen&&<><QueryFeedback loading={history.isPending} error={history.error} empty={history.data?.data.length===0}/>
     {history.data?.data.map(event=><div key={event.id} className="staff-audit-entry">
-     <p className="staff-audit-target"><strong>Employee affected:</strong> {staff.data?.data.find(member=>member.userId===event.targetUserId)?.name??'Staff member #'+event.targetUserId}</p>
+     <p className="staff-audit-target"><strong>Employee affected:</strong> {event.targetName??staff.data?.data.find(member=>member.userId===event.targetUserId)?.name??'Employee name unavailable'}</p>
      <ReadableAuditEvent event={{
       id:event.id,actorId:event.actorId,action:event.action,
       before:event.before?{...event.before}:null,after:{...event.after},
       note:null,createdAt:event.createdAt,
-     }} actorName={staff.data?.data.find(member=>member.userId===event.actorId)?.name}
-      currentUserId={user?.id}/>
+     }} actorName={event.actorName??staff.data?.data.find(member=>member.userId===event.actorId)?.name}
+      currentUserId={user?.id} currentUserName={user?.name}/>
     </div>)}
    </>}
   </Panel>

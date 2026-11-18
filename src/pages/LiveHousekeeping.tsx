@@ -301,8 +301,8 @@ export function LiveHousekeeping(){
     <button type="button" className="btn-inline" onClick={()=>setHistoryOpen(v=>!v)}><History size={16}/>{historyOpen?'Hide':'View'} task history</button>
     {historyOpen&&<><QueryFeedback loading={history.isPending} error={history.error}/>
      {history.data?.data.map(event=><ReadableAuditEvent key={event.id} event={event}
-      actorName={staff.data?.data.find(member=>member.userId===event.actorId)?.name}
-      currentUserId={user?.id}/>)}
+      actorName={event.actorName??staff.data?.data.find(member=>member.userId===event.actorId)?.name}
+      currentUserId={user?.id} currentUserName={user?.name}/>)}
      {history.data&&<div className="guest-pagination">
       <span>Event page {history.data.meta.page} of {Math.max(1,history.data.meta.totalPages)}</span>
       <div><button type="button" className="btn-inline" disabled={historyPage<=1}

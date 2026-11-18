@@ -45,7 +45,7 @@ export function OccupancyCoverageReport(){
  const summary=report.data?.summary;
  if(!manager)return <>
   <Heading title="Occupancy coverage" description="Only property managers can view independent inspection coverage and reports."/>
-  <Panel title="Restricted"><p>Hotel roles and active staff membership are verified by Laravel.</p></Panel>
+  <Panel title="Restricted"><p>Only authorized staff can view this report.</p></Panel>
  </>;
  return <>
   <Heading title="Independent occupancy coverage"
@@ -103,7 +103,7 @@ export function OccupancyCoverageReport(){
       {room.reviewedBy?' · Reviewed by #'+room.reviewedBy:''}
      </p>}
      {room.discrepancy&&<p className="desk-muted">
-      Observed: {room.observedOccupancy??'not submitted'} · PMS snapshot: {room.expectedOccupancy??'not recorded'}
+      Observed: {room.observedOccupancy??'not submitted'} · PMS record: {room.expectedOccupancy??'not recorded'}
      </p>}
     </article>)}
    </div>

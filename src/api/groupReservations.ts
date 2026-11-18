@@ -12,6 +12,13 @@ const groupRoom=z.object({
 const group=z.object({
  id,hotelId:id,reference:z.string(),name:z.string(),contactName:z.string().nullable(),
  roomCount:z.number().int().nonnegative(),createdAt:z.string(),
+ operations:z.object({
+  assignedCount:z.number().int().nonnegative(),readinessAdvisoryReadyCount:z.number().int().nonnegative(),
+  readinessCheckedCount:z.number().int().nonnegative(),checkedInOrOutCount:z.number().int().nonnegative(),
+  checkedOutCount:z.number().int().nonnegative(),checkoutCleaningCompleteCount:z.number().int().nonnegative(),
+  checkoutCleaningPendingCount:z.number().int().nonnegative(),checkoutCleaningNoTaskCount:z.number().int().nonnegative(),
+  readinessIsAdvisoryOnly:z.literal(true),
+ }),
  checkIn:z.iso.date().nullable(),checkOut:z.iso.date().nullable(),
  rooms:z.array(groupRoom),billingMode:z.literal('individual_folios'),
  groupBillingTransfersEnabled:z.literal(false),idempotentReplay:z.boolean(),

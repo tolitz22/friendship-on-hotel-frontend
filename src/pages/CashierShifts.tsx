@@ -1,11 +1,12 @@
-import {useEffect,useRef,useState} from 'react';
+import {useEffect,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
-import {AlertTriangle,Banknote,CheckCircle2,ClipboardCheck,RefreshCw} from 'lucide-react';
+import {AlertTriangle,ArrowRight,Banknote,CheckCircle2,ClipboardCheck,Clock3,History,Info,RefreshCw,Wallet} from 'lucide-react';
+import {Link} from '@tanstack/react-router';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {readSession} from '../api/session';
-import {getCashShiftHistory,openCashierShift,receiveCash,reconcileCashShift,submitCashCount,useCashierShifts,useCashierShiftDetails,useCurrentCashierShift} from '../api/cashierShifts';
+import {getCashShiftHistory,openCashierShift,reconcileCashShift,submitCashCount,useCashierShifts,useCashierShiftDetails,useCurrentCashierShift} from '../api/cashierShifts';
 import type {CashierShift} from '../api/cashierShifts';
 
 const validMoney=(s:string)=>/^\d+(\.\d{1,2})?$/.test(s)&&Number.isSafeInteger(Math.round(Number(s)*100))&&Number(s)<=1_000_000_000;
@@ -22,6 +23,8 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
  const [error,setError]=useState('');
  const [result,setResult]=useState('');
  const [historyOpen,setHistoryOpen]=useState(false);
+ const [closingOpen,setClosingOpen]=useState(false);
+ const [countConfirmed,setCountConfirmed]=useState(false);
  const detail=useCashierShiftDetails(manager&&shift.status==='submitted',shift.id);
  const log=useQuery({
   queryKey:['live','cashier-shift-history',hotelId,shift.id],
@@ -34,36 +37,59 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
   try{
    if(action==='close'){
     if(!validMoney(count))throw new Error('Enter a cash count with up to two decimal places.');
+    if(!ownShift||shift.status!=='open'||!countConfirmed)throw new Error('Count and confirm the cash before submitting your shift.');
     await submitCashCount(hotelId,shift.id,minor(count),note);
    }else{
     if(note.trim().length<5)throw new Error('Provide a manager review note of at least five characters.');
     await reconcileCashShift(hotelId,shift.id,action,note.trim());
    }
-   if(readSession().hotelId===hotelId){setResult('Shift updated.');onChange();}
+   if(readSession().hotelId===hotelId){setResult(action==='close'?'Cash count submitted. Another manager will review your shift.':'Manager review recorded.');setClosingOpen(false);setCountConfirmed(false);onChange();}
   }catch(e){setError(e instanceof Error?e.message:'Outcome unclear; refresh before retrying.');}
   finally{setBusy(false);}
  }
- return <article className="ex-record" aria-label={'Cash shift '+shift.id}>
-  <div className="desk-tools"><strong>Shift #{shift.id} · {shift.status.replaceAll('_',' ')}</strong>
-   <span>Cashier #{shift.cashierId}</span></div>
-  <p>Opened {shift.openedAt} · Opening float: {money(shift.openingFloatMinor,shift.currency)}
-   {' · '}{shift.receiptCount} recorded cash receipt(s)</p>
-  {shift.status==='open'&&<p className="desk-muted">Expected cash is hidden until count submission. Count physical notes and coins independently.</p>}
-  {shift.expectedCashMinor!==null&&<div className="desk-tools">
-   <strong>Expected {money(shift.expectedCashMinor,shift.currency)}</strong>
-   <strong>Counted {money(shift.countedCashMinor!,shift.currency)}</strong>
-   <strong>Variance {money(shift.varianceMinor!,shift.currency)}</strong></div>}
-  {shift.unconfirmedReceiptCount>0&&<p className="desk-attention"><AlertTriangle size={15}/>
-   {shift.unconfirmedReceiptCount} payment(s) not staff-confirmed. Manager must investigate before reconciling.</p>}
-  {ownShift&&shift.status==='open'&&<div className="wizard-fields">
-   <label>Counted cash (major currency units)
-    <input className="wizard-input" type="text" inputMode="decimal" value={count}
-     onChange={e=>setCount(e.target.value)} placeholder="0.00"/></label>
-   <label>Closing note<input className="wizard-input" value={note} maxLength={1000}
-    onChange={e=>setNote(e.target.value)} placeholder="Drawer handover notes"/></label>
-   <button className="btn-primary" type="button" disabled={busy||!validMoney(count)}
-    onClick={()=>void run('close')}>Submit counted cash</button>
-  </div>}
+ return <article className="cash-shift-card" aria-label={'Cash shift '+shift.id}>
+  <div className="cash-shift-card-header">
+   <div><span className="rr-eyebrow">SHIFT #{shift.id}</span>
+    <h3>{ownShift?'Your cash drawer':'Cash drawer · Staff #'+shift.cashierId}</h3>
+    <p>Opened {shift.openedAt}</p></div>
+   <span className={'cash-shift-pill cash-shift-'+shift.status}>{shift.status==='open'?'Open':shift.status==='submitted'?'Awaiting review':shift.status==='reconciled'?'Reconciled':'Flagged for review'}</span>
+  </div>
+  <div className="cash-shift-metrics">
+   <div><small>Opening cash</small><strong>{money(shift.openingFloatMinor,shift.currency)}</strong></div>
+   <div><small>Cash receipts recorded</small><strong>{shift.receiptCount}</strong></div>
+   <div><small>Needs payment review</small><strong>{shift.unconfirmedReceiptCount}</strong></div>
+  </div>
+  {shift.status==='open'&&<p className="cash-shift-explainer"><Info size={15}/>
+   The expected drawer total stays hidden until you submit your physical cash count.</p>}
+  {shift.expectedCashMinor!==null&&<div className="cash-shift-metrics cash-shift-reconciliation">
+   <div><small>Expected cash</small><strong>{money(shift.expectedCashMinor,shift.currency)}</strong></div>
+   <div><small>Counted cash</small><strong>{money(shift.countedCashMinor??0,shift.currency)}</strong></div>
+   <div><small>Difference</small><strong>{money(shift.varianceMinor??0,shift.currency)}</strong></div></div>}
+  {shift.unconfirmedReceiptCount>0&&<p className="cash-shift-alert"><AlertTriangle size={16}/>
+   {shift.unconfirmedReceiptCount} receipt{shift.unconfirmedReceiptCount===1?'':'s'} still need independent payment review.</p>}
+  {ownShift&&shift.status==='open'&&<section className="cash-shift-close">
+   <button type="button" className="cash-shift-close-toggle" aria-expanded={closingOpen}
+    onClick={()=>setClosingOpen(v=>!v)}>
+    <span><strong>Finish shift and count cash</strong><small>Only at the end of your shift · This stops new cash payments</small></span>
+    <ArrowRight size={17} aria-hidden="true"/></button>
+   {closingOpen&&<div className="cash-shift-close-form">
+    <p>Count the physical notes and coins in your drawer. Do not use a calculated expected total as your count.</p>
+    <label>Actual cash counted (₱)
+     <input className="wizard-input" type="text" inputMode="decimal" value={count}
+      onChange={e=>{setCount(e.target.value);setCountConfirmed(false);}} placeholder="0.00"/></label>
+    <label>Handover note (optional)
+     <input className="wizard-input" value={note} maxLength={1000}
+      onChange={e=>setNote(e.target.value)} placeholder="Any handover details"/></label>
+    <label className="cash-shift-confirm"><input type="checkbox" checked={countConfirmed}
+     onChange={e=>setCountConfirmed(e.target.checked)}/>
+     I counted the actual cash in the drawer and understand that this shift will be submitted for manager review.</label>
+    <div className="cash-shift-close-buttons">
+     <button type="button" className="btn-primary" disabled={busy||!validMoney(count)||!countConfirmed}
+      onClick={()=>void run('close')}>{busy?'Submitting…':'Submit cash count and end shift'}</button>
+     <button type="button" className="btn-inline" onClick={()=>setClosingOpen(false)}>Cancel</button>
+    </div>
+   </div>}
+  </section>}
   {manager&&!ownShift&&shift.status==='submitted'&&<div>
    <h4>Recorded receipts for independent verification</h4>
    <QueryFeedback loading={detail.isPending} error={detail.error} onRetry={()=>void detail.refetch()}/>
@@ -81,10 +107,10 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
      onClick={()=>void run('flag')}><AlertTriangle size={16}/> Flag discrepancy</button>
    </div>
   </div>}
-  {ownShift&&shift.status==='submitted'&&<p className="desk-attention"><AlertTriangle size={15}/> Your shift is awaiting independent manager review. You cannot open another shift until it is reconciled.</p>}
-  {shift.managerNote&&<p><strong>Manager note:</strong> {shift.managerNote}</p>}
-  <button type="button" className="btn-inline" onClick={()=>setHistoryOpen(v=>!v)}
-   aria-expanded={historyOpen}>{historyOpen?'Hide':'Show'} audit events</button>
+  {ownShift&&shift.status==='submitted'&&<p className="cash-shift-alert"><Clock3 size={15}/> This shift is awaiting review by another manager. A new shift cannot start until this is resolved.</p>}
+  {shift.managerNote&&<p><strong>Manager review:</strong> {shift.managerNote}</p>}
+  <button type="button" className="cash-shift-history-toggle" onClick={()=>setHistoryOpen(v=>!v)}
+   aria-expanded={historyOpen}><History size={15}/>{historyOpen?'Hide':'View'} shift activity</button>
   {historyOpen&&<div><QueryFeedback loading={log.isPending} error={log.error}/>
    {log.data?.data.map(row=><p key={row.id} className="desk-muted">
     {row.event.replaceAll('_',' ')} · User #{row.actorId} · {row.createdAt}
@@ -103,17 +129,12 @@ export function CashierShifts(){
  const [page,setPage]=useState(1);
  const [status,setStatus]=useState('all');
  const [float,setFloat]=useState('0.00');
- const [booking,setBooking]=useState('');
- const [reference,setReference]=useState('');
- const [amount,setAmount]=useState('');
+
  const [openBusy,setOpenBusy]=useState(false);
- const [paymentBusy,setPaymentBusy]=useState(false);
  const [message,setMessage]=useState('');
  const [error,setError]=useState('');
- const key=useRef<string|null>(null);
  useEffect(()=>{
-  setPage(1);setStatus('all');setFloat('0.00');setBooking('');setReference('');
-  setAmount('');setMessage('');setError('');key.current=null;
+  setPage(1);setStatus('all');setFloat('0.00');setMessage('');setError('');
  },[hotelId]);
  const shifts=useCashierShifts(allowed,page,status==='all'?undefined:status as CashierShift['status']);
  const ownOpenShift=useCurrentCashierShift(allowed);
@@ -130,30 +151,14 @@ export function CashierShifts(){
   catch(e){setError(e instanceof Error?e.message:'Unable to open shift.');}
   finally{setOpenBusy(false);}
  }
- async function collect(){
-  if(!hotelId||!active||paymentBusy||!validMoney(amount)||minor(amount)<1
-   ||!(/^[1-9]\d*$/.test(booking))||reference.trim().length<3)return;
-  setPaymentBusy(true);setError('');setMessage('');
-  if(!key.current)key.current=crypto.randomUUID();
-  try{
-   const result=await receiveCash(hotelId,active.id,booking,{
-    requestKey:key.current,reference:reference.trim(),amountMinor:minor(amount),
-   });
-   if(readSession().hotelId!==hotelId)return;
-   key.current=null;setBooking('');setReference('');setAmount('');
-   setMessage('Cash recorded against folio payment #'+result.paymentId+'. Manager payment review remains required.');
-   void refresh();
-  }catch(e){setError(e instanceof Error?e.message:'Payment outcome uncertain; retry the same key.');}
-  finally{setPaymentBusy(false);}
- }
  if(!allowed)return <><Heading title="Cashier shifts" description="Only active receptionists and hotel managers can view cashier records."/>
   <Panel title="Restricted"><p>Only staff with cashier permissions for this hotel can access this page.</p></Panel></>;
  return <>
-  <Heading title={manager?'Cash reconciliation':'Cashier shift'} description={manager
-   ?'Independently reconcile submitted drawers and investigate discrepancies.'
-   :'Record every cash receipt to a priced reservation and count your drawer before closing.'}/>
-  <Panel title="My cash drawer">
-   <p className="desk-muted">Your drawer belongs to your staff account. Open it once at the start of collecting cash, and submit your cash count at the end of your shift.</p>
+  <div className="cashier-page-heading"><span className="rr-eyebrow">CASH OPERATIONS</span>
+   <Heading title="Cashier shifts" description="Track your cash drawer, collect guest payments, and finish your shift securely."/></div>
+  <section className="cashier-drawer-panel" aria-label="My cash drawer"><div className="cashier-panel-heading">
+   <div><h2>My cash drawer</h2><p>One shift per cashier. Opening cash is the money already in your drawer for giving change.</p></div>
+   <button type="button" className="rr-secondary-action" disabled={ownOpenShift.isFetching} onClick={()=>void refresh()}><RefreshCw size={15}/> Refresh</button></div>
    <QueryFeedback loading={ownOpenShift.isPending} error={ownOpenShift.error} onRetry={()=>void ownOpenShift.refetch()}/>
    {ownOpenShift.isSuccess&&!active&&<div className="wizard-fields">
     {!manager&&ownPendingShifts.isSuccess&&ownPendingShifts.data.data.length>0&&
@@ -167,28 +172,20 @@ export function CashierShifts(){
      onClick={()=>void start()}><Banknote size={16}/> {openBusy?'Opening…':'Open my cashier shift'}</button>
     {manager&&<p className="desk-muted">If your previous shift is awaiting review, another manager must reconcile it before you can open a new one.</p>}
    </div>}
-   {active&&<div>
-    <p><ClipboardCheck size={17}/> Your open shift #{active.id}. Payment records remain subject to independent review.</p>
-    <div className="wizard-fields">
-     <label>Reservation ID
-      <input className="wizard-input" value={booking} disabled={paymentBusy}
-       onChange={e=>{setBooking(e.target.value);key.current=null;}} inputMode="numeric"/></label>
-     <label>Cash receipt reference
-      <input className="wizard-input" value={reference} disabled={paymentBusy}
-       onChange={e=>{setReference(e.target.value);key.current=null;}} maxLength={120}/></label>
-     <label>Cash payment (₱)
-      <input className="wizard-input" value={amount} disabled={paymentBusy}
-       onChange={e=>{setAmount(e.target.value);key.current=null;}} inputMode="decimal"/></label>
-     <button type="button" className="btn-primary" disabled={paymentBusy||!validMoney(amount)||minor(amount)<1||
-      !(/^[1-9]\d*$/.test(booking))||reference.trim().length<3}
-      onClick={()=>void collect()}>{paymentBusy?'Saving…':'Record cash receipt'}</button>
+   {active&&<div className="cashier-active-workflow">
+    <div className="cashier-collect-next">
+     <div className="cashier-collect-heading"><span className="cashier-collect-icon"><Wallet size={21}/></span>
+      <div><strong>Ready to accept guest cash payments</strong>
+       <p>Your shift is open. Payments entered from a guest's bill are automatically linked to this drawer.</p></div></div>
+     <Link to="/billing" search={{}} className="btn-primary cashier-billing-link">
+      Find a guest and record payment <ArrowRight size={16}/></Link>
     </div>
     <ShiftRow shift={active} manager={manager} ownShift onChange={()=>void refresh()}/>
    </div>}
-   {message&&<p role="status">{message}</p>}
+   {message&&<p role="status" className="cashier-feedback-success">{message}</p>}
    {error&&<p className="auth-error" role="alert">{error} Check your shift before trying again.</p>}
-  </Panel>
-  <Panel title={manager?'All hotel cashier shifts':'My shift history'}>
+  </section>
+  <Panel title={manager?'Shift review & history':'Previous shifts'}>
    <div className="desk-tools">
     <label>Filter by status <select className="wizard-input" value={status} onChange={e=>{setStatus(e.target.value);setPage(1);}}>
      <option value="all">All</option><option value="open">Open</option>
@@ -206,6 +203,6 @@ export function CashierShifts(){
      <button className="btn-inline" disabled={page>=shifts.data.meta.totalPages} onClick={()=>setPage(p=>p+1)}>Next</button>
     </div></div>}
   </Panel>
-  <p className="desk-preview-note"><AlertTriangle size={17}/> Cash reconciliation tracks registered collections only. It cannot detect a guest who stays or pays entirely outside the PMS. Rejected payment evidence does not automatically prove cash was returned.</p>
+  <p className="desk-preview-note"><AlertTriangle size={17}/> Only registered cash payments are included in reconciliation. Always record every stay and guest payment in the hotel system.</p>
  </>;
 }

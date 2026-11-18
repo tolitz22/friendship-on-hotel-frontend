@@ -5,6 +5,10 @@ import {useHotelAuth} from './AuthProvider';
 import {Panel} from './ui';
 import {QueryFeedback} from './QueryFeedback';
 import {readSession} from '../api/session';
+import {readableDateTime} from '../lib/format';
+import {auditActorName} from './ReadableAuditEvent';
+import {useQuery} from '@tanstack/react-query';
+import {listHotelStaff} from '../api/liveStaff';
 import {
  changeReadinessPolicy,useReadinessPolicy,useReadinessPolicyHistory,
 } from '../api/readinessEnforcementPolicy';
@@ -12,6 +16,7 @@ import {
 export function ReadinessEnforcementPanel(){
  const {hotelId,user}=useHotelAuth();
  const admin=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
+ const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin&&!!hotelId});
  const policy=useReadinessPolicy();
  const [reason,setReason]=useState('');
  const [ack,setAck]=useState(false);
@@ -78,10 +83,15 @@ export function ReadinessEnforcementPanel(){
    <h4>Policy change history</h4>
    <QueryFeedback loading={history.isPending} error={history.error}
     empty={history.isSuccess&&history.data.data.length===0}/>
-   {history.data?.data.map(entry=><article key={entry.id} className="maintenance-history-event">
-    <strong>{entry.nextEnabled?'Enabled':'Disabled'} · Change #{entry.revision} · Staff #{entry.actorId}</strong>
-    <small>{entry.createdAt}</small>
-    <p>{entry.reason}</p>
+   {history.data?.data.map(entry=><article key={entry.id} className="readable-audit-event">
+    <strong>{entry.nextEnabled?'Made approved inspections mandatory for check-in':
+     'Stopped requiring approved inspections at check-in'}</strong>
+    <p className="readable-audit-context">Changed by {auditActorName(entry.actorId,
+     entry.actorName??staff.data?.data.find(member=>member.userId===entry.actorId)?.name,user?.id,user?.name)}
+     {' · '}{readableDateTime(entry.createdAt)}</p>
+    <p className="readable-audit-context">Changed from <strong>{entry.previousEnabled?'Required':'Not required'}</strong>
+     {' to '}<strong>{entry.nextEnabled?'Required':'Not required'}</strong></p>
+    <p className="readable-audit-note"><strong>Reason:</strong> {entry.reason}</p>
    </article>)}
    {history.data&&<div className="guest-pagination">
     <span>Page {history.data.meta.page} of {Math.max(1,history.data.meta.totalPages)}</span>

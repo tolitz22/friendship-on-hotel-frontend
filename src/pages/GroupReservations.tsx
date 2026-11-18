@@ -473,7 +473,7 @@ export function GroupReservations(){
     <div className="rb-review gb-booking-review">
      <div className="gb-form-step"><span>3</span><div><strong>Review and confirm</strong>
       <small>Check the stay summary before creating the linked bookings.</small></div></div>
-     {selectedAllotment&&<p>Converting hold {selectedAllotment.reference}. Dates, room type and quantity must match the existing hold.</p>
+     {selectedAllotment&&<p>Converting hold {selectedAllotment.reference}. Dates, room type and quantity must match the existing hold.</p>}
      <p>{rooms.length} rooms · {readableDate(checkIn)} – {readableDate(checkOut)}</p>
      <p><strong>Estimated room subtotal: {estimate===null?'Mixed currencies — review individual rates':money(estimate,'PHP')}</strong></p>
      <p className="desk-muted">Estimated room charges only. Taxes, service fees, discounts, deposits, and payments are separate. Inventory is verified again when you confirm.</p>

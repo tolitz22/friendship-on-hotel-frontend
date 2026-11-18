@@ -71,12 +71,16 @@ const rooms=createRoute({getParentRoute:()=>root,path:'/rooms',
  }),
  component:dataMode==='api'?LiveRooms:Rooms});
 const roomCalendar=createRoute({getParentRoute:()=>root,path:'/room-calendar',
- validateSearch:(value:Record<string,unknown>):{date?:string;group?:string;hotel?:string}=>({
+ validateSearch:(value:Record<string,unknown>):{date?:string;end?:string;group?:string;hotel?:string}=>({
   date:typeof value.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.date)
     &&!Number.isNaN(Date.parse(value.date+'T00:00:00Z'))
     &&new Date(value.date+'T00:00:00Z').toISOString().slice(0,10)===value.date
      ?value.date:undefined,
   group:typeof value.group==='string'&&/^[1-9][0-9]*$/.test(value.group)?value.group:undefined,
+  end:typeof value.end==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.end)
+    &&!Number.isNaN(Date.parse(value.end+'T00:00:00Z'))
+    &&new Date(value.end+'T00:00:00Z').toISOString().slice(0,10)===value.end
+     ?value.end:undefined,
   hotel:typeof value.hotel==='string'&&/^[1-9][0-9]*$/.test(value.hotel)?value.hotel:undefined,
  }),component:LiveRoomCalendar});
 const functionalRoutes=[

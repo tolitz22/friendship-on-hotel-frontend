@@ -7,10 +7,11 @@ test.describe('staff workspace navigation in mock preview',()=>{
   const nav=page.getByRole('navigation',{name:'Hotel workspace navigation'});
   if(isMobile)await page.getByRole('button',{name:'Open navigation'}).click();
   await expect(nav.getByRole('link',{name:'Front desk'})).toBeVisible();
-  await expect(nav.getByRole('link',{name:'Reservations'})).toBeVisible();
+  await expect(nav.getByRole('link',{name:'Bookings',exact:true})).toBeVisible();
   await expect(nav.getByRole('link',{name:'Rooms & readiness'})).toBeVisible();
+  await nav.getByRole('button',{name:'More operations'}).click();
   await expect(nav.getByRole('link',{name:'Housekeeping'})).toBeVisible();
-  await nav.getByRole('link',{name:'Reservations'}).click();
+  await nav.getByRole('link',{name:'Bookings',exact:true}).click();
   await expect(page).toHaveURL(/\/reservations(?:\?|$)/);
   await expect(page.getByText('DESIGN PREVIEW').first()).toBeVisible();
   await expect(page.getByRole('button',{name:'Preview new booking'})).toBeVisible();
@@ -18,7 +19,7 @@ test.describe('staff workspace navigation in mock preview',()=>{
  test('renders route-specific preview controls without relying on backend credentials',async({page})=>{
   await page.goto('/reservations');
   await page.getByRole('button',{name:'List',exact:true}).click();
-  await expect(page.getByRole('textbox',{name:'Search reservations'})).toBeVisible();
+  await expect(page.getByRole('textbox',{name:'Search bookings'})).toBeVisible();
   await page.getByRole('button',{name:'Calendar',exact:true}).click();
   await expect(page.getByRole('button',{name:'List',exact:true})).toHaveAttribute('aria-pressed','false');
 
@@ -42,6 +43,7 @@ test.describe('staff workspace navigation in mock preview',()=>{
   const menu=page.getByRole('button',{name:'Open navigation'});
   await menu.click();
   const nav=page.getByRole('navigation',{name:'Hotel workspace navigation'});
+  await nav.getByRole('button',{name:'More operations'}).click();
   await expect(nav.getByRole('link',{name:'Housekeeping'})).toBeVisible();
   await nav.getByRole('link',{name:'Housekeeping'}).click();
   await expect(page).toHaveURL(/\/housekeeping(?:\?|$)/);

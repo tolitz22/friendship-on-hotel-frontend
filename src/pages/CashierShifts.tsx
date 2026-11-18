@@ -171,6 +171,7 @@ export function CashierShifts(){
  const refresh=()=>hotelId&&Promise.all([
   client.invalidateQueries({queryKey:['live','cashier-shifts',hotelId]}),
   client.invalidateQueries({queryKey:['live','current-cashier-shift',hotelId]}),
+  client.invalidateQueries({queryKey:['live','cashier-shift-detail',hotelId]}),
  ]);
  async function start(){
   if(!hotelId||openBusy||ownOpenShift.isFetching||!ownOpenShift.isSuccess||active||!validMoney(float))return;

@@ -29,8 +29,19 @@ test('real priced folio directory and settlement statement are accessible withou
  const row=page.locator('.billing-folio-row').first();
  if(await row.count()){
   await row.getByRole('link',{name:/Open folio for booking/}).click();
-  await expect(page.getByRole('heading',{name:'Guest account statement'})).toBeVisible();
   await expect(page.getByRole('region',{name:'Guest account overview'})).toBeVisible();
+  const payment=page.getByRole('region',{name:'Record guest payment'});
+  if(await payment.count()){
+   await expect(payment.getByRole('button',{name:'Cash',exact:true})).toBeVisible();
+   if(await payment.getByLabel('Payment amount (₱)').count()){
+    await payment.getByLabel('Payment amount (₱)').fill('2500');
+    await payment.getByLabel('Cash handed to you (₱)').fill('3000');
+    await expect(payment.getByText('₱500.00')).toBeVisible();
+    await expect(payment.getByRole('button',{name:/Record cash payment/})).toBeDisabled();
+   }
+  }
+  await page.locator('.billing-statement-details > summary').click();
+  await expect(page.getByRole('heading',{name:'Guest account statement'})).toBeVisible();
   await expect(page.getByText('This is an internal PMS guest-account statement',{exact:false})).toBeVisible();
   await page.getByRole('button',{name:'Back to guest accounts'}).click();
   await expect(page.getByRole('heading',{name:'Guest account statement'})).toHaveCount(0);
@@ -47,8 +58,11 @@ test('front-desk account can review folios without manager-only financial write 
  const row=page.locator('.billing-folio-row').first();
  if(await row.count()){
   await row.getByRole('link',{name:/Open folio for booking/}).click();
-  await expect(page.getByRole('heading',{name:'Guest account statement'})).toBeVisible();
+  await expect(page.getByRole('region',{name:'Guest account overview'})).toBeVisible();
   await expect(page.getByRole('region',{name:'Manager folio actions'})).toHaveCount(0);
+  const payment=page.getByRole('region',{name:'Record guest payment'});
+  if(await payment.count())
+   await expect(payment.getByRole('button',{name:/Bank transfer/})).toBeDisabled();
  }
 });
 test('mobile folio directory avoids horizontal page overflow',async({page})=>{

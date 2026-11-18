@@ -188,8 +188,8 @@ export function CashierShifts(){
   <div className="cashier-page-heading"><span className="rr-eyebrow">CASH OPERATIONS</span>
    <Heading title="Cashier shifts" description="Track your cash drawer, collect guest payments, and finish your shift securely."/></div>
   {originBooking&&<div className="checkout-return-context">
-   <div><strong>Returning to a guest payment</strong>
-    <p>After opening your drawer, continue the original guest bill. Your current hotel and booking are preserved.</p></div>
+   <div><strong>Linked to a guest account</strong>
+    <p>Review the cashier shift without recording the guest payment a second time. Return to Guest Billing when the shift task is finished.</p></div>
    <Link className="btn-primary" to="/billing" search={{booking:originBooking}}>
     Return to guest bill <ArrowRight size={16}/></Link>
   </div>}
@@ -246,8 +246,8 @@ export function CashierShifts(){
    </div>}
    {message&&<p role="status" className="cashier-feedback-success">{message}</p>}
    {error&&<p className="auth-error" role="alert">{error} Check your shift before trying again.</p>}
-  </section>
-  {manager&&<section className="cashier-manager-queue" aria-label="Independent cash reconciliation queue">
+  </section>}
+  {manager&&!context.shift&&<section className="cashier-manager-queue" aria-label="Independent cash reconciliation queue">
    <div className="cashier-panel-heading">
     <div><span className="rr-eyebrow">MANAGER · INDEPENDENT REVIEW</span>
      <h2>Shifts awaiting reconciliation</h2>

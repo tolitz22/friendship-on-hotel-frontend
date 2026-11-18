@@ -45,6 +45,18 @@ export function LiveHousekeeping(){
  const property=useLiveProperty();
  const hotelDate=hotelToday(new Date(),property.data?.data.timeZone??'Asia/Manila');
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin});
+ const assignedAlerts=useQuery({
+  queryKey:['live','housekeeping-assigned-alerts',hotelId,user?.id],
+  enabled:!!hotelId&&role==='housekeeping',retry:false,
+  refetchInterval:30000,
+  queryFn:async()=>z.object({
+   data:z.array(z.object({taskId:z.string(),roomNumber:z.string(),
+    type:z.string(),status:z.string(),dueAt:z.string().nullable(),
+    assignedTaskUpdatedAt:z.string()})),
+   meta:z.object({limitedTo:z.number(),inAppPollingOnly:z.boolean(),
+    externalNotificationsConfigured:z.boolean()}),
+  }).parse(await getJson<unknown>(hotelPath('/housekeeping/my-assignments'))),
+ });
  const handoff=useQuery({
   queryKey:['live','housekeeping-handoff',hotelId],enabled:admin&&!!hotelId,retry:false,
   queryFn:async()=>z.object({
@@ -151,6 +163,7 @@ export function LiveHousekeeping(){
    void Promise.all([
     client.invalidateQueries({queryKey:['live-housekeeping',hotelId]}),
     client.invalidateQueries({queryKey:['live','housekeeping-handoff',hotelId]}),
+    client.invalidateQueries({queryKey:['live','housekeeping-assigned-alerts',hotelId]}),
     client.invalidateQueries({queryKey:['live-housekeeping-status-totals',hotelId]}),
     client.invalidateQueries({queryKey:['housekeeping-history',hotelId]}),
     client.invalidateQueries({queryKey:['live','front-desk','manifest',hotelId]}),
@@ -197,6 +210,25 @@ export function LiveHousekeeping(){
    {admin&&<button type="button" className="btn-primary" onClick={openCreate}><Plus size={16}/> New cleaning task</button>}
   </div>
   <div className="hk-guidance"><Info size={18}/><p><strong>Cleaning complete — new inspection required.</strong> Finishing checkout cleaning never marks the room ready. A new inspection and independent approval are required before room release.</p></div>
+  {role==='housekeeping'&&<section className="hk-manager-handoff"
+   aria-label="Housekeeping assignments to you">
+   <div className="hk-work-heading"><div><span className="rr-eyebrow">ASSIGNED TO YOU</span>
+    <h3>My current cleaning assignments</h3>
+    <p>Checked every 30 seconds while this screen is open. These are in-app updates, not push messages.</p>
+   </div></div>
+   <QueryFeedback loading={assignedAlerts.isPending} error={assignedAlerts.error}
+    onRetry={()=>void assignedAlerts.refetch()}/>
+   {assignedAlerts.data?.data.length===0&&<p className="desk-muted">No active cleaning tasks assigned to you.</p>}
+   <div className="hk-handoff-list">{assignedAlerts.data?.data.map(task=>
+    <article className="hk-handoff-row" key={task.taskId}>
+     <div><strong>Room {task.roomNumber}</strong>
+      <small>{task.type.replaceAll('_',' ')} · {task.status.replaceAll('_',' ')}</small>
+      <small>{task.dueAt?'Due: '+task.dueAt:'No due time set'}</small></div>
+     <button type="button" className="btn-inline" onClick={()=>
+      void navigate({to:'/housekeeping',search:{task:task.taskId}})}>
+      Open task <ArrowRight size={15}/></button>
+    </article>)}</div>
+  </section>}
   {admin&&<section className="hk-manager-handoff" aria-label="Manager checkout cleaning handoff">
    <div className="hk-work-heading">
     <div><span className="rr-eyebrow">MANAGER · CHECKOUT HANDOFF</span>

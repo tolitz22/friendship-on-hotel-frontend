@@ -24,6 +24,7 @@ export function BillingActions({bookingId,signed,mode='full'}:{
  const [reviewNote,setReviewNote]=useState('');
  const reviewNoteRef=useRef<HTMLTextAreaElement>(null);
  const reviewOpener=useRef<HTMLElement|null>(null);
+ const busyRef=useRef(false);
  const [reviewError,setReviewError]=useState('');
  const [voidTarget,setVoidTarget]=useState<string|null>(null);
  const [voidReason,setVoidReason]=useState('');
@@ -39,7 +40,7 @@ export function BillingActions({bookingId,signed,mode='full'}:{
   document.body.style.overflow='hidden';
   reviewNoteRef.current?.focus();
   const onKeyDown=(event:KeyboardEvent)=>{
-   if(event.key==='Escape'&&!busy){
+   if(event.key==='Escape'&&!busyRef.current){
     setReviewDialog(null);
     return;
    }
@@ -60,7 +61,7 @@ export function BillingActions({bookingId,signed,mode='full'}:{
    document.removeEventListener('keydown',onKeyDown);
    reviewOpener.current?.focus();
   };
- },[reviewDialog,busy]);
+ },[reviewDialog]);
  const openReview=(paymentId:string,decision:'confirm'|'reject')=>{
   reviewOpener.current=document.activeElement instanceof HTMLElement?document.activeElement:null;
   setReviewDialog({paymentId,decision});
@@ -74,6 +75,7 @@ export function BillingActions({bookingId,signed,mode='full'}:{
   ?currentCharges+(kind==='debit'?parsedAmount:-parsedAmount):null;
  const change=()=>{key.current=crypto.randomUUID();setConfirm(false);setError('');setNotice('');};
  const canWrite=!!manager&&!signed&&ledger.isSuccess&&!busy;
+ busyRef.current=busy;
  const selectVoid=(paymentId:string)=>{
   setVoidTarget(paymentId===voidTarget?null:paymentId);
   setVoidReason('');setVoidAcknowledged(false);

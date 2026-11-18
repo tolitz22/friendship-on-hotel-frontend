@@ -8,6 +8,7 @@ import {QueryFeedback} from '../components/QueryFeedback';
 import {readSession} from '../api/session';
 import {getCashShiftHistory,openCashierShift,reconcileCashShift,submitCashCount,useCashierShifts,useCashierShiftDetails,useCurrentCashierShift} from '../api/cashierShifts';
 import type {CashierShift} from '../api/cashierShifts';
+import {readableDateTime} from '../lib/format';
 
 const validMoney=(s:string)=>/^\d+(\.\d{1,2})?$/.test(s)&&Number.isSafeInteger(Math.round(Number(s)*100))&&Number(s)<=1_000_000_000;
 const minor=(s:string)=>Math.round(Number(s)*100);
@@ -51,7 +52,7 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
   <div className="cash-shift-card-header">
    <div><span className="rr-eyebrow">SHIFT #{shift.id}</span>
     <h3>{ownShift?'Your cash drawer':'Cash drawer · Staff #'+shift.cashierId}</h3>
-    <p>Opened {shift.openedAt}</p></div>
+    <p>Opened {readableDateTime(shift.openedAt)}</p></div>
    <span className={'cash-shift-pill cash-shift-'+shift.status}>{shift.status==='open'?'Open':shift.status==='submitted'?'Awaiting review':shift.status==='reconciled'?'Reconciled':'Flagged for review'}</span>
   </div>
   <div className="cash-shift-metrics">
@@ -130,7 +131,7 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
    aria-expanded={historyOpen}><History size={15}/>{historyOpen?'Hide':'View'} shift activity</button>
   {historyOpen&&<div><QueryFeedback loading={log.isPending} error={log.error}/>
    {log.data?.data.map(row=><p key={row.id} className="desk-muted">
-    {row.event.replaceAll('_',' ')} · User #{row.actorId} · {row.createdAt}
+    {row.event.replaceAll('_',' ')} · User #{row.actorId} · {readableDateTime(row.createdAt)}
    </p>)}</div>}
   {error&&<p role="alert" className="auth-error">{error}. Refresh the shift before retrying.</p>}
   {result&&<p role="status">{result}</p>}

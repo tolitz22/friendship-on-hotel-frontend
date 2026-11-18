@@ -9,7 +9,8 @@ const resultSchema=z.object({
  data:z.object({
   hotelId:id,start:day,end:day,
   rooms:z.array(z.object({id,number:z.string(),floor:z.number().nullable(),roomTypeId:id,roomTypeName:z.string()})),
-  bookings:z.array(z.object({id,reference:z.string(),roomId:id,checkIn:day,checkOut:day,status:z.string().nullable(),guestName:z.string().nullable().optional()})),
+  bookings:z.array(z.object({id,reference:z.string(),roomId:id,checkIn:day,checkOut:day,status:z.string().nullable(),guestName:z.string().nullable().optional(),
+   groupId:id.nullable(),groupName:z.string().nullable(),groupReference:z.string().nullable()})),
   blocks:z.array(z.object({id,roomId:id,checkIn:day,checkOut:day,reason:z.string()})),
   unassignedBookings:z.number().int().nonnegative(),
   unassignedGroupBookings:z.array(z.object({

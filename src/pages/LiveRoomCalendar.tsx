@@ -1,7 +1,7 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import type {CSSProperties} from 'react';
 import {createPortal} from 'react-dom';
-import {Link} from '@tanstack/react-router';
+import {Link,useSearch} from '@tanstack/react-router';
 import {useQueryClient} from '@tanstack/react-query';
 import {CalendarDays,ChevronLeft,ChevronRight,RotateCw,Search,X,ArrowUpRight,Info,BedDouble,AlertTriangle} from 'lucide-react';
 import {useRoomCalendar,type RoomCalendarData} from '../api/liveRoomCalendar';
@@ -14,6 +14,8 @@ import {projectRackBars} from '../features/reservations/roomRackLayout';
 import {Heading} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {useHotelAuth} from '../components/AuthProvider';
+import {useGroupBooking} from '../api/groupReservations';
+import {readableDate} from '../lib/format';
 
 type Mode='week'|'month';
 type Selection={room:RoomCalendarData['rooms'][number];day:string;bookingId?:string};
@@ -21,6 +23,7 @@ type RackEntry={
  id:string;roomId:string;checkIn:string;checkOut:string;
  kind:'booking'|'block';reference:string;status?:string|null;
  guestName?:string|null;reason?:string;
+ groupId?:string|null;groupName?:string|null;groupReference?:string|null;
 };
 const parse=(day:string)=>new Date(day+'T00:00:00Z');
 const format=(d:Date)=>d.toISOString().slice(0,10);
@@ -42,8 +45,12 @@ const dayText=(day:string,options:Intl.DateTimeFormatOptions)=>
 
 export function LiveRoomCalendar(){
  const {hotelId}=useHotelAuth();
+ const focus=useSearch({from:'/room-calendar'});
+ const contextMatches=!focus.hotel||focus.hotel===hotelId;
+ const focusGroupId=contextMatches?focus.group:undefined;
+ const focusedGroup=useGroupBooking(focusGroupId??null);
  const [mode,setMode]=useState<Mode>('week');
- const [anchor,setAnchor]=useState(hotelToday);
+ const [anchor,setAnchor]=useState(()=>focus.date??hotelToday());
  const property=useLiveProperty();
  const today=hotelToday(new Date(),property.data?.data.timeZone??'Asia/Manila');
  const [page,setPage]=useState(1);
@@ -65,12 +72,15 @@ export function LiveRoomCalendar(){
   setSelected({room,day,bookingId});setDeparture(end??addDays(day,1));
  };
  const roomTypes=useLiveRoomTypes();
- const calendar=useRoomCalendar({start:dates.start,end:dates.end,page,floor,roomTypeId,search});
+ const calendar=useRoomCalendar({start:dates.start,end:dates.end,page,floor,roomTypeId,search,
+  groupId:focusGroupId});
  const hasFilters=floor!=='all'||roomTypeId!==''||search.trim().length>0;
  const clearFilters=()=>{setFloor('all');setRoomTypeId('');setSearch('');setPage(1);};
- useEffect(()=>{setPage(1);setFloor('all');setRoomTypeId('');setSearch('');setSelected(null);},[hotelId]);
- useEffect(()=>{setAnchor(today);},[hotelId,property.data?.data.timeZone]);
- useEffect(()=>{setSelected(null);setDragPreview(null);dragOrigin.current=null;},[mode,anchor,page,floor,roomTypeId,search]);
+ useEffect(()=>{setPage(1);setFloor('all');setRoomTypeId('');setSearch('');setSelected(null);},
+  [hotelId,focusGroupId]);
+ useEffect(()=>{setAnchor(contextMatches&&focus.date?focus.date:today);},
+  [hotelId,property.data?.data.timeZone,focus.date,contextMatches]);
+ useEffect(()=>{setSelected(null);setDragPreview(null);dragOrigin.current=null;},[mode,anchor,page,floor,roomTypeId,search,focusGroupId]);
  useEffect(()=>{
   if(!selected)return;
   const originalOverflow=document.body.style.overflow;
@@ -120,7 +130,23 @@ export function LiveRoomCalendar(){
   ?dayText(dates.start,{month:'short',day:'numeric',year:'numeric'})+' – '+dayText(shift(dates.end,-1),{month:'short',day:'numeric',year:'numeric'})
   :dayText(dates.start,{month:'long',year:'numeric'});
  return <>
-  <Heading title="Room rack" description="Follow reservations across nights. Select a bar for details or an empty date to start a booking."/>
+  <Heading title="Room rack" description="Follow bookings across nights. Select a bar for details or an empty date to start a booking."/>
+  {!contextMatches&&<div className="gb-workflow-notice" role="alert">
+   The saved link belongs to a different property. Select the original hotel to view its group bookings.
+  </div>}
+  {focusGroupId&&<div className="lrc-focus-banner" role="status">
+   <div><strong>Showing group: {focusedGroup.data?.name??'Loading group details…'}</strong>
+    <small>{focusedGroup.data?.reference??'Group booking'} · {focusedGroup.data?.checkIn&&focusedGroup.data?.checkOut
+     ?readableDate(focusedGroup.data.checkIn)+' – '+readableDate(focusedGroup.data.checkOut)
+     :'Stay dates not yet available'}</small>
+    <small>Only rooms assigned to this group are displayed. Unassigned group stays remain in the queue below.</small>
+   </div>
+   <div className="lrc-focus-actions">
+    <Link to="/group-reservations" search={{group:focusGroupId,hotel:hotelId??undefined}}>
+     Back to group <ArrowUpRight size={14}/></Link>
+    <Link to="/room-calendar" search={{date:focus.date}} className="btn-inline">Show all rooms</Link>
+   </div>
+  </div>}
   <section className="live-room-calendar" aria-label="Room inventory calendar">
    <div className="lrc-toolbar">
     <div className="lrc-navigation">
@@ -270,10 +296,16 @@ export function LiveRoomCalendar(){
        })}
        {bars.map(bar=>{
         const booking=bar.item.kind==='booking';
-        const label=booking?(bar.item.guestName||bar.item.reference):(bar.item.reason||'Maintenance');
+        const label=booking
+         ?(bar.item.groupName
+          ?bar.item.groupName+' · '+(bar.item.guestName||bar.item.reference)
+          :(bar.item.guestName||bar.item.reference))
+         :(bar.item.reason||'Maintenance');
         const visibleDay=bar.item.checkIn<dates.start?dates.start:bar.item.checkIn;
         return <button type="button" key={bar.item.id}
-         className={'rack-booking-bar '+(booking?(bar.item.status==='checked_out'?'rack-bar-history':bar.item.status==='checked_in'?'rack-bar-inhouse':'rack-bar-reserved'):'rack-bar-block')+(bar.overlap?' rack-bar-conflict':'')}
+         className={'rack-booking-bar '+(booking?(bar.item.status==='checked_out'?'rack-bar-history':bar.item.status==='checked_in'?'rack-bar-inhouse':'rack-bar-reserved'):'rack-bar-block')
+          +(bar.overlap?' rack-bar-conflict':'')+(booking&&focusGroupId&&bar.item.groupId===focusGroupId?' rack-bar-group-focused':'')
+          +(booking&&focusGroupId&&bar.item.groupId!==focusGroupId?' rack-bar-group-muted':'')}
          style={{gridColumn:bar.startColumn+' / span '+bar.span,gridRow:1,alignSelf:'start',marginTop:7+bar.lane*33}}
          title={label+' · '+bar.item.checkIn+' to '+bar.item.checkOut+(bar.overlap?' · Overlapping records!':'')}
          aria-label={(booking?'Open booking ':'Inspect maintenance ')+label+' in room '+room.number+' from '+bar.item.checkIn+' to '+bar.item.checkOut}

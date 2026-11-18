@@ -1,0 +1,62 @@
+import {expect,test,type Page} from '@playwright/test';
+
+/** Staging-only read-only billing QA: no charges, payment records or sign-offs submitted. */
+async function openBilling(page:Page,email:string,password:string,mobile=false){
+ await page.goto('/');
+ await page.getByRole('textbox',{name:'Email address'}).fill(email);
+ await page.getByLabel('Password',{exact:true}).fill(password);
+ await page.getByRole('button',{name:'Sign in',exact:true}).click();
+ await expect(page.locator('.workspace-nav, .auth-hotel-list').first()).toBeVisible();
+ if(await page.locator('.auth-hotel-list').isVisible())
+  await page.locator('.auth-hotel-list button').first().click();
+ if(mobile)await page.getByRole('button',{name:'Open navigation'}).click();
+ await page.getByRole('navigation',{name:'Hotel workspace navigation'})
+  .getByRole('link',{name:/Billing|Guest folios/i}).click();
+ await expect(page.getByRole('heading',{name:'Billing & guest folios'})).toBeVisible();
+}
+test('real priced folio directory and settlement statement are accessible without writes',async({page})=>{
+ const email=process.env.PMS_STAGING_ADMIN_EMAIL??process.env.PMS_STAGING_EMAIL;
+ const password=process.env.PMS_STAGING_ADMIN_PASSWORD??process.env.PMS_STAGING_PASSWORD;
+ if(!email||!password)throw Error('Provide dedicated staging finance staff account.');
+ await openBilling(page,email,password);
+ await expect(page.getByRole('heading',{name:'Find a guest folio'})).toBeVisible();
+ await expect(page.locator('text=Sample folio overview')).toHaveCount(0);
+ const search=page.getByRole('searchbox',{name:'Search folios'});
+ await search.fill('nonexistent-folio-999891');
+ await expect(page.getByText('No matching priced folios.')).toBeVisible();
+ await page.getByRole('button',{name:'Clear search'}).click();
+ await expect(search).toHaveValue('');
+ const row=page.locator('.billing-folio-row').first();
+ if(await row.count()){
+  await row.getByRole('link',{name:/Open folio for booking/}).click();
+  await expect(page.getByRole('heading',{name:'Guest folio statement'})).toBeVisible();
+  await expect(page.getByText('This is an internal PMS guest-account statement',{exact:false})).toBeVisible();
+  await page.getByRole('button',{name:'Close folio'}).click();
+  await expect(page.getByRole('heading',{name:'Guest folio statement'})).toHaveCount(0);
+ }
+ const sizes=await page.evaluate(()=>[document.documentElement.scrollWidth,document.documentElement.clientWidth]);
+ expect(sizes[0]).toBeLessThanOrEqual(sizes[1]+2);
+});
+test('front-desk account can review folios without manager-only financial write controls',async({page})=>{
+ const email=process.env.PMS_STAGING_FRONT_DESK_EMAIL;
+ const password=process.env.PMS_STAGING_FRONT_DESK_PASSWORD;
+ test.skip(!email||!password,'Dedicated reception staging account required.');
+ await openBilling(page,email!,password!);
+ await expect(page.getByRole('heading',{name:'Find a guest folio'})).toBeVisible();
+ const row=page.locator('.billing-folio-row').first();
+ if(await row.count()){
+  await row.getByRole('link',{name:/Open folio for booking/}).click();
+  await expect(page.getByRole('heading',{name:'Guest folio statement'})).toBeVisible();
+  await expect(page.getByRole('region',{name:'Manager folio actions'})).toHaveCount(0);
+ }
+});
+test('mobile folio directory avoids horizontal page overflow',async({page})=>{
+ const email=process.env.PMS_STAGING_ADMIN_EMAIL??process.env.PMS_STAGING_EMAIL;
+ const password=process.env.PMS_STAGING_ADMIN_PASSWORD??process.env.PMS_STAGING_PASSWORD;
+ if(!email||!password)throw Error('Provide dedicated staging account.');
+ await page.setViewportSize({width:390,height:844});
+ await openBilling(page,email,password,true);
+ await expect(page.getByRole('searchbox',{name:'Search folios'})).toBeVisible();
+ const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
+ expect(overflow).toBeLessThanOrEqual(2);
+});

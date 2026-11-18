@@ -167,8 +167,8 @@ test('real React guest → booking → room assignment → check-in and Laravel 
     pendingStatus:receipt.data.status,replayed:repeated.data.replayed,summary:body.data.summary};
   },{shiftBase,ledgerPath,bookingId:booking.data.id,paymentKey,cashReference});
  }
- expect(cash.shiftId).toMatch(/^[1-9]\\d*$/);
- expect(cash.paymentId).toMatch(/^[1-9]\\d*$/);
+ expect(cash.shiftId).toMatch(/^[1-9]\d*$/);
+ expect(cash.paymentId).toMatch(/^[1-9]\d*$/);
  expect(cash.pendingStatus).toBe('pending_review');
  expect(cash.replayed).toBe(true);
  expect(cash.summary.staffConfirmedPaymentsMinor).toBe(0);

@@ -24,12 +24,12 @@ export function parseOccupancyList(value:unknown,hotelId:string){
  if(result.data.some(row=>row.hotelId!==hotelId))throw new Error('Occupancy evidence belongs to another hotel.');
  return result;
 }
-export function useOccupancyVerifications(enabled:boolean,page:number,status?:OccupancyVerification['status'],date?:string){
+export function useOccupancyVerifications(enabled:boolean,page:number,status?:OccupancyVerification['status'],date?:string,roomId?:string){
  const {hotelId}=readSession();
- return useQuery({queryKey:['live','occupancy-verifications',hotelId,page,status,date],
+ return useQuery({queryKey:['live','occupancy-verifications',hotelId,page,status,date,roomId],
   enabled:enabled&&!!hotelId,
   queryFn:async()=>parseOccupancyList(await getJson<unknown>(hotelPath('/occupancy-verifications'),{
-   page,per_page:20,status,date,
+   page,per_page:20,status,date,roomId,
   }),hotelId!),
   retry:false});
 }

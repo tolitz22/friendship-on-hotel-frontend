@@ -31,7 +31,7 @@ const readiness=z.object({data:z.object({
 })});
 const events=z.object({
  data:z.array(z.object({
-  id,inspectionId:id,actorId:id,action:z.enum(['submitted','approved','rejected']),
+  id,inspectionId:id,actorId:id,actorName:z.string().nullable().optional(),action:z.enum(['submitted','approved','rejected']),
   details:z.record(z.string(),z.unknown()),createdAt:z.string(),
  })),
  meta:z.object({

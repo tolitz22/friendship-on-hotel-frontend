@@ -25,7 +25,7 @@ const list=z.object({
 export type GroupBooking=z.infer<typeof group>;
 export type GroupRoomInput={guestId:number;roomTypeId:number;ratePlanId?:number};
 export type GroupBookingInput={
- idempotencyKey:string;name:string;contactName?:string;
+ idempotencyKey:string;name:string;contactName?:string;allotmentId?:number;
  checkIn:string;checkOut:string;rooms:GroupRoomInput[];
 };
 export function useGroupBookings(page=1){

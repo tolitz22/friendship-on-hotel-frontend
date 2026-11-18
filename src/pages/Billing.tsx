@@ -29,7 +29,7 @@ function LiveFolioLookup(){
    : amountMinor.toLocaleString()+' '+currencyCode+' minor units';
 
  return <Panel title="Live reservation folio (read-only)">
-  <p>Look up a priced reservation by its ID. This reads the selected hotel's real Laravel ledger. It does not show a legally final balance or verified payment settlement.</p>
+  <p>Look up a priced reservation by its ID. This shows the recorded charges and payments for the selected hotel. It does not show a legally final balance or verified payment settlement.</p>
   {cashAccess&&<p><Link to="/cashier-shifts">Cash collections and shift reconciliation</Link> · Cash payments must be recorded against an active staff shift, not from this read-only ledger.</p>}
   {requestedBooking&&<p className="calendar-booking-context">From room calendar · Reservation #{requestedBooking}. <Link to="/reservations" search={{booking:requestedBooking}}>Back to booking</Link></p>}
   <form onSubmit={event=>{event.preventDefault();setReservationId(draftId.trim());}}>
@@ -62,7 +62,7 @@ export function Billing(){
  return <>
   {dataMode!=='api'&&<DemoNotice/>}
   <Heading title="Guest folios"
-   description={dataMode==='api'?'Read verified hotel-ledger records by reservation ID. Demo tables remain labeled separately.':'Illustrative balances only; no live charges, payments, receipts or refunds.'}
+   description={dataMode==='api'?'Review recorded room charges and payments by reservation number. Sample information is clearly labeled.':'Illustrative balances only; no live charges, payments, receipts or refunds.'}
    action={<button disabled className="btn-primary"><Wallet size={16}/> Add charge (planned)</button>}/>
   {dataMode==='api'&&<LiveFolioLookup/>}
   <Panel title="Sample folio overview (demo only)"

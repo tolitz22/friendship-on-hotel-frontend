@@ -8,6 +8,7 @@ import {hotelToday} from '../features/reservations/calendarDate';
 import {useNightAuditPreview} from '../api/nightAuditPreview';
 import {NightAuditReviewPanel} from '../components/NightAuditReviewPanel';
 import {FinancialBusinessDayPanel} from '../components/FinancialBusinessDayPanel';
+import {NightAuditReconciliationPanel} from '../components/NightAuditReconciliationPanel';
 import type {NightAuditPreview as Preview} from '../api/nightAuditPreview';
 
 function money(amount:number,currency:string){
@@ -92,6 +93,7 @@ export function NightAuditPreview(){
      <Link to="/operational-exceptions">Review operational exceptions</Link>
     </div>
     <NightAuditReviewPanel key={hotelId+'-'+data.businessDate} date={data.businessDate} preflight={data}/>
+    <NightAuditReconciliationPanel key={'reconciliation-'+hotelId}/>
     <FinancialBusinessDayPanel key={'financial-'+hotelId}/>
     <p className="night-audit-fineprint">The scheduled-night count is based on current reservation records, not historical physical room occupancy. Current inventory counts may differ from the inventory on the selected historical date. Payment totals are staff-maintained evidence, not settlement. The cashier and payment exception counts are current property-wide counts, not date-scoped historical snapshots.</p>
    </>}

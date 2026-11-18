@@ -3,7 +3,7 @@ import {useNavigate,useSearch} from '@tanstack/react-router';
 import {useHotelAuth} from '../components/AuthProvider';
 import {LiveReservationOperations} from './LiveReservationOperations';
 import {LiveBookingForm} from './LiveBookingForm';
-import {AlertTriangle,CalendarDays,Search,Plus,ArrowRight,RefreshCw,BedDouble,LogIn,LogOut,ClipboardList} from 'lucide-react';
+import {AlertTriangle,CalendarDays,Search,Plus,ArrowRight,RefreshCw,BedDouble,LogIn,LogOut,ClipboardList,X,RotateCcw,ChevronRight} from 'lucide-react';
 import {
  useLiveAvailability,useLiveRatePlans,useLiveReservationRecords,useLiveRoomQuote,
  useLiveRoomTypes,useLiveReservationDetail,validLiveStay,
@@ -61,8 +61,11 @@ export function LiveReservations(){
  const chosenRate=activeRates.find(rate=>rate.id===rateId);
  const rows=records.data?.data??[];
  const selectedRecord=detail.data??null;
- const filtered=rows;
- const pagination=records.data?.meta;
+ const filtered=records.isSuccess?rows:[];
+ const pagination=records.isSuccess?records.data.meta:undefined;
+ const searching=search.trim()!==appliedSearch;
+ const hasFilters=search.trim().length>0||filter!=='all';
+ const clearFilters=()=>{setSearch('');setAppliedSearch('');setFilter('all');setPage(1);};
  const previewOutdated=requested!==null&&(requested.rateId!==rateId||
   requested.stay.roomTypeId!==inputs.roomTypeId||
   requested.stay.checkIn!==inputs.checkIn||
@@ -89,7 +92,7 @@ export function LiveReservations(){
      {canOperate&&<button type="button" aria-pressed={view==='new'} className={view==='new'?'selected':''}
       onClick={()=>{setView('new');void navigation({to:'/reservations',search:{mode:'new'}});}}><Plus size={16}/> New reservation</button>}
     </div>
-    <span className="table-count">{pagination?.total??'—'} matching reservations · newest first</span>
+    <span className="table-count" role="status">{pagination?.total??'—'} matching reservations · newest first</span>
    </div>
    {view==='manage'&&<div className="reservation-flow-guide" aria-label="Reservation workflow">
     <span><strong>1 · Reserve</strong><small>Create a reservation with guest, dates and rate</small></span>
@@ -99,13 +102,19 @@ export function LiveReservations(){
     <span><strong>3 · Check in</strong><small>Verify arrival and room readiness</small></span>
    </div>}
    {view==='new'&&canOperate?<LiveBookingForm/>:<Panel title="Find a reservation"
-    action={<button type="button" className="btn-inline" onClick={()=>void records.refetch()}>
-     <RefreshCw size={15}/> Refresh</button>}>
+    action={<button type="button" className="btn-inline" disabled={records.isFetching} onClick={()=>void records.refetch()}>
+     <RefreshCw size={15}/> {records.isFetching?'Refreshing…':'Refresh'}</button>}>
     <div className="reservation-filter-layout">
-     <label className="search-box"><Search size={17}/>
-      <input value={search} onChange={e=>setSearch(e.target.value)}
-       aria-label="Search all reservations" placeholder="Guest, booking reference, or room number"/>
-     </label>
+     <div className="reservation-search-control">
+      <label className="search-box"><Search size={17}/>
+       <input value={search} onChange={e=>setSearch(e.target.value)}
+        aria-label="Search all reservations" placeholder="Guest name, reference, or room number"/>
+      </label>
+      {search.length>0&&<button type="button" className="reservation-search-clear"
+       aria-label="Clear reservation search" onClick={()=>{setSearch('');setAppliedSearch('');setPage(1);}}>
+       <X size={17}/>
+      </button>}
+     </div>
      <div className="reservation-filter-tabs" role="group" aria-label="Reservation status filter">
       {([
        ['all','All'],['needs_room','Needs room'],['arrivals','Confirmed'],['in_house','In house'],['completed','Completed'],
@@ -114,14 +123,21 @@ export function LiveReservations(){
        onClick={()=>{setFilter(value);setPage(1);}}>{label}</button>)}
      </div>
     </div>
-    <p className="desk-muted">Search and status filters run across the selected hotel's reservation records. Results are paginated.</p>
-    <QueryFeedback loading={records.isPending} error={records.error}
+    <div className="reservation-results-strip" role="status" aria-live="polite">
+     <span>{searching?'Applying search…':records.isPending?'Loading reservations…':records.isError?'Reservation list unavailable':
+      pagination?pagination.total===0?'No matching bookings':`${pagination.total} ${pagination.total===1?'booking':'bookings'} found · Page ${pagination.page} of ${Math.max(1,pagination.totalPages)}`:'Loading reservations…'}</span>
+     {hasFilters&&<button type="button" className="reservation-reset-filters" onClick={clearFilters}>
+      <RotateCcw size={14}/> Clear filters
+     </button>}
+    </div>
+    <p className="desk-muted">Search and filters cover all of this property's reservation records, not just the current page.</p>
+    <QueryFeedback loading={records.isPending||searching} error={records.error}
      onRetry={()=>void records.refetch()}
-     empty={records.isSuccess&&filtered.length===0}
+     empty={records.isSuccess&&!searching&&filtered.length===0}
      emptyMessage={appliedSearch||filter!=='all'
       ?'No matching reservations. Clear the search or change the filter.'
       :'No reservations yet. Use New reservation to register the first guest stay.'}/>
-    {filtered.length>0&&<div className="reservation-manage-list">
+    {records.isSuccess&&!searching&&filtered.length>0&&<div className="reservation-manage-list">
      {filtered.map(record=><article className="reservation-manage-card" key={record.id}>
       <div className="reservation-manage-primary">
        <div className="reservation-manage-heading">
@@ -140,15 +156,15 @@ export function LiveReservations(){
       </div>
       <div className="reservation-manage-action">
        <small>{reservationActionHint(record)}</small>
-       <button type="button" className="btn-primary" onClick={()=>openBooking(record.id)}>
+       <button type="button" className="btn-primary" aria-label={`${nextReservationAction(record)} · booking ${record.reference}`} onClick={()=>openBooking(record.id)}>
         {record.lifecycleState==='confirmed'&&!record.assignedRoomId?<BedDouble size={16}/>:
          record.lifecycleState==='checked_in'?<LogOut size={16}/>:<LogIn size={16}/>}
-        {nextReservationAction(record)} <ArrowRight size={15}/>
+        {nextReservationAction(record)} <ChevronRight size={16}/>
        </button>
       </div>
      </article>)}
     </div>}
-    {records.isSuccess&&pagination&&<div className="desk-tools">
+    {records.isSuccess&&!searching&&pagination&&pagination.totalPages>1&&<div className="desk-tools reservation-pagination">
      <span className="table-count">Page {pagination.page} of {Math.max(1,pagination.totalPages)}</span>
      <div className="desk-date-nav">
       <button type="button" className="btn-inline" disabled={page<=1}
@@ -197,8 +213,8 @@ export function LiveReservations(){
     {chosenType&&activeRates.length===0&&<p role="status">No active rate plan is configured for this room type. No final price can be estimated.</p>}
     <button type="submit" className="btn-primary" disabled={!valid||!chosenRate}>Check inventory and room subtotal</button>
    </form>}
-   {previewOutdated&&<p role="status">Inputs have changed. Run the preview again to update the results below.</p>}
-   {requested&&<div>
+   {previewOutdated&&<p role="status" className="reservation-preview-stale"><AlertTriangle size={16}/> The stay or rate changed. The previous availability and quote are hidden. Run the check again to review current values.</p>}
+   {requested&&!previewOutdated&&<div>
     <h3>Availability for {dateLabel(requested.stay.checkIn)} – {dateLabel(requested.stay.checkOut)}</h3>
     <QueryFeedback loading={availability.isPending} error={availability.error}/>
     {availability.data&&<div>

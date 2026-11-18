@@ -1,6 +1,6 @@
 import {useRef,useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
-import {AlertTriangle,CheckCircle2,ClipboardPlus,ShieldCheck} from 'lucide-react';
+import {AlertTriangle,CheckCircle2,ShieldCheck,PlusCircle,MinusCircle,Info} from 'lucide-react';
 import {useHotelAuth} from './AuthProvider';
 import {useLiveFolioLedger} from '../api/liveFinance';
 import {formatBillingMoney,parseBillingAmount,recordFolioAdjustment,reviewFolioPayment} from '../api/billing';
@@ -14,6 +14,7 @@ export function BillingActions({bookingId,signed}:{bookingId:string;signed:boole
  const ledger=useLiveFolioLedger(bookingId);
  const [amount,setAmount]=useState('');
  const [kind,setKind]=useState<'credit'|'debit'>('debit');
+ const [category,setCategory]=useState('Extra service');
  const [reason,setReason]=useState('');
  const [confirm,setConfirm]=useState(false);
  const [reviewNotes,setReviewNotes]=useState<Record<string,string>>({});
@@ -22,6 +23,9 @@ export function BillingActions({bookingId,signed}:{bookingId:string;signed:boole
  const [error,setError]=useState('');
  const key=useRef(crypto.randomUUID());
  const parsedAmount=parseBillingAmount(amount);
+ const currentCharges=ledger.data?.data.summary.netRecordedChargesMinor??null;
+ const resultingCharges=parsedAmount!==null&&currentCharges!==null
+  ?currentCharges+(kind==='debit'?parsedAmount:-parsedAmount):null;
  const change=()=>{key.current=crypto.randomUUID();setConfirm(false);setError('');setNotice('');};
  const canWrite=!!manager&&!signed&&ledger.isSuccess&&!busy;
  const refresh=async()=>{
@@ -37,10 +41,11 @@ export function BillingActions({bookingId,signed}:{bookingId:string;signed:boole
   const previousKey=key.current;
   setBusy(true);setError('');setNotice('');
   try{
-   await recordFolioAdjustment(bookingId,previousKey,kind,parsedAmount,reason.trim());
+   await recordFolioAdjustment(bookingId,previousKey,kind,parsedAmount,
+    kind==='debit'?category+': '+reason.trim():reason.trim());
    if(readSession().hotelId!==hotelId)return;
    key.current=crypto.randomUUID();setAmount('');setReason('');setConfirm(false);
-   setNotice('Charge or credit saved in the guest account history.');
+   setNotice(kind==='debit'?'Additional charge saved on the guest bill.':'Correction saved. The recorded guest charges have been reduced.');
    void refresh();
   }catch(e){if(readSession().hotelId===hotelId)setError(e instanceof Error?e.message:'Outcome uncertain. Review the folio before retrying.');}
   finally{setBusy(false);}
@@ -60,31 +65,51 @@ export function BillingActions({bookingId,signed}:{bookingId:string;signed:boole
  };
  if(!manager||signed)return null;
  return <section className="billing-actions" aria-label="Manager folio actions">
-  <div className="billing-section-heading"><h3>Charges and credits</h3>
-   <p>Add a charge or correct the guest account. Use Record guest payment above for cash and bank transfers.</p></div>
-  <div className="billing-action-tabs"><span><ClipboardPlus size={16}/> Add a charge or credit</span></div>
+  <div className="billing-section-heading"><div><h3>Update the guest's bill</h3>
+   <p>Add an extra service or correct an existing charge. This does not record a payment.</p></div></div>
+  <div className="billing-adjust-choice" role="group" aria-label="Bill change type">
+   <button type="button" className={kind==='debit'?'active':''} aria-pressed={kind==='debit'}
+    disabled={busy} onClick={()=>{setKind('debit');change();}}><PlusCircle size={17}/>
+    <span><strong>Add a charge</strong><small>Increase the guest's bill</small></span></button>
+   <button type="button" className={kind==='credit'?'active':''} aria-pressed={kind==='credit'}
+    disabled={busy} onClick={()=>{setKind('credit');change();}}><MinusCircle size={17}/>
+    <span><strong>Apply a correction</strong><small>Reduce the guest's charges</small></span></button>
+  </div>
   <div className="billing-action-form">
-    <label>Adjustment type
-     <select className="wizard-input" value={kind} disabled={busy}
-      onChange={e=>{setKind(e.target.value as 'debit'|'credit');change();}}>
-      <option value="debit">Additional charge</option><option value="credit">Credit / correction</option>
-     </select>
-    </label>
-    <label>Reason for the adjustment
-     <textarea className="wizard-input" rows={2} value={reason} maxLength={500} disabled={busy}
-      onChange={e=>{setReason(e.target.value);change();}} placeholder="Explain what changed and why"/>
-    </label>
-   <label>Amount ({ledger.data?.data.summary.currency==='PHP'?'PHP':'hotel currency'})
+   {kind==='debit'&&<label>What is the extra charge for?
+    <select className="wizard-input" value={category} disabled={busy}
+     onChange={e=>{setCategory(e.target.value);change();}}>
+     <option>Extra service</option><option>Food and drinks</option><option>Extra person</option>
+     <option>Late checkout</option><option>Room damage</option><option>Other charge</option>
+    </select>
+   </label>}
+   <label>{kind==='debit'?'Description of charge':'Reason for the correction'}
+    <textarea className="wizard-input" rows={2} value={reason} maxLength={500} disabled={busy}
+     onChange={e=>{setReason(e.target.value);change();}}
+     placeholder={kind==='debit'?'Example: Two bottled waters from minibar':'Example: Duplicate charge entered by mistake'}/>
+   </label>
+   <label>Amount to {kind==='debit'?'add':'subtract'} ({ledger.data?.data.summary.currency==='PHP'?'₱':'hotel currency'})
     <input className="wizard-input" type="text" inputMode="decimal" value={amount} disabled={busy}
      placeholder="0.00" onChange={e=>{setAmount(e.target.value);change();}}/>
    </label>
-   {parsedAmount!==null&&<p className="billing-conversion">To record: {formatBillingMoney(parsedAmount,ledger.data?.data.summary.currency??'PHP')}</p>}
+   <div className="billing-adjust-preview" aria-live="polite">
+    <strong>How this changes the guest bill</strong>
+    <div><span>Charges currently recorded</span>
+     <b>{currentCharges!==null?formatBillingMoney(currentCharges,ledger.data?.data.summary.currency??'PHP'):'—'}</b></div>
+    <div><span>{kind==='debit'?'New charge':'Correction to subtract'}</span>
+     <b>{parsedAmount!==null?(kind==='debit'?'+ ':'− ')+formatBillingMoney(parsedAmount,ledger.data?.data.summary.currency??'PHP'):'—'}</b></div>
+    <div className="billing-adjust-new-total"><span>Updated recorded charges</span>
+     <b>{resultingCharges!==null?formatBillingMoney(resultingCharges,ledger.data?.data.summary.currency??'PHP'):'—'}</b></div>
+    <small>These figures exclude payments, deposits and any new tax adjustments. The saved bill may change after review.</small>
+   </div>
+   {kind==='credit'&&<p className="billing-adjust-warning"><Info size={16}/>
+    A correction reduces recorded charges. This is not a refund and does not return money to a guest.</p>}
    <label className="billing-confirm"><input type="checkbox" checked={confirm} disabled={busy}
     onChange={e=>setConfirm(e.target.checked)}/>
-    I checked the amount, reservation, and supporting evidence. I understand this will create a financial record.
+    I checked the booking, description and amount. I understand this change will be recorded in the account history.
    </label>
    <button type="button" className="btn-primary" disabled={!canWrite||!parsedAmount||!confirm||reason.trim().length<3}
-    onClick={()=>void submit()}>{busy?'Saving…':'Save charge or credit'}</button>
+    onClick={()=>void submit()}>{busy?'Saving…':kind==='debit'?'Add charge to guest bill':'Apply bill correction'}</button>
   </div>
   <div className="billing-review-list">
    <h4>Pending payment evidence review</h4>

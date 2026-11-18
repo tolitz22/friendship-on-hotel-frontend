@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react';
 import {Link} from '@tanstack/react-router';
-import {AlertTriangle,ArrowRight,CheckCircle2,ClipboardList,Info,RefreshCw,Search} from 'lucide-react';
+import {AlertTriangle,ArrowRight,ClipboardList,Info,RefreshCw,Search} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';

@@ -205,10 +205,14 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
    <section className="checkout-guide" aria-label="Guided payment and checkout">
     <div className="checkout-guide-header">
      <div><span className="rr-eyebrow">PAYMENT & CHECKOUT</span>
-      <h3>{data.signed?'Financial sign-off completed':'Complete this guest account'}</h3>
+      <h3>{data.signed
+       ?data.signedSnapshotIntegrity?'Financial sign-off completed':'Signed account requires investigation'
+       :'Complete this guest account'}</h3>
       <p>Follow the next action below. Payments and approvals stay linked to the original folio.</p>
      </div>
-     <span className="checkout-guide-status">{data.signed?'Signed':data.canSignOff?'Ready for sign-off':'In progress'}</span>
+     <span className="checkout-guide-status">{data.signed
+      ?data.signedSnapshotIntegrity?'Signed':'Integrity review required'
+      :data.canSignOff?'Ready for sign-off':'In progress'}</span>
     </div>
     <div className="checkout-guide-steps" aria-label="Checkout stages">
      <div><strong>1. Collect</strong><small>Cash or payment evidence</small></div>
@@ -265,9 +269,16 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
      {shift.isSuccess&&shift.data&&<p className="checkout-guide-shift-ok">
       <CheckCircle2 size={15}/> Your cash shift is open. Cash receipts will be linked to this drawer.</p>}
     </div>}
-    {data.signed&&<p className="checkout-guide-complete">
-     <CheckCircle2 size={16}/> Settlement sign-off recorded. Complete the separate operational checkout checks in Bookings.
-     <Link to="/reservations" search={{booking:bookingId}}>Open booking <ArrowRight size={14}/></Link></p>}
+    {data.signed&&(data.signedSnapshotIntegrity
+     ?<p className="checkout-guide-complete"><CheckCircle2 size={16}/>
+       Settlement sign-off recorded and snapshot integrity checked.
+       Complete the separate operational checkout checks in Bookings.
+       <Link to="/reservations" search={{booking:bookingId}}>Open booking <ArrowRight size={14}/></Link>
+      </p>
+     :<p className="stay-feedback-error" role="alert"><AlertTriangle size={16}/>
+       Signed statement integrity failed. Do not print, issue settlement confirmation, or complete checkout.
+       Escalate for independent investigation.
+      </p>)}
     {data.blockers.length>0&&!data.signed&&<details className="checkout-guide-blockers">
      <summary>{data.blockers.length} outstanding settlement check{data.blockers.length===1?'':'s'}</summary>
      <ul>{data.blockers.map((blocker,index)=><li key={index}>{blocker}</li>)}</ul>

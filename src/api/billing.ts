@@ -46,6 +46,12 @@ export function parseBillingAmount(amount:string){
  const minor=Math.round(Number(amount)*100);
  return Number.isSafeInteger(minor)&&minor>0?minor:null;
 }
+/** Calculate cash change using integer minor units; never post tendered cash as the net receipt. */
+export function calculateCashChange(paymentMinor:number|null,tenderedMinor:number|null):number|null{
+ if(paymentMinor===null||tenderedMinor===null||!Number.isSafeInteger(paymentMinor)
+  ||!Number.isSafeInteger(tenderedMinor)||paymentMinor<=0||tenderedMinor<paymentMinor)return null;
+ return tenderedMinor-paymentMinor;
+}
 export function recordBankEvidence(bookingId:string,requestKey:string,reference:string,amountMinor:number){
  return requestJson<unknown>(hotelPath('/bookings/'+bookingId+'/payment-records'),{
   method:'POST',body:{requestKey,method:'bank_transfer',reference,amountMinor},

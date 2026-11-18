@@ -1,14 +1,18 @@
 import {useEffect,useState} from 'react';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {AlertTriangle,CheckCircle2,LockKeyhole} from 'lucide-react';
 import {useHotelAuth} from './AuthProvider';
 import {useNightAuditReview,createNightAuditReview} from '../api/nightAuditReview';
 import {QueryFeedback} from './QueryFeedback';
 import type {NightAuditPreview} from '../api/nightAuditPreview';
 import {readSession} from '../api/session';
+import {readableDateTime} from '../lib/format';
+import {listHotelStaff} from '../api/liveStaff';
+import {auditActorName} from './ReadableAuditEvent';
 
 export function NightAuditReviewPanel({date,preflight}:{date:string;preflight:NightAuditPreview}){
- const {hotelId}=useHotelAuth();
+ const {hotelId,user}=useHotelAuth();
+ const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:!!hotelId});
  const client=useQueryClient();
  const report=useNightAuditReview(date,!!hotelId);
  const [note,setNote]=useState('');
@@ -43,7 +47,9 @@ export function NightAuditReviewPanel({date,preflight}:{date:string;preflight:Ni
   {report.data&&<div className="night-review-record">
    <strong><CheckCircle2 size={16}/> {report.data.status==='reviewed'?'Preflight reviewed':'Exceptions flagged for investigation'}</strong>
    <p>{report.data.managerNote}</p>
-   <small>Manager #{report.data.reviewedBy} · {report.data.reviewedAt} · Review #{report.data.id}</small>
+   <small>Reviewed by {auditActorName(report.data.reviewedBy,
+    staff.data?.data.find(m=>m.userId===report.data?.reviewedBy)?.name,user?.id,user?.name)}
+    {' · '}{readableDateTime(report.data.reviewedAt)}</small>
    <small>Snapshot hash: {report.data.snapshotSha256}</small>
    <p>This review did not itself close the financial day, lock journals, calculate taxes or settle payments. See the financial-close status below for the current business date.</p>
   </div>}

@@ -165,6 +165,7 @@ export function CashierShifts(){
     <button type="button" className="btn-primary" disabled={openBusy||!validMoney(float)||
      (!manager&&ownPendingShifts.isSuccess&&ownPendingShifts.data.data.length>0)}
      onClick={()=>void start()}><Banknote size={16}/> {openBusy?'Opening…':'Open my cashier shift'}</button>
+    {manager&&<p className="desk-muted">If your previous shift is awaiting review, another manager must reconcile it before you can open a new one.</p>}
    </div>}
    {active&&<div>
     <p><ClipboardCheck size={17}/> Your open shift #{active.id}. Payment records remain subject to independent review.</p>
@@ -179,7 +180,7 @@ export function CashierShifts(){
       <input className="wizard-input" value={amount} disabled={paymentBusy}
        onChange={e=>{setAmount(e.target.value);key.current=null;}} inputMode="decimal"/></label>
      <button type="button" className="btn-primary" disabled={paymentBusy||!validMoney(amount)||minor(amount)<1||
-      !(/^[1-9]\\d*$/.test(booking))||reference.trim().length<3}
+      !(/^[1-9]\d*$/.test(booking))||reference.trim().length<3}
       onClick={()=>void collect()}>{paymentBusy?'Saving…':'Record cash receipt'}</button>
     </div>
     <ShiftRow shift={active} manager={manager} ownShift onChange={()=>void refresh()}/>

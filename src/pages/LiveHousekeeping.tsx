@@ -1,4 +1,5 @@
 import {useEffect,useRef,useState,type FormEvent} from 'react';
+import {z} from 'zod';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {Link,useNavigate,useSearch} from '@tanstack/react-router';
 import {AlertTriangle,ArrowRight,CheckCircle2,ClipboardCheck,Clock3,History,Info,Plus,RefreshCcw,Search,ShieldAlert,UserRound,X} from 'lucide-react';
@@ -10,8 +11,8 @@ import {
  type LiveHousekeepingTask,type HousekeepingStatus,type HousekeepingType,type TaskFilter,
  parseLiveHousekeeping,parseUpdatedHousekeeping,useDirectHousekeepingTask,
 } from '../api/liveHousekeeping';
-import {ApiError} from '../api/http';
-import {readSession} from '../api/session';
+import {ApiError,getJson} from '../api/http';
+import {hotelPath,readSession} from '../api/session';
 import {linkedTaskKey,shouldOpenLinkedTask} from '../lib/linkedTaskSelection';
 import {listHotelStaff} from '../api/liveStaff';
 import {listMaintenance} from '../api/liveMaintenance';
@@ -44,6 +45,20 @@ export function LiveHousekeeping(){
  const property=useLiveProperty();
  const hotelDate=hotelToday(new Date(),property.data?.data.timeZone??'Asia/Manila');
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin});
+ const handoff=useQuery({
+  queryKey:['live','housekeeping-handoff',hotelId],enabled:admin&&!!hotelId,retry:false,
+  queryFn:async()=>z.object({
+   data:z.array(z.object({
+    taskId:z.string(),roomId:z.string(),roomNumber:z.string(),status:z.string(),
+    createdAt:z.string(),dueAt:z.string().nullable(),
+    ageMinutes:z.number(),priority:z.enum(['new','attention','escalate']),
+    action:z.string(),revision:z.number(),
+   })),
+   meta:z.object({total:z.number(),hasMore:z.boolean(),
+    ageAttentionMinutes:z.number(),ageEscalationMinutes:z.number(),
+    notificationDeliveryConfigured:z.boolean()}),
+  }).parse(await getJson<unknown>(hotelPath('/housekeeping/handoff'))),
+ });
  const maintenance=useQuery({
   queryKey:['live','maintenance-for-housekeeping',hotelId],
   queryFn:()=>listMaintenance(1,100),enabled:!!hotelId,retry:false,
@@ -135,6 +150,7 @@ export function LiveHousekeeping(){
    // Failed cache refresh must not make an already committed update look failed.
    void Promise.all([
     client.invalidateQueries({queryKey:['live-housekeeping',hotelId]}),
+    client.invalidateQueries({queryKey:['live','housekeeping-handoff',hotelId]}),
     client.invalidateQueries({queryKey:['live-housekeeping-status-totals',hotelId]}),
     client.invalidateQueries({queryKey:['housekeeping-history',hotelId]}),
     client.invalidateQueries({queryKey:['live','front-desk','manifest',hotelId]}),
@@ -181,6 +197,36 @@ export function LiveHousekeeping(){
    {admin&&<button type="button" className="btn-primary" onClick={openCreate}><Plus size={16}/> New cleaning task</button>}
   </div>
   <div className="hk-guidance"><Info size={18}/><p><strong>Cleaning complete — new inspection required.</strong> Finishing checkout cleaning never marks the room ready. A new inspection and independent approval are required before room release.</p></div>
+  {admin&&<section className="hk-manager-handoff" aria-label="Manager checkout cleaning handoff">
+   <div className="hk-work-heading">
+    <div><span className="rr-eyebrow">MANAGER · CHECKOUT HANDOFF</span>
+     <h3>Unassigned checkout cleaning</h3>
+     <p>Assign an employee promptly. Tasks older than 30 minutes need attention;
+      after 2 hours they require manager escalation.</p></div>
+    <button type="button" className="rr-secondary-action" disabled={handoff.isFetching}
+     onClick={()=>void handoff.refetch()}><RefreshCcw size={15}/> Refresh handoff</button>
+   </div>
+   <QueryFeedback loading={handoff.isPending} error={handoff.error}
+    onRetry={()=>void handoff.refetch()}/>
+   {handoff.data&&<p className="desk-muted">{handoff.data.meta.total} unassigned checkout tasks
+    {handoff.data.meta.hasMore?' · Showing oldest 100; more tasks require follow-up':''}</p>}
+   {handoff.data?.data.length===0&&<p className="hk-handoff-clear">No unassigned checkout cleaning tasks.</p>}
+   <div className="hk-handoff-list">
+    {handoff.data?.data.map(item=><article key={item.taskId}
+     className={'hk-handoff-row '+(item.priority==='escalate'?'hk-handoff-critical':'')}>
+     <div><strong>Room {item.roomNumber}</strong>
+      <small>Checkout cleaning · {Math.floor(item.ageMinutes/60)}h {Math.floor(item.ageMinutes%60)}m waiting</small>
+      {item.priority==='escalate'?<span className="hk-handoff-alert">Escalate to duty manager</span>
+       :item.priority==='attention'?<span className="hk-handoff-attention">Assignment overdue</span>:null}
+     </div>
+     <button type="button" className="btn-inline" onClick={()=>{
+      void navigate({to:'/housekeeping',search:{task:item.taskId}});
+     }}>Assign staff <ArrowRight size={15}/></button>
+    </article>)}
+   </div>
+   <p className="desk-muted">Assignments are recorded in the housekeeping task audit trail.
+    Automated delivery notifications are not yet configured. Finishing cleaning never approves readiness.</p>
+  </section>}
   <section className="hk-work-summary" aria-label="Housekeeping tasks on current page">
    <div className="hk-work-heading"><div><span className="rr-eyebrow">HOTEL-WIDE TASKS</span><h3>Cleaning workload</h3>
     <p>To do, In progress and Completed show totals across this hotel, even when you change the queue filter. Past due is based on the current task page.</p></div>

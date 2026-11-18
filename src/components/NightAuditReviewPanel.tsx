@@ -45,7 +45,7 @@ export function NightAuditReviewPanel({date,preflight}:{date:string;preflight:Ni
    <p>{report.data.managerNote}</p>
    <small>Manager #{report.data.reviewedBy} · {report.data.reviewedAt} · Review #{report.data.id}</small>
    <small>Snapshot hash: {report.data.snapshotSha256}</small>
-   <p>Financial day closed: No · Ledger locked: No · Taxes calculated: No</p>
+   <p>This review did not itself close the financial day, lock journals, calculate taxes or settle payments. See the financial-close status below for the current business date.</p>
   </div>}
   {report.isSuccess&&!report.data&&<>
    {!past?<p className="desk-muted">Only a completed prior hotel-local date can receive a manager review. Select yesterday or an earlier date.</p>:<>

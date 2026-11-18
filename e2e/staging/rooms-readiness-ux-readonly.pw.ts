@@ -36,7 +36,7 @@ test('rooms catalogue supports safe filtering, summary and readiness navigation'
   const drawer=page.getByRole('dialog',{name:/inspection and readiness/});
   await expect(drawer).toBeVisible();
   await expect(drawer.getByText('Operational blockers')).toBeVisible();
-  await expect(drawer.getByText('Recorded readiness audit')).toBeVisible();
+  await expect(drawer.getByText('Inspection history')).toBeVisible();
   await expect(drawer.locator('.rr-readiness-steps')).toBeVisible();
   const currentApproval=drawer.getByText('Inspection is current.');
   if(await currentApproval.count()){

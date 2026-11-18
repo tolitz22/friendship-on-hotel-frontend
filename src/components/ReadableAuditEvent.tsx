@@ -9,7 +9,7 @@ type CashEvent={id:string;actorId:string;event:string;details:unknown;createdAt:
 type Change={label:string;from:string|null;to:string};
 
 const FIELDS:Record<string,string>={
- status:'Progress',priority:'Priority',type:'Task type',title:'Title',
+ status:'Progress',role:'Hotel role',isActive:'Membership active',priority:'Priority',type:'Task type',title:'Title',
  description:'Description',assignedTo:'Assigned staff',assignedUserId:'Assigned employee',
  dueAt:'Due date',completedAt:'Completed at',resolvedAt:'Resolved at',
  affectsRoom:'Room affected',roomNumber:'Room',note:'Note',

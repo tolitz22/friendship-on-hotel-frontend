@@ -12,8 +12,10 @@ import {assignOccupancy,observeOccupancy,reviewOccupancy,occupancyHistory,useOcc
 import type {OccupancyVerification} from '../api/occupancyVerifications';
 import {readableDate,readableDateTime,statusLabel} from '../lib/format';
 import {auditActorName} from '../components/ReadableAuditEvent';
+import {useLiveProperty} from '../api/liveCatalogQueries';
+import {hotelToday} from '../features/reservations/calendarDate';
 
-function CheckCard({check,manager,onChanged}:{check:OccupancyVerification;manager:boolean;onChanged:()=>void}){
+function CheckCard({check,manager,isCurrentDate,onChanged}:{check:OccupancyVerification;manager:boolean;isCurrentDate:boolean;onChanged:()=>void}){
  const {hotelId,user}=useHotelAuth();
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:manager&&!!hotelId});
  const actor=(id:string,name?:string|null)=>auditActorName(id,name??staff.data?.data.find(m=>m.userId===id)?.name,user?.id,user?.name);
@@ -45,7 +47,7 @@ function CheckCard({check,manager,onChanged}:{check:OccupancyVerification;manage
  const mismatch=check.discrepancy==='unexpected_occupied'?'Observed occupied, PMS has no checked-in stay':
   check.discrepancy==='expected_occupied_vacant'?'Observed vacant, PMS has a checked-in stay':
   check.discrepancy==='unverified'?'Could not confirm occupancy':'Observation matches PMS snapshot';
- const canObserve=check.status==='assigned'&&!manager;
+ const canObserve=check.status==='assigned'&&!manager&&isCurrentDate;
  const canReview=check.status==='submitted'&&manager;
  const independent=check.observedBy!==user?.id;
  return <article className="occ-check-card">
@@ -61,7 +63,7 @@ function CheckCard({check,manager,onChanged}:{check:OccupancyVerification;manage
   {check.status!=='assigned'&&<p className="occ-check-result">
    <Info size={15}/>{mismatch}. This is evidence for review, not proof of an unregistered stay.</p>}
   {check.status==='assigned'&&<p className="occ-check-result"><Info size={15}/>
-   Awaiting an independent observation. Follow privacy and safe room-access procedures.</p>}
+   {isCurrentDate?'Awaiting an independent observation. Follow privacy and safe room-access procedures.':'This assignment is historical. Do not submit a new observation for an earlier date.'}</p>}
   <div className="occ-check-actions">
    {(canObserve||canReview)&&<button type="button" className="btn-primary"
     onClick={()=>{setError('');setMessage('');setWorkDialog(true);}}>
@@ -137,6 +139,10 @@ export function OccupancyVerification(){
  const manager=role==='admin';
  const allowed=role==='admin'||role==='housekeeping';
  const [page,setPage]=useState(1);
+ const [selectedDate,setSelectedDate]=useState('');
+ const property=useLiveProperty();
+ const hotelDate=hotelToday(new Date(),property.data?.data.timeZone??'Asia/Manila');
+ const displayDate=selectedDate||hotelDate;
  const [status,setStatus]=useState('all');
  const [roomId,setRoomId]=useState('');
  const [assignee,setAssignee]=useState('');
@@ -145,11 +151,11 @@ export function OccupancyVerification(){
  const [saving,setSaving]=useState(false);
  const [showAssign,setShowAssign]=useState(false);
  const client=useQueryClient();
- const checks=useOccupancyVerifications(allowed,page,status==='all'?undefined:status as OccupancyVerification['status']);
+ const checks=useOccupancyVerifications(allowed,page,status==='all'?undefined:status as OccupancyVerification['status'],displayDate);
  const rooms=useLiveRooms({page:1,perPage:100});
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:manager});
  const eligible=staff.data?.data.filter(person=>person.role==='housekeeping'&&person.isActive)??[];
- useEffect(()=>{setPage(1);setStatus('all');setRoomId('');setAssignee('');setError('');setMessage('');},[hotelId]);
+ useEffect(()=>{setPage(1);setStatus('all');setSelectedDate('');setRoomId('');setAssignee('');setError('');setMessage('');},[hotelId]);
  const refresh=()=>{if(hotelId)void client.invalidateQueries({queryKey:['live','occupancy-verifications',hotelId]});};
  async function assign(){
   if(!hotelId||saving||!roomId||!assignee)return;
@@ -205,6 +211,12 @@ export function OccupancyVerification(){
    </Panel></section></div>}
   <Panel title={manager?'Room checks':'My assigned rooms'}>
    <div className="desk-tools">
+    <label>Check date
+     <input className="wizard-input" type="date" max={hotelDate}
+      value={displayDate} onChange={e=>{setSelectedDate(e.target.value||hotelDate);setPage(1);}}/>
+    </label>
+    {displayDate!==hotelDate&&<button type="button" className="btn-inline"
+     onClick={()=>{setSelectedDate('');setPage(1);}}>Show today</button>}
     <label>Filter status{' '}
      <select className="wizard-input" value={status} onChange={e=>{setPage(1);setStatus(e.target.value);}}>
       <option value="all">All</option><option value="assigned">Assigned</option>
@@ -216,7 +228,7 @@ export function OccupancyVerification(){
    <QueryFeedback loading={checks.isPending} error={checks.error}
     empty={checks.isSuccess&&checks.data.data.length===0}/>
    {checks.data?.data.map(check=><CheckCard key={hotelId+'-'+check.id} check={check}
-    manager={manager} onChanged={refresh}/>)}
+    manager={manager} isCurrentDate={check.inspectionDate===hotelDate} onChanged={refresh}/>) }
    {checks.data&&<div className="desk-tools">
     <span>Page {checks.data.meta.page} of {Math.max(1,checks.data.meta.totalPages)}</span>
     <div className="desk-date-nav">

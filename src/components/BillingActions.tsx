@@ -3,7 +3,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {AlertTriangle,CheckCircle2,ShieldCheck,PlusCircle,MinusCircle,Info} from 'lucide-react';
 import {useHotelAuth} from './AuthProvider';
 import {useLiveFolioLedger} from '../api/liveFinance';
-import {formatBillingMoney,parseBillingAmount,recordFolioAdjustment,reviewFolioPayment} from '../api/billing';
+import {formatBillingMoney,parseBillingAmount,recordFolioAdjustment,reviewFolioPayment,voidFolioPayment} from '../api/billing';
 import {readSession} from '../api/session';
 import {QueryFeedback} from './QueryFeedback';
 
@@ -20,6 +20,10 @@ export function BillingActions({bookingId,signed,mode='full'}:{
  const [reason,setReason]=useState('');
  const [confirm,setConfirm]=useState(false);
  const [reviewNotes,setReviewNotes]=useState<Record<string,string>>({});
+ const [voidTarget,setVoidTarget]=useState<string|null>(null);
+ const [voidReason,setVoidReason]=useState('');
+ const [voidAcknowledged,setVoidAcknowledged]=useState(false);
+ const voidKey=useRef(crypto.randomUUID());
  const [busy,setBusy]=useState(false);
  const [notice,setNotice]=useState('');
  const [error,setError]=useState('');
@@ -30,6 +34,29 @@ export function BillingActions({bookingId,signed,mode='full'}:{
   ?currentCharges+(kind==='debit'?parsedAmount:-parsedAmount):null;
  const change=()=>{key.current=crypto.randomUUID();setConfirm(false);setError('');setNotice('');};
  const canWrite=!!manager&&!signed&&ledger.isSuccess&&!busy;
+ const selectVoid=(paymentId:string)=>{
+  setVoidTarget(paymentId===voidTarget?null:paymentId);
+  setVoidReason('');setVoidAcknowledged(false);
+  voidKey.current=crypto.randomUUID();
+  setError('');setNotice('');
+ };
+ const submitVoid=async()=>{
+  if(!canWrite||!voidTarget||voidReason.trim().length<12||!voidAcknowledged)return;
+  const key=voidKey.current;
+  setBusy(true);setError('');setNotice('');
+  try{
+   await voidFolioPayment(bookingId,voidTarget,key,voidReason.trim());
+   if(readSession().hotelId!==hotelId)return;
+   setNotice('The mistaken payment evidence was voided and retained in the audit history. It no longer counts as received payment. A refund has not been issued.');
+   setVoidTarget(null);setVoidReason('');setVoidAcknowledged(false);
+   voidKey.current=crypto.randomUUID();
+   void refresh();
+  }catch(e){
+   if(readSession().hotelId===hotelId)setError(
+    (e instanceof Error?e.message:'Unable to void payment.')+
+    ' Check whether the payment was already verified, allocated, or belongs to a closed cashier shift.');
+  }finally{setBusy(false);}
+ };
  const refresh=async()=>{
   await Promise.all([
    client.invalidateQueries({queryKey:['live','folio-ledger',hotelId,bookingId]}),
@@ -141,6 +168,51 @@ export function BillingActions({bookingId,signed,mode='full'}:{
    {ledger.isSuccess&&ledger.data.data.payments.every(p=>p.status!=='pending_review')&&
     <p className="billing-reviewed"><CheckCircle2 size={16}/> No payment records are awaiting staff review.</p>}
   </details>
+  <section className="billing-void-section" aria-label="Correct accidental payment entries">
+   <div className="billing-section-heading"><div>
+    <h3>Correct an accidental payment</h3>
+    <p>Void only evidence entered by mistake when no additional money was received.
+     This is not a refund, and a signed folio or closed cash shift cannot be changed here.</p>
+   </div></div>
+   <div className="billing-void-list">
+    {ledger.data?.data.payments.map(payment=><div key={payment.id} className="billing-void-record">
+     <div className="billing-void-row">
+      <div><strong>Payment #{payment.id} · {formatBillingMoney(payment.amountMinor,
+       ledger.data!.data.summary.currency)}</strong>
+       <small>{payment.method==='cash'?'Cash':'Bank transfer'} · {payment.reference}
+        {' · '}{payment.status.replaceAll('_',' ')}
+        {' · '}Recorded by {payment.recordedByName??'Employee name unavailable'}</small>
+       {payment.status==='voided'&&<small>
+        Voided by {payment.voidedByName??'Authorized staff'} · {payment.voidReason??'See audit history'}
+       </small>}
+      </div>
+      {['pending_review','staff_confirmed'].includes(payment.status)&&
+       <button type="button" className="btn-inline" disabled={busy||payment.recordedBy===user?.id}
+        onClick={()=>selectVoid(payment.id)}>
+        {voidTarget===payment.id?'Cancel correction':'Void mistaken payment'}
+       </button>}
+     </div>
+     {voidTarget===payment.id&&<div className="billing-void-confirm">
+      <p><AlertTriangle size={16}/> Do not use this if cash or funds were actually received.
+       A genuine second payment must remain recorded and may require a separate refund.
+       The server will reject a void after verification, allocation, sign-off or cash-shift closure.</p>
+      <label>Why was this entry a mistake?
+       <textarea className="wizard-input" rows={2} maxLength={500} disabled={busy}
+        value={voidReason} onChange={e=>{setVoidReason(e.target.value);setVoidAcknowledged(false);}}
+        placeholder="Example: Second entry for the same cash received; no second payment was collected."/>
+      </label>
+      <label className="billing-payment-ack"><input type="checkbox" checked={voidAcknowledged}
+       disabled={busy||voidReason.trim().length<12}
+       onChange={e=>setVoidAcknowledged(e.target.checked)}/>
+       I independently checked the receipt and physical funds. No second payment was received.
+       Keep the original record in the audit history.</label>
+      <button type="button" className="btn-primary" disabled={busy||voidReason.trim().length<12||!voidAcknowledged}
+       onClick={()=>void submitVoid()}>{busy?'Voiding…':'Confirm audited void'}</button>
+     </div>}
+    </div>)}
+    {ledger.data?.data.payments.length===0&&<p className="desk-muted">No payment records to correct.</p>}
+   </div>
+  </section>
   {notice&&<p role="status" className="stay-feedback-success"><CheckCircle2 size={16}/>{notice}</p>}
   {error&&<p role="alert" className="stay-feedback-error"><AlertTriangle size={16}/>{error} Check the folio before retrying if the outcome is unclear.</p>}
  </section>;

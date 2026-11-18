@@ -2460,3 +2460,44 @@
 .settlement-progress[open]>summary::after{content:"Hide details"}
 @media(max-width:970px){.cashier-journey{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.cashier-journey{grid-template-columns:1fr}}
+
+
+/* Prevent duplicate evidence before posting; keep all manager voids audit-visible. */
+.billing-payment-existing,.billing-payment-duplicate{border:1px solid var(--border);border-radius:11px;padding:15px;margin:14px 0;background:var(--surface);display:grid;gap:11px}
+.billing-payment-existing-heading{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.billing-payment-existing-heading strong{font-size:13px}
+.billing-payment-existing-heading button{display:flex;align-items:center;gap:5px}
+.billing-payment-existing-totals{display:flex;flex-wrap:wrap;gap:10px 24px;font-size:12px}
+.billing-payment-existing-totals span{color:var(--muted)}
+.billing-payment-existing-totals strong{color:var(--text)}
+.billing-payment-existing details>summary{font-size:12px;font-weight:700;cursor:pointer}
+.billing-payment-existing-list{max-height:220px;overflow-y:auto;display:grid;gap:8px;margin-top:10px}
+.billing-payment-existing-list>div{padding:9px 12px;border-radius:8px;background:var(--canvas);border:1px solid var(--border)}
+.billing-payment-existing-list strong,.billing-payment-existing-list small{display:block}
+.billing-payment-existing-list strong{font-size:12px}
+.billing-payment-existing-list small{font-size:11px;color:var(--muted);margin-top:4px}
+.billing-payment-duplicate{border-color:var(--accent);background:var(--canvas)}
+.billing-payment-duplicate>div:first-child{display:flex;gap:8px;align-items:center}
+.billing-payment-duplicate>div:first-child svg{flex:none;color:var(--accent)}
+.billing-payment-duplicate strong{font-size:13px}
+.billing-payment-duplicate p,.billing-payment-existing p{font-size:12px;line-height:1.6;margin:0}
+.billing-payment-duplicate-override{display:grid;gap:12px}
+.billing-payment-duplicate-override>label{display:grid;gap:7px;font-size:12px;font-weight:650}
+.billing-payment-duplicate-override .billing-payment-ack{display:flex;align-items:flex-start}
+.billing-void-section{margin:18px 0;border:1px solid var(--border);background:var(--surface);border-radius:11px;padding:17px}
+.billing-void-section .billing-section-heading h3{font-size:15px}
+.billing-void-list{display:grid;gap:10px;margin-top:12px}
+.billing-void-record{border:1px solid var(--border);border-radius:9px;padding:12px;background:var(--canvas)}
+.billing-void-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.billing-void-row>div{min-width:0}
+.billing-void-row strong,.billing-void-row small{display:block}
+.billing-void-row strong{font-size:12px}
+.billing-void-row small{font-size:11px;color:var(--muted);margin-top:4px;overflow-wrap:anywhere}
+.billing-void-row button{white-space:nowrap}
+.billing-void-confirm{display:grid;gap:12px;border-top:1px solid var(--border);margin-top:12px;padding-top:13px}
+.billing-void-confirm>p{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.6}
+.billing-void-confirm>p svg{flex:none;color:var(--accent)}
+.billing-void-confirm>label{display:grid;gap:8px;font-size:12px}
+.billing-void-confirm>.billing-payment-ack{display:flex;align-items:flex-start}
+.billing-void-confirm>.btn-primary{justify-self:start}
+@media(max-width:680px){.billing-void-row,.billing-payment-existing-heading{flex-direction:column;align-items:flex-start}.billing-void-row button{white-space:normal}.billing-payment-existing-totals{flex-direction:column;gap:5px}}

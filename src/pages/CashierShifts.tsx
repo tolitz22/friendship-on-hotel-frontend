@@ -221,8 +221,8 @@ export function CashierShifts(){
      <div className="cashier-collect-heading"><span className="cashier-collect-icon"><Wallet size={21}/></span>
       <div><strong>Ready to accept guest cash payments</strong>
        <p>Your shift is open. Payments entered from a guest's bill are automatically linked to this drawer.</p></div></div>
-     <Link to="/billing" search={{}} className="btn-primary cashier-billing-link">
-      Find a guest and record payment <ArrowRight size={16}/></Link>
+     <Link to="/billing" search={{booking:originBooking}} className="btn-primary cashier-billing-link">
+      {originBooking?'Continue guest payment':'Find a guest and record payment'} <ArrowRight size={16}/></Link>
     </div>
     <ShiftRow shift={active} manager={manager} ownShift onChange={()=>void refresh()}/>
    </div>}

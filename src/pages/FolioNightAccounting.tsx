@@ -18,7 +18,6 @@ const assessment=z.object({
  reviewedBy:id.nullable(),sourceJournalId:id.nullable(),
  benefitJournalId:id.nullable(),vatJournalId:id.nullable(),
 });
-type Assessment=z.infer<typeof assessment>;
 const correction=z.object({
  id:z.number(),assessment_id:z.number(),status:z.string(),
  reason:z.string(),prepared_by:z.number(),reviewed_by:z.number().nullable(),

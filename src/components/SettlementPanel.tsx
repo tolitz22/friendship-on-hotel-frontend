@@ -77,7 +77,6 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const [selected,setSelected]=useState('');
  const [activeDialog,setActiveDialog]=useState<'payment'|'charges'|null>(null);
  const [reviewExpanded,setReviewExpanded]=useState(false);
- const [showAllControls,setShowAllControls]=useState(false);
  const [reference,setReference]=useState('');
  const [reviewNote,setReviewNote]=useState('');
  const [payerKind,setPayerKind]=useState('guest');
@@ -99,7 +98,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const valid=!!hotelId&&/^[1-9]\d*$/.test(bookingId);
  const endpoint='/bookings/'+bookingId;
  useEffect(()=>{
-  setActiveDialog(null);setReviewExpanded(false);setShowAllControls(false);setSelected('');setReference('');setReviewNote('');setPayerKind('guest');
+  setActiveDialog(null);setReviewExpanded(false);setSelected('');setReference('');setReviewNote('');setPayerKind('guest');
   setPayerRef('');setAmount('');setEntryId('');setAck(false);setBusy(false);
   setError('');setSuccess('');setRequestKey(crypto.randomUUID());
   setRefundPayment('');setRefundAmount('');setRefundReason('');
@@ -246,8 +245,10 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
         onClick={openPaymentReview}><ShieldCheck size={16}/>
         {nextTask==='signoff'?'Open final authorization':'Continue manager review'}
        </button>}
-      {nextTask==='confirmation'&&<button type="button" className="rr-secondary-action"
-       onClick={()=>setShowAllControls(true)}>Review payment history</button>}
+      {nextTask==='confirmation'&&manager&&<button type="button" className="rr-secondary-action"
+       onClick={openPaymentReview}><ShieldCheck size={16}/> Review payment evidence</button>}
+      {nextTask==='confirmation'&&!manager&&
+       <span className="checkout-guide-review-wait">An authorized manager must confirm the payment evidence.</span>}
      </div>
      {shift.isSuccess&&!shift.data&&<div className="checkout-guide-shift">
       <AlertTriangle size={16}/>
@@ -314,7 +315,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       :<BillingActions bookingId={bookingId} signed={data.signed}/>}
     </section>
    </div>}
-   <details className="billing-statement-details" open={showAllControls?true:undefined}>
+   <details className="billing-statement-details">
     <summary><span><strong>View itemized bill and payment history</strong>
      <small>Room charges, payment reviews, refunds and printable statement</small></span>
      <span className="billing-expand-hint">Show details</span></summary>
@@ -430,6 +431,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
      <AlertTriangle size={18}/>
      Final settlement is not yet enabled for this hotel. A finance administrator must complete the required checks before activating it. You can still review the recorded statement.
     </div>}
+    {unconfirmed.length>0&&<BillingActions bookingId={bookingId} signed={data.signed} mode="review"/>}
     <h4>Manager payment verification & allocation</h4>
     <p className="desk-muted">Bank transfer evidence requires a different administrator to verify the supporting statement. Cash evidence requires a reconciled shift. These controls never initiate a bank payment or refund.</p>
     <div className="settlement-payment-choice">

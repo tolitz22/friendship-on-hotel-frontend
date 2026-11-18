@@ -1,11 +1,15 @@
-import {useEffect,useState} from 'react';
+import {useEffect,useMemo,useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import {useQueryClient} from '@tanstack/react-query';
 import {Link,useSearch} from '@tanstack/react-router';
 import {
  ArrowLeft,ArrowRight,BedDouble,CalendarDays,LogIn,LogOut,
- Search,Users,AlertTriangle,RefreshCw,ClipboardCheck,Plus,Clock3,
+ Search,Users,AlertTriangle,RefreshCw,ClipboardCheck,Plus,Clock3,ShieldAlert,Info,
 } from 'lucide-react';
 import {useLiveManifest} from '../api/liveFrontDesk';
+import {useRoomInventoryStatus} from '../api/roomInventoryStatus';
+import {roomOperationalSignal,informationalMaintenanceCount} from '../features/rooms/roomOperationalSignals';
+import {listMaintenance,parseLiveMaintenance} from '../api/liveMaintenance';
 import {useLiveProperty} from '../api/liveCatalogQueries';
 import {readSession} from '../api/session';
 import {useHotelAuth} from '../components/AuthProvider';
@@ -45,6 +49,22 @@ export function LiveFrontDesk(){
  const queries={arrivals,departures,in_house:inHouse};
  const current=queries[kind];
  const rows=current.isSuccess?current.data.data:[];
+ // Room-readiness evidence describes the property's CURRENT date only.
+ // Never show today's inspection snapshot as the status of a future stay.
+ const isToday=date===hotelDate;
+ const assignedRoomIds=useMemo(()=>Array.from(new Set(rows.flatMap(row=>
+  row.assignedRoomId?[row.assignedRoomId]:[]))),[rows]);
+ const roomStatus=useRoomInventoryStatus(assignedRoomIds,isToday&&canOperate);
+ const statusByRoom=useMemo(()=>new Map(
+  roomStatus.isSuccess?roomStatus.data.data.map(row=>[row.roomId,row] as const):[],
+ ),[roomStatus.data,roomStatus.isSuccess]);
+ // Maintenance work-order flags are advisory and never actual inventory restrictions.
+ const maintenanceNotes=useQuery({
+  queryKey:['live','front-desk','maintenance-notes',hotelId],
+  enabled:!!hotelId&&isToday&&canOperate&&assignedRoomIds.length>0,
+  queryFn:async()=>parseLiveMaintenance(await listMaintenance(1,100),hotelId!),
+  retry:false,
+ });
  const term=search.trim().toLocaleLowerCase();
  const filtered=rows.filter(row=>!term||[
   displayGuest(row),row.reference,row.roomNumber??'',row.id,
@@ -57,7 +77,11 @@ export function LiveFrontDesk(){
   setDate(next);setPageByKind({arrivals:1,departures:1,in_house:1});setSearch('');
  };
  useEffect(()=>{changeDate(hotelDate);setKind(initialQueue??'arrivals');},[hotelId,hotelDate,initialQueue]);
- const refresh=()=>void client.invalidateQueries({queryKey:['live','front-desk','manifest',hotelId]});
+ const refresh=()=>void Promise.all([
+  client.invalidateQueries({queryKey:['live','front-desk','manifest',hotelId]}),
+  client.invalidateQueries({queryKey:['live','room-inventory-status',hotelId]}),
+  client.invalidateQueries({queryKey:['live','front-desk','maintenance-notes',hotelId]}),
+ ]);
  if(!hotelId)return <>
   <Heading title="Front desk" description="Select an authorized hotel to open its operational queues."/>
   <Panel title="Hotel selection required"><p role="status">Select your hotel before loading arrivals, departures or in-house stays.</p></Panel>
@@ -113,10 +137,21 @@ export function LiveFrontDesk(){
    <QueryFeedback loading={current.isPending} error={current.error} onRetry={()=>void current.refetch()}
     empty={current.isSuccess&&filtered.length===0}
     emptyMessage={term?'No matches on this page. Clear search or browse another page.':'No reservations in this queue on the selected date.'}/>
+   {isToday&&canOperate&&<div className="fdc-room-notice"><Info size={16}/>
+    <p><strong>Current room checks:</strong> Active inventory restrictions and inspection/cleaning concerns are shown below when available.
+     Maintenance work-order notes are informational and do not automatically block bookings. Always confirm availability at check-in.</p></div>}
+   {!isToday&&<div className="fdc-room-notice"><Info size={16}/>
+    <p>Room conditions are checked on the hotel’s current date. This future or past schedule does not guarantee a room’s cleaning, inspection, or maintenance status.</p></div>}
    {current.isSuccess&&filtered.length>0&&<div className="fdc-queue" aria-live="polite">
     {filtered.map(row=>{
      const action=recommendedDeskAction(kind,row);
      const needsAssignment=kind==='arrivals'&&!row.assignedRoomId;
+     const status=row.assignedRoomId?statusByRoom.get(row.assignedRoomId):undefined;
+     const signal=status?roomOperationalSignal(status):null;
+     const relatedNotes=maintenanceNotes.isSuccess&&row.assignedRoomId
+      ?maintenanceNotes.data.data.filter(note=>note.roomId===row.assignedRoomId):[];
+     const advisoryCount=informationalMaintenanceCount(relatedNotes);
+     const noteCoverageComplete=maintenanceNotes.isSuccess&&maintenanceNotes.data.meta.totalPages<=1;
      return <article className="fdc-guest-row" key={row.id}>
       <div className="fdc-guest-primary">
        <strong>{displayGuest(row)}</strong><span>{row.reference}</span>
@@ -128,6 +163,15 @@ export function LiveFrontDesk(){
        <small>Room</small>
        <strong>{row.roomNumber??'Not assigned'}</strong>
        {needsAssignment&&<span className="fdc-issue"><AlertTriangle size={13}/> Assignment needed</span>}
+       {canOperate&&isToday&&row.assignedRoomId&&<div className="fdc-room-signals" aria-label={'Current room checks for '+(row.roomNumber??'assigned room')}>
+        {signal?<div className={'fdc-room-signal fdc-signal-'+signal.tone}>
+         {signal.tone==='blocked'?<ShieldAlert size={14}/>:signal.tone==='approved'?<ClipboardCheck size={14}/>:<Info size={14}/>}
+         <span><strong>{signal.title}</strong><small>{signal.action}</small></span>
+        </div>:<span className="fdc-check-unavailable">{roomStatus.isPending?'Checking room status…':'Room status not available · verify before check-in'}</span>}
+        {advisoryCount>0&&<span className="fdc-maint-note"><Info size={13}/>{advisoryCount} open room-impact work order{advisoryCount===1?'':'s'} (note only)</span>}
+        {maintenanceNotes.isError&&<span className="fdc-check-unavailable">Repair notes could not be checked.</span>}
+        {maintenanceNotes.isSuccess&&!noteCoverageComplete&&<span className="fdc-check-unavailable">Repair notes may be incomplete; see Maintenance.</span>}
+        </div>}
       </div>
       <div className="fdc-guest-status">
        <small>Status</small><Status value={statusLabel(row.status)}/>

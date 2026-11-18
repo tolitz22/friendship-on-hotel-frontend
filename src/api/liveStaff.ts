@@ -12,7 +12,7 @@ export const updateHotelStaff=(userId:string,body:Partial<{role:StaffRole;isActi
  requestJson<{data:HotelStaffMember[]}>(hotelPath('/staff/'+encodeURIComponent(userId)),{method:'PATCH',body});
 
 export interface StaffMembershipEvent{
- id:string;actorId:string;targetUserId:string;action:string;
+ id:string;actorId:string;actorName?:string|null;targetUserId:string;targetName?:string|null;action:string;
  before:{role:StaffRole;isActive:boolean}|null;
  after:{role:StaffRole;isActive:boolean};createdAt:string;
 }

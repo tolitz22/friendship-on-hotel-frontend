@@ -28,7 +28,7 @@ const list=z.object({
 });
 const history=z.object({data:z.array(z.object({
  id,event:z.enum(['requested','approved','rejected','executed']),
- actorId:id,details:z.unknown().nullable(),createdAt:z.string(),
+ actorId:id,actorName:z.string().nullable().optional(),details:z.unknown().nullable(),createdAt:z.string(),
 }))});
 export type Approval=z.infer<typeof approval>;
 export type ApprovalAction=Approval['action'];

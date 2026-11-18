@@ -163,6 +163,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
     client.invalidateQueries({queryKey:['live','settlement-statement',hotelId,bookingId]}),
     client.invalidateQueries({queryKey:['live','folio-ledger',hotelId]}),
     client.invalidateQueries({queryKey:['live','billing-folios',hotelId]}),
+    client.invalidateQueries({queryKey:['live','payment-safety',hotelId,bookingId]}),
     client.invalidateQueries({queryKey:['live','cashier-shifts',hotelId]}),
    ]).catch(()=>{});
    return true;

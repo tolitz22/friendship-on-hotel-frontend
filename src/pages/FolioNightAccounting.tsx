@@ -85,7 +85,7 @@ export function FolioNightAccounting(){
  const business=useQuery({
   queryKey:['live','financial-business-day',hotelId],
   enabled:admin,
-  queryFn:async()=>z.object({data:z.object({businessDate:z.string(),status:z.string()})}).parse(
+  queryFn:async()=>z.object({data:z.object({businessDate:z.string(),status:z.string(),folioTaxAccountingEnabled:z.boolean().default(false)})}).parse(
    await getJson<unknown>(hotelPath('/finance/business-day'))).data,
   retry:false,
  });
@@ -96,6 +96,7 @@ export function FolioNightAccounting(){
    await getJson<unknown>(hotelPath(root+'/folio-night-assessments/'+assessmentId+'/corrections'))).data,
   retry:false,
  });
+ const enabled=business.data?.folioTaxAccountingEnabled===true;
  const currentNight=nights.data?.find(n=>n.id===entryId);
  const availablePolicies=policies.data?.filter(p=>currentNight&&dateCovered(p,currentNight.stayDate))??[];
  const selectedAssessment=assessments.data?.find(a=>a.id===assessmentId);
@@ -111,6 +112,7 @@ export function FolioNightAccounting(){
   ]);
  }
  async function send(path:string,body:Record<string,unknown>,successMessage:string){
+  if(!enabled){setError('Folio-tax posting is disabled until finance signs off and activates the staging-tested configuration.');return;}
   if(!active()||busy||!validBooking)return;
   setBusy(true);setError('');setSuccess('');
   try{
@@ -129,6 +131,12 @@ export function FolioNightAccounting(){
  return <>
   <Heading title="Room-night tax & earned revenue"
    description="Prepare, independently review and recognize accounting against actual hotel reservation folio nights."/>
+  {!enabled&&<Panel title="Finance activation required">
+   <p role="status" className="night-audit-warning"><AlertTriangle size={18}/>
+    This accounting workflow is deliberately disabled. An administrator must validate historical folios,
+    tax compliance and staging tests before enabling FINANCE_ENABLE_LIVE_FOLIO_TAX.
+    Viewing existing room-night entries remains read-only.</p>
+  </Panel>}
   <Panel title="Choose a priced reservation">
    <form onSubmit={event=>{
     event.preventDefault();const next=draftBooking.trim();

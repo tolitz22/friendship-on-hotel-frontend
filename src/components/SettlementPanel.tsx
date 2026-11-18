@@ -100,7 +100,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   enabled:valid,
   queryFn:async():Promise<Statement>=>{
    const result=z.object({data:statement}).parse(
-    await getJson<unknown>(hotelPath(endpoint))).data;
+    await getJson<unknown>(hotelPath(endpoint+'/settlement-statement'))).data;
    if(result.hotelId!==hotelId||result.bookingId!==bookingId)
     throw new Error('Unexpected reservation or hotel in settlement statement.');
    return result;
@@ -247,10 +247,9 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
    {manager&&!data.signed&&<>
     {!data.settlementWorkflowEnabled&&<div className="night-audit-warning" role="status">
      <AlertTriangle size={18}/>
-     Verified settlement is disabled pending staging reconciliation. Enable FINANCE_ENABLE_VERIFIED_SETTLEMENT
-     only after finance sign-off. This is a read-only statement until then.
+     Final settlement is not yet enabled for this hotel. A finance administrator must complete the required checks before activating it. You can still review the recorded statement.
     </div>}
-    <h4>Manager verification & payment allocation</h4>
+    <h4>Manager payment verification & allocation</h4>
     <p className="desk-muted">Bank transfer evidence requires a different administrator to verify the supporting statement. Cash evidence requires a reconciled shift. These controls never initiate a bank payment or refund.</p>
     <div className="settlement-payment-choice">
      {data.payments.map(p=><button type="button" key={p.id} className={'btn-inline'+(selected===p.id?' active':'')}
@@ -309,7 +308,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
          <input className="wizard-input" value={payerRef} maxLength={120}
           onChange={e=>setPayerRef(e.target.value)} placeholder="Guest/organization reference"/>
         </label>
-        <label>Amount (centavos)
+        <label>Allocation amount (centavos)
          <input className="wizard-input" inputMode="numeric" value={amount}
           onChange={e=>setAmount(e.target.value)}/>
         </label>

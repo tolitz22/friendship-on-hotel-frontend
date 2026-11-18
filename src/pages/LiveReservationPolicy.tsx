@@ -116,7 +116,7 @@ export function LiveReservationPolicy(){
       return <article key={rev.revision} className="policy-history-entry readable-policy-event">
        <strong>Saved policy draft · Version {rev.revision}</strong>
        <span>{staff.data?.data.find(member=>member.userId===rev.actorId)?.name
-        ??(user?.id===rev.actorId?'You':'Staff member #'+rev.actorId)} · {readableDateTime(rev.createdAt)}</span>
+        ??(user?.id===rev.actorId?'You':'Employee name unavailable')} · {readableDateTime(rev.createdAt)}</span>
        {changed.length>0?<dl className="readable-audit-changes">
         {changed.map(field=><div key={field}><dt>{POLICY_FIELDS[field].title}</dt>
          <dd>{previous&&<><span>{describe(field,previous.decisions[field])}</span><span>→</span></>}

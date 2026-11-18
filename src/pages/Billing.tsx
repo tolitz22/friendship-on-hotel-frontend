@@ -11,7 +11,7 @@ import {useBillingFolios,useBillingReservationFallback,formatBillingMoney} from 
 import {DemoNotice,Heading,Panel,Status} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {SettlementPanel} from '../components/SettlementPanel';
-import {currency,statusLabel} from '../lib/format';
+import {currency,statusLabel,readableDate} from '../lib/format';
 
 function LiveBilling(){
  const {booking:requestedBooking}=useSearch({from:'/billing'});
@@ -82,7 +82,7 @@ function LiveBilling(){
      <p>These are reservation records, not bills. Open one to check whether it has a recorded folio.</p>
      {fallback.data.data.map(record=><div className="billing-fallback-booking" key={record.id}>
       <div><strong>{record.guestName?.trim()||record.reference}</strong>
-       <small>{record.reference} · {record.checkIn} – {record.checkOut}</small></div>
+       <small>{record.reference} · {readableDate(record.checkIn)} – {readableDate(record.checkOut)}</small></div>
       <button type="button" className="btn-inline" onClick={()=>select(record.id)}>Check bill <ArrowRight size={15}/></button>
      </div>)}
      {fallback.data.data.length===0&&<p>No matching reservations. Try another name or booking reference.</p>}
@@ -102,7 +102,7 @@ function LiveBilling(){
       return <article className="billing-folio-row" key={folio.folioId}>
        <div className="billing-folio-identity"><span className="billing-folio-icon"><FileText size={18}/></span>
         <div><strong>{folio.guestName?.trim()||'Guest name unavailable'}</strong>
-         <small>{folio.reference} · {folio.checkIn} to {folio.checkOut}</small>
+         <small>{folio.reference} · {readableDate(folio.checkIn)} to {readableDate(folio.checkOut)}</small>
          <span className="billing-stay-status">{statusLabel(folio.status)}</span></div>
        </div>
        <div className="billing-folio-amount"><small>Charges</small>

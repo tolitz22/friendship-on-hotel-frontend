@@ -68,7 +68,7 @@ export function usePaymentSafety(bookingId:string,method?:'cash'|'bank_transfer'
  const {hotelId}=readSession();
  return useQuery({
   queryKey:['live','payment-safety',hotelId,bookingId,method,amountMinor],
-  enabled:!!hotelId&&/^[1-9]\\d*$/.test(bookingId),
+  enabled:!!hotelId&&/^[1-9]\d*$/.test(bookingId),
   queryFn:async()=>paymentSafetyResult.parse(await getJson<unknown>(
    hotelPath('/bookings/'+encodeURIComponent(bookingId)+'/payment-safety'),{
     method,amountMinor:amountMinor??undefined,

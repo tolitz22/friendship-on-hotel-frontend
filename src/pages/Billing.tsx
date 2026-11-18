@@ -52,7 +52,7 @@ function LiveBilling(){
   <section className="billing-index" aria-label="Guest folio directory">
    <div className="billing-section-heading">
     <div><span className="rr-eyebrow">LIVE HOTEL RECORDS</span><h3>Find a guest folio</h3>
-     <p>Search reservation references or numbers, then open the recorded account.</p></div>
+     <p>Search by guest name, booking reference, or reservation ID, then open the recorded account.</p></div>
     <button type="button" className="rr-secondary-action" disabled={folios.isFetching}
      onClick={()=>void folios.refetch()}><RefreshCcw size={15}/>{folios.isFetching?'Refreshing…':'Refresh list'}</button>
    </div>
@@ -68,7 +68,7 @@ function LiveBilling(){
    </form>
    <div className="billing-directory-controls">
     <label className="billing-list-search"><Search size={17}/>
-     <input type="search" value={search} aria-label="Search folios" placeholder="Search booking reference or ID…"
+     <input type="search" value={search} aria-label="Search folios" placeholder="Guest name, reference, or booking ID…"
       onChange={e=>setSearch(e.target.value)}/>
     </label>
     {search&&<button type="button" className="btn-inline" onClick={()=>{setSearch('');setDebounced('');setPage(1);}}><X size={15}/> Clear search</button>}
@@ -81,7 +81,7 @@ function LiveBilling(){
     <div className="billing-folio-list">
      {folios.data.data.map(folio=><article className={'billing-folio-row'+(selectedId===folio.bookingId?' selected':'')} key={folio.folioId}>
       <div className="billing-folio-identity"><span className="billing-folio-icon"><FileText size={18}/></span>
-       <div><strong>{folio.reference}</strong><small>Reservation #{folio.bookingId} · Folio #{folio.folioId}</small>
+       <div><strong>{folio.guestName?.trim()||folio.reference}</strong><small>{folio.reference} · Reservation #{folio.bookingId}</small><small>Folio #{folio.folioId}</small>
         <small>{folio.checkIn} – {folio.checkOut}</small></div>
       </div>
       <div className="billing-folio-amount"><small>Recorded charges</small>

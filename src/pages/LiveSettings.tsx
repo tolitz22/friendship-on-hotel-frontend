@@ -20,8 +20,8 @@ export function LiveSettings(){
  const hotel=property.data?.data;
  const data=catalog.data?.data;
  return <>
- <div className="notice"><strong>Live hotel settings</strong> · These are saved Laravel property and room catalogue records. Administrators can create and edit room types and physical rooms. Changes are audited; reservation-linked restrictions apply.</div>
- <Heading title="Hotel settings" description="Current property details, physical room categories and floors from Laravel" action={admin?<div className="catalog-actions"><button type="button" className="btn-inline" onClick={()=>setCreateMode('type')}><Plus size={16}/> Room type</button><button type="button" className="btn-primary" onClick={()=>setCreateMode('room')}><Plus size={16}/> Add room</button></div>:undefined}/>
+ <div className="notice"><strong>Hotel settings</strong> · Manage this hotel's details, room types, and physical rooms. Changes are recorded, and rooms with existing reservations may have editing restrictions.</div>
+ <Heading title="Hotel settings" description="Manage this hotel's details, room categories, and floors" action={admin?<div className="catalog-actions"><button type="button" className="btn-inline" onClick={()=>setCreateMode('type')}><Plus size={16}/> Room type</button><button type="button" className="btn-primary" onClick={()=>setCreateMode('room')}><Plus size={16}/> Add room</button></div>:undefined}/>
  <QueryFeedback loading={property.isPending||catalog.isPending} error={property.error??catalog.error??roomTypes.error}/>
  {hotel&&data&&<>
  <div className="settings-summary"><div><Building2 size={19}/><span>Property</span><strong>{hotel.name}</strong></div>
@@ -41,7 +41,7 @@ export function LiveSettings(){
   <Panel title="Registered floors"><div className="settings-floor-grid">{data.floors.map((floor,i)=><div key={floor.number??'unknown-'+i}><span>{floor.number===null?'Unassigned floor':'Floor '+floor.number}</span><strong>{floor.roomCount} room(s)</strong></div>)}
   {data.floors.length===0&&<p>No rooms registered yet.</p>}</div></Panel>
   {admin&&<p className="guest-info">Create room types and rooms using the buttons above, or edit an existing type in the table. Room edits are available from Room Inventory. Property contacts remain read-only in this screen.</p>}
-  <p className="guest-info">Check-in/check-out rules, housekeeping, room rates and staff-role previews are not stored in the current backend settings model. No fictional values are displayed here.</p>
+  <p className="guest-info">Some operational settings, such as check-in rules, housekeeping, rates, and staff permissions, are managed in other areas of the system. This page shows only settings available here.</p>
  </>}
  {editingType&&admin&&<CatalogEditDialog key={'edit-'+hotelId+'-'+editingType.id} target={{kind:'room_type',record:editingType}} roomTypes={roomTypes.data?.data??[]} onClose={()=>setEditingType(null)} onSaved={()=>setEditingType(null)}/>}
  {createMode&&admin&&<CatalogCreateDialog key={hotelId+'-'+createMode} mode={createMode} roomTypes={roomTypes.data?.data??[]} onClose={()=>setCreateMode(null)} onCreated={()=>setCreateMode(null)}/>}

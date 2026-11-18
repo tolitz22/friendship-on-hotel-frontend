@@ -1,6 +1,5 @@
 import {useEffect,useMemo,useState} from 'react';
-import {Link} from '@tanstack/react-router';
-import {AlertTriangle,ArrowRight,ClipboardCheck,RefreshCw} from 'lucide-react';
+import {AlertTriangle,ClipboardCheck,RefreshCw} from 'lucide-react';
 import {useHotelAuth} from './AuthProvider';
 import {Panel,Status} from './ui';
 import {QueryFeedback} from './QueryFeedback';
@@ -94,7 +93,6 @@ export function ReadinessDashboardPanel(){
    <section>
     <h4>Physical room inspection queue</h4>
     <p>Room statuses below are from the current report page; totals above cover the full hotel. Switch to Room inventory to open an inspection or submit it for review.</p>
-    <Link to="/rooms" className="rr-report-link" onClick={()=>window.scrollTo({top:0,behavior:'smooth'})}>Open room inventory <ArrowRight size={15}/></Link>
     <label htmlFor="readiness-room-filter">Filter this room page
      <select id="readiness-room-filter" value={roomFilter}
       onChange={e=>setRoomFilter(e.target.value as typeof roomFilter)}>

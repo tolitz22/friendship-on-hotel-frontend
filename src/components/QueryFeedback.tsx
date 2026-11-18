@@ -53,7 +53,6 @@ export function QueryFeedback({
    <div className="feedback-content">
     <strong>{title}</strong>
     <span>{action}</span>
-
    </div>
    {onRetry&&<button type="button" onClick={onRetry}>Retry</button>}
   </div>;

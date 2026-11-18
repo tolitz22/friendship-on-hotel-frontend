@@ -75,6 +75,9 @@ export function LiveReservations(){
   requested.stay.checkIn!==inputs.checkIn||
   requested.stay.checkOut!==inputs.checkOut);
 
+ if(routeSearch.hotel&&routeSearch.hotel!==hotelId)return <Panel title="Select the original property">
+  <p role="alert">This booking link belongs to another hotel. Switch to the original hotel to view its reservation.</p>
+ </Panel>;
  if(!hasHotel)return <>
   <Heading title="Bookings" description="Select an authorized hotel to see its bookings."/>
   <Panel title="Choose a property"><p role="status">Select your hotel from the authenticated workspace before creating or managing reservations.</p></Panel>

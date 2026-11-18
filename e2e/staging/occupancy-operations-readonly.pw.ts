@@ -65,3 +65,23 @@ test('housekeeping sees observation action but not manager verification controls
   await dialog.getByRole('button',{name:'Close dialog'}).click();
  }
 });
+
+test('manager can inspect flagged investigation form without creating or closing a case',async({page})=>{
+ const email=process.env.PMS_STAGING_ADMIN_EMAIL,password=process.env.PMS_STAGING_ADMIN_PASSWORD;
+ test.skip(!email||!password,'Dedicated manager staging credentials required');
+ await login(page,email!,password!);
+ await page.getByRole('navigation',{name:'Hotel workspace navigation'})
+  .getByRole('link',{name:/Occupancy checks|Occupancy verification/}).click();
+ await page.getByRole('combobox',{name:/Filter status/}).selectOption('flagged');
+ const panel=page.locator('.occ-investigation').first();
+ if(!await panel.count())return; // No flagged cases in this staging property.
+ await expect(panel.getByText('Discrepancy investigation')).toBeVisible();
+ const open=panel.getByRole('button',{name:'Open investigation'});
+ if(await open.count()){
+  await open.click();
+  const dialog=page.getByRole('dialog',{name:'Update occupancy investigation'});
+  await expect(dialog.getByRole('button',{name:'Open case'})).toBeDisabled();
+  await dialog.getByRole('button',{name:'Close dialog'}).click();
+ }
+ // Never mutate an investigation or change a booking in this smoke test.
+});

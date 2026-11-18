@@ -192,6 +192,14 @@ export function CashierShifts(){
    <Link className="btn-primary" to="/billing" search={{booking:originBooking}}>
     Return to guest bill <ArrowRight size={16}/></Link>
   </div>}
+  <section className="cashier-journey" aria-label="Cashier shift process">
+   <div><span>1</span><strong>Open shift</strong><small>{active?'Your drawer is open':'Start your own cash drawer'}</small></div>
+   <div><span>2</span><strong>Record receipts</strong><small>{active
+    ?active.receiptCount+' linked cash receipt'+(active.receiptCount===1?'':'s')
+    :'Collect cash through Guest Billing'}</small></div>
+   <div><span>3</span><strong>Count & submit</strong><small>Hide expected cash until you submit your physical count</small></div>
+   <div><span>4</span><strong>Independent review</strong><small>A different manager reconciles or flags the shift</small></div>
+  </section>
   <section className="cashier-drawer-panel" aria-label="My cash drawer"><div className="cashier-panel-heading">
    <div><h2>My cash drawer</h2><p>One shift per cashier. Opening cash is the money already in your drawer for giving change.</p></div>
    <button type="button" className="rr-secondary-action" disabled={ownOpenShift.isFetching} onClick={()=>void refresh()}><RefreshCw size={15}/> Refresh</button></div>

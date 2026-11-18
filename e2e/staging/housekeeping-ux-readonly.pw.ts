@@ -29,6 +29,7 @@ test('housekeeping list supports focused task filters and read-only task review'
  await expect(search).toHaveValue('');
  const workload=page.getByRole('region',{name:'Housekeeping tasks on current page'});
  await expect(workload.getByText('Completed · hotel-wide')).toBeVisible();
+ await expect(workload.locator('.hk-work-metrics > div').nth(2).locator('strong')).toHaveText(/^\\d+$/);
  const todoNumber=await workload.locator('.hk-work-metrics > div').nth(0).locator('strong').innerText();
  const progressNumber=await workload.locator('.hk-work-metrics > div').nth(1).locator('strong').innerText();
  const doneNumber=await workload.locator('.hk-work-metrics > div').nth(2).locator('strong').innerText();

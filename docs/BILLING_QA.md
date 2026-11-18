@@ -30,3 +30,19 @@ A successful Railway deployment/build is **not** complete reconciliation. `FINAN
 
 ## Status
 Routes, UI and backend isolated tests were committed to main. Railway deployment checks confirm compilation and deployments only. Browser E2E execution and a complete finance sign-off with production-equivalent database are still required before declaring the full financial workflow production-ready.
+
+
+## Guest payment entry (cash and bank transfer) — new acceptance checks
+
+- Open a guest account from Billing. Verify that the **Record a guest payment** section is visible for an unsigned folio and hidden when the folio is signed.
+- Use a dedicated front-desk staging account with no open shift: verify the user must count and confirm opening float before an open shift can be created. An existing submitted shift must not be silently reopened.
+- Verify the current drawer lookup returns **only the logged-in cashier's** open shift, even if a manager can view all hotel shifts. Validate tenant and role permissions.
+- With an open shift, enter **Payment amount ₱2,500.00** and **Cash handed to you ₱3,000.00**. The change displayed must be **₱500.00**. Insufficient cash disables Record payment; no write should occur. Validate decimal input and missing confirmation.
+- Staging-only mutation testing with explicit approval: submit a ₱2,500 cash receipt against the guest's booking; assert that the **folio payment and cashier-shift receipt contain ₱2,500**, not ₱3,000; the difference is physically returned as change and not posted as additional revenue. Confirm cash evidence is still pending independent review.
+- Retry the same idempotency request after a simulated uncertain network outcome. It must replay the original receipt, not post another ₱2,500 transaction. Do not assume a failed network response means no receipt was saved.
+- A front-desk user may record cash using their own shift, but cannot review bank evidence as a manager. The bank evidence option is manager-only; cash receipts do not bypass shift reconciliation.
+- Confirm all changes to folio balance remain provisional until payment review and finance settlement. The account statement is not a tax invoice.
+- On 390px mobile, verify the guest summary, Cash / Bank transfer selector, payment amount, tendered cash and change remain easy to read. The itemized statement and manager tools should expand only when needed.
+- Test the shared URL `/billing?booking=%222%22` resolves to booking **2** without accepting arbitrary query strings as IDs.
+
+Automation currently covers input arithmetic, quoted booking IDs and read-only staging form behavior; the cash mutation, receipt identity and cash-drawer reconciliation acceptance checks require a controlled staging run before production sign-off.

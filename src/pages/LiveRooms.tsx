@@ -3,8 +3,8 @@ import {createPortal} from 'react-dom';
 import {Link} from '@tanstack/react-router';
 import {
  AlertTriangle,ArrowRight,BedDouble,CheckCircle2,ClipboardCheck,
- Clock3,Filter,Info,Layers3,Plus,RefreshCw,Search,Settings2,
- ShieldAlert,ShieldCheck,SlidersHorizontal,Users,X,
+ Clock3,Filter,Info,Layers3,MoreHorizontal,Plus,RefreshCw,Search,Settings2,
+ ShieldAlert,ShieldCheck,Users,X,
 } from 'lucide-react';
 import {useLiveCatalogSummary,useLiveRooms,useLiveRoomTypes} from '../api/liveCatalogQueries';
 import {CatalogCreateDialog} from '../components/CatalogCreateDialog';
@@ -17,7 +17,7 @@ import type {InventoryRoomStatus} from '../api/roomInventoryStatus';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
-import {cleaningLabel,occupancyLabel,useRoomInventoryStatus} from '../api/roomInventoryStatus';
+import {occupancyLabel,useRoomInventoryStatus} from '../api/roomInventoryStatus';
 
 type View='catalog'|'readiness';
 type AttentionFilter='all'|'attention'|'vacant_ready'|'occupied';
@@ -26,29 +26,56 @@ function needsAttention(status:InventoryRoomStatus){
  return status.maintenanceBlocked||status.inventoryBlockedToday
   ||status.cleaning!=='ready';
 }
-function stateFor(status:InventoryRoomStatus):{title:string;detail:string;kind:'good'|'warning'|'blocked'|'occupied'}{
+type RoomCardState={title:string;detail:string;kind:'good'|'warning'|'blocked'|'occupied';next:string};
+function stateFor(status:InventoryRoomStatus):RoomCardState{
  if(status.maintenanceBlocked||status.inventoryBlockedToday)return{
-  title:'Operational block',detail:'Maintenance or inventory restriction requires review.',kind:'blocked',
+  title:'Operational block',detail:'Maintenance or inventory restrictions need review before this room can be used.',
+  kind:'blocked',next:'Review the active room restrictions',
  };
  if(status.occupancy==='due_for_checkout')return{
-  title:'Checkout due',detail:'The guest remains checked in until departure is recorded.',kind:'occupied',
+  title:'Checkout due',detail:'The guest is still checked in; cleaning follows the recorded checkout.',
+  kind:'occupied',next:'Confirm checkout through Front Desk',
  };
  if(status.occupancy==='occupied')return{
-  title:'Guest in house',detail:'Recorded occupancy; not a physically verified room count.',kind:'occupied',
+  title:'Guest in house',detail:'An active stay is recorded in the PMS.',
+  kind:'occupied',next:'Review the current room inspection',
  };
  if(status.cleaning==='ready'&&status.advisoryReady)return{
-  title:'Vacant · approved inspection',detail:'Current advisory approval; booking availability is separate.',kind:'good',
+  title:'Inspection approved',detail:'The room is vacant in the PMS with a current advisory approval.',
+  kind:'good',next:'Recheck readiness and availability before check-in',
  };
  if(status.cleaning==='checkout_cleaning')return{
-  title:'Cleaning required',detail:'Checkout cleaning has not started.',kind:'warning',
+  title:'Cleaning required',detail:'Checkout cleaning has not started.',
+  kind:'warning',next:'Complete checkout cleaning',
  };
  if(status.cleaning==='cleaning_in_progress')return{
-  title:'Cleaning underway',detail:'Housekeeping is completing this room.',kind:'warning',
+  title:'Cleaning underway',detail:'Housekeeping is working on the room.',
+  kind:'warning',next:'Follow up on the cleaning task',
  };
  if(status.cleaning==='awaiting_inspection')return{
-  title:'Awaiting inspection',detail:'Cleaning is recorded; inspection approval is still required.',kind:'warning',
+  title:'Awaiting inspection',detail:'Cleaning is recorded; an inspection still needs approval.',
+  kind:'warning',next:'Review or complete the room inspection',
  };
- return {title:'Readiness not verified',detail:'Do not infer readiness from an empty room.',kind:'warning'};
+ return {title:'Readiness not verified',detail:'No current approved readiness is recorded.',
+  kind:'warning',next:'Inspect the room and submit the findings'};
+}
+function cardAction(status:InventoryRoomStatus|undefined,admin:boolean,canOpenCleaning:boolean){
+ if(!status)return {title:'View readiness',kind:'inspection' as const};
+ if(status.maintenanceBlocked||status.inventoryBlockedToday)return {title:'Review blockers',kind:'inspection' as const};
+ if((status.cleaning==='checkout_cleaning'||status.cleaning==='cleaning_in_progress')
+  &&status.turnoverTaskId&&canOpenCleaning)return {title:'Open cleaning task',kind:'cleaning' as const};
+ if(status.cleaning==='checkout_cleaning'||status.cleaning==='cleaning_in_progress')
+  return {title:'View cleaning status',kind:'inspection' as const};
+ if(status.cleaning==='awaiting_inspection')return {
+  title:admin?'Review inspection':'View inspection',kind:'inspection' as const,
+ };
+ if(status.cleaning==='not_verified'&&status.occupancy==='vacant')return {
+  title:admin?'Inspect room':'View readiness',kind:'inspection' as const,
+ };
+ if(status.cleaning==='ready'&&status.advisoryReady&&status.occupancy==='vacant')return {
+  title:'View approval',kind:'inspection' as const,
+ };
+ return {title:'View room status',kind:'inspection' as const};
 }
 const attentionLabels:Record<AttentionFilter,string>={
  all:'All on page',attention:'Needs attention',vacant_ready:'Vacant & approved',occupied:'In-house / checkout',
@@ -67,7 +94,6 @@ export function LiveRooms(){
  const [search,setSearch]=useState('');
  const [page,setPage]=useState(1);
  const [attentionFilter,setAttentionFilter]=useState<AttentionFilter>('all');
- const [showEvidence,setShowEvidence]=useState(false);
  const inspectionTrigger=useRef<HTMLButtonElement|null>(null);
  const inspectionDialog=useRef<HTMLElement|null>(null);
  const roomTypes=useLiveRoomTypes();
@@ -108,7 +134,7 @@ export function LiveRooms(){
  const resetFilters=()=>{setFloor('all');setSearch('');setAttentionFilter('all');setPage(1);};
  useEffect(()=>{
   setView('catalog');setShowCreate(false);setEditingRoom(null);setReadinessRoom(null);
-  setFloor('all');setSearch('');setPage(1);setAttentionFilter('all');setShowEvidence(false);
+  setFloor('all');setSearch('');setPage(1);setAttentionFilter('all');
  },[hotelId]);
  useEffect(()=>{
   if(!readinessRoom)return;
@@ -226,45 +252,51 @@ export function LiveRooms(){
     {rooms.isSuccess&&filtered.length>0&&<div className="rr-room-grid">
      {filtered.map(({room,status})=>{
       const state=status?stateFor(status):null;
+      const action=cardAction(status,admin,admin);
+      const showBlocked=!!status&&(status.maintenanceBlocked||status.inventoryBlockedToday);
+      const cleanTask=status?.turnoverTaskId;
       return <article className={'rr-room-card'+(state?' rr-state-'+state.kind:'')} key={room.id}>
        <div className="rr-card-heading">
         <div className="rr-room-symbol"><BedDouble size={22}/></div>
-        <div><small>{room.roomTypeName}</small><h3>Room {room.number}</h3>
-         <span>{room.floor===null?'Floor not assigned':'Floor '+room.floor} · Up to {room.maxOccupancy} guest(s)</span></div>
+        <div className="rr-room-title"><small>{room.roomTypeName}</small><h3>Room {room.number}</h3>
+         <span>{room.floor===null?'Floor not assigned':'Floor '+room.floor} · Up to {room.maxOccupancy} guests</span></div>
+        {admin&&<button type="button" className="rr-card-admin" title={'Edit details for room '+room.number}
+         aria-label={'Edit details for room '+room.number} onClick={()=>setEditingRoom(room)}><Settings2 size={17}/></button>}
        </div>
-       {status?<div className="rr-card-state">
-        <div className={'rr-state-pill rr-pill-'+state!.kind}>
-         {state!.kind==='good'?<CheckCircle2 size={15}/>:state!.kind==='blocked'?<ShieldAlert size={15}/>:state!.kind==='occupied'?<Users size={15}/>:<Clock3 size={15}/>}
-         {state!.title}
-        </div>
-        <p>{state!.detail}</p>
-        <div className="rr-state-facts">
-         <div><span>Stay status</span><strong>{occupancyLabel(status.occupancy)}</strong></div>
-         <div><span>Cleaning & inspection</span><strong>{cleaningLabel(status.cleaning)}</strong></div>
-        </div>
-        {(status.maintenanceBlocked||status.inventoryBlockedToday)&&<div className="rr-card-warning">
-         <AlertTriangle size={15}/><span>
-          {status.maintenanceBlocked&&'Open room-impacting maintenance'}
-          {status.maintenanceBlocked&&status.inventoryBlockedToday&&' · '}
-          {status.inventoryBlockedToday&&'Inventory block active today'}
+       {status&&state?<div className="rr-card-state">
+        <div className="rr-card-state-header">
+         <span className={'rr-state-pill rr-pill-'+state.kind}>
+          {state.kind==='good'?<CheckCircle2 size={15}/>:state.kind==='blocked'?<ShieldAlert size={15}/>:state.kind==='occupied'?<Users size={15}/>:<Clock3 size={15}/>}
+          {state.title}
          </span>
-        </div>}
-        {status.turnoverTaskId&&<Link to="/housekeeping" search={{task:status.turnoverTaskId}}
-         className="rr-task-link"><ClipboardCheck size={15}/> Cleaning task HK-{status.turnoverTaskId} <ArrowRight size={14}/></Link>}
-        {showEvidence&&<div className="rr-evidence">
-         {status.assignedHousekeeperId&&<span>Assigned cleaner: {status.assignedHousekeeperName??'Staff #'+status.assignedHousekeeperId}</span>}
-         {status.cleanedAt&&<span>Cleaning recorded: {status.cleanedAt}</span>}
-         {status.inspectionId?<span>Inspection #{status.inspectionId} · {status.inspectionStatus??'Unknown'}
-          {status.reviewedAt?' · reviewed '+status.reviewedAt:''}</span>:<span>No inspection record in this status snapshot</span>}
-        </div>}
+         <span className="rr-card-occupancy">{occupancyLabel(status.occupancy)}</span>
+        </div>
+        <p>{state.detail}</p>
+        {showBlocked&&<div className="rr-card-warning"><AlertTriangle size={15}/>
+         <span>{status.maintenanceBlocked&&'Open maintenance restriction'}
+          {status.maintenanceBlocked&&status.inventoryBlockedToday&&' · '}
+          {status.inventoryBlockedToday&&'Inventory block today'}</span></div>}
+        <div className="rr-next-action">
+         <small>Next step</small>
+         <strong>{state.next}</strong>
+         {cleanTask&&<span>Housekeeping task HK-{cleanTask}</span>}
+        </div>
        </div>:<div className="rr-status-unavailable">
-        <Info size={16}/><span>{canSeeStay?'Operational status unavailable. Open the inspection record for details.':'Operational status is not available in this workspace.'}</span>
+        <Info size={16}/><span>{canSeeStay?'Live operational status is unavailable. Review recorded inspection details.':'Operational status is not available in this workspace.'}</span>
        </div>}
        <div className="rr-card-actions">
-        <button type="button" className="rr-primary-card-action" onClick={event=>{inspectionTrigger.current=event.currentTarget;setReadinessRoom(room);}}>
-         <ShieldCheck size={16}/> {status?.cleaning==='awaiting_inspection'?'Review inspection':'View readiness'} <ArrowRight size={15}/>
+        {action.kind==='cleaning'&&cleanTask?
+         <Link to="/housekeeping" search={{task:cleanTask}} className="rr-primary-card-action">
+          <ClipboardCheck size={16}/> {action.title} <ArrowRight size={15}/>
+         </Link>:
+         <button type="button" className="rr-primary-card-action"
+          onClick={event=>{inspectionTrigger.current=event.currentTarget;setReadinessRoom(room);}}>
+          <ShieldCheck size={16}/> {action.title} <ArrowRight size={15}/>
+         </button>}
+        <button type="button" className="rr-history-action"
+         onClick={event=>{inspectionTrigger.current=event.currentTarget;setReadinessRoom(room);}}>
+         <Clock3 size={15}/> View inspection history
         </button>
-        {admin&&<button type="button" className="rr-edit-action" onClick={()=>setEditingRoom(room)}><Settings2 size={15}/> Edit room</button>}
        </div>
       </article>;
      })}
@@ -274,8 +306,6 @@ export function LiveRooms(){
      <div><button type="button" className="btn-inline" disabled={page<=1} onClick={()=>{setPage(p=>Math.max(1,p-1));setAttentionFilter('all');}}>Previous</button>
       <button type="button" className="btn-inline" disabled={page>=totalPages} onClick={()=>{setPage(p=>p+1);setAttentionFilter('all');}}>Next</button></div>
     </div>}
-    {canSeeStay&&statusReady&&<button type="button" className="rr-evidence-toggle" aria-expanded={showEvidence}
-     onClick={()=>setShowEvidence(v=>!v)}><SlidersHorizontal size={16}/>{showEvidence?'Hide recorded cleaning and inspection evidence':'Show recorded cleaning and inspection evidence'}</button>}
    </section>
   </>}
   {view==='readiness'&&<div className="rr-readiness-workspace">

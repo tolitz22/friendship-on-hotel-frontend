@@ -1,6 +1,6 @@
 import {useMemo,useState} from 'react';
 import {Link} from '@tanstack/react-router';
-import {AlertTriangle,ArrowRight,ClipboardList,Clock3,RefreshCw,ShieldAlert,ShieldCheck,Wallet} from 'lucide-react';
+import {AlertTriangle,ArrowRight,ClipboardList,Clock3,RefreshCw,Search,ShieldCheck,Wallet} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
@@ -9,14 +9,32 @@ import {readableDate,readableDateTime,statusLabel} from '../lib/format';
 import {auditActorName} from '../components/ReadableAuditEvent';
 
 type Filter='all'|'critical'|'attention'|'review';
-const descriptions:Record<OperationalException['type'],string>={
- unassigned_arrival:'Upcoming arrival · Room assignment',
- in_house_without_room:'In-house stay · Missing room',
- assigned_room_overlap:'Room inventory · Overlapping stays',
- payment_pending_review:'Finance · Pending evidence',
+const filters:{value:Filter;title:string;caption:string}[]=[
+ {value:'all',title:'All tasks',caption:'Everything requiring a look'},
+ {value:'critical',title:'Urgent',caption:'Resolve operational risks first'},
+ {value:'attention',title:'Needs action',caption:'Assignments and decisions'},
+ {value:'review',title:'Finance review',caption:'Independent cash/payment review'},
+];
+const types:Record<OperationalException['type'],{title:string;area:string;next:string}>={
+ unassigned_arrival:{title:'Assign an arrival room',area:'Front desk',next:'Check readiness before assigning a room'},
+ in_house_without_room:{title:'Check an in-house room assignment',area:'Front desk',next:'Confirm where the registered guest is staying'},
+ assigned_room_overlap:{title:'Investigate overlapping bookings',area:'Reservations',next:'Compare both reservations before editing room assignments'},
+ payment_pending_review:{title:'Review payment evidence',area:'Billing',next:'Verify the payment using independent evidence'},
+ room_inspection_review:{title:'Review a room inspection',area:'Room readiness',next:'A different manager must review the inspection'},
+ occupancy_review:{title:'Review a room observation',area:'Occupancy checks',next:'Compare the physical observation with the recorded stay'},
+ occupancy_investigation:{title:'Investigate an occupancy discrepancy',area:'Occupancy checks',next:'Assign or continue the documented investigation'},
+ cashier_shift_review:{title:'Reconcile a cashier shift',area:'Cashier shifts',next:'Another manager must check the cash count and receipts'},
 };
-const labels:Record<Filter,string>={all:'All exceptions',critical:'Urgent review',attention:'Needs attention',review:'Payment review'};
-
+function TaskLink({item}:{item:OperationalException}){
+ if(item.type==='room_inspection_review')return <Link to="/rooms" search={{}}>Review room readiness <ArrowRight size={15}/></Link>;
+ if(item.type==='occupancy_review'||item.type==='occupancy_investigation')
+  return <Link to="/occupancy-verification" search={{room:item.roomId||undefined,date:item.checkDate||undefined}}>Open room check <ArrowRight size={15}/></Link>;
+ if(item.type==='cashier_shift_review')return <Link to="/cashier-shifts">Review cashier shifts <ArrowRight size={15}/></Link>;
+ if(item.type==='payment_pending_review'&&item.bookingId)return <Link to="/billing" search={{booking:item.bookingId}}>Open guest bill <ArrowRight size={15}/></Link>;
+ if(item.type==='assigned_room_overlap')return <Link to="/room-calendar">Inspect room calendar <ArrowRight size={15}/></Link>;
+ if(item.bookingId)return <Link to="/reservations" search={{booking:item.bookingId}}>Open reservation <ArrowRight size={15}/></Link>;
+ return null;
+}
 export function OperationalExceptions(){
  const {hotelId,user}=useHotelAuth();
  const admin=!!hotelId&&!!user?.hotels.some(item=>item.id===hotelId&&item.role==='admin');
@@ -26,87 +44,93 @@ export function OperationalExceptions(){
  const [showActivity,setShowActivity]=useState(false);
  const report=useOperationalExceptions(days,admin);
  const data=report.data?.data;
- const matches=useMemo(()=>data?.items.filter(item=>
-  (filter==='all'||item.severity===filter)
-  &&(!search.trim()||[item.reference,item.reason,item.type,item.bookingId]
-   .some(value=>value.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()))))??[],
- [data,filter,search]);
+ const matching=useMemo(()=>{
+  const keyword=search.trim().toLocaleLowerCase();
+  return (data?.items??[]).filter(item=>(filter==='all'||item.severity===filter)
+   &&(!keyword||[item.reference,item.reason,item.type,item.ownerName??'']
+    .some(value=>value.toLocaleLowerCase().includes(keyword))));
+ },[data,filter,search]);
  if(!admin)return <>
-  <Heading title="Exceptions & audit review" description="Managers investigate operational discrepancies and review recorded activity."/>
-  <div className="exception-access" role="status"><ShieldCheck size={21}/>
-   Only active hotel administrators can view this workspace. Access is also enforced by Laravel.
-  </div>
+  <Heading title="Manager action center" description="Only authorized hotel managers can view operational exceptions."/>
+  <div className="exception-access" role="status"><ShieldCheck size={21}/> You do not have permission to review management exceptions for this property.</div>
  </>;
- return <>
-  <div className="ex-heading">
-   <Heading title="Exceptions & audit review" description="Review PMS discrepancies and payment evidence. An alert is not a finding of fraud."/>
-   <button type="button" className="btn-inline" onClick={()=>void report.refetch()}><RefreshCw size={16}/> Refresh</button>
+ const urgent=matching.filter(item=>item.severity==='critical');
+ const ordinary=matching.filter(item=>item.severity!=='critical');
+ const row=(item:OperationalException)=><article className="ops-task" key={item.id}>
+  <div className="ops-task-main">
+   <div className="ops-task-title"><span className={'ex-severity '+item.severity}>
+    {item.severity==='critical'?'Urgent':item.severity==='attention'?'Action needed':'Review'}
+   </span><span className="ops-task-area">{types[item.type].area}</span></div>
+   <strong>{types[item.type].title}</strong>
+   <p>{item.reference} · {item.reason}</p>
+   <small>{item.ownerName?'Assigned: '+item.ownerName+' · ':''}{readableDateTime(item.recordDate)}</small>
   </div>
-  <section className="ex-context">
-   <div><strong>Operational review · {readableDate(data?.asOfHotelDate)}</strong>
-    <span>{data?'Upcoming arrivals through '+readableDate(data.windowEndExclusive)+' (end exclusive)':'Loading selected hotel records'}</span></div>
+  <div className="ops-task-side"><span>{item.suggestion||types[item.type].next}</span>
+   <TaskLink item={item}/></div>
+ </article>;
+ return <div className="ops-workspace">
+  <div className="ops-heading">
+   <div><span className="rr-eyebrow">MANAGER WORKSPACE</span>
+    <Heading title="What needs your attention?" description="Review important hotel issues, identify the next action, and open the right workflow."/></div>
+   <button type="button" className="rr-secondary-action" disabled={report.isFetching}
+    onClick={()=>void report.refetch()}><RefreshCw size={16}/> {report.isFetching?'Refreshing…':'Refresh'}</button>
+  </div>
+  <div className="ops-note"><AlertTriangle size={18}/><p>These are records requiring review—not proof of employee misconduct.
+   The dashboard does not automatically make payments, resolve investigations or change room assignments.</p></div>
+  <div className="ops-toolbar">
+   <div><strong>Hotel activity · {readableDate(data?.asOfHotelDate)}</strong>
+    <span>Reservation alerts for the next {days} days; operational review queues are current</span></div>
    <label>Arrival window
-    <select value={days} onChange={event=>setDays(Number(event.target.value))}>
+    <select className="wizard-input" value={days} onChange={event=>setDays(Number(event.target.value))}>
      <option value={1}>1 day</option><option value={7}>7 days</option><option value={14}>14 days</option>
-    </select>
-   </label>
-  </section>
-  <QueryFeedback loading={report.isPending} error={report.error}
-   onRetry={()=>void report.refetch()}/>
+    </select></label>
+  </div>
+  <QueryFeedback loading={report.isPending} error={report.error} onRetry={()=>void report.refetch()}/>
   {data&&<>
-   <section className="ex-metrics" aria-label="Exception summary">
-    {([
-     {label:'Total to review',value:data.summary.total,kind:'all' as const,icon:ClipboardList},
-     {label:'Urgent review',value:data.summary.critical,kind:'critical' as const,icon:ShieldAlert},
-     {label:'Needs assignment',value:data.summary.attention,kind:'attention' as const,icon:AlertTriangle},
-     {label:'Payment evidence',value:data.summary.review,kind:'review' as const,icon:Wallet},
-    ]).map(item=><button key={item.kind} type="button"
-     className={'ex-metric '+(filter===item.kind?'selected':'')} onClick={()=>setFilter(item.kind)}>
-     <item.icon size={20}/><span>{item.label}</span><strong>{item.value}</strong>
+   <div className="ops-summary" aria-label="Management work queues">
+    {filters.map(entry=><button type="button" key={entry.value} aria-pressed={filter===entry.value}
+     className={'ops-summary-card '+(filter===entry.value?'selected':'')}
+     onClick={()=>setFilter(entry.value)}>
+      <span>{entry.title}</span><strong>{entry.value==='all'?data.summary.total:
+       data.summary[entry.value]}</strong><small>{entry.caption}</small>
     </button>)}
-   </section>
-   <section className="ex-panel" aria-label="Operational exception records">
-    <div className="ex-panel-heading">
-     <div><h3>{labels[filter]}</h3><p>{matches.length} matching records · Only evidence in the selected hotel's PMS</p></div>
-     <input type="search" aria-label="Search exception records" placeholder="Booking reference or issue"
-      value={search} onChange={event=>setSearch(event.target.value)}/>
+   </div>
+   <section className="ops-task-section">
+    <div className="ops-task-heading">
+     <div><h3>{filters.find(entry=>entry.value===filter)?.title}</h3>
+      <p>{matching.length} matching item{matching.length===1?'':'s'} · Assigned actions remain in their original modules</p></div>
+     <label className="ops-search"><Search size={17}/>
+      <input aria-label="Search management tasks" type="search" value={search}
+       placeholder="Search room, booking or issue" onChange={event=>setSearch(event.target.value)}/>
+     </label>
     </div>
-    {matches.length===0?<div className="ex-empty"><ShieldCheck size={25}/>
-     <strong>No matching records</strong><p>Try another filter or window. An empty list does not prove the hotel is free of discrepancies.</p>
-    </div>:<div className="ex-list">
-     {matches.map(item=><article className="ex-record" key={item.id}>
-      <div className="ex-record-top"><span className={'ex-severity '+item.severity}>
-       {item.severity==='critical'?'Urgent review':item.severity==='attention'?'Needs attention':'Review pending'}
-      </span><small>{readableDateTime(item.recordDate)}</small></div>
-      <h4>{descriptions[item.type]}</h4>
-      <div className="ex-record-reference">{item.reference} · Reservation #{item.bookingId}</div>
-      <p>{item.reason}</p><p className="ex-next-step"><strong>Suggested next step:</strong> {item.suggestion}</p>
-      <div className="ex-record-actions">
-       <Link to="/reservations" search={{booking:item.bookingId}}>Open reservation <ArrowRight size={15}/></Link>
-       {item.type==='payment_pending_review'&&<Link to="/billing" search={{booking:item.bookingId}}>View folio <ArrowRight size={15}/></Link>}
-       {item.type==='assigned_room_overlap'&&<Link to="/room-calendar">Inspect room rack <ArrowRight size={15}/></Link>}
-      </div>
+    {matching.length===0?<div className="ops-no-tasks"><ShieldCheck size={25}/>
+     <strong>No matching items</strong><p>Try another filter or arrival window. This does not guarantee that every physical or off-system issue has been detected.</p>
+    </div>:<>
+     {urgent.length>0&&<div className="ops-list">
+      <h4><AlertTriangle size={17}/> Urgent follow-up ({urgent.length})</h4>
+      {urgent.map(row)}
+     </div>}
+     {ordinary.length>0&&<div className="ops-list">
+      {urgent.length>0&&<h4><ClipboardList size={17}/> Other work ({ordinary.length})</h4>}
+      {ordinary.map(row)}
+     </div>}
+    </>}
+   </section>
+   <section className="ops-history"><button type="button" aria-expanded={showActivity}
+    onClick={()=>setShowActivity(x=>!x)}><span><Clock3 size={17}/> Recent reservation activity ({data.activity.length})</span>
+     <span>{showActivity?'Hide':'View'} history</span></button>
+    {showActivity&&<div>
+     <p>Activity history is not itself an alert. Open a reservation to review what was recorded.</p>
+     {data.activity.length===0&&<p>No reservation changes recorded in the selected period.</p>}
+     {data.activity.map(entry=><article key={entry.id} className="ops-history-row">
+      <div><strong>{statusLabel(entry.eventType)}</strong>
+       <small>{entry.reference} · {auditActorName(entry.actorId,entry.actorName,user?.id,user?.name)}
+        {' · '}{readableDateTime(entry.createdAt)}</small></div>
+      <Link to="/reservations" search={{booking:entry.bookingId}}>View <ArrowRight size={14}/></Link>
      </article>)}
     </div>}
    </section>
-   <section className="ex-panel ex-activity">
-    <button type="button" className="ex-activity-toggle" aria-expanded={showActivity} onClick={()=>setShowActivity(!showActivity)}>
-     <span><Clock3 size={18}/> Recorded reservation activity ({data.activity.length})</span>
-     <span>{showActivity?'Hide':'Show'} audit events</span>
-    </button>
-    {showActivity&&<div className="ex-activity-list">
-     <p>These are ordinary reservation actions attributed to staff, not evidence of misconduct.</p>
-     {data.activity.length===0&&<p>No recorded reservation changes within the selected lookback period.</p>}
-     {data.activity.map(entry=><div className="ex-activity-item" key={entry.id}>
-      <div><strong>{statusLabel(entry.eventType)}</strong>
-       <span>{entry.reference} · {auditActorName(entry.actorId,entry.actorName,user?.id,user?.name)} · {readableDateTime(entry.createdAt)}</span></div>
-      <Link to="/reservations" search={{booking:entry.bookingId}}>Review <ArrowRight size={14}/></Link>
-     </div>)}
-    </div>}
-   </section>
-   <div className="ex-integrations"><ShieldAlert size={18}/><div><strong>Independent verification not connected</strong>
-    <p>Keycard access logs, CCTV events and independent physical-occupancy records are not connected. This dashboard cannot detect off-system stays or infer employee wrongdoing. Audit records and payment evidence require independent review.</p>
-   </div></div>
   </>}
- </>;
+ </div>;
 }

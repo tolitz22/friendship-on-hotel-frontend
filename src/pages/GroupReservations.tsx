@@ -350,13 +350,13 @@ function GroupDetails({id,billingOpen=false,originHotel}:{id:string;billingOpen?
     <div><small>Verified payment allocations</small>
      <strong>{finance.data
       ?finance.data.rooms.filter(row=>row.priced&&row.verifiedAllocatedMinor>0).length+' / '+group.roomCount
-      :'Not yet verified'}</strong>
+      :finance.isError?'Access or report unavailable':finance.isPending?'Loading finance…':'Not available'}</strong>
      <Link to="/group-reservations" search={{group:group.id,tab:'billing' as const,hotel:hotelId??undefined}}>
       Review payment progress <ArrowRight size={13}/></Link></div>
     <div><small>Folio settlement sign-offs</small>
      <strong>{finance.data
       ?finance.data.rooms.filter(row=>row.priced&&row.signed).length+' / '+group.roomCount
-      :'Not yet verified'}</strong>
+      :finance.isError?'Access or report unavailable':finance.isPending?'Loading finance…':'Not available'}</strong>
      <Link to="/group-reservations" search={{group:group.id,tab:'billing' as const,hotel:hotelId??undefined}}>
       Review sign-offs <ArrowRight size={13}/></Link></div>
     <div><small>Checkout housekeeping</small>

@@ -7,6 +7,9 @@ import {hotelPath,readSession} from '../api/session';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
+import {listHotelStaff} from '../api/liveStaff';
+import {auditActorName} from '../components/ReadableAuditEvent';
+import {readableDate} from '../lib/format';
 
 const id=z.string().regex(/^[1-9]\d*$/);
 const night=z.object({id,stayDate:z.string(),amountMinor:z.number().int().nonnegative()});
@@ -38,6 +41,8 @@ export function FolioNightAccounting(){
  const {hotelId,user}=useHotelAuth();
  const admin=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const userId=user?.id??'';
+ const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin});
+ const actor=(id:string)=>auditActorName(id,staff.data?.data.find(m=>m.userId===id)?.name,user?.id,user?.name);
  const client=useQueryClient();
  const [draftBooking,setDraftBooking]=useState('');
  const [booking,setBooking]=useState('');
@@ -161,7 +166,7 @@ export function FolioNightAccounting(){
    {nights.data&&<div className="occupancy-coverage-rows">
     {nights.data.map(n=><article key={n.id} className="ex-record">
      <div className="desk-tools">
-      <strong>{n.stayDate} · Folio entry #{n.id}</strong>
+      <strong>{readableDate(n.stayDate)} · Folio entry #{n.id}</strong>
       <span>{peso(n.amountMinor)}</span>
      </div>
      <p>Assessment: <strong>{assessments.data?.find(a=>a.folioEntryId===n.id)?.status??'Not prepared'}</strong></p>
@@ -221,7 +226,7 @@ export function FolioNightAccounting(){
   </Panel>}
   {validBooking&&assessments.data&&assessments.data.length>0&&<Panel title="Manager accounting decisions">
    {assessments.data.map(a=><article key={a.id} className="ex-record">
-    <div className="desk-tools"><strong>{a.stayDate} · Assessment #{a.id}</strong>
+    <div className="desk-tools"><strong>{readableDate(a.stayDate)} · Assessment #{a.id}</strong>
      <span>{a.status.toUpperCase()}</span></div>
     <div className="night-audit-metrics">
      <div className="night-audit-metric"><small>Room-night gross</small><strong>{peso(a.grossMinor)}</strong></div>
@@ -229,7 +234,7 @@ export function FolioNightAccounting(){
      <div className="night-audit-metric"><small>Benefit / folio credit</small><strong>{peso(a.folioCreditMinor)}</strong></div>
      <div className="night-audit-metric"><small>Net room revenue</small><strong>{peso(a.roomRevenueMinor)}</strong></div>
     </div>
-    <p className="desk-muted">Prepared by #{a.preparedBy} · Reviewed by #{a.reviewedBy??'pending'}.
+    <p className="desk-muted">Prepared by {actor(a.preparedBy)} · Reviewed by {a.reviewedBy?actor(a.reviewedBy):'Awaiting independent review'}.
      Original source journal: {a.sourceJournalId??'pending'} · VAT journal: {a.vatJournalId??'none'}</p>
     <div className="desk-tools">
      <button type="button" className="btn-inline" onClick={()=>{setAssessmentId(a.id);setAck(false);}}>
@@ -267,7 +272,8 @@ export function FolioNightAccounting(){
     <QueryFeedback loading={corrections.isPending} error={corrections.error}
      onRetry={()=>void corrections.refetch()}/>
     {corrections.data?.map(c=><div className="ex-record" key={c.id}>
-     <p>Correction #{c.id} · {c.status} · {c.reason}</p>
+     <p><strong>{c.status==='pending'?'Correction awaiting approval':'Reviewed correction'}</strong> · {c.reason}</p>
+     <p className="desk-muted">Prepared by {actor(String(c.prepared_by))} · {c.reviewed_by? 'Reviewed by '+actor(String(c.reviewed_by)):'Awaiting independent review'}</p>
      <p>Proposed VAT {peso(c.vat_minor)} · Room revenue {peso(c.room_revenue_minor)} · Folio credit {peso(c.folio_credit_minor)}</p>
      {c.status==='pending'&&<>
       <label className="night-review-ack"><input type="checkbox" checked={ack} disabled={busy}

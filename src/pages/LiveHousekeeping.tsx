@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState,type FormEvent} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
-import {useNavigate,useSearch} from '@tanstack/react-router';
+import {Link,useNavigate,useSearch} from '@tanstack/react-router';
 import {AlertTriangle,ArrowRight,CheckCircle2,ClipboardCheck,Clock3,History,Info,Plus,RefreshCcw,Search,ShieldAlert,UserRound,X} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {useLiveRooms,useLiveProperty} from '../api/liveCatalogQueries';
@@ -238,6 +238,7 @@ export function LiveHousekeeping(){
       </div>
       {pastDue&&<p className="hk-cleaning-priority"><AlertTriangle size={15}/> Follow up on this overdue task.</p>}
       {task.status==='done'&&<p className="hk-cleaning-finished"><CheckCircle2 size={15}/> Cleaning completed. Room inspection and readiness are separate.</p>}
+      <Link to="/rooms" search={{room:task.roomNumber}} className="ops-room-link">Check room readiness <ArrowRight size={14}/></Link>
       <button type="button" className="hk-open-task" onClick={()=>openEdit(task)}>
        {editable?task.status==='todo'?'Start or update task':task.status==='in_progress'?'Update cleaning progress':'View completed task':'View task details'}
        <ArrowRight size={16}/>

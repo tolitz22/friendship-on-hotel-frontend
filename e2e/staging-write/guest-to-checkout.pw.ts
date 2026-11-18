@@ -107,59 +107,76 @@ test('real React guest → booking → room assignment → check-in and Laravel 
  expect((await checkIn).status()).toBe(200);
  await expect(page.getByText('In house', {exact:true})).toBeVisible();
 
- // This confirms an actual authenticated browser-to-Laravel write.
- // A staff confirmation is NOT proof of bank/gateway settlement.
- const paymentPath=apiBase+'/bookings/'+booking.data.id;
- let result:{status:string;reviewStatus:string;summary:FolioSummary};
+ // Phase 62.5: cash is NEVER created through direct payment-records.
+ // It must belong to this employee's open shift and remain pending independent review.
+ const shiftBase=apiBase+'/cashier-shifts';
+ const ledgerPath=apiBase+'/bookings/'+booking.data.id+'/folio-ledger';
+ const cashReference='SYNTHETIC-CASH-'+suffix;
+ const paymentKey='phase625-cash-'+suffix;
+ type CashAcceptance={shiftId:string;paymentId:string;replayed:boolean;
+  pendingStatus:string;summary:FolioSummary};
+ let cash:CashAcceptance;
  if(tokenMode){
-  if(!bearerToken)throw new Error('No staging bearer token captured from login.');
+  if(!bearerToken)throw new Error('Missing staging login token.');
   const headers={Authorization:'Bearer '+bearerToken,Accept:'application/json'};
-  const record=await page.request.post(paymentPath+'/payment-records',{
-   headers,data:{requestKey:'phase43-staging-'+suffix+'-payment',
-    method:'cash',reference:'SYNTHETIC-'+suffix,amountMinor:100},
-  });
-  expect(record.status()).toBe(201);
-  const payment=await record.json() as {data:{id:string;status:string}};
-  const review=await page.request.post(paymentPath+'/payment-records/'+payment.data.id+'/review',{
-   headers,data:{decision:'confirm',note:'Synthetic staging cash evidence review only'},
-  });
-  expect(review.status()).toBe(200);
-  const reviewed=await review.json() as {data:{status:string}};
-  const ledger=await page.request.get(paymentPath+'/folio-ledger',{headers});
+  const opened=await page.request.post(shiftBase,{headers,data:{openingFloatMinor:10000}});
+  expect(opened.status()).toBe(201);
+  const shift=await opened.json() as {data:{id:string;status:string}};
+  expect(shift.data.status).toBe('open');
+  const url=shiftBase+'/'+shift.data.id+'/bookings/'+booking.data.id+'/cash-receipts';
+  const input={requestKey:paymentKey,reference:cashReference,amountMinor:100};
+  const recorded=await page.request.post(url,{headers,data:input});
+  expect(recorded.status()).toBe(201);
+  const receipt=await recorded.json() as {data:{paymentId:string;status:string;replayed:boolean}};
+  const replay=await page.request.post(url,{headers,data:input});
+  expect(replay.status()).toBe(200);
+  const repeated=await replay.json() as {data:{paymentId:string;replayed:boolean}};
+  expect(repeated.data.paymentId).toBe(receipt.data.paymentId);
+  const ledger=await page.request.get(ledgerPath,{headers});
   expect(ledger.status()).toBe(200);
   const body=await ledger.json() as {data:{summary:FolioSummary}};
-  result={status:payment.data.status,reviewStatus:reviewed.data.status,summary:body.data.summary};
+  cash={shiftId:shift.data.id,paymentId:receipt.data.paymentId,
+   pendingStatus:receipt.data.status,replayed:repeated.data.replayed,summary:body.data.summary};
  }else{
-  result=await page.evaluate(async(input)=>{
+  cash=await page.evaluate(async input=>{
    const csrf=document.cookie.split(';').map(v=>v.trim()).find(v=>v.startsWith('XSRF-TOKEN='));
-   if(!csrf)throw new Error('Staging requires same-site XSRF cookie.');
+   if(!csrf)throw Error('Missing staging XSRF cookie.');
    const headers={'Accept':'application/json','Content-Type':'application/json',
     'X-XSRF-TOKEN':decodeURIComponent(csrf.slice('XSRF-TOKEN='.length))};
-   const record=await fetch(input.path+'/payment-records',{
-    method:'POST',credentials:'include',headers,
-    body:JSON.stringify({requestKey:'phase43-staging-'+input.suffix+'-payment',
-     method:'cash',reference:'SYNTHETIC-'+input.suffix,amountMinor:100}),
-   });
-   if(record.status!==201)throw new Error('Payment evidence HTTP '+record.status);
-   const payment=await record.json() as {data:{id:string;status:string}};
-   const review=await fetch(input.path+'/payment-records/'+payment.data.id+'/review',{
-    method:'POST',credentials:'include',headers,
-    body:JSON.stringify({decision:'confirm',note:'Synthetic staging cash evidence review only'}),
-   });
-   if(!review.ok)throw new Error('Payment review HTTP '+review.status);
-   const reviewed=await review.json() as {data:{status:string}};
-   const ledger=await fetch(input.path+'/folio-ledger',{credentials:'include',headers});
-   if(!ledger.ok)throw new Error('Folio ledger HTTP '+ledger.status);
-   const body=await ledger.json() as {data:{summary:{bankOrGatewayVerified:boolean;
-    isSettled:boolean;staffConfirmedPaymentsMinor:number}}};
-   return {status:payment.data.status,reviewStatus:reviewed.data.status,summary:body.data.summary};
-  },{path:paymentPath,suffix});
+   const call=async(url:string,data:object)=>{
+    const response=await fetch(url,{method:'POST',credentials:'include',headers,body:JSON.stringify(data)});
+    if(!response.ok)throw Error('Staging request failed: HTTP '+response.status);
+    return {status:response.status,body:await response.json()};
+   };
+   const opened=await call(input.shiftBase,{openingFloatMinor:10000});
+   if(opened.status!==201)throw Error('Expected newly opened synthetic cash shift.');
+   const shift=opened.body as {data:{id:string;status:string}};
+   const url=input.shiftBase+'/'+shift.data.id+'/bookings/'+input.bookingId+'/cash-receipts';
+   const payload={requestKey:input.paymentKey,reference:input.cashReference,amountMinor:100};
+   const receiptCall=await call(url,payload);
+   if(receiptCall.status!==201)throw Error('Expected new cash receipt.');
+   const receipt=receiptCall.body as {data:{paymentId:string;status:string;replayed:boolean}};
+   const replay=await call(url,payload);
+   if(replay.status!==200)throw Error('Expected idempotent replay.');
+   const repeated=replay.body as {data:{paymentId:string;replayed:boolean}};
+   if(repeated.data.paymentId!==receipt.data.paymentId)throw Error('Cash receipt duplicated.');
+   const ledger=await fetch(input.ledgerPath,{credentials:'include',headers});
+   if(!ledger.ok)throw Error('Unable to verify folio ledger: '+ledger.status);
+   const body=await ledger.json() as {data:{summary:FolioSummary}};
+   return {shiftId:shift.data.id,paymentId:receipt.data.paymentId,
+    pendingStatus:receipt.data.status,replayed:repeated.data.replayed,summary:body.data.summary};
+  },{shiftBase,ledgerPath,bookingId:booking.data.id,paymentKey,cashReference});
  }
- expect(result.status).toBe('pending_review');
- expect(result.reviewStatus).toBe('staff_confirmed');
- expect(result.summary.staffConfirmedPaymentsMinor).toBeGreaterThanOrEqual(100);
- expect(result.summary.bankOrGatewayVerified).toBe(false);
- expect(result.summary.isSettled).toBe(false);
+ expect(cash.shiftId).toMatch(/^[1-9]\\d*$/);
+ expect(cash.paymentId).toMatch(/^[1-9]\\d*$/);
+ expect(cash.pendingStatus).toBe('pending_review');
+ expect(cash.replayed).toBe(true);
+ expect(cash.summary.staffConfirmedPaymentsMinor).toBe(0);
+ expect(cash.summary.bankOrGatewayVerified).toBe(false);
+ expect(cash.summary.isSettled).toBe(false);
+ // DO NOT self-approve a cash receipt or auto-reconcile a synthetic drawer.
+ // Independent manager review is tested with separate identities in Laravel integration tests.
+
 });
 
 test('deployed React checks out a pre-seeded due synthetic stay and exposes turnover',async({page})=>{

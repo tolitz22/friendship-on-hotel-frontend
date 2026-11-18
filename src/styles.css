@@ -1865,3 +1865,34 @@
 @media(max-width:1250px){.billing-folio-row{grid-template-columns:minmax(160px,1.5fr) minmax(120px,1fr) minmax(120px,1fr)}.billing-folio-status{grid-column:2}.billing-open-link{grid-column:3;justify-self:start}}
 @media(max-width:850px){.billing-folio-row{grid-template-columns:repeat(2,minmax(0,1fr))}.billing-folio-identity{grid-column:1/-1}.billing-folio-status,.billing-open-link{grid-column:auto}.billing-index,.billing-selected{padding:14px}}
 @media(max-width:520px){.billing-header-actions{width:100%}.billing-header-actions>*{flex:1}.billing-folio-row{grid-template-columns:1fr;gap:12px}.billing-folio-identity{grid-column:1}.billing-folio-status,.billing-open-link{grid-column:1}.billing-open-link{width:100%}.billing-action-tabs{width:100%}.billing-action-tabs button{flex:1;padding:10px 6px}.billing-direct-search .btn-primary{width:100%}.billing-count{width:100%;margin-left:0}.billing-review-actions>*{flex:1}.billing-actions{padding:12px}.billing-action-form{padding:12px}}
+
+/* Billing simplified guest-first search, recovery and focused statement */
+.billing-primary-search{border:1px solid var(--border);border-radius:12px;padding:11px 12px;background:var(--canvas);margin-bottom:16px;gap:10px}
+.billing-primary-search .billing-list-search{max-width:none;flex:1 1 350px;background:var(--surface);min-height:48px;border-radius:10px}
+.billing-primary-search .billing-list-search input{font-size:14px}
+.billing-primary-search .btn-primary{min-height:42px;display:flex;align-items:center;gap:7px}
+.billing-primary-search .billing-count{flex:1 1 100%;padding:0 3px;font-size:11px}
+.billing-recovery{display:grid;gap:14px;padding:18px;border:1px solid color-mix(in srgb,#b56f36 40%,var(--border));border-radius:12px;background:var(--canvas)}
+.billing-recovery-head{display:flex;align-items:flex-start;gap:12px}
+.billing-recovery-head svg{flex:none;color:#b77a27}
+.billing-recovery-head strong{font-size:14px}
+.billing-recovery-head p{font-size:12px;line-height:1.6;margin:5px 0 0;color:var(--muted)}
+.billing-recovery>.rr-secondary-action{justify-self:start}
+.billing-recovery-bookings{display:grid;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px}
+.billing-recovery-bookings h4{font-size:14px;margin:0}
+.billing-recovery-bookings>p,.billing-fallback-status{color:var(--muted);font-size:12px;margin:0;line-height:1.6}
+.billing-fallback-booking{display:flex;justify-content:space-between;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--border)}
+.billing-fallback-booking:last-child{border-bottom:0}
+.billing-fallback-booking>div{min-width:0;display:grid;gap:5px}
+.billing-fallback-booking strong{font-size:12px;overflow-wrap:anywhere}
+.billing-fallback-booking small{font-size:11px;color:var(--muted)}
+.billing-fallback-booking .btn-inline{white-space:nowrap;display:flex;gap:5px;align-items:center}
+.billing-quiet-empty{display:grid;justify-items:center;text-align:center;padding:34px 12px;gap:9px;border:1px dashed var(--border);border-radius:11px}
+.billing-quiet-empty>svg{color:var(--accent)}.billing-quiet-empty strong{font-size:14px}
+.billing-quiet-empty p{color:var(--muted);font-size:12px;margin:0}
+.billing-quiet-empty a{display:inline-flex;align-items:center;gap:6px;color:var(--accent);font-size:12px;font-weight:700}
+.billing-quiet-empty a:hover{text-decoration:underline}
+.billing-selected{scroll-margin-top:20px}
+.billing-selected-heading .rr-secondary-action{display:inline-flex;align-items:center;gap:7px}
+@media(max-width:600px){.billing-primary-search .billing-list-search{flex-basis:100%}.billing-primary-search .btn-primary{width:100%;justify-content:center}
+.billing-fallback-booking{align-items:flex-start;flex-direction:column}.billing-selected-heading .rr-secondary-action{width:100%;justify-content:center}}

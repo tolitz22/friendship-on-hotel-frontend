@@ -5,7 +5,7 @@ import {hotelPath,readSession} from './session';
 
 const positiveId=z.string().regex(/^[1-9][0-9]*$/);
 const item=z.object({
- id:z.string(),type:z.enum(['unassigned_arrival','in_house_without_room','assigned_room_overlap','payment_pending_review','room_inspection_review','occupancy_review','occupancy_investigation','cashier_shift_review']),
+ id:z.string(),type:z.enum(['unassigned_arrival','in_house_without_room','assigned_room_overlap','payment_pending_review','room_inspection_review','occupancy_review','occupancy_investigation','cashier_shift_review','maintenance_blocker']),
  severity:z.enum(['critical','attention','review']),
  bookingId:positiveId.nullable(),roomId:positiveId.nullable().optional(),roomNumber:z.string().nullable().optional(),checkDate:z.iso.date().optional(),
  ownerName:z.string().nullable().optional(),reference:z.string(),reason:z.string(),suggestion:z.string(),recordDate:z.string(),

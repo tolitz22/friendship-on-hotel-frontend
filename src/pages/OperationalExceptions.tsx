@@ -26,6 +26,13 @@ const types:Record<OperationalException['type'],{title:string;area:string;next:s
  cashier_shift_review:{title:'Reconcile a cashier shift',area:'Cashier shifts',next:'Another manager must check the cash count and receipts'},
  maintenance_blocker:{title:'Resolve room maintenance',area:'Maintenance',next:'Review the work order and room readiness before reopening the room'},
 };
+function actorLabel(item:OperationalException){
+ if(item.type==='room_inspection_review')return 'Submitted by';
+ if(item.type==='cashier_shift_review')return 'Cashier';
+ if(item.type==='occupancy_investigation')return 'Investigation owner';
+ if(item.type==='maintenance_blocker')return 'Assigned technician';
+ return 'Recorded employee';
+}
 function TaskLink({item}:{item:OperationalException}){
  if(item.type==='room_inspection_review')return <Link to="/rooms" search={{room:item.roomNumber||undefined}}>Review room readiness <ArrowRight size={15}/></Link>;
  if(item.type==='occupancy_review'||item.type==='occupancy_investigation')
@@ -65,7 +72,7 @@ export function OperationalExceptions(){
    </span><span className="ops-task-area">{types[item.type].area}</span></div>
    <strong>{types[item.type].title}</strong>
    <p>{item.reference} · {item.reason}</p>
-   <small>{item.ownerName?'Assigned: '+item.ownerName+' · ':''}{readableDateTime(item.recordDate)}</small>
+   <small>{item.ownerName?actorLabel(item)+': '+item.ownerName+' · ':''}{readableDateTime(item.recordDate)}</small>
   </div>
   <div className="ops-task-side"><span>{item.suggestion||types[item.type].next}</span>
    <TaskLink item={item}/></div>

@@ -49,6 +49,25 @@ test('real priced folio directory and settlement statement are accessible withou
  const sizes=await page.evaluate(()=>[document.documentElement.scrollWidth,document.documentElement.clientWidth]);
  expect(sizes[0]).toBeLessThanOrEqual(sizes[1]+2);
 });
+test('manager can preview adding charges without submitting financial writes',async({page})=>{
+ const email=process.env.PMS_STAGING_ADMIN_EMAIL,password=process.env.PMS_STAGING_ADMIN_PASSWORD;
+ test.skip(!email||!password,'Dedicated administrator staging account required');
+ await openBilling(page,email!,password!);
+ const row=page.locator('.billing-folio-row').first();
+ if(!await row.count())return;
+ await row.getByRole('link',{name:/Open folio for booking/}).click();
+ const manager=page.getByRole('region',{name:'Manager folio actions'});
+ if(!await manager.count())return; // Signed accounts do not permit new charges.
+ await expect(manager.getByRole('button',{name:/Add a charge/})).toHaveAttribute('aria-pressed','true');
+ await manager.getByLabel('Description of charge').fill('Two bottled waters');
+ await manager.getByLabel('Amount to add (₱)').fill('100.00');
+ await expect(manager.getByText('Updated recorded charges')).toBeVisible();
+ await expect(manager.getByRole('button',{name:'Add charge to guest bill'})).toBeDisabled();
+ await manager.getByRole('button',{name:/Apply a correction/}).click();
+ await expect(manager.getByText('This is not a refund',{exact:false})).toBeVisible();
+ await expect(manager.getByRole('button',{name:'Apply bill correction'})).toBeDisabled();
+});
+
 test('front-desk account can review folios without manager-only financial write controls',async({page})=>{
  const email=process.env.PMS_STAGING_FRONT_DESK_EMAIL;
  const password=process.env.PMS_STAGING_FRONT_DESK_PASSWORD;

@@ -18,11 +18,12 @@ describe('Phase 38 staff-facing failure guidance',()=>{
   expect(messageForQueryError(new ApiError(409,'CONFLICT','Outdated')).action)
    .toMatch(/reload/i);
  });
- it('identifies stale Laravel deployments rather than suggesting repeated retries',()=>{
+ it('explains missing server routes without showing technology-specific deployment instructions',()=>{
   const routeMissing=new ApiError(404,'HTTP_ERROR',
    'The route api/v1/hotels/1/approval-requests could not be found.');
-  expect(messageForQueryError(routeMissing).title).toMatch(/deployed backend/);
-  expect(messageForQueryError(routeMissing).action).toMatch(/latest Laravel main/);
+  expect(messageForQueryError(routeMissing).title).toMatch(/temporarily unavailable/i);
+  expect(messageForQueryError(routeMissing).action).toMatch(/hotel administrator/i);
+  expect(JSON.stringify(messageForQueryError(routeMissing))).not.toMatch(/laravel|backend|api route/i);
   expect(messageForQueryError(new ApiError(404,'NOT_FOUND','Booking not found')).title)
    .not.toMatch(/missing this API route/);
  });

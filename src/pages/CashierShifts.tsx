@@ -210,14 +210,14 @@ export function CashierShifts(){
    {linkedShift.data&&linkedShift.data.status==='open'&&linkedShift.data.cashierId!==user?.id&&
     <p className="cashier-linked-wait">Waiting for the assigned cashier to count and submit this shift. No manager can reconcile an open shift yet.</p>}
   </section>}
-  <section className="cashier-journey" aria-label="Cashier shift process">
+  {!context.shift&&<section className="cashier-journey" aria-label="Cashier shift process">
    <div><span>1</span><strong>Open shift</strong><small>{active?'Your drawer is open':'Start your own cash drawer'}</small></div>
    <div><span>2</span><strong>Record receipts</strong><small>{active
     ?active.receiptCount+' linked cash receipt'+(active.receiptCount===1?'':'s')
     :'Collect cash through Guest Billing'}</small></div>
    <div><span>3</span><strong>Count & submit</strong><small>Hide expected cash until you submit your physical count</small></div>
    <div><span>4</span><strong>Independent review</strong><small>A different manager reconciles or flags the shift</small></div>
-  </section>
+  </section>}
   <section className="cashier-drawer-panel" aria-label="My cash drawer"><div className="cashier-panel-heading">
    <div><h2>My cash drawer</h2><p>One shift per cashier. Opening cash is the money already in your drawer for giving change.</p></div>
    <button type="button" className="rr-secondary-action" disabled={ownOpenShift.isFetching} onClick={()=>void refresh()}><RefreshCw size={15}/> Refresh</button></div>
@@ -235,13 +235,13 @@ export function CashierShifts(){
     {manager&&<p className="desk-muted">If your previous shift is awaiting review, another manager must reconcile it before you can open a new one.</p>}
    </div>}
    {active&&<div className="cashier-active-workflow">
-    <div className="cashier-collect-next">
+    {!(originBooking&&context.shift===active.id)&&<div className="cashier-collect-next">
      <div className="cashier-collect-heading"><span className="cashier-collect-icon"><Wallet size={21}/></span>
       <div><strong>Ready to accept guest cash payments</strong>
        <p>Your shift is open. Payments entered from a guest's bill are automatically linked to this drawer.</p></div></div>
      <Link to="/billing" search={{booking:originBooking}} className="btn-primary cashier-billing-link">
       {originBooking?'Continue guest payment':'Find a guest and record payment'} <ArrowRight size={16}/></Link>
-    </div>
+    </div>}
     <ShiftRow shift={active} manager={manager} ownShift onChange={()=>void refresh()}/>
    </div>}
    {message&&<p role="status" className="cashier-feedback-success">{message}</p>}
@@ -258,7 +258,8 @@ export function CashierShifts(){
    </div>
    <QueryFeedback loading={managerReviewQueue.isPending} error={managerReviewQueue.error}
     onRetry={()=>void managerReviewQueue.refetch()}/>
-   {managerReviewQueue.data?.data.filter(shift=>shift.cashierId!==user?.id).length===0&&
+   {managerReviewQueue.data?.data.filter(shift=>shift.cashierId!==user?.id
+    &&shift.id!==linkedShift.data?.id).length===0&&!linkedShift.data&&
     <p className="cashier-queue-empty"><CheckCircle2 size={16}/>
      No eligible submitted shifts to review. Your own submitted shift requires another manager.</p>}
    {managerReviewQueue.data?.data.filter(shift=>shift.cashierId!==user?.id

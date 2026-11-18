@@ -7,11 +7,17 @@ import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {readSession} from '../api/session';
 import {useLiveRooms} from '../api/liveCatalogQueries';
+import {listHotelStaff} from '../api/liveStaff';
+import {auditActorName} from '../components/ReadableAuditEvent';
+import {readableDate,readableDateTime,statusLabel} from '../lib/format';
 import {createKeycardRequest,keycardHistory,reviewKeycard,revokeKeycard,useKeycardAuthorizations} from '../api/keycardAuthorizations';
 import type {KeycardAuthorization,KeycardKind} from '../api/keycardAuthorizations';
 
 function KeycardRow({item,manager,onChanged}:{item:KeycardAuthorization;manager:boolean;onChanged:()=>void}){
- const {hotelId}=useHotelAuth();
+ const {hotelId,user}=useHotelAuth();
+ const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:manager&&!!hotelId});
+ const employee=(id:string,name?:string|null)=>auditActorName(id,
+  name??staff.data?.data.find(member=>member.userId===id)?.name,user?.id,user?.name);
  const [note,setNote]=useState('');
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState('');
@@ -38,7 +44,7 @@ function KeycardRow({item,manager,onChanged}:{item:KeycardAuthorization;manager:
    ?<Link to="/reservations" search={{booking:item.bookingId}}>Reservation #{item.bookingId}</Link>
    :'Emergency request (no guest booking)'}</p>
   <p><strong>Reason:</strong> {item.reason}</p>
-  <p className="desk-muted">Requested by staff #{item.requestedBy} · Valid window {item.validFrom} to {item.validUntil}
+  <p className="desk-muted">Requested by {employee(item.requestedBy)} · Valid {readableDate(item.validFrom)} to {readableDate(item.validUntil)}
    {' · '}Provider: {item.provider} · No card encoded</p>
   {item.providerReference&&<p className="desk-muted">Simulation reference: {item.providerReference}</p>}
   {item.reviewNote&&<p>Manager review: {item.reviewNote}</p>}
@@ -63,9 +69,24 @@ function KeycardRow({item,manager,onChanged}:{item:KeycardAuthorization;manager:
    onClick={()=>setShowHistory(v=>!v)}>{showHistory?'Hide':'Show'} audit trail</button>
   {showHistory&&<div><QueryFeedback loading={history.isPending} error={history.error}
    onRetry={()=>void history.refetch()}/>
-   {history.data?.data.map(event=><p key={event.id} className="desk-muted">
-    {event.event} · Staff #{event.actorId} · {event.createdAt}
-   </p>)}</div>}
+   {history.data?.data.map(event=>{
+    const detail=event.details&&typeof event.details==='object'&&!Array.isArray(event.details)
+     ?event.details as Record<string,unknown>:null;
+    const title:Record<string,string>={
+     requested:'Requested keycard access',approved:'Approved keycard request',rejected:'Rejected keycard request',
+     revoked:'Revoked keycard authorization',authorized:'Recorded mock authorization',
+     authorized_mock:'Recorded mock authorization',
+    };
+    const note=typeof detail?.reviewNote==='string'?detail.reviewNote:
+     typeof detail?.note==='string'?detail.note:typeof detail?.reason==='string'?detail.reason:null;
+    return <article key={event.id} className="readable-audit-event">
+     <strong>{title[event.event]??statusLabel(event.event)}</strong>
+     <p className="readable-audit-context">{employee(event.actorId,event.actorName)} · {readableDateTime(event.createdAt)}</p>
+     {note&&<p className="readable-audit-note"><strong>Recorded reason:</strong> {note}</p>}
+     {typeof detail?.physicalCardEncoded==='boolean'&&<p className="readable-audit-context">
+      Physical card encoded: {detail.physicalCardEncoded?'Yes':'No — simulation only'}</p>}
+    </article>;
+   })}</div>}
   {error&&<p role="alert" className="auth-error"><AlertTriangle size={16}/>{error}</p>}
  </article>;
 }

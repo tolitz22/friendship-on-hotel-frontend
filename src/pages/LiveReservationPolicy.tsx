@@ -4,6 +4,8 @@ import {ClipboardList,History,Save,ShieldAlert,RefreshCcw} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
+import {readableDateTime} from '../lib/format';
+import {listHotelStaff} from '../api/liveStaff';
 import {ApiError} from '../api/http';
 import {
  getReservationPolicyDraft,getReservationPolicyHistory,getReservationPolicyReadiness,updateReservationPolicyDraft,
@@ -22,6 +24,7 @@ export function LiveReservationPolicy(){
  const [error,setError]=useState('');
  const [notice,setNotice]=useState('');
  const [historyOpen,setHistoryOpen]=useState(false);
+ const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin&&historyOpen});
  const history=useQuery({
   queryKey:['reservation-policy-history',hotelId],
   queryFn:getReservationPolicyHistory,
@@ -102,10 +105,26 @@ export function LiveReservationPolicy(){
     <button type="button" className="btn-inline" onClick={()=>setHistoryOpen(value=>!value)}><History size={16}/>{historyOpen?'Hide history':'View history'}</button>
     {historyOpen&&<>
      <QueryFeedback loading={history.isPending} error={history.error} empty={history.data?.data.length===0}/>
-     {history.data?.data.map(rev=><article key={rev.revision} className="policy-history-entry">
-      <strong>Version {rev.revision}</strong><span>Staff #{rev.actorId} · {rev.createdAt}</span>
-      <p>{fields.filter(field=>rev.decisions[field]!==null).length} selected fields in that saved version</p>
-     </article>)}
+     {history.data?.data.map(rev=>{
+      const previous=history.data?.data.find(item=>item.revision===rev.revision-1);
+      const changed=fields.filter(field=>previous?previous.decisions[field]!==rev.decisions[field]:rev.decisions[field]!==null);
+      const describe=(field:PolicyField,value:string|null)=>{
+       if(value===null)return 'Not decided';
+       const options=POLICY_FIELDS[field].options as Record<string,string>;
+       return options[value]??value.replaceAll('_',' ');
+      };
+      return <article key={rev.revision} className="policy-history-entry readable-policy-event">
+       <strong>Saved policy draft · Version {rev.revision}</strong>
+       <span>{staff.data?.data.find(member=>member.userId===rev.actorId)?.name
+        ??(user?.id===rev.actorId?'You':'Staff member #'+rev.actorId)} · {readableDateTime(rev.createdAt)}</span>
+       {changed.length>0?<dl className="readable-audit-changes">
+        {changed.map(field=><div key={field}><dt>{POLICY_FIELDS[field].title}</dt>
+         <dd>{previous&&<><span>{describe(field,previous.decisions[field])}</span><span>→</span></>}
+          <strong>{describe(field,rev.decisions[field])}</strong></dd></div>)}
+       </dl>:<p>No policy choices were changed in the available version.</p>}
+       {!previous&&<p className="readable-audit-context">Earlier saved version isn't included in this history page; changes above reflect the saved choices, not an inferred comparison.</p>}
+      </article>;
+     })}
     </>}
    </Panel>}
   </>}

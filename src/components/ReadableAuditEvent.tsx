@@ -115,13 +115,13 @@ export function cashEventDetails(event:string,details:unknown):CashDetail[]{
  return result;
 }
 export function ReadableCashAuditEvent({event,actorName,currentUserId,currentUserName}:{
- event:CashEvent;actorName?:string|null;currentUserId?:string|null;
+ event:CashEvent;actorName?:string|null;currentUserId?:string|null;currentUserName?:string|null;
 }){
  const details=cashEventDetails(event.event,event.details);
  return <article className="readable-audit-event">
   <div className="readable-audit-heading"><span className="readable-audit-icon"><History size={16}/></span>
    <div><strong>{cashEventTitle(event.event)}</strong><span><UserRound size={13}/>
-    {staff(event.actorId,actorName,currentUserId)} <span aria-hidden="true">·</span>
+    {auditActorName(event.actorId,event.actorName??actorName,currentUserId,currentUserName)} <span aria-hidden="true">·</span>
     <Clock3 size={13}/> {readableDateTime(event.createdAt)}</span></div></div>
   {details.length>0?<dl className="readable-audit-changes">
    {details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd><strong>{detail.value}</strong></dd></div>)}

@@ -6,19 +6,20 @@ import {hotelPath,readSession} from './session';
 const id=z.string().regex(/^[1-9]\d*$/);
 const groupRoom=z.object({
  bookingId:id,reference:z.string(),guestName:z.string().nullable(),
- roomTypeName:z.string(),roomNumber:z.string().nullable(),
+ roomTypeName:z.string(),roomNumber:z.string().nullable(),roomId:id.nullable(),
  checkIn:z.iso.date(),checkOut:z.iso.date(),status:z.string().nullable(),
 });
 const group=z.object({
  id,hotelId:id,reference:z.string(),name:z.string(),contactName:z.string().nullable(),
  roomCount:z.number().int().nonnegative(),createdAt:z.string(),
+ checkIn:z.iso.date().nullable(),checkOut:z.iso.date().nullable(),
  rooms:z.array(groupRoom),billingMode:z.literal('individual_folios'),
  groupBillingTransfersEnabled:z.literal(false),idempotentReplay:z.boolean(),
 });
 const list=z.object({
  data:z.array(z.object({id,reference:z.string(),name:z.string(),
   contactName:z.string().nullable(),roomCount:z.number().int().nonnegative(),
-  createdAt:z.string()})),
+  createdAt:z.string(),checkIn:z.iso.date().nullable(),checkOut:z.iso.date().nullable()})),
  meta:z.object({page:z.number().int().positive(),total:z.number().int().nonnegative(),
   totalPages:z.number().int().nonnegative(),perPage:z.number().int().positive()}),
 });

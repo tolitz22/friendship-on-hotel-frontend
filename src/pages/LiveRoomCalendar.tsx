@@ -305,7 +305,7 @@ export function LiveRoomCalendar(){
         const booking=bar.item.kind==='booking';
         const label=booking
          ?(bar.item.groupName
-          ?bar.item.groupName+' · '+(bar.item.guestName||bar.item.reference)
+          ?bar.item.groupName+' ('+(bar.item.groupReference??'group')+') · '+(bar.item.guestName||bar.item.reference)
           :(bar.item.guestName||bar.item.reference))
          :(bar.item.reason||'Maintenance');
         const visibleDay=bar.item.checkIn<dates.start?dates.start:bar.item.checkIn;

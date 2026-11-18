@@ -19,7 +19,7 @@ const list=z.object({data:z.array(auth),meta:z.object({
  page:z.number().int().positive(),perPage:z.number().int().positive(),
  total:z.number().int().nonnegative(),totalPages:z.number().int().nonnegative(),
 })});
-const eventSchema=z.object({id,actorId:id,event:z.string(),details:z.unknown(),createdAt:z.string()});
+const eventSchema=z.object({id,actorId:id,actorName:z.string().nullable().optional(),event:z.string(),details:z.unknown(),createdAt:z.string()});
 export type KeycardAuthorization=z.infer<typeof auth>;
 export type KeycardKind=KeycardAuthorization['kind'];
 export function parseKeycards(value:unknown,hotelId:string,bookingId?:string){

@@ -24,6 +24,7 @@ const types:Record<OperationalException['type'],{title:string;area:string;next:s
  occupancy_review:{title:'Review a room observation',area:'Occupancy checks',next:'Compare the physical observation with the recorded stay'},
  occupancy_investigation:{title:'Investigate an occupancy discrepancy',area:'Occupancy checks',next:'Assign or continue the documented investigation'},
  cashier_shift_review:{title:'Reconcile a cashier shift',area:'Cashier shifts',next:'Another manager must check the cash count and receipts'},
+ cashier_shift_discrepancy:{title:'Investigate a flagged cash drawer',area:'Cashier shifts',next:'Review the discrepancy and retain the cash audit evidence'},
  maintenance_blocker:{title:'Resolve room maintenance',area:'Maintenance',next:'Review the work order and room readiness before reopening the room'},
 };
 function actorLabel(item:OperationalException){
@@ -38,7 +39,7 @@ function TaskLink({item}:{item:OperationalException}){
  if(item.type==='occupancy_review'||item.type==='occupancy_investigation')
   return <Link to="/occupancy-verification" search={{room:item.roomId||undefined,date:item.checkDate||undefined}}>Open room check <ArrowRight size={15}/></Link>;
  if(item.type==='maintenance_blocker')return <Link to="/maintenance">Open maintenance <ArrowRight size={15}/></Link>;
- if(item.type==='cashier_shift_review')return <Link to="/cashier-shifts">Review cashier shifts <ArrowRight size={15}/></Link>;
+ if(item.type==='cashier_shift_review'||item.type==='cashier_shift_discrepancy')return <Link to="/cashier-shifts">Review cashier shifts <ArrowRight size={15}/></Link>;
  if(item.type==='payment_pending_review'&&item.bookingId)return <Link to="/billing" search={{booking:item.bookingId}}>Open guest bill <ArrowRight size={15}/></Link>;
  if(item.type==='assigned_room_overlap')return <Link to="/room-calendar">Inspect room calendar <ArrowRight size={15}/></Link>;
  if(item.bookingId)return <Link to="/reservations" search={{booking:item.bookingId}}>Open reservation <ArrowRight size={15}/></Link>;

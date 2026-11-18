@@ -41,7 +41,7 @@ function stateFor(status:InventoryRoomStatus):RoomCardState{
   kind:'occupied',next:'Review the current room inspection',
  };
  if(status.cleaning==='ready'&&status.advisoryReady)return{
-  title:'Inspection approved',detail:'The room is vacant in the PMS with a current advisory approval.',
+  title:'Inspection approved',detail:'The room is vacant in the PMS with a current inspection approval.',
   kind:'good',next:'No routine daily inspection; recheck at check-in',
  };
  if(status.cleaning==='checkout_cleaning')return{
@@ -200,7 +200,7 @@ export function LiveRooms(){
      </button>
      <button type="button" className={attentionFilter==='vacant_ready'?'rr-summary active rr-summary-good':'rr-summary rr-summary-good'}
       aria-pressed={attentionFilter==='vacant_ready'} disabled={!statusReady} onClick={()=>setAttentionFilter('vacant_ready')}>
-      <ShieldCheck size={19}/><span>Vacant & approved</span><strong>{statusReady?counts.ready:'—'}</strong><small>Recorded advisory state only</small>
+      <ShieldCheck size={19}/><span>Vacant & approved</span><strong>{statusReady?counts.ready:'—'}</strong><small>Current inspection status only</small>
      </button>
      <button type="button" className={attentionFilter==='occupied'?'rr-summary active':'rr-summary'}
       aria-pressed={attentionFilter==='occupied'} disabled={!statusReady} onClick={()=>setAttentionFilter('occupied')}>

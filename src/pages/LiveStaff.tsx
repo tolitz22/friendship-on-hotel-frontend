@@ -54,7 +54,7 @@ export function LiveStaff(){
    await inviteNewStaff(inviteEmail.trim(),inviteName.trim(),inviteRole);
    await client.invalidateQueries({queryKey:['staff-invitations',hotelId]});
    setInviteEmail('');setInviteName('');
-   setNotice('Invitation dispatched through the configured Laravel mailer. It expires after 48 hours.');
+   setNotice('Invitation sent. The link expires after 48 hours.');
   }catch(e){setError(e instanceof Error?e.message:'Unable to send invitation.');}
   finally{setSaving(null);}
  }

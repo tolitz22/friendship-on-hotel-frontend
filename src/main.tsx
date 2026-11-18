@@ -16,6 +16,7 @@ import {CashierShifts} from './pages/CashierShifts';
 import {OccupancyVerification} from './pages/OccupancyVerification';
 import {OccupancyCoverageReport} from './pages/OccupancyCoverageReport';
 import {NightAuditPreview} from './pages/NightAuditPreview';
+import {TaxPolicies} from './pages/TaxPolicies';
 import {LiveSettings} from './pages/LiveSettings';
 import {LiveStaff} from './pages/LiveStaff';
 import {AcceptInvitation} from './pages/AcceptInvitation';
@@ -59,6 +60,7 @@ const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/occupancy-verification',component:OccupancyVerification}),
  createRoute({getParentRoute:()=>root,path:'/occupancy-coverage',component:OccupancyCoverageReport}),
  createRoute({getParentRoute:()=>root,path:'/night-audit',component:NightAuditPreview}),
+ createRoute({getParentRoute:()=>root,path:'/tax-policies',component:TaxPolicies}),
  createRoute({getParentRoute:()=>root,path:'/reservation-demand',component:LiveReservationDemand}),
  createRoute({getParentRoute:()=>root,path:'/reservation-policy',component:LiveReservationPolicy}),
  createRoute({getParentRoute:()=>root,path:'/reservation-simulation',component:LiveReservationSimulation}),

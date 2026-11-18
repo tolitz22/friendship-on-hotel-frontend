@@ -18,7 +18,9 @@ const filters:{value:CoverageFilter;label:string}[]=[
  {value:'verified',label:'Reviewed — matching'},
 ];
 function statusFor(row:CoverageRow):{label:string;tone:'attention'|'danger'|'success'|'neutral';next:string}{
- if(row.status==='flagged')return{label:'Investigation needed',tone:'danger',next:'Manager to investigate separately and document the outcome.'};
+ if(row.status==='flagged'&&row.investigationStatus==='closed')return{label:'Investigation closed',tone:'success',next:'The original discrepancy is preserved. The follow-up was independently closed.'};
+ if(row.status==='flagged'&&row.investigationStatus==='open')return{label:'Investigation in progress',tone:'attention',next:'Assigned manager is documenting follow-up findings.'};
+ if(row.status==='flagged')return{label:'Investigation needed',tone:'danger',next:'Open a documented follow-up case and assign a manager.'};
  if(row.discrepancy==='unexpected_occupied')return{label:'Observed occupied · PMS vacant',tone:'danger',next:'Privately confirm the registration and physical observation.'};
  if(row.discrepancy==='expected_occupied_vacant')return{label:'Observed vacant · PMS occupied',tone:'danger',next:'Check guest departure and front-desk registration.'};
  if(row.discrepancy==='unverified')return{label:'Could not verify',tone:'attention',next:'Arrange a safe follow-up observation.'};
@@ -66,12 +68,12 @@ export function OccupancyCoverageReport(){
      <div><small>Total rooms</small><strong>{summary.roomCount}</strong></div>
      <div><small>Observed</small><strong>{summary.observed}</strong><span>{summary.observationPercent}% of rooms</span></div>
      <div><small>Manager reviewed</small><strong>{summary.reviewed}</strong><span>Includes flagged investigations</span></div>
-     <div className="occ-attention-metric"><small>Still needs action</small><strong>{summary.unresolved}</strong><span>Unassigned, pending, or flagged</span></div>
+     <div className="occ-attention-metric"><small>Still needs action</small><strong>{summary.unresolved}</strong><span>Unassigned, pending, or unresolved flags</span></div>
     </div>
     <div className="occ-discrepancy-summary">
      <AlertTriangle size={18}/><p><strong>{summary.unexpectedOccupied+summary.expectedOccupiedVacant} occupancy mismatches</strong>
       {' · '}{summary.unverified} observations could not be verified.
-      These require follow-up, not automatic changes to bookings or room status.</p>
+      {summary.resolvedInvestigations} investigations closed after review. Observations never automatically change bookings or room status.</p>
     </div>
     <div className="occ-report-filters">
      <div><h3>Room-by-room checks</h3><p>Filter to the cases you want to review.</p></div>
@@ -115,7 +117,8 @@ export function OccupancyCoverageReport(){
     {showDetails&&<div className="occ-methodology">
      <p><strong>Assignment coverage:</strong> {summary.checked} assigned ({summary.coveragePercent}%). This does not mean those rooms were observed.</p>
      <p><strong>Observations:</strong> {summary.observed}. <strong>Reviewed:</strong> {summary.reviewed}.
-      Matching observations: {summary.matching}; flagged investigations: {summary.flagged}.</p>
+      Matching observations: {summary.matching}; flagged observations: {summary.flagged};
+      independently closed investigations: {summary.resolvedInvestigations}.</p>
      <p>Historical reports use the <strong>current registered-room directory</strong>; rooms added or retired after the selected date can affect historical coverage counts. Recorded observation comparisons are never retroactively recalculated.</p>
      <p>Staff must follow the property's access and privacy procedures. Do not enter occupied guest rooms without appropriate authorization.</p>
     </div>}

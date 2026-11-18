@@ -96,7 +96,7 @@ export function OccupancyCoverageReport(){
         {row.reviewedAt&&<small>Reviewed by {row.reviewerName??'Employee name unavailable'}
          {' · '}{readableDateTime(row.reviewedAt)}</small>}
        </div>
-       <Link to="/occupancy-verification" className="occ-room-link">Open checks <ArrowRight size={15}/></Link>
+       <Link to="/occupancy-verification" search={{room:row.roomId,date:summary.inspectionDate}} className="occ-room-link">Open checks <ArrowRight size={15}/></Link>
       </article>;
      })}
     </div>

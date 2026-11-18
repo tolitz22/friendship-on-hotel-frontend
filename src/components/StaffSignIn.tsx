@@ -11,7 +11,7 @@ export function StaffSignIn(){
  const [error,setError]=useState('');
  async function submit(e:FormEvent<HTMLFormElement>){
   e.preventDefault();setError('');
-  try{await signIn(email.trim(),password);}catch(e){setError(e instanceof Error?e.message:'Sign-in failed.');}
+  try{await signIn(email.trim(),password);}catch{setError('Unable to sign in. Check your email and password, then try again.');}
  }
  return <div className="auth-shell"><div className="auth-card">
   <div className="auth-brand">FO</div>

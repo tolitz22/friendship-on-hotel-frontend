@@ -7,6 +7,7 @@ import {dataMode} from '../api';
 import {useLiveFolioLedger} from '../api/liveFinance';
 import {DemoNotice,Heading,Panel,Status} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
+import {SettlementPanel} from '../components/SettlementPanel';
 import {currency,statusLabel} from '../lib/format';
 
 function LiveFolioLookup(){
@@ -51,6 +52,7 @@ function LiveFolioLookup(){
    <p><strong>Provisional difference:</strong> {display(summary.provisionalDifferenceMinor,summary.currency)}</p>
    <p role="note">Taxes and fees are not finalized. Payment evidence is not bank or gateway verification. This is not a final amount payable, receipt, or proof of settlement.</p>
   </div>}
+  {valid&&ledger.isSuccess&&<SettlementPanel key={hotelId+'-'+reservationId} bookingId={reservationId}/>}
  </Panel>;
 }
 

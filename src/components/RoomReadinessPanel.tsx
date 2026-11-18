@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
-import {AlertTriangle,CheckCircle2} from 'lucide-react';
+import {AlertTriangle,CheckCircle2,Clock3,ShieldAlert,ShieldCheck} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
@@ -12,6 +12,14 @@ import type {InspectionInput} from '../api/liveRoomReadiness';
 import type {LiveRoom} from '../api/liveCatalog';
 import {readSession} from '../api/session';
 
+const blockerLabels:Record<string,string>={
+ activeInventoryBlockToday:'Inventory restriction active today',
+ activeRoomImpactMaintenance:'Open maintenance affecting this room',
+ latestTurnoverIncomplete:'Most recent checkout cleaning incomplete',
+ newTurnoverSinceInspection:'New checkout turnover after inspection',
+ unfinishedHousekeeping:'Housekeeping work still outstanding',
+ newRoomWorkSinceInspection:'New room work after inspection',
+};
 const empty=():InspectionInput=>({
  cleaningVerified:false,safetyVerified:false,amenitiesVerified:false,note:'',
 });
@@ -31,7 +39,8 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
  useEffect(()=>{setForm(empty());setHistoryPage(1);setError('');setMessage('');},[room.id,hotelId]);
  const latest=state.data?.inspection;
  const blockers=state.data?.blockers;
- const blocked=blockers&&Object.values(blockers).some(Boolean);
+ const activeBlockers=Object.entries(blockers??{}).filter(([,active])=>active).map(([key])=>blockerLabels[key]??key);
+ const blocked=activeBlockers.length>0;
  const allChecks=Object.values(form).slice(0,3).every(Boolean);
  async function run(action:()=>Promise<unknown>){
   if(!hotelId||busy)return;
@@ -68,21 +77,22 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
   </div>
   <QueryFeedback loading={state.isPending} error={state.error}/>
   {state.data&&<>
-   <p role="status"><strong>Advisory readiness: {state.data.advisoryReady?'Approved, with no current blockers found':'Not approved / blocked'}</strong></p>
-   <p>Check-in inspection gate: <strong>{state.data.enforcedAtCheckIn?'Enabled for this hotel':'Not enabled'}</strong>. Readiness is never guaranteed room inventory, guest identity verification, or payment settlement.</p>
-   <div className="hk-notice">
-    <AlertTriangle size={16}/>
-    <span>Current inventory block: {blockers?.activeInventoryBlockToday?'Yes':'No'} ·
-     Active room-impact maintenance: {blockers?.activeRoomImpactMaintenance?'Yes':'No'} ·
-     Latest turnover incomplete: {blockers?.latestTurnoverIncomplete?'Yes':'No'} ·
-     New turnover after inspection: {blockers?.newTurnoverSinceInspection?'Yes':'No'} ·
-     Outstanding housekeeping: {blockers?.unfinishedHousekeeping?'Yes':'No'} ·
-     New operational work after inspection: {blockers?.newRoomWorkSinceInspection?'Yes':'No'}
-    </span>
+   <div className={'rr-inspection-status'+(state.data.advisoryReady?' approved':'')}>
+    {state.data.advisoryReady?<ShieldCheck size={22}/>:<ShieldAlert size={22}/>}
+    <div><strong>{state.data.advisoryReady?'Current advisory approval':'Not approved for readiness'}</strong>
+     <p>{state.data.advisoryReady?'An approved inspection with no reported current blockers. This does not confirm future room availability.':'Review the inspection and any open operational blockers before checking in a guest.'}</p></div>
    </div>
-   {latest&&<p>Latest inspection #{latest.id}: <strong>{latest.status}</strong> ·
-    Revision {latest.revision} · Inspector #{latest.inspectedBy}
-    {latest.reviewedBy?' · Reviewer #'+latest.reviewedBy:''}</p>}
+   <div className="rr-inspection-meta"><span><Clock3 size={15}/> Check-in inspection enforcement: <strong>{state.data.enforcedAtCheckIn?'Enabled':'Not enabled'}</strong></span>
+    <span>Room inventory, identity, and payment require separate validation.</span></div>
+   <section className="rr-blocker-section" aria-label="Current room readiness blockers">
+    <div className="rr-blocker-header"><h4>Operational blockers</h4><span>{activeBlockers.length} active</span></div>
+    {activeBlockers.length>0?<ul>{activeBlockers.map(label=><li key={label}><AlertTriangle size={15}/>{label}</li>)}</ul>
+     :<p className="rr-blocker-clear"><CheckCircle2 size={16}/> No blockers reported in the current readiness response.</p>}
+   </section>
+   {latest?<div className="rr-latest-inspection">
+    <span>Latest inspection</span><strong>#{latest.id} · {latest.status}</strong>
+    <small>Revision {latest.revision} · Inspector #{latest.inspectedBy}{latest.reviewedBy?' · Reviewer #'+latest.reviewedBy:''}</small>
+   </div>:<p className="rr-latest-inspection">No inspection has been submitted for this room.</p>}
    {admin&&latest?.status!=='submitted'&&<section>
     <h4>Submit a new physical inspection</h4>
     <p>Confirm these checks based on an actual inspection, not solely on the cleaning task's status.</p>
@@ -121,7 +131,7 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
   </>}
   {error&&<p role="alert">{error}</p>}
   {message&&<p role="status"><CheckCircle2 size={16}/> {message}</p>}
-  <section>
+  <section className="rr-audit-section">
    <h4>Recorded readiness audit</h4>
    <QueryFeedback loading={history.isPending} error={history.error}
     empty={history.isSuccess&&history.data.data.length===0}/>

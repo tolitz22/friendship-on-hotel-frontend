@@ -7,7 +7,7 @@ import {CalendarDays,ChevronLeft,ChevronRight,RotateCw,Search,X,ArrowUpRight,Inf
 import {useRoomCalendar,type RoomCalendarData} from '../api/liveRoomCalendar';
 import {useLiveReservationDetail} from '../api/liveReservations';
 import {useLiveFolioLedger} from '../api/liveFinance';
-import {useLiveRoomTypes} from '../api/liveCatalogQueries';
+import {useLiveRoomTypes,useLiveProperty} from '../api/liveCatalogQueries';
 import {addDays,hotelToday} from '../features/reservations/calendarDate';
 import {roomHasConflict,validRoomStay} from '../features/reservations/roomCalendarRange';
 import {projectRackBars} from '../features/reservations/roomRackLayout';
@@ -44,6 +44,8 @@ export function LiveRoomCalendar(){
  const {hotelId}=useHotelAuth();
  const [mode,setMode]=useState<Mode>('week');
  const [anchor,setAnchor]=useState(hotelToday);
+ const property=useLiveProperty();
+ const today=hotelToday(new Date(),property.data?.data.timeZone??'Asia/Manila');
  const [page,setPage]=useState(1);
  const [floor,setFloor]=useState('all');
  const [roomTypeId,setRoomTypeId]=useState('');
@@ -63,7 +65,10 @@ export function LiveRoomCalendar(){
  };
  const roomTypes=useLiveRoomTypes();
  const calendar=useRoomCalendar({start:dates.start,end:dates.end,page,floor,roomTypeId,search});
+ const hasFilters=floor!=='all'||roomTypeId!==''||search.trim().length>0;
+ const clearFilters=()=>{setFloor('all');setRoomTypeId('');setSearch('');setPage(1);};
  useEffect(()=>{setPage(1);setFloor('all');setRoomTypeId('');setSearch('');setSelected(null);},[hotelId]);
+ useEffect(()=>{setAnchor(today);},[hotelId,property.data?.data.timeZone]);
  useEffect(()=>{setSelected(null);setDragPreview(null);dragOrigin.current=null;},[mode,anchor,page,floor,roomTypeId,search]);
  useEffect(()=>{
   if(!selected)return;
@@ -108,7 +113,7 @@ export function LiveRoomCalendar(){
   selected.room.id,selected.day,departure,data.bookings,data.blocks
  );
  const extendsOutsideVisible=!!selected&&departure>dates.end;
- const canStartBooking=!!selected&&selected.day>=hotelToday()&&rangeValid&&!rangeConflict;
+ const canStartBooking=!!selected&&selected.day>=today&&rangeValid&&!rangeConflict;
  const periodLabel=mode==='week'
   ?dayText(dates.start,{month:'short',day:'numeric',year:'numeric'})+' – '+dayText(shift(dates.end,-1),{month:'short',day:'numeric',year:'numeric'})
   :dayText(dates.start,{month:'long',year:'numeric'});
@@ -117,14 +122,18 @@ export function LiveRoomCalendar(){
   <section className="live-room-calendar" aria-label="Room inventory calendar">
    <div className="lrc-toolbar">
     <div className="lrc-navigation">
-     <button type="button" className="btn-inline" onClick={()=>setAnchor(hotelToday())}>Today</button>
+     <button type="button" className="btn-inline" onClick={()=>setAnchor(today)}>Today</button>
      <button type="button" className="btn-inline" aria-label="Previous period" onClick={()=>setAnchor(d=>navigate(d,mode,-1))}><ChevronLeft size={16}/></button>
      <button type="button" className="btn-inline" aria-label="Next period" onClick={()=>setAnchor(d=>navigate(d,mode,1))}><ChevronRight size={16}/></button>
-     <strong>{periodLabel}</strong>
+     <strong aria-live="polite">{periodLabel}</strong>
     </div>
-    <div className="view-switch" role="group" aria-label="Calendar period">
+    <div className="lrc-period-controls">
+     <label className="lrc-jump-date">Jump to date <input type="date" aria-label="Jump to calendar date"
+      value={anchor} onChange={e=>{if(e.target.value)setAnchor(e.target.value);}}/></label>
+     <div className="view-switch" role="group" aria-label="Calendar period">
      <button type="button" aria-pressed={mode==='week'} className={mode==='week'?'selected':''} onClick={()=>{setMode('week');setPage(1);}}>Week</button>
      <button type="button" aria-pressed={mode==='month'} className={mode==='month'?'selected':''} onClick={()=>{setMode('month');setPage(1);}}>Month</button>
+     </div>
     </div>
    </div>
    <div className="lrc-filters">
@@ -143,7 +152,8 @@ export function LiveRoomCalendar(){
     </label>
     <label className="lrc-search"><Search size={16}/><input aria-label="Search room number" value={search}
      onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder="Room number"/></label>
-    <button type="button" className="btn-inline" onClick={()=>void Promise.all([calendar.refetch(),client.invalidateQueries({queryKey:['live','reservation-detail',hotelId]})])}><RotateCw size={14}/> Refresh</button>
+    {hasFilters&&<button type="button" className="btn-inline lrc-clear-filters" onClick={clearFilters}><X size={14}/> Clear filters</button>}
+    <button type="button" className="btn-inline" disabled={calendar.isFetching} onClick={()=>void Promise.all([calendar.refetch(),client.invalidateQueries({queryKey:['live','reservation-detail',hotelId]})])}><RotateCw size={14}/> {calendar.isFetching?'Refreshing…':'Refresh'}</button>
    </div>
    <div className="lrc-legend">
     <span><i className="lrc-dot lrc-confirmed"/> Reserved</span>
@@ -153,7 +163,7 @@ export function LiveRoomCalendar(){
     <span><i className="lrc-dot lrc-free"/> No assigned booking</span>
     <span>Tip: drag across open dates to select a stay</span>
    </div>
-   {data&&<div className="lrc-operations-summary" aria-label="Room schedule overview">
+   {calendar.isSuccess&&data&&<div className="lrc-operations-summary" aria-label="Room schedule overview">
     <div><small>Rooms on this page</small><strong>{data.rooms.length}</strong></div>
     <div><small>Assigned reservations in period</small><strong>{data.bookings.length}</strong></div>
     <div><small>In-house reservations</small><strong>{data.bookings.filter(b=>b.status==='checked_in').length}</strong></div>
@@ -163,16 +173,18 @@ export function LiveRoomCalendar(){
      {data.unassignedBookings>0&&<Link to="/reservations">Review bookings <ArrowUpRight size={13}/></Link>}
     </div>
    </div>}
-   {data&&<p className="lrc-summary">Showing {data.rooms.length} of {meta?.total??0} registered rooms. Counts for assigned stays and maintenance are limited to the visible room page; unassigned reservations are counted hotel-wide for the selected dates.</p>}
+   {calendar.isSuccess&&data&&<p className="lrc-summary">Showing {data.rooms.length} of {meta?.total??0} registered rooms. Counts for assigned stays and maintenance are limited to the visible room page; unassigned reservations are counted hotel-wide for the selected dates.</p>}
    <QueryFeedback loading={calendar.isPending} error={calendar.error} onRetry={()=>void calendar.refetch()}
-    empty={calendar.isSuccess&&data?.rooms.length===0} emptyMessage="No rooms match these filters. Add rooms in Rooms & readiness."/>
+    empty={calendar.isSuccess&&data?.rooms.length===0} emptyMessage={hasFilters?'No rooms match these filters. Clear filters to show the full rack.':'No rooms are registered yet. Add rooms in Rooms & readiness.'}/>
+   {calendar.isSuccess&&data?.rooms.length===0&&hasFilters&&<div className="lrc-empty-action"><button type="button" className="btn-inline" onClick={clearFilters}>Clear filters</button></div>}
+   {calendar.isSuccess&&data&&data.rooms.length>0&&<p className="lrc-scroll-hint"><Info size={14}/> Scroll horizontally to see more dates. Room labels and dates stay visible while browsing.</p>}
    {calendar.isSuccess&&data&&data.rooms.length>0&&<div className="lrc-scroll rack-scroll" role="region" aria-label="Scrollable room rack" tabIndex={0}>
     <div className={'rack-timeline '+(mode==='month'?'rack-month':'rack-week')}
      style={{'--rack-days':dates.days.length,'--rack-day-width':mode==='week'?'116px':'49px'} as CSSProperties}>
      <div className="rack-header">
       <div className="rack-room-head rack-sticky">Room / type</div>
       {dates.days.map(day=><div key={day}
-       className={'rack-date-head '+(day===hotelToday()?'rack-today':'')+(parse(day).getUTCDay()===0||parse(day).getUTCDay()===6?' rack-weekend':'')}>
+       className={'rack-date-head '+(day===today?'rack-today':'')+(parse(day).getUTCDay()===0||parse(day).getUTCDay()===6?' rack-weekend':'')}>
        <strong>{dayText(day,{day:'numeric'})}</strong>
        <small>{dayText(day,{weekday:'short'})}</small>
       </div>)}
@@ -204,7 +216,7 @@ export function LiveRoomCalendar(){
          title={occupied?'View room '+room.number+' schedule on '+day:'Choose room '+room.number+' on '+day}
          aria-label={'Room '+room.number+' on '+day+': '+(occupied?'assigned booking or maintenance block':'no assigned booking')+'. View details'}
          onPointerDown={event=>{
-          if(event.pointerType==='mouse'&&event.button===0&&day>=hotelToday()&&!occupied){
+          if(event.pointerType==='mouse'&&event.button===0&&day>=today&&!occupied){
            dragOrigin.current={roomId:room.id,day};setDragPreview({roomId:room.id,start:day,end:day});
           }
          }}
@@ -253,7 +265,7 @@ export function LiveRoomCalendar(){
      })}
     </div>
    </div>}
-   {meta&&meta.totalPages>1&&<div className="lrc-pagination">
+   {calendar.isSuccess&&meta&&meta.totalPages>1&&<div className="lrc-pagination">
     <span>Rooms page {meta.page} of {meta.totalPages}</span>
     <button className="btn-inline" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>Previous rooms</button>
     <button className="btn-inline" disabled={page>=meta.totalPages} onClick={()=>setPage(p=>p+1)}>Next rooms</button>
@@ -345,7 +357,7 @@ export function LiveRoomCalendar(){
          <p>We'll carry this room and check-in date to the booking form. You'll choose a guest and rate before confirming.</p>
         </div>
        </div>}
-       {selectedBookings.length===0&&selectedBlocks.length===0&&selected.day<hotelToday()&&
+       {selectedBookings.length===0&&selectedBlocks.length===0&&selected.day<today&&
         <p className="lrc-modal-warning">This date has passed. Select today or a future night to create a booking.</p>}
        <p className="lrc-modal-hint"><Info size={16}/> The schedule is informational. Empty cells do not guarantee a room is clean, unoccupied, or sellable.</p>
       </div>

@@ -111,7 +111,7 @@ export function FolioNightAccounting(){
   ]);
  }
  async function send(path:string,body:Record<string,unknown>,successMessage:string){
-  if(!enabled){setError('Folio-tax posting is disabled until finance signs off and activates the staging-tested configuration.');return;}
+  if(!enabled){setError('Room-night tax processing is not yet enabled. Ask the finance administrator to review the setup.');return;}
   if(!active()||busy||!validBooking)return;
   setBusy(true);setError('');setSuccess('');
   try{
@@ -125,7 +125,7 @@ export function FolioNightAccounting(){
  }
  if(!admin)return <>
   <Heading title="Folio-night accounting" description="A current hotel administrator is required."/>
-  <Panel title="Restricted"><p>Hotel accounting review is restricted server-side to active administrators.</p></Panel>
+  <Panel title="Restricted"><p>Only authorized hotel administrators can access accounting review.</p></Panel>
  </>;
  return <>
   <Heading title="Room-night tax & earned revenue"
@@ -133,7 +133,7 @@ export function FolioNightAccounting(){
   {!enabled&&<Panel title="Finance activation required">
    <p role="status" className="night-audit-warning"><AlertTriangle size={18}/>
     This accounting workflow is deliberately disabled. An administrator must validate historical folios,
-    tax compliance and staging tests before enabling FINANCE_ENABLE_LIVE_FOLIO_TAX.
+    tax compliance and system readiness before enabling this feature.
     Viewing existing room-night entries remains read-only.</p>
   </Panel>}
   <Panel title="Choose a priced reservation">

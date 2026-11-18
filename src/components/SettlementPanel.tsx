@@ -284,11 +284,11 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
     <ul>{data.blockers.map((b,i)=><li key={i}>{b}</li>)}</ul>
    </div>}
    </details>
+   {manager&&!data.signed&&<BillingActions bookingId={bookingId} signed={data.signed}/>}
    {manager&&!data.signed&&<details className="billing-manager-details">
-    <summary><div><strong>Manager billing tools</strong>
-     <span>Record charges, review payment evidence, allocate deposits and manage refunds</span></div>
+    <summary><div><strong>Advanced settlement tools</strong>
+     <span>Verify allocations, manage refunds and finalize accounts</span></div>
      <span className="billing-expand-hint">Show tools</span></summary>
-    <BillingActions bookingId={bookingId} signed={data.signed}/>
     {!data.settlementWorkflowEnabled&&<div className="night-audit-warning" role="status">
      <AlertTriangle size={18}/>
      Final settlement is not yet enabled for this hotel. A finance administrator must complete the required checks before activating it. You can still review the recorded statement.

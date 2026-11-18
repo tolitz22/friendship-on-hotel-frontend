@@ -322,7 +322,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
           onChange={e=>setPayerRef(e.target.value)} placeholder="Guest/organization reference"/>
         </label>
         <label>Allocation amount ({data.currency==='PHP'?'PHP':'minor units'})
-         <input className="wizard-input" inputMode="numeric" value={amount}
+         <input className="wizard-input" inputMode={data.currency==='PHP'?'decimal':'numeric'} value={amount}
           onChange={e=>setAmount(e.target.value)}/>
         </label>
         <label>Charge line (optional)
@@ -365,7 +365,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        </select>
       </label>
       <label>Refund amount ({data.currency==='PHP'?'PHP':'minor units'})
-       <input className="wizard-input" inputMode="numeric" value={refundAmount}
+       <input className="wizard-input" inputMode={data.currency==='PHP'?'decimal':'numeric'} value={refundAmount}
         onChange={e=>setRefundAmount(e.target.value)} placeholder="Amount within unallocated deposit"/>
       </label>
      </div>

@@ -184,9 +184,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
      <PlusCircle size={18}/> Add charge or correction
     </button>}
    </div>}
-   {activeDialog&&<div className="billing-modal-backdrop" onMouseDown={event=>{
-    if(event.target===event.currentTarget)setActiveDialog(null);
-   }}>
+   {activeDialog&&<div className="billing-modal-backdrop">
     <section className="billing-action-modal" role="dialog" aria-modal="true"
      aria-label={activeDialog==='payment'?'Record guest payment':'Update guest bill'}>
      <div className="billing-action-modal-header">
@@ -194,7 +192,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        <h3>{activeDialog==='payment'?'Record guest payment':'Add a charge or correction'}</h3>
        <p>Current recorded difference: {money(data.remainingMinor,data.currency)} · Not a final amount due</p>
       </div>
-      <button type="button" className="billing-modal-dismiss" aria-label="Close dialog"
+      <button type="button" className="billing-modal-dismiss" aria-label="Close dialog" autoFocus
        onClick={()=>setActiveDialog(null)}><X size={20}/></button>
      </div>
      {activeDialog==='payment'

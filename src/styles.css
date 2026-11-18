@@ -2086,3 +2086,23 @@
 .cashier-history-disclosure>.panel{margin-top:10px}
 .cashier-history-disclosure>summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 @media(max-width:650px){.billing-modal-backdrop{padding:8px;align-items:flex-end}.billing-action-modal{width:100%;padding:15px;max-height:94dvh;border-radius:16px 16px 10px 10px}.billing-main-actions{display:grid;grid-template-columns:1fr}.billing-main-actions>button{width:100%}.billing-action-modal-header h3{font-size:18px}.cashier-history-disclosure>summary{padding:14px}}
+
+/* Shared audit timeline: explain the action and each saved change rather than raw IDs. */
+.readable-audit-event{display:grid;gap:11px;border:1px solid var(--border);border-radius:11px;background:var(--surface);padding:14px 16px;margin:11px 0;min-width:0}
+.readable-audit-heading{display:flex;align-items:flex-start;gap:10px}
+.readable-audit-icon{flex-shrink:0;display:grid;place-items:center;width:33px;height:33px;border-radius:9px;background:var(--canvas);color:var(--accent)}
+.readable-audit-heading>div{display:grid;gap:6px;min-width:0}
+.readable-audit-heading strong{font-size:13px;line-height:1.4;color:var(--text)}
+.readable-audit-heading>div>span{display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:11px;color:var(--muted);line-height:1.5}
+.readable-audit-heading>div>span svg{flex-shrink:0}
+.readable-audit-changes{display:grid;gap:0;margin:0;border:1px solid var(--border);border-radius:9px;overflow:hidden}
+.readable-audit-changes>div{display:grid;grid-template-columns:minmax(95px,.55fr) minmax(0,1.45fr);gap:12px;align-items:start;padding:10px 12px;border-bottom:1px solid var(--border);font-size:12px;line-height:1.5}
+.readable-audit-changes>div:last-child{border-bottom:0}
+.readable-audit-changes dt{font-size:11px;color:var(--muted)}
+.readable-audit-changes dd{margin:0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;overflow-wrap:anywhere}
+.readable-audit-changes dd>span{color:var(--muted)}
+.readable-audit-changes dd>strong{font-weight:700;color:var(--text)}
+.readable-audit-note,.readable-audit-context{margin:0;font-size:12px;line-height:1.6;color:var(--muted)}
+.readable-audit-note{padding:11px 12px;border-radius:9px;background:var(--canvas);overflow-wrap:anywhere}
+.readable-audit-note strong{color:var(--text)}
+@media(max-width:600px){.readable-audit-event{padding:12px}.readable-audit-changes>div{grid-template-columns:1fr;gap:4px}}

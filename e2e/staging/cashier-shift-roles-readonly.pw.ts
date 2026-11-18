@@ -18,12 +18,14 @@ test('manager has their own cash drawer and a separate independent review queue'
  const email=process.env.PMS_STAGING_ADMIN_EMAIL,password=process.env.PMS_STAGING_ADMIN_PASSWORD;
  test.skip(!email||!password,'Dedicated administrator staging account required');
  await openCashierPage(page,email!,password!);
- await expect(page.getByText('All hotel cashier shifts')).toBeVisible();
- const ownDrawer=page.getByRole('heading',{name:'My cash drawer'}).locator('..');
+ await expect(page.getByText('Shift review & history')).toBeVisible();
+ const ownDrawer=page.getByRole('region',{name:'My cash drawer'});
  if(await ownDrawer.getByRole('button',{name:'Open my cashier shift'}).count()){
   await expect(ownDrawer.getByRole('button',{name:'Open my cashier shift'})).toBeVisible();
  }else{
-  await expect(ownDrawer.getByText(/Your open shift/)).toBeVisible();
+  await expect(ownDrawer.getByText('Ready to accept guest cash payments')).toBeVisible();
+  await expect(ownDrawer.getByRole('link',{name:/Find a guest and record payment/})).toBeVisible();
+  await expect(ownDrawer.getByRole('button',{name:/Finish shift and count cash/})).toHaveAttribute('aria-expanded','false');
  }
  // Never submit a shift, receipt, count or reconciliation in smoke tests.
 });
@@ -32,7 +34,26 @@ test('front desk employee sees only their own active cash shift',async({page})=>
  const email=process.env.PMS_STAGING_FRONT_DESK_EMAIL,password=process.env.PMS_STAGING_FRONT_DESK_PASSWORD;
  test.skip(!email||!password,'Dedicated front desk staging account required');
  await openCashierPage(page,email!,password!);
- await expect(page.getByText('My shift history')).toBeVisible();
- await expect(page.getByText('All hotel cashier shifts')).toHaveCount(0);
+ await expect(page.getByText('Previous shifts')).toBeVisible();
+ await expect(page.getByText('Shift review & history')).toHaveCount(0);
  await expect(page.getByRole('button',{name:'Reconcile balanced shift'})).toHaveCount(0);
+});
+
+/** A user can explore closing their shift without submitting any cash count. */
+test('end-shift cash counting is collapsed by default and requires confirmation',async({page})=>{
+ const email=process.env.PMS_STAGING_ADMIN_EMAIL,password=process.env.PMS_STAGING_ADMIN_PASSWORD;
+ test.skip(!email||!password,'Dedicated administrator staging account required');
+ await openCashierPage(page,email!,password!);
+ const toggle=page.getByRole('button',{name:/Finish shift and count cash/});
+ if(await toggle.count()){
+  await expect(toggle).toHaveAttribute('aria-expanded','false');
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded','true');
+  const send=page.getByRole('button',{name:'Submit cash count and end shift'});
+  await expect(send).toBeDisabled();
+  await page.getByLabel('Actual cash counted (₱)').fill('0.00');
+  await expect(send).toBeDisabled();
+  await page.getByRole('button',{name:'Cancel'}).click();
+  await expect(toggle).toHaveAttribute('aria-expanded','false');
+ }
 });

@@ -10,7 +10,7 @@ export interface LiveWorkOrder{
  revision:number;reportedAt:string;resolvedAt:string|null;
 }
 export interface MaintenanceEvent{
- id:string;actorId:string;action:string;before:Record<string,unknown>|null;
+ id:string;actorId:string;actorName?:string|null;action:string;before:Record<string,unknown>|null;
  after:Record<string,unknown>;note:string|null;createdAt:string;
 }
 export interface CreateMaintenanceInput{
@@ -58,7 +58,7 @@ const maintenanceList=z.object({
  meta:pagination.extend({affectsRoomDoesNotBlockInventory:z.literal(true)}),
 });
 const maintenanceEvent=z.object({
- id,actorId:id,action:z.string(),
+ id,actorId:id,actorName:z.string().nullable().optional(),action:z.string(),
  before:z.record(z.string(),z.unknown()).nullable(),
  after:z.record(z.string(),z.unknown()),
  note:z.string().nullable(),createdAt:z.string(),

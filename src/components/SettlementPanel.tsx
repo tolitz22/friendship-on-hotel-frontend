@@ -31,7 +31,7 @@ const payment=z.object({
 const paymentHandoff=z.object({
  paymentId:id,recordedBy:id.nullable(),recordedByName:z.string().nullable(),
  verificationPreparedByName:z.string().nullable(),
- cashShiftId:id.nullable(),cashShiftStatus:z.enum([
+ cashShiftId:id.nullable(),cashierId:id.nullable(),cashShiftStatus:z.enum([
   'open','submitted','reconciled','flagged','unlinked','not_applicable',
  ]),
  cashierName:z.string().nullable(),reconciledByName:z.string().nullable(),
@@ -169,6 +169,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const handoff=nextCashPayment
   ?data?.cashShiftContexts.find(row=>row.paymentId===nextCashPayment.id):undefined;
  const cashShiftStatus=handoff?.cashShiftStatus??'unlinked';
+ const ownCashierShift=handoff?.cashierId===user?.id;
  const cashNeedsReconciliation=!!nextCashPayment&&cashShiftStatus!=='reconciled';
  const recorderIsCurrent=!!nextPayment&&
   data?.cashShiftContexts.find(row=>row.paymentId===nextPayment.id)?.recordedBy===user?.id;
@@ -198,7 +199,9 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
      '. The cashier must count and submit physical cash before a different manager reconciles it.'
     :cashShiftStatus==='submitted'
      ?'Cashier shift '+(handoff?.cashShiftId??'unknown')+
-      ' was submitted and needs independent manager reconciliation before cash verification.'
+      (ownCashierShift
+       ?' was submitted. Another authorized manager must reconcile your shift; you cannot approve your own cash count.'
+       :' was submitted and needs independent manager reconciliation before cash verification.')
     :cashShiftStatus==='flagged'
      ?'This cash shift was flagged for a discrepancy. A manager must investigate; it cannot be treated as reconciled.'
     :'This payment has no matching cashier shift receipt. Ask a manager to investigate; do not create another payment record.'
@@ -318,7 +321,9 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       {nextTask==='verification'&&cashNeedsReconciliation
        ?<Link to="/cashier-shifts" search={{booking:bookingId,hotel:hotelId??undefined}}
          className="btn-primary">{cashShiftStatus==='open'?'Open cash count'
-          :cashShiftStatus==='submitted'?'Review shift reconciliation':'Investigate cashier shift'}
+          :cashShiftStatus==='submitted'
+           ?ownCashierShift?'View submitted cash shift':'Review shift reconciliation'
+           :'Investigate cashier shift'}
           <ArrowRight size={16}/></Link>
        :!manager&&hasExistingMoney
        ?<button type="button" className="rr-secondary-action" onClick={()=>{

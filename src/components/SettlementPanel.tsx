@@ -1,4 +1,5 @@
-import {useEffect,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {Link} from '@tanstack/react-router';
 import {z} from 'zod';
@@ -75,8 +76,10 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const manager=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const shift=useCurrentCashierShift(!!hotelId);
  const [selected,setSelected]=useState('');
- const [activeDialog,setActiveDialog]=useState<'payment'|'charges'|null>(null);
- const [reviewExpanded,setReviewExpanded]=useState(false);
+ const [activeDialog,setActiveDialog]=useState<'payment'|'charges'|'review'|'refunds'|'signoff'|null>(null);
+ const dialogCloser=useRef<HTMLButtonElement>(null);
+ const dialogOpener=useRef<HTMLElement|null>(null);
+ const busyRef=useRef(false);
  const [reference,setReference]=useState('');
  const [reviewNote,setReviewNote]=useState('');
  const [payerKind,setPayerKind]=useState('guest');
@@ -98,7 +101,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const valid=!!hotelId&&/^[1-9]\d*$/.test(bookingId);
  const endpoint='/bookings/'+bookingId;
  useEffect(()=>{
-  setActiveDialog(null);setReviewExpanded(false);setSelected('');setReference('');setReviewNote('');setPayerKind('guest');
+  setActiveDialog(null);setSelected('');setReference('');setReviewNote('');setPayerKind('guest');
   setPayerRef('');setAmount('');setEntryId('');setAck(false);setBusy(false);
   setError('');setSuccess('');setRequestKey(crypto.randomUUID());
   setRefundPayment('');setRefundAmount('');setRefundReason('');
@@ -117,6 +120,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   retry:false,
  });
  const data=query.data;
+ busyRef.current=busy;
  const paymentRow=data?.payments.find(p=>p.id===selected);
  const accounted=data?.allocations.filter(a=>a.paymentId===selected)
   .reduce((sum,a)=>sum+a.amountMinor,0)??0;
@@ -141,13 +145,39 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const nextTask=data?.signed?'signed':unconfirmed.length>0?'confirmation'
   :!data?.settlementWorkflowEnabled?'disabled':unverified.length>0?'verification'
   :verifiedUnallocated.length>0?'allocation':data?.canSignOff?'signoff':'review';
+ function openDialog(which:'payment'|'charges'|'review'|'refunds'|'signoff'){
+  dialogOpener.current=document.activeElement instanceof HTMLElement?document.activeElement:null;
+  setActiveDialog(which);
+ }
  function openPaymentReview(){
   if(nextPayment)selectPayment(nextPayment);
-  setReviewExpanded(true);
-  const target=nextTask==='signoff'?'settlement-final-authorization':'settlement-review-workspace';
-  window.setTimeout(()=>document.getElementById(target)
-   ?.scrollIntoView({behavior:'smooth',block:'start'}),0);
+  openDialog(nextTask==='signoff'?'signoff':'review');
  }
+ function closeDialog(){if(!busyRef.current)setActiveDialog(null);}
+ useEffect(()=>{
+  if(!activeDialog)return;
+  const previousOverflow=document.body.style.overflow;
+  document.body.style.overflow='hidden';
+  dialogCloser.current?.focus();
+  const handleKey=(event:KeyboardEvent)=>{
+   if(event.key==='Escape'&&!busyRef.current){setActiveDialog(null);return;}
+   if(event.key!=='Tab')return;
+   const dlg=document.getElementById('settlement-current-dialog');
+   if(!dlg)return;
+   const controls=Array.from(dlg.querySelectorAll<HTMLElement>(
+    'button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),a[href]'
+   ));
+   if(controls.length===0)return;
+   if(event.shiftKey&&document.activeElement===controls[0]){
+    event.preventDefault();controls[controls.length-1].focus();
+   }else if(!event.shiftKey&&document.activeElement===controls[controls.length-1]){
+    event.preventDefault();controls[0].focus();
+   }
+  };
+  document.addEventListener('keydown',handleKey);
+  return()=>{document.removeEventListener('keydown',handleKey);
+   document.body.style.overflow=previousOverflow;dialogOpener.current?.focus();};
+ },[activeDialog]);
 
  const active=()=>!!hotelId&&readSession().hotelId===hotelId;
  async function mutation(path:string,body:Record<string,unknown>,message:string):Promise<boolean>{
@@ -224,11 +254,6 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       ?data.signedSnapshotIntegrity?'Signed':'Integrity review required'
       :data.canSignOff?'Ready for sign-off':'In progress'}</span>
     </div>
-    <div className="checkout-guide-steps" aria-label="Checkout stages">
-     <div><strong>1. Collect</strong><small>Cash or payment evidence</small></div>
-     <div><strong>2. Verify & apply</strong><small>Independent review and allocation</small></div>
-     <div><strong>3. Authorize</strong><small>Final folio sign-off before checkout</small></div>
-    </div>
     {!data.signed&&<div className="checkout-guide-next">
      <span className="rr-eyebrow">YOUR NEXT ACTION</span>
      {nextTask==='disabled'?<>
@@ -260,14 +285,14 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
          :nextTask==='signoff'?'Open final authorization':'Continue manager review'}
        </button>
        :<button type="button" className="btn-primary" disabled={busy}
-        onClick={()=>setActiveDialog('payment')}><Banknote size={16}/> Record payment</button>}
+        onClick={()=>openDialog('payment')}><Banknote size={16}/> Record payment</button>}
       {manager&&data.remainingMinor>0&&nextTask!=='disabled'&&
        <button type="button" className="rr-secondary-action"
-        onClick={()=>setActiveDialog('payment')}><Banknote size={15}/> Record another payment</button>}
+        onClick={()=>openDialog('payment')}><Banknote size={15}/> Record another payment</button>}
       {nextTask==='confirmation'&&!manager&&
        <span className="checkout-guide-review-wait">An authorized manager must confirm the recorded evidence.</span>}
       {manager&&<button type="button" className="btn-inline"
-       onClick={()=>setActiveDialog('charges')}>Add charge or correction</button>}
+       onClick={()=>openDialog('charges')}>Add charge or correction</button>}
      </div>
      {shift.isSuccess&&!shift.data&&<div className="checkout-guide-shift">
       <AlertTriangle size={16}/>
@@ -294,44 +319,21 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
      <ul>{data.blockers.map((blocker,index)=><li key={index}>{blocker}</li>)}</ul>
     </details>}
    </section>
-   <details className="settlement-progress" aria-label="Detailed financial settlement stages">
-    <summary className="settlement-progress-title"><ClipboardCheck size={17}/>
-     <strong>Detailed verification and allocation statuses</strong></summary>
-    <ol>
-     <li><strong>1. Staff confirmation</strong><span>{data.payments.some(p=>p.status==='staff_confirmed')
-      ?'Staff-confirmed payment recorded':'Awaiting a staff-confirmed payment'}</span></li>
-     <li><strong>2. Independent evidence review</strong><span>{data.payments.some(p=>p.status==='staff_confirmed'&&p.verificationStatus==='verified')
-      ?'At least one payment reviewed independently':'No independently reviewed payment yet'}</span></li>
-     <li><strong>3. Payment allocation</strong><span>{data.verifiedAllocatedMinor>0
-      ?money(data.verifiedAllocatedMinor,data.currency)+' allocated to recorded charges'
-      :'No verified funds allocated yet'}</span></li>
-     <li><strong>4. Settlement sign-off</strong><span>{data.signed
-      ?data.signedSnapshotIntegrity?'Signed; snapshot integrity checked':'Signed; integrity review required'
-      :data.canSignOff?'Ready for authorized sign-off':'Not yet eligible for sign-off'}</span></li>
-    </ol>
-    {data.unallocatedVerifiedDepositsMinor>0&&<p role="status" className="settlement-progress-unallocated">
-     <AlertTriangle size={16}/> {money(data.unallocatedVerifiedDepositsMinor,data.currency)}
-     {' '}of verified deposits remains unallocated. These funds are not applied to charges or externally settled.
-    </p>}
-    <p className="desk-muted">Staff confirmation is not bank verification. Internal documentary review is not
-     provider settlement, and allocating a payment does not sign off the guest account.</p>
-   </details>
-
-   {activeDialog&&<div className="billing-modal-backdrop">
-    <section className="billing-action-modal" role="dialog" aria-modal="true"
+   {(activeDialog==='payment'||activeDialog==='charges')&&<div className="billing-modal-backdrop">
+    <section id="settlement-current-dialog" className="billing-action-modal" role="dialog" aria-modal="true"
      aria-label={activeDialog==='payment'?'Record guest payment':'Update guest bill'}>
      <div className="billing-action-modal-header">
       <div><span className="rr-eyebrow">BOOKING {data.reservationReference}</span>
        <h3>{activeDialog==='payment'?'Record guest payment':'Add a charge or correction'}</h3>
        <p>Current recorded difference: {money(data.remainingMinor,data.currency)} · Not a final amount due</p>
       </div>
-      <button type="button" className="billing-modal-dismiss" aria-label="Close dialog" autoFocus
-       onClick={()=>setActiveDialog(null)}><X size={20}/></button>
+      <button type="button" ref={dialogCloser} className="billing-modal-dismiss" aria-label="Close dialog"
+       onClick={closeDialog}><X size={20}/></button>
      </div>
      {activeDialog==='payment'
       ?<RecordGuestPayment key={hotelId+'-payment-'+bookingId} bookingId={bookingId}
         currency={data.currency} signed={data.signed} recordedDifferenceMinor={data.remainingMinor}
-        onDone={()=>{setActiveDialog(null);void query.refetch();}}/>
+        onDone={()=>{closeDialog();void query.refetch();}}/>
       :<BillingActions bookingId={bookingId} signed={data.signed}/>}
     </section>
    </div>}
@@ -442,11 +444,35 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
     <ul>{data.blockers.map((b,i)=><li key={i}>{b}</li>)}</ul>
    </div>}
    </details>
-   {manager&&!data.signed&&<details id="settlement-review-workspace" className="billing-manager-details"
-    open={reviewExpanded?true:undefined}>
-    <summary><div><strong>Advanced settlement tools</strong>
-     <span>Verify allocations, manage refunds and finalize accounts</span></div>
-     <span className="billing-expand-hint">Show tools</span></summary>
+   {manager&&!data.signed&&activeDialog&&['review','refunds','signoff'].includes(activeDialog)&&
+    createPortal(<div className="billing-modal-backdrop settlement-task-backdrop"
+     onMouseDown={event=>{if(event.target===event.currentTarget)closeDialog();}}>
+     <section id="settlement-current-dialog" className="billing-action-modal settlement-task-modal"
+      role="dialog" aria-modal="true" aria-labelledby="settlement-task-title">
+      <div className="billing-action-modal-header">
+       <div><span className="rr-eyebrow">BOOKING {data.reservationReference}</span>
+        <h3 id="settlement-task-title">{activeDialog==='review'?'Review payments'
+         :activeDialog==='refunds'?'Refund requests and evidence':'Final settlement authorization'}</h3>
+        <p>Changes stay subject to independent manager approval and folio safeguards.</p>
+       </div>
+       <button type="button" ref={dialogCloser} className="billing-modal-dismiss"
+        aria-label="Close settlement review" disabled={busy} onClick={closeDialog}><X size={20}/></button>
+      </div>
+      <nav className="settlement-task-tabs" aria-label="Manager finance tasks">
+       <button type="button" disabled={busy} aria-pressed={activeDialog==='review'}
+        className={activeDialog==='review'?'active':''} onClick={()=>setActiveDialog('review')}>
+        Review & allocate</button>
+       <button type="button" disabled={busy} aria-pressed={activeDialog==='refunds'}
+        className={activeDialog==='refunds'?'active':''} onClick={()=>setActiveDialog('refunds')}>
+        Refunds</button>
+       <button type="button" disabled={busy} aria-pressed={activeDialog==='signoff'}
+        className={activeDialog==='signoff'?'active':''} onClick={()=>setActiveDialog('signoff')}>
+        Final sign-off</button>
+      </nav>
+      <div className="settlement-task-modal-body">
+       {success&&<p className="stay-feedback-success" role="status">{success}</p>}
+       {error&&<p className="stay-feedback-error" role="alert"><AlertTriangle size={16}/>{error}</p>}
+       {activeDialog==='review'&&<>
     {!data.settlementWorkflowEnabled&&<div className="night-audit-warning" role="status">
      <AlertTriangle size={18}/>
      Final settlement is not yet enabled for this hotel. A finance administrator must complete the required checks before activating it. You can still review the recorded statement.
@@ -543,6 +569,33 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        </button>
       </>:<p role="alert">Rejected verification cannot be allocated. Manager investigation required.</p>}
     </div>}
+
+   <details className="settlement-progress" aria-label="Detailed financial settlement stages">
+    <summary className="settlement-progress-title"><ClipboardCheck size={17}/>
+     <strong>Detailed verification and allocation statuses</strong></summary>
+    <ol>
+     <li><strong>1. Staff confirmation</strong><span>{data.payments.some(p=>p.status==='staff_confirmed')
+      ?'Staff-confirmed payment recorded':'Awaiting a staff-confirmed payment'}</span></li>
+     <li><strong>2. Independent evidence review</strong><span>{data.payments.some(p=>p.status==='staff_confirmed'&&p.verificationStatus==='verified')
+      ?'At least one payment reviewed independently':'No independently reviewed payment yet'}</span></li>
+     <li><strong>3. Payment allocation</strong><span>{data.verifiedAllocatedMinor>0
+      ?money(data.verifiedAllocatedMinor,data.currency)+' allocated to recorded charges'
+      :'No verified funds allocated yet'}</span></li>
+     <li><strong>4. Settlement sign-off</strong><span>{data.signed
+      ?data.signedSnapshotIntegrity?'Signed; snapshot integrity checked':'Signed; integrity review required'
+      :data.canSignOff?'Ready for authorized sign-off':'Not yet eligible for sign-off'}</span></li>
+    </ol>
+    {data.unallocatedVerifiedDepositsMinor>0&&<p role="status" className="settlement-progress-unallocated">
+     <AlertTriangle size={16}/> {money(data.unallocatedVerifiedDepositsMinor,data.currency)}
+     {' '}of verified deposits remains unallocated. These funds are not applied to charges or externally settled.
+    </p>}
+    <p className="desk-muted">Staff confirmation is not bank verification. Internal documentary review is not
+     provider settlement, and allocating a payment does not sign off the guest account.</p>
+   </details>
+
+
+       </>}
+       {activeDialog==='refunds'&&<>
     <div className="settlement-action-panel">
      <h4>Refunds · reviewed external bank disbursement only</h4>
      <p className="desk-muted">The PMS does NOT send refunds. First request and independently approve a refund of an unallocated bank deposit, then record a bank reference and obtain an independent evidence review.</p>
@@ -631,6 +684,9 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        External refund evidence reviewed · {r.externalReference}. No funds were sent by the PMS.</p>}
      </div>)}
     </div>
+
+       </>}
+       {activeDialog==='signoff'&&<>
     <div className="settlement-signoff" id="settlement-final-authorization">
      <h4>Final settlement authorization</h4>
      <p>Signing freezes the statement and prevents ordinary corrections, new collections, and refund reviews. The booking must be checked in and at or after its departure date.</p>
@@ -644,6 +700,20 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        'Guest folio signed. Checkout may proceed if all stay controls pass.')}>
       <ClipboardCheck size={16}/> Sign final settlement statement
      </button>
+    </div>
+
+       </>}
+      </div>
+     </section>
+    </div>,document.body)}
+   {manager&&!data.signed&&<details className="billing-more-tools">
+    <summary>Additional financial actions</summary>
+    <div className="billing-secondary-actions">
+     <button type="button" className="btn-inline" onClick={()=>openDialog('review')}>
+      <ShieldCheck size={15}/> Review payments & allocation</button>
+     <button type="button" className="btn-inline" onClick={()=>openDialog('refunds')}>Refund requests</button>
+     <button type="button" className="btn-inline" onClick={()=>openDialog('signoff')}>
+      <ClipboardCheck size={15}/> Final authorization</button>
     </div>
    </details>}
    {success&&<p className="stay-feedback-success" role="status">{success}</p>}

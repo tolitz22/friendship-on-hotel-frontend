@@ -60,3 +60,20 @@ test('mobile folio directory avoids horizontal page overflow',async({page})=>{
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
  expect(overflow).toBeLessThanOrEqual(2);
 });
+
+test('unavailable billing list offers safe reservation lookup without fabricated balances',async({page})=>{
+ const email=process.env.PMS_STAGING_ADMIN_EMAIL??process.env.PMS_STAGING_EMAIL;
+ const password=process.env.PMS_STAGING_ADMIN_PASSWORD??process.env.PMS_STAGING_PASSWORD;
+ if(!email||!password)throw Error('Provide dedicated staging account.');
+ await page.route('**/finance/folios**',route=>route.fulfill({
+  status:503,contentType:'application/json',
+  body:JSON.stringify({message:'Account directory unavailable'}),
+ }));
+ await openBilling(page,email,password);
+ await expect(page.getByText('Guest account list is unavailable')).toBeVisible();
+ await expect(page.getByRole('button',{name:'Retry account list'})).toBeVisible();
+ await expect(page.getByText('These are reservation records, not bills.')).toBeVisible();
+ await expect(page.locator('.billing-folio-amount')).toHaveCount(0);
+ await page.getByRole('searchbox',{name:'Search folios'}).fill('12345');
+ await expect(page.getByRole('button',{name:'Open booking #12345'})).toBeVisible();
+});

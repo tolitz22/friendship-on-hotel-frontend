@@ -186,7 +186,7 @@ export function BillingActions({bookingId,signed,mode='full'}:{
         Voided by {payment.voidedByName??'Authorized staff'} · {payment.voidReason??'See audit history'}
        </small>}
       </div>
-      {['pending_review','staff_confirmed'].includes(payment.status)&&
+      {['pending_review','staff_confirmed','rejected'].includes(payment.status)&&
        <button type="button" className="btn-inline" disabled={busy||payment.recordedBy===user?.id}
         onClick={()=>selectVoid(payment.id)}>
         {voidTarget===payment.id?'Cancel correction':'Void mistaken payment'}

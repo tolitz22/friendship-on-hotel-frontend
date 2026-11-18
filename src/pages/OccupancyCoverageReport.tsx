@@ -1,37 +1,31 @@
 import {useEffect,useState} from 'react';
 import {Link} from '@tanstack/react-router';
-import {AlertTriangle,ClipboardList,RefreshCw,ShieldCheck} from 'lucide-react';
+import {AlertTriangle,ArrowRight,CheckCircle2,ClipboardList,Info,RefreshCw,Search} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {useOccupancyCoverageReport} from '../api/occupancyCoverageReport';
 import type {CoverageFilter,CoverageRow} from '../api/occupancyCoverageReport';
+import {readableDate,readableDateTime} from '../lib/format';
 
 const filters:{value:CoverageFilter;label:string}[]=[
  {value:'all',label:'All rooms'},
- {value:'missing',label:'No check assigned'},
- {value:'assigned',label:'Assigned, not observed'},
- {value:'needs_review',label:'Submitted, awaiting review'},
- {value:'mismatch',label:'Mismatch or unknown'},
- {value:'flagged',label:'Flagged for investigation'},
- {value:'verified',label:'Manager verified'},
+ {value:'missing',label:'Not assigned'},
+ {value:'assigned',label:'Not observed'},
+ {value:'needs_review',label:'Needs review'},
+ {value:'mismatch',label:'Mismatches / unclear'},
+ {value:'flagged',label:'Needs investigation'},
+ {value:'verified',label:'Reviewed — matching'},
 ];
-
-function category(row:CoverageRow):string{
- if(row.status==='missing')return 'No check assigned';
- if(row.status==='assigned')return 'Awaiting observation';
- if(row.discrepancy==='unexpected_occupied')return 'Observed occupied · PMS vacant';
- if(row.discrepancy==='expected_occupied_vacant')return 'Observed vacant · PMS occupied';
- if(row.discrepancy==='unverified')return 'Unable to verify';
- if(row.status==='submitted')return 'Observation submitted · review pending';
- if(row.status==='flagged')return 'Flagged for investigation';
- if(row.status==='verified')return 'Reviewed and verified';
- return 'Observation matches PMS';
-}
-function Count({label,value}:{label:string;value:number|string}){
- return <div className="reservation-selection-summary" style={{display:'block'}}>
-  <div><small>{label}</small><strong>{value}</strong></div>
- </div>;
+function statusFor(row:CoverageRow):{label:string;tone:'attention'|'danger'|'success'|'neutral';next:string}{
+ if(row.status==='flagged')return{label:'Investigation needed',tone:'danger',next:'Manager to investigate separately and document the outcome.'};
+ if(row.discrepancy==='unexpected_occupied')return{label:'Observed occupied · PMS vacant',tone:'danger',next:'Privately confirm the registration and physical observation.'};
+ if(row.discrepancy==='expected_occupied_vacant')return{label:'Observed vacant · PMS occupied',tone:'danger',next:'Check guest departure and front-desk registration.'};
+ if(row.discrepancy==='unverified')return{label:'Could not verify',tone:'attention',next:'Arrange a safe follow-up observation.'};
+ if(row.status==='missing')return{label:'No check assigned',tone:'neutral',next:'Manager to assign a check if needed.'};
+ if(row.status==='assigned')return{label:'Waiting for observation',tone:'neutral',next:'Assigned employee should report what can safely be observed.'};
+ if(row.status==='submitted')return{label:'Waiting for manager review',tone:'attention',next:'A different manager must review the saved observation.'};
+ return{label:'Reviewed · matches PMS snapshot',tone:'success',next:'No discrepancy in the original observation. Not proof of live occupancy.'};
 }
 export function OccupancyCoverageReport(){
  const {user,hotelId}=useHotelAuth();
@@ -39,89 +33,93 @@ export function OccupancyCoverageReport(){
  const [page,setPage]=useState(1);
  const [filter,setFilter]=useState<CoverageFilter>('all');
  const [date,setDate]=useState('');
- const [error,setError]=useState('');
+ const [showDetails,setShowDetails]=useState(false);
  const report=useOccupancyCoverageReport(manager,page,filter,date||undefined);
- useEffect(()=>{setPage(1);setFilter('all');setDate('');setError('');},[hotelId]);
+ useEffect(()=>{setPage(1);setFilter('all');setDate('');setShowDetails(false);},[hotelId]);
  const summary=report.data?.summary;
  if(!manager)return <>
-  <Heading title="Occupancy coverage" description="Only property managers can view independent inspection coverage and reports."/>
-  <Panel title="Restricted"><p>Only authorized staff can view this report.</p></Panel>
+  <Heading title="Room occupancy report" description="Independent room checks are available to authorized hotel managers."/>
+  <Panel title="Access restricted"><p>Only an authorized manager can view the hotel's observation reports.</p></Panel>
  </>;
- return <>
-  <Heading title="Independent occupancy coverage"
-   description="Review missing room checks, observed discrepancies and unresolved follow-ups without treating alerts as proof of misconduct."/>
-  <Panel title="Coverage by hotel-local day">
-   <div className="desk-tools">
-    <label>Inspection date (hotel local)
-     <input className="wizard-input" type="date" value={date}
-      max={summary?.hotelDate} onChange={e=>{setDate(e.target.value);setPage(1);setError('');}}/>
+ return <div className="occ-workspace">
+  <div className="occ-page-heading">
+   <div><span className="rr-eyebrow">ROOM OPERATIONS</span>
+    <Heading title="Room occupancy report" description="See which rooms were checked, what differed from the PMS, and what still needs follow-up."/></div>
+   <Link to="/occupancy-verification" className="btn-primary occ-nav-link"><ClipboardList size={16}/> Manage room checks <ArrowRight size={15}/></Link>
+  </div>
+  <div className="occ-guidance"><Info size={17}/><p>This is an <strong>independent physical observation report</strong>, not live occupancy or proof of fraud.
+   Comparisons use the reservation records saved when each observation was made. Missing checks do not mean a room was vacant.</p></div>
+  <section className="occ-report-section">
+   <div className="occ-report-tools">
+    <label>Report date
+     <input className="wizard-input" type="date" value={date} max={summary?.hotelDate}
+      onChange={e=>{setDate(e.target.value);setPage(1);}}/>
     </label>
-    <label>Show rooms
-     <select className="wizard-input" value={filter}
-      onChange={e=>{setFilter(e.target.value as CoverageFilter);setPage(1);}}>
-      {filters.map(item=><option key={item.value} value={item.value}>{item.label}</option>)}
-     </select>
-    </label>
-    <button type="button" className="btn-inline" onClick={()=>void report.refetch()}>
-     <RefreshCw size={16}/> Refresh report</button>
+    <button type="button" className="rr-secondary-action" disabled={report.isFetching}
+     onClick={()=>void report.refetch()}><RefreshCw size={16}/>{report.isFetching?'Refreshing…':'Refresh'}</button>
    </div>
-   <QueryFeedback loading={report.isPending} error={report.error}
-    onRetry={()=>void report.refetch()}/>
+   <QueryFeedback loading={report.isPending} error={report.error} onRetry={()=>void report.refetch()}/>
    {summary&&<>
-    <p className="desk-muted">Inspection date: {summary.inspectionDate} · Rooms in today's catalogue: {summary.roomCount}.
-     Coverage includes assigned checks; observations completed are shown separately.</p>
-    <div className="occupancy-coverage-stats">
-     <Count label="Rooms" value={summary.roomCount}/>
-     <Count label="Checks assigned" value={summary.checked}/>
-     <Count label="Missing checks" value={summary.missing}/>
-     <Count label="Observations completed" value={summary.observed}/>
-     <Count label="Awaiting observation" value={summary.assigned}/>
-     <Count label="Awaiting review" value={summary.submitted}/>
-     <Count label="Flagged" value={summary.flagged}/>
-     <Count label="Verified" value={summary.verified}/>
+    <div className="occ-report-day"><strong>{readableDate(summary.inspectionDate)}</strong>
+     <span>{summary.roomCount} registered rooms in the current room directory</span></div>
+    <div className="occ-report-metrics">
+     <div><small>Total rooms</small><strong>{summary.roomCount}</strong></div>
+     <div><small>Observed</small><strong>{summary.observed}</strong><span>{summary.observationPercent}% of rooms</span></div>
+     <div><small>Manager reviewed</small><strong>{summary.reviewed}</strong><span>Includes flagged investigations</span></div>
+     <div className="occ-attention-metric"><small>Still needs action</small><strong>{summary.unresolved}</strong><span>Unassigned, pending, or flagged</span></div>
     </div>
-    <p className="desk-muted">Assignment coverage {summary.coveragePercent}% · Observation coverage {summary.observationPercent}%.
-     Reported occupied but PMS vacant: <strong>{summary.unexpectedOccupied}</strong>. PMS occupied but observed vacant:
-     <strong> {summary.expectedOccupiedVacant}</strong>. Unable to verify: <strong>{summary.unverified}</strong>.</p>
+    <div className="occ-discrepancy-summary">
+     <AlertTriangle size={18}/><p><strong>{summary.unexpectedOccupied+summary.expectedOccupiedVacant} occupancy mismatches</strong>
+      {' · '}{summary.unverified} observations could not be verified.
+      These require follow-up, not automatic changes to bookings or room status.</p>
+    </div>
+    <div className="occ-report-filters">
+     <div><h3>Room-by-room checks</h3><p>Filter to the cases you want to review.</p></div>
+     <label>Show
+      <select className="wizard-input" value={filter}
+       onChange={e=>{setFilter(e.target.value as CoverageFilter);setPage(1);}}>
+       {filters.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}
+      </select>
+     </label>
+    </div>
+    <p className="occ-list-count">{report.data?.meta.total??0} rooms in this view</p>
+    <div className="occ-report-list">
+     {report.data?.data.map(row=>{
+      const state=statusFor(row);
+      return <article className="occ-report-row" key={row.roomId}>
+       <div className="occ-room-identity"><strong>Room {row.roomNumber}</strong>
+        <small>{row.floor!==null?'Floor '+row.floor:'Floor not recorded'}</small></div>
+       <div><span className={'occ-status occ-'+state.tone}>{state.label}</span>
+        <p>{state.next}</p>
+        {row.status!=='missing'&&<small>Assigned to {row.assignedName??'Employee name unavailable'}
+         {row.observedAt?' · Observed '+readableDateTime(row.observedAt):''}</small>}
+        {row.reviewedAt&&<small>Reviewed by {row.reviewerName??'Employee name unavailable'}
+         {' · '}{readableDateTime(row.reviewedAt)}</small>}
+       </div>
+       <Link to="/occupancy-verification" className="occ-room-link">Open checks <ArrowRight size={15}/></Link>
+      </article>;
+     })}
+    </div>
+    {report.isSuccess&&report.data.data.length===0&&<div className="occ-empty">
+     <Search size={22}/><strong>No rooms in this filter</strong><span>Try another category or report date.</span>
+    </div>}
+    {report.data&&report.data.meta.totalPages>1&&<div className="occ-pages">
+     <span>Page {report.data.meta.page} of {report.data.meta.totalPages}</span>
+     <div><button className="btn-inline" type="button" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>Previous</button>
+      <button className="btn-inline" type="button" disabled={page>=report.data.meta.totalPages}
+       onClick={()=>setPage(p=>p+1)}>Next</button></div>
+    </div>}
+    <button className="occ-method-button" type="button" aria-expanded={showDetails} onClick={()=>setShowDetails(x=>!x)}>
+     <Info size={16}/> {showDetails?'Hide':'Show'} report methodology
+    </button>
+    {showDetails&&<div className="occ-methodology">
+     <p><strong>Assignment coverage:</strong> {summary.checked} assigned ({summary.coveragePercent}%). This does not mean those rooms were observed.</p>
+     <p><strong>Observations:</strong> {summary.observed}. <strong>Reviewed:</strong> {summary.reviewed}.
+      Matching observations: {summary.matching}; flagged investigations: {summary.flagged}.</p>
+     <p>Historical reports use the <strong>current registered-room directory</strong>; rooms added or retired after the selected date can affect historical coverage counts. Recorded observation comparisons are never retroactively recalculated.</p>
+     <p>Staff must follow the property's access and privacy procedures. Do not enter occupied guest rooms without appropriate authorization.</p>
+    </div>}
    </>}
-   <div className="desk-tools">
-    <strong>{report.data?.meta.total??0} rooms in selected filter</strong>
-    <Link className="btn-inline" to="/occupancy-verification"><ClipboardList size={15}/> Assign checks and review reports</Link>
-   </div>
-   {report.isSuccess&&report.data.data.length===0&&
-    <p role="status">No rooms match the selected date and filter.</p>}
-   <div className="occupancy-coverage-rows">
-    {report.data?.data.map(room=><article key={room.roomId} className="ex-record">
-     <div className="desk-tools">
-      <strong>Room {room.roomNumber} {room.floor!==null?'· Floor '+room.floor:''}</strong>
-      <span>{room.status.replaceAll('_',' ')}</span>
-     </div>
-     <p><strong>{category(room)}</strong></p>
-     {room.verificationId&&<p className="desk-muted">
-      Verification #{room.verificationId} · Assigned staff #{room.assignedUserId??'—'}
-      {room.observedBy?' · Observed by #'+room.observedBy:''}
-      {room.reviewedBy?' · Reviewed by #'+room.reviewedBy:''}
-     </p>}
-     {room.discrepancy&&<p className="desk-muted">
-      Observed: {room.observedOccupancy??'not submitted'} · PMS record: {room.expectedOccupancy??'not recorded'}
-     </p>}
-    </article>)}
-   </div>
-   {report.data&&<div className="desk-tools">
-    <span>Page {report.data.meta.page} of {Math.max(1,report.data.meta.totalPages)}</span>
-    <div className="desk-date-nav">
-     <button className="btn-inline" type="button" disabled={page<=1}
-      onClick={()=>setPage(p=>p-1)}>Previous</button>
-     <button className="btn-inline" type="button"
-      disabled={page>=report.data.meta.totalPages}
-      onClick={()=>setPage(p=>p+1)}>Next</button>
-    </div>
-   </div>}
-   {error&&<p role="alert">{error}</p>}
-  </Panel>
-  <p className="desk-preview-note"><AlertTriangle size={16}/>
-   Missing checks do not mean vacant rooms. Observations reflect their original inspection-time PMS snapshot,
-   not subsequent booking changes. A flagged discrepancy requires an independent investigation; it is not proof of fraud.
-   <ShieldCheck size={16}/> This report is manager-only and does not modify bookings or payments.</p>
- </>;
+  </section>
+ </div>;
 }

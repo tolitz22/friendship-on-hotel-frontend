@@ -320,7 +320,8 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
      </div>
      {activeDialog==='payment'
       ?<RecordGuestPayment key={hotelId+'-payment-'+bookingId} bookingId={bookingId}
-        currency={data.currency} signed={data.signed} recordedDifferenceMinor={data.remainingMinor}/>
+        currency={data.currency} signed={data.signed} recordedDifferenceMinor={data.remainingMinor}
+        onDone={()=>{setActiveDialog(null);void query.refetch();}}/>
       :<BillingActions bookingId={bookingId} signed={data.signed}/>}
     </section>
    </div>}

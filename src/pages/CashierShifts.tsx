@@ -1,7 +1,7 @@
 import {useEffect,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {AlertTriangle,ArrowRight,Banknote,CheckCircle2,Clock3,History,Info,RefreshCw,Wallet,X} from 'lucide-react';
-import {Link} from '@tanstack/react-router';
+import {Link,useSearch} from '@tanstack/react-router';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
@@ -144,6 +144,8 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
 
 export function CashierShifts(){
  const {hotelId,user}=useHotelAuth();
+ const context=useSearch({from:'/cashier-shifts'});
+ const originBooking=context.hotel&&context.hotel!==hotelId?undefined:context.booking;
  const role=user?.hotels.find(h=>h.id===hotelId)?.role;
  const manager=role==='admin';
  const allowed=manager||role==='front_desk';
@@ -161,6 +163,7 @@ export function CashierShifts(){
  const shifts=useCashierShifts(allowed,page,status==='all'?undefined:status as CashierShift['status']);
  const ownOpenShift=useCurrentCashierShift(allowed);
  const ownPendingShifts=useCashierShifts(allowed&&!manager,1,'submitted');
+ const managerReviewQueue=useCashierShifts(manager,1,'submitted');
  const active=ownOpenShift.data??null;
  const refresh=()=>hotelId&&Promise.all([
   client.invalidateQueries({queryKey:['live','cashier-shifts',hotelId]}),
@@ -173,11 +176,20 @@ export function CashierShifts(){
   catch(e){setError(e instanceof Error?e.message:'Unable to open shift.');}
   finally{setOpenBusy(false);}
  }
+ if(context.hotel&&context.hotel!==hotelId)return <Panel title="Select the original property">
+  <p role="alert">This drawer link belongs to another hotel. Select the original property before continuing.</p>
+ </Panel>;
  if(!allowed)return <><Heading title="Cashier shifts" description="Only active receptionists and hotel managers can view cashier records."/>
   <Panel title="Restricted"><p>Only staff with cashier permissions for this hotel can access this page.</p></Panel></>;
  return <>
   <div className="cashier-page-heading"><span className="rr-eyebrow">CASH OPERATIONS</span>
    <Heading title="Cashier shifts" description="Track your cash drawer, collect guest payments, and finish your shift securely."/></div>
+  {originBooking&&<div className="checkout-return-context">
+   <div><strong>Returning to a guest payment</strong>
+    <p>After opening your drawer, continue the original guest bill. Your current hotel and booking are preserved.</p></div>
+   <Link className="btn-primary" to="/billing" search={{booking:originBooking}}>
+    Return to guest bill <ArrowRight size={16}/></Link>
+  </div>}
   <section className="cashier-drawer-panel" aria-label="My cash drawer"><div className="cashier-panel-heading">
    <div><h2>My cash drawer</h2><p>One shift per cashier. Opening cash is the money already in your drawer for giving change.</p></div>
    <button type="button" className="rr-secondary-action" disabled={ownOpenShift.isFetching} onClick={()=>void refresh()}><RefreshCw size={15}/> Refresh</button></div>
@@ -207,6 +219,26 @@ export function CashierShifts(){
    {message&&<p role="status" className="cashier-feedback-success">{message}</p>}
    {error&&<p className="auth-error" role="alert">{error} Check your shift before trying again.</p>}
   </section>
+  {manager&&<section className="cashier-manager-queue" aria-label="Independent cash reconciliation queue">
+   <div className="cashier-panel-heading">
+    <div><span className="rr-eyebrow">MANAGER · INDEPENDENT REVIEW</span>
+     <h2>Shifts awaiting reconciliation</h2>
+     <p>Review receipt confirmations and the physical count before reconciling.
+      The cashier cannot approve their own shift.</p></div>
+    <button type="button" className="rr-secondary-action" disabled={managerReviewQueue.isFetching}
+     onClick={()=>void managerReviewQueue.refetch()}><RefreshCw size={15}/> Refresh queue</button>
+   </div>
+   <QueryFeedback loading={managerReviewQueue.isPending} error={managerReviewQueue.error}
+    onRetry={()=>void managerReviewQueue.refetch()}/>
+   {managerReviewQueue.data?.data.length===0&&<p className="cashier-queue-empty">
+    <CheckCircle2 size={16}/> No submitted shifts are awaiting your review.</p>}
+   {managerReviewQueue.data?.data.filter(shift=>shift.cashierId!==user?.id).map(shift=>
+    <ShiftRow key={'manager-'+shift.id} shift={shift} manager ownShift={false}
+     onChange={()=>void refresh()}/>)}
+   {managerReviewQueue.data&&managerReviewQueue.data.meta.totalPages>1&&
+    <p className="desk-muted">Showing the first {managerReviewQueue.data.data.length} submitted shifts.
+     Open shift history for additional pages.</p>}
+  </section>}
   <details className="cashier-history-disclosure">
    <summary><span><History size={18}/><strong>{manager?'Review other shifts and history':'Previous cashier shifts'}</strong></span>
     <small>Open shift history</small></summary>

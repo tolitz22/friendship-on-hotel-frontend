@@ -294,10 +294,15 @@ function GroupAllotmentsPanel({hotelId,onConvert}:{hotelId:string;onConvert:(hol
  </section>;
 }
 
-function GroupDetails({id,billingOpen=false}:{id:string;billingOpen?:boolean}){
+function GroupDetails({id,billingOpen=false,originHotel}:{id:string;billingOpen?:boolean;originHotel?:string}){
  const {hotelId}=useHotelAuth();
- const details=useGroupBooking(id);
+ const mismatch=!!originHotel&&originHotel!==hotelId;
+ const details=useGroupBooking(mismatch?null:id);
  const group=details.data;
+ if(mismatch)return <Panel title="Select the original property">
+  <p role="alert">This group booking link belongs to another hotel. Select that hotel in the property selector to open the original group safely.</p>
+  <Link to="/group-reservations" search={{}}>Back to Group Bookings</Link>
+ </Panel>;
  const dates=group?.checkIn&&group?.checkOut
   ?readableDate(group.checkIn)+' – '+readableDate(group.checkOut):'Stay dates unavailable';
  const assigned=group?.rooms.filter(room=>room.roomId!==null).length??0;
@@ -440,7 +445,7 @@ export function GroupReservations(){
   setPending({hotelId,payload});
   void send(payload,hotelId);
  };
- if(search.group)return <GroupDetails id={search.group} billingOpen={search.tab==='billing'}/>;
+ if(search.group)return <GroupDetails id={search.group} billingOpen={search.tab==='billing'} originHotel={search.hotel}/>;
  return <>
   <div className="gb-page">
    <div className="gb-page-header">

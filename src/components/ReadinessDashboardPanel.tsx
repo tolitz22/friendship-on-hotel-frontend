@@ -221,7 +221,7 @@ export function ReadinessDashboardPanel({onFindRoom}:{onFindRoom?:(roomNumber:st
     </div>}
    </section>
    <div className="rh-caution"><Info size={18}/><div><strong>How to interpret these statuses</strong>
-    <p>This report is a point-in-time snapshot. An approved inspection does not reserve the room, establish physical occupancy, or verify guest identity and payment. Laravel rechecks the inspection gate when enabled at check-in.</p></div></div>
+    <p>This report is a point-in-time snapshot. An approved inspection does not reserve the room, establish physical occupancy, or verify guest identity and payment. The check-in process checks current inspection approval when this requirement is enabled.</p></div></div>
   </>}
  </div>;
 }

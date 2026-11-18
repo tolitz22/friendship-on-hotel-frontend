@@ -47,3 +47,15 @@ Do not run this gate against live Railway services **unless the backend and fron
 
 ## Current evidence
 This document records **required acceptance**, not a claim that all scenarios have been run. The previous Phase 43 staging-write suite had a stale direct-cash mutation; Phase 62.5 updates it to the mandatory open-shift cash receipt API with pending-review assertions. Browser mutation tests remain manual and strictly allowlisted.
+
+## Phase 62.6 — Manager Action Center (implementation following QA preparation)
+The existing read-only Operational Exceptions API now includes room-impacting maintenance, submitted room inspections, pending manager occupancy reviews, open/unassigned occupancy investigations, and submitted cashier shifts alongside reservation overlaps, missing assignments and unreviewed payment evidence. These come from hotel-scoped database records, with names, readable dates and direct links to the operational module. The UI is a **work queue**, not a fraud finding, work-order resolution engine, or live reconciliation service.
+
+- The manager dashboard links to the relevant existing screens; completing or investigating any item must happen in the original module with its own permission checks.
+- Only submitted cashier shifts appear in reconciliation items; an open shift is normal daily work, not an exception.
+- Flagged occupancy checks with independently **closed** investigations are excluded from open follow-up. Their original observation remains in occupancy history.
+- Room readiness inspection submissions await an independent manager; editing an older inspection or bypassing blockers is not performed here.
+- This list is a **snapshot**, not a claim that every future or off-system issue has been detected. Source limits reject oversized datasets rather than displaying knowingly incomplete totals.
+- The tests `OperationalExceptionsTest.php`, `operationalExceptions.test.ts`, and `manager-action-center-readonly.pw.ts` cover signals, schema/count consistency, filtering and desktop/mobile read-only navigation. Browser smoke is not a substitute for a real, isolated full-workflow acceptance test.
+
+**Acceptance remains IN PROGRESS** until backend SQLite/MySQL/PostgreSQL test gates, frontend build and unit tests, multi-role read-only browser QA, and separately authorized isolated synthetic write runs are recorded as passing on current commits. Successful Railway deploys alone are not proof. Phase 63 and final settlement/tax activation remain gated.

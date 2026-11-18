@@ -5,8 +5,8 @@ export function messageForQueryError(error:Error):{title:string;action:string}{
  if(error instanceof ApiError){
   if(error.status===404&&/route\s+.*could not be found|route\s+.*not found/i.test(error.message)){
    return {
-    title:'The deployed backend is missing this API route',
-    action:'Deploy the latest Laravel main branch and clear cached routes. Confirm VITE_API_URL points to that backend, then refresh.',
+    title:'This page is temporarily unavailable',
+    action:'Please try again later. If the problem continues, contact your hotel administrator.',
    };
   }
   if(error.status===401||error.status===419)return{
@@ -22,11 +22,11 @@ export function messageForQueryError(error:Error):{title:string;action:string}{
    action:'Reload current records before attempting an operation.',
   };
   if(error.status===0)return{
-   title:'Unable to connect to the hotel server',
-   action:'Check your connection or API configuration, then retry.',
+   title:'Unable to connect to the hotel system',
+   action:'Check your internet connection and try again. If the issue continues, contact your hotel administrator.',
   };
   if(error.status>=500)return{
-   title:'Hotel server unavailable',
+   title:'Hotel service temporarily unavailable',
    action:'Try again. If the problem continues, contact your administrator.',
   };
  }
@@ -53,7 +53,7 @@ export function QueryFeedback({
    <div className="feedback-content">
     <strong>{title}</strong>
     <span>{action}</span>
-    <small>{error.message}</small>
+
    </div>
    {onRetry&&<button type="button" onClick={onRetry}>Retry</button>}
   </div>;

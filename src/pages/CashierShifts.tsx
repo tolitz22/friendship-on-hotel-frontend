@@ -166,6 +166,7 @@ export function CashierShifts(){
  const ownOpenShift=useCurrentCashierShift(allowed);
  const ownPendingShifts=useCashierShifts(allowed&&!manager,1,'submitted');
  const managerReviewQueue=useCashierShifts(manager,1,'submitted');
+ const linkedShift=useCashierShiftDetails(allowed&&!!context.shift,context.shift??'');
  const active=ownOpenShift.data??null;
  const refresh=()=>hotelId&&Promise.all([
   client.invalidateQueries({queryKey:['live','cashier-shifts',hotelId]}),
@@ -192,6 +193,23 @@ export function CashierShifts(){
    <Link className="btn-primary" to="/billing" search={{booking:originBooking}}>
     Return to guest bill <ArrowRight size={16}/></Link>
   </div>}
+  {context.shift&&<section className="cashier-linked-task" aria-label="Payment-linked cashier shift">
+   <div className="cashier-linked-title">
+    <div><span className="rr-eyebrow">FROM GUEST BILLING</span>
+     <h2>Cash shift #{context.shift}</h2>
+     <p>This is the cash drawer linked to the guest's recorded payment. Review this shift; do not record the payment again.</p>
+    </div>
+   </div>
+   <QueryFeedback loading={linkedShift.isPending} error={linkedShift.error}
+    onRetry={()=>void linkedShift.refetch()}/>
+   {linkedShift.data&&linkedShift.data.id!==active?.id&&
+    <ShiftRow shift={linkedShift.data} manager={manager}
+     ownShift={linkedShift.data.cashierId===user?.id} onChange={()=>void refresh()}/>}
+   {linkedShift.data&&linkedShift.data.id===active?.id&&
+    <p className="cashier-linked-own">This is your open cash shift. Use <strong>Count cash and submit shift</strong> below when your shift is finished.</p>}
+   {linkedShift.data&&linkedShift.data.status==='open'&&linkedShift.data.cashierId!==user?.id&&
+    <p className="cashier-linked-wait">Waiting for the assigned cashier to count and submit this shift. No manager can reconcile an open shift yet.</p>}
+  </section>}
   <section className="cashier-journey" aria-label="Cashier shift process">
    <div><span>1</span><strong>Open shift</strong><small>{active?'Your drawer is open':'Start your own cash drawer'}</small></div>
    <div><span>2</span><strong>Record receipts</strong><small>{active
@@ -243,7 +261,8 @@ export function CashierShifts(){
    {managerReviewQueue.data?.data.filter(shift=>shift.cashierId!==user?.id).length===0&&
     <p className="cashier-queue-empty"><CheckCircle2 size={16}/>
      No eligible submitted shifts to review. Your own submitted shift requires another manager.</p>}
-   {managerReviewQueue.data?.data.filter(shift=>shift.cashierId!==user?.id).map(shift=>
+   {managerReviewQueue.data?.data.filter(shift=>shift.cashierId!==user?.id
+    &&shift.id!==linkedShift.data?.id).map(shift=>
     <ShiftRow key={'manager-'+shift.id} shift={shift} manager ownShift={false}
      onChange={()=>void refresh()}/>)}
    {managerReviewQueue.data&&managerReviewQueue.data.meta.totalPages>1&&

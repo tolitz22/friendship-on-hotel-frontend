@@ -1,0 +1,39 @@
+.settlement-page{margin-top:1.25rem;display:grid;gap:1rem}
+.settlement-page h3,.settlement-page h4{margin:.45rem 0}
+.settlement-print-area{background:var(--surface,#fff);border:1px solid var(--border,#d7dce2);border-radius:16px;padding:1.35rem;display:grid;gap:.65rem;color:var(--text,#1c2938)}
+.settlement-heading{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;border-bottom:1px solid #d6dde5;padding-bottom:1rem}
+.settlement-heading h3{font-size:1.35rem;margin:.25rem 0}
+.settlement-heading p{margin:.2rem 0}
+.settlement-status{font-size:.8rem;letter-spacing:.04em;align-self:start}
+.settlement-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:.65rem}
+.settlement-metric{border:1px solid #d6dde5;border-radius:9px;padding:.65rem;display:grid;gap:.2rem;min-width:0}
+.settlement-metric small{opacity:.76}.settlement-metric strong{font-size:1rem;overflow-wrap:anywhere}
+.settlement-table{width:100%;border-collapse:collapse;font-size:.9rem}
+.settlement-table th,.settlement-table td{text-align:left;padding:.5rem .4rem;border-bottom:1px solid #d6dde5;vertical-align:top}
+.settlement-table th:last-child,.settlement-table td:last-child{text-align:right}
+.settlement-table small{opacity:.65;display:block}
+.settlement-signature{border-top:1px solid #d6dde5;margin-top:.5rem;padding-top:.8rem}
+.settlement-signature small{font-size:.75rem;line-height:1.5;display:block;opacity:.85}
+.settlement-tools,.settlement-controls{justify-content:space-between}
+.settlement-payment-choice{display:flex;flex-wrap:wrap;gap:.45rem}
+.settlement-action-panel,.settlement-signoff{padding:1rem;border:1px solid #d6dde5;border-radius:12px;display:grid;gap:.8rem}
+.settlement-action-panel label{display:grid;gap:.35rem}
+.settlement-action-panel .desk-tools{align-items:end}
+@media print{
+ @page{size:A4;margin:13mm}
+ body:has(.settlement-print-area) *{visibility:hidden!important}
+ body:has(.settlement-print-area) .settlement-print-area,
+ body:has(.settlement-print-area) .settlement-print-area *{visibility:visible!important}
+ body:has(.settlement-print-area) .settlement-print-area{
+  position:absolute;top:0;left:0;width:100%;box-sizing:border-box;
+  border:none;border-radius:0;box-shadow:none;padding:0;display:block;
+  color:#000!important;background:#fff!important;font-family:Arial,sans-serif;
+ }
+ .settlement-print-area .settlement-heading{display:flex}
+ .settlement-print-area .settlement-metrics{display:grid;grid-template-columns:repeat(3,1fr);margin:.75rem 0}
+ .settlement-print-area .settlement-metric{break-inside:avoid}
+ .settlement-print-area h4{break-after:avoid;margin:1.1rem 0 .3rem}
+ .settlement-print-area table{width:100%;border-collapse:collapse}
+ .settlement-print-area tr{break-inside:avoid}
+ .settlement-print-area small{color:#444!important}
+}

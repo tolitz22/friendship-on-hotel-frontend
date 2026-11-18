@@ -1389,3 +1389,27 @@
 .ov-action-card,.ov-queue-card{min-height:76px}
 @media(hover:none){.ov-action-card:hover,.ov-queue-card:hover,.ov-action-primary:hover{transform:none;box-shadow:none}}
 @media(max-width:630px){.ov-section-heading{align-items:flex-start}.ov-section-heading>.ov-text-button{align-self:center}.ov-queue-card{min-height:94px}.ov-action-card{min-height:76px}.ov-hero-aside strong{overflow-wrap:anywhere}}
+
+/* Reservations refinement — clear filter/search affordances and operational cards */
+.reservation-search-control{position:relative;max-width:520px;width:100%}
+.reservation-search-control .search-box{padding-right:42px;max-width:none}
+.reservation-search-control .search-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 13%,transparent)}
+.reservation-search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:29px;height:29px;padding:0;border:0;border-radius:7px;background:transparent;color:var(--muted)}
+.reservation-search-clear:hover{background:var(--canvas);color:var(--text)}
+.reservation-results-strip{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;min-height:32px;margin:14px 0 8px;font-size:12px;color:var(--muted)}
+.reservation-results-strip>span{font-weight:600;font-variant-numeric:tabular-nums}
+.reservation-reset-filters{display:inline-flex;align-items:center;gap:6px;background:transparent;border:0;border-radius:7px;color:var(--accent);padding:7px 9px;font-size:12px;font-weight:700}
+.reservation-reset-filters:hover{background:color-mix(in srgb,var(--accent) 9%,var(--surface))}
+.reservation-manage-card{transition:border-color .15s,box-shadow .15s}
+.reservation-manage-card:hover{border-color:color-mix(in srgb,var(--accent) 37%,var(--border));box-shadow:0 4px 18px #00000006}
+.reservation-manage-heading>div{min-width:0}
+.reservation-manage-heading strong,.reservation-manage-heading small{overflow-wrap:anywhere}
+.reservation-manage-heading .status{flex-shrink:0}
+.reservation-manage-facts span{min-width:0;overflow-wrap:anywhere}
+.reservation-manage-action .btn-primary{min-height:41px}
+.reservation-pagination{gap:12px;flex-wrap:wrap}
+.reservation-preview-stale{display:flex;align-items:center;gap:9px;padding:12px 14px;border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:9px;background:var(--canvas);font-size:12px;color:var(--muted);line-height:1.6}
+.reservation-preview-stale svg{flex-shrink:0;color:var(--accent)}
+@media(max-width:720px){.reservation-manage-heading{flex-wrap:wrap}.reservation-manage-heading>div{flex-basis:100%}.reservation-results-strip{align-items:flex-start}.reservation-filter-layout .search-box{max-width:none}.reservation-search-control{max-width:none}.reservation-manage-card{gap:13px}.reservation-manage-action small{text-align:left}}
+@media(max-width:460px){.reservation-workspace-bar .view-switch{width:100%;display:flex}.reservation-workspace-bar .view-switch button{flex:1;min-width:0;justify-content:center;padding:9px}.reservation-manage-facts{display:grid;gap:9px}.reservation-manage-facts span{align-items:flex-start}.reservation-manage-facts span svg{flex-shrink:0}.reservation-reset-filters{padding-left:0}.reservation-filter-tabs button{padding:10px 7px}}
+@media(prefers-reduced-motion:reduce){.reservation-manage-card{transition:none}}

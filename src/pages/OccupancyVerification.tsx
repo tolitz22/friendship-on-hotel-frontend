@@ -10,9 +10,13 @@ import {useLiveRooms} from '../api/liveCatalogQueries';
 import {listHotelStaff} from '../api/liveStaff';
 import {assignOccupancy,observeOccupancy,reviewOccupancy,occupancyHistory,useOccupancyVerifications} from '../api/occupancyVerifications';
 import type {OccupancyVerification} from '../api/occupancyVerifications';
+import {readableDate,readableDateTime,statusLabel} from '../lib/format';
+import {auditActorName} from '../components/ReadableAuditEvent';
 
 function CheckCard({check,manager,onChanged}:{check:OccupancyVerification;manager:boolean;onChanged:()=>void}){
- const {hotelId}=useHotelAuth();
+ const {hotelId,user}=useHotelAuth();
+ const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:manager&&!!hotelId});
+ const actor=(id:string,name?:string|null)=>auditActorName(id,name??staff.data?.data.find(m=>m.userId===id)?.name,user?.id,user?.name);
  const [observed,setObserved]=useState<'occupied'|'vacant'|'unknown'>('unknown');
  const [note,setNote]=useState('');
  const [busy,setBusy]=useState(false);
@@ -36,8 +40,8 @@ function CheckCard({check,manager,onChanged}:{check:OccupancyVerification;manage
   finally{setBusy(false);}
  }
  return <article className="ex-record">
-  <div className="desk-tools"><strong>Room {check.roomNumber} · {check.inspectionDate}</strong>
-   <span>{check.status.replaceAll('_',' ')} · Verifier #{check.assignedUserId}</span></div>
+  <div className="desk-tools"><strong>Room {check.roomNumber} · {readableDate(check.inspectionDate)}</strong>
+   <span>{check.status.replaceAll('_',' ')} · Verifier: {actor(check.assignedUserId)}</span></div>
   {check.status==='assigned'&&<p>Awaiting independent room observation. This does not require entering an occupied guest room.</p>}
   {check.status!=='assigned'&&<>
    <p><strong>Observed:</strong> {check.observedOccupancy} · <strong>Registered PMS state:</strong> {check.expectedOccupancy}</p>
@@ -73,9 +77,22 @@ function CheckCard({check,manager,onChanged}:{check:OccupancyVerification;manage
   <button type="button" className="btn-inline" aria-expanded={showHistory}
    onClick={()=>setShowHistory(v=>!v)}>Show {showHistory?'less':'more'} audit history</button>
   {showHistory&&<div><QueryFeedback loading={history.isPending} error={history.error}/>
-   {history.data?.data.map((event:{id:string;event:string;actorId:string;createdAt:string})=><p key={event.id} className="desk-muted">
-    {event.event} · Staff #{event.actorId} · {event.createdAt}
-   </p>)}</div>}
+   {history.data?.data.map(event=>{
+    const details=event.details&&typeof event.details==='object'&&!Array.isArray(event.details)
+     ?event.details as Record<string,unknown>:null;
+    const titles:Record<string,string>={assigned:'Assigned room occupancy check',observed:'Recorded physical room observation',
+     reviewed:'Manager reviewed room observation'};
+    const note=typeof details?.note==='string'?details.note:null;
+    return <article key={event.id} className="readable-audit-event">
+     <strong>{titles[event.event]??statusLabel(event.event)}</strong>
+     <p className="readable-audit-context">{actor(event.actorId,event.actorName)} · {readableDateTime(event.createdAt)}</p>
+     {note&&<p className="readable-audit-note"><strong>Observation or decision note:</strong> {note}</p>}
+     {typeof details?.observedOccupancy==='string'&&<p className="readable-audit-context">
+      Observed: {statusLabel(details.observedOccupancy)}</p>}
+     {typeof details?.decision==='string'&&<p className="readable-audit-context">
+      Decision: {statusLabel(details.decision)}</p>}
+    </article>;
+   })}</div>}
   {error&&<p role="alert" className="auth-error">{error}</p>}
   {message&&<p role="status">{message}</p>}
  </article>;

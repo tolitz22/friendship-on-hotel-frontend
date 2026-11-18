@@ -354,7 +354,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       :operationalDescription}</p>
      {!data.signed&&<div className="frontdesk-payment-primary">
       {canSubmitOwnCount||canReviewShift||needsCashInvestigation
-       ?<Link to="/cashier-shifts" search={{booking:bookingId,hotel:hotelId??undefined}}
+       ?<Link to="/cashier-shifts" search={{booking:bookingId,hotel:hotelId??undefined,shift:handoff?.cashShiftId??undefined}}
          className="btn-primary">{operationalAction}<ArrowRight size={16}/></Link>
        :actionIsWaiting||nextTask==='disabled'&&hasExistingMoney
        ?<div className="frontdesk-payment-waiting">
@@ -397,7 +397,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        {handoff?.cashierName&&<small>Cashier: {handoff.cashierName}</small>}
        {handoff?.reconciledByName&&<small>Reconciled by: {handoff.reconciledByName}</small>}
       </div>
-      <Link to="/cashier-shifts" search={{booking:bookingId,hotel:hotelId??undefined}}>
+      <Link to="/cashier-shifts" search={{booking:bookingId,hotel:hotelId??undefined,shift:handoff?.cashShiftId??undefined}}>
        Open cashier shifts <ArrowRight size={14}/></Link>
      </div>}
      {data.blockers.length>0&&<div className="frontdesk-payment-checks">
@@ -613,7 +613,8 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
         Use the actual reconciled shift reference in the form <code>shift-123</code>
         (replace 123 with its cashier shift ID). The same payment's cash receipt must
         belong to that reconciled shift.
-        {' '}<Link to="/cashier-shifts" search={{booking:bookingId,hotel:hotelId??undefined}}>
+        {' '}<Link to="/cashier-shifts" search={{booking:bookingId,hotel:hotelId??undefined,
+         shift:data.cashShiftContexts.find(row=>row.paymentId===paymentRow.id)?.cashShiftId??undefined}}>
          Open cashier shifts <ArrowRight size={13}/></Link>
        </p>}
        <button type="button" className="btn-primary"

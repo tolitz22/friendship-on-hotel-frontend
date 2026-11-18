@@ -13,7 +13,9 @@ const rowSchema=z.object({
  discrepancy:z.enum(['unverified','match','unexpected_occupied','expected_occupied_vacant']).nullable(),
  expectedOccupancy:z.enum(['occupied','vacant']).nullable(),
  observedOccupancy:z.enum(['occupied','vacant','unknown']).nullable(),
- assignedUserId:id.nullable(),observedBy:id.nullable(),reviewedBy:id.nullable(),
+ assignedUserId:id.nullable(),assignedName:z.string().nullable().optional(),
+ observedBy:id.nullable(),observerName:z.string().nullable().optional(),
+ reviewedBy:id.nullable(),reviewerName:z.string().nullable().optional(),
  observedAt:z.string().nullable(),reviewedAt:z.string().nullable(),
 });
 const summarySchema=z.object({
@@ -22,10 +24,11 @@ const summarySchema=z.object({
  assigned:z.number().int().nonnegative(),submitted:z.number().int().nonnegative(),
  verified:z.number().int().nonnegative(),flagged:z.number().int().nonnegative(),
  observed:z.number().int().nonnegative(),checked:z.number().int().nonnegative(),
+ reviewed:z.number().int().nonnegative(),unresolved:z.number().int().nonnegative(),
  unexpectedOccupied:z.number().int().nonnegative(),expectedOccupiedVacant:z.number().int().nonnegative(),
  unverified:z.number().int().nonnegative(),matching:z.number().int().nonnegative(),
  coveragePercent:z.number().min(0).max(100),observationPercent:z.number().min(0).max(100),
- historicalSnapshotOnly:z.literal(true),
+ historicalSnapshotOnly:z.literal(true),roomCatalogAsOfReportRun:z.literal(true),
 });
 const responseSchema=z.object({
  data:z.array(rowSchema),summary:summarySchema,
@@ -42,6 +45,8 @@ export function parseCoverageReport(value:unknown,hotelId:string,filter:Coverage
  if(date&&result.summary.inspectionDate!==date)throw new Error('Occupancy coverage returned a different inspection date.');
  if(result.summary.checked+result.summary.missing!==result.summary.roomCount
   ||result.summary.observed!==result.summary.submitted+result.summary.verified+result.summary.flagged
+  ||result.summary.reviewed!==result.summary.verified+result.summary.flagged
+  ||result.summary.unresolved!==result.summary.missing+result.summary.assigned+result.summary.submitted+result.summary.flagged
   ||result.data.some(row=>row.status==='missing'&&row.verificationId!==null))
   throw new Error('The occupancy coverage totals are inconsistent.');
  return result;

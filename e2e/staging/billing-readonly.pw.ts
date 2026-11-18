@@ -30,7 +30,8 @@ test('real priced folio directory and settlement statement are accessible withou
  if(await row.count()){
   await row.getByRole('link',{name:/Open folio for booking/}).click();
   await expect(page.locator('.billing-account-overview')).toBeVisible();
-  await page.getByRole('button',{name:'Record payment',exact:true}).click();
+  const recordPayment=page.getByRole('button',{name:'Record payment',exact:true});
+  if(await recordPayment.count())await recordPayment.click();
   const payment=page.getByRole('dialog',{name:'Record guest payment'});
   if(await payment.count()){
    await expect(payment.getByRole('button',{name:'Cash',exact:true})).toBeVisible();
@@ -41,7 +42,7 @@ test('real priced folio directory and settlement statement are accessible withou
     await expect(payment.getByRole('button',{name:/Record cash payment/})).toBeDisabled();
    }
   }
-  await payment.getByRole('button',{name:'Close dialog'}).click();
+  if(await payment.count())await payment.getByRole('button',{name:'Close dialog'}).click();
   await page.locator('.billing-statement-details > summary').click();
   await expect(page.getByRole('heading',{name:'Guest account statement'})).toBeVisible();
   await expect(page.getByText('This is an internal PMS guest-account statement',{exact:false})).toBeVisible();

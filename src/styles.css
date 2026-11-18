@@ -1697,3 +1697,9 @@
 @media(max-width:900px){.hk-work-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.hk-queue-section{padding:14px}.hk-cleaning-grid{grid-template-columns:1fr}.hk-queue-tabs{width:100%}.hk-queue-tabs button{flex:1;padding:10px 6px}.hk-search-field{max-width:none}.hk-queue-head{align-items:flex-start}.hk-page-intro{align-items:flex-start}}
 @media(max-width:430px){.hk-page-intro>.btn-primary{width:100%;justify-content:center}.hk-work-metrics{gap:9px}.hk-work-metrics>div{padding:12px}.hk-work-metrics strong{font-size:26px}.hk-type-filter{flex:1;justify-content:space-between}.hk-filter-controls>*{max-width:none}.hk-search-field{flex:1 1 100%}}
+
+/* Housekeeping task editor — clearer explanation before changing task status */
+.hk-dialog-guide{display:flex;gap:9px;align-items:flex-start;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--canvas);margin:13px 0}
+.hk-dialog-guide>svg{flex:none;color:var(--accent);margin-top:2px}
+.hk-dialog-guide p{font-size:12px;line-height:1.6;color:var(--muted);margin:0}
+.hk-dialog-guide strong{color:var(--text)}

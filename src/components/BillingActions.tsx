@@ -25,7 +25,7 @@ export function BillingActions({bookingId,signed}:{bookingId:string;signed:boole
  const key=useRef(crypto.randomUUID());
  const parsedAmount=parseBillingAmount(amount);
  const change=()=>{key.current=crypto.randomUUID();setConfirm(false);setError('');setNotice('');};
- const canWrite=!!manager&&!signed&&!busy;
+ const canWrite=!!manager&&!signed&&ledger.isSuccess&&!busy;
  const refresh=async()=>{
   await Promise.all([
    client.invalidateQueries({queryKey:['live','folio-ledger',hotelId,bookingId]}),

@@ -17,6 +17,7 @@ import {listHotelStaff} from '../api/liveStaff';
 import {listMaintenance} from '../api/liveMaintenance';
 import {Heading} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
+import {ReadableAuditEvent} from '../components/ReadableAuditEvent';
 
 const taskTypes:HousekeepingType[]=['checkout_clean','stayover','inspection'];
 const taskNames:Record<HousekeepingType,string>={checkout_clean:'Checkout cleaning',stayover:'Stayover service',inspection:'Housekeeping inspection'};
@@ -299,9 +300,9 @@ export function LiveHousekeeping(){
    {selected&&<div className="catalog-audit-section">
     <button type="button" className="btn-inline" onClick={()=>setHistoryOpen(v=>!v)}><History size={16}/>{historyOpen?'Hide':'View'} task history</button>
     {historyOpen&&<><QueryFeedback loading={history.isPending} error={history.error}/>
-     {history.data?.data.map(event=><article className="maintenance-history-event" key={event.id}>
-      <strong>{event.action} · Staff #{event.actorId}</strong><small>{event.createdAt}</small>
-      {event.note&&<p>{event.note}</p>}</article>)}
+     {history.data?.data.map(event=><ReadableAuditEvent key={event.id} event={event}
+      actorName={staff.data?.data.find(member=>member.userId===event.actorId)?.name}
+      currentUserId={user?.id}/>)}
      {history.data&&<div className="guest-pagination">
       <span>Event page {history.data.meta.page} of {Math.max(1,history.data.meta.totalPages)}</span>
       <div><button type="button" className="btn-inline" disabled={historyPage<=1}

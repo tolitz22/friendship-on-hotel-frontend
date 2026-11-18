@@ -1783,3 +1783,9 @@
 .fdc-maint-note svg{color:#c38c2a;flex-shrink:0;margin-top:1px}
 .fdc-guest-room{min-width:0}
 @media(max-width:720px){.fdc-room-signals{max-width:none}.fdc-room-notice{padding:11px 12px}}
+
+/* Cross-workspace room readiness navigation */
+.ops-room-link{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;color:var(--accent);font-size:11px;font-weight:700;text-decoration:none;line-height:1.5}
+.ops-room-link:hover{text-decoration:underline}
+.ops-room-link:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
+.fdc-room-signals .ops-room-link{font-size:10px}

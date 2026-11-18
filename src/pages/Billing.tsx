@@ -44,14 +44,15 @@ function LiveBilling(){
   <Panel title="Access required"><p>Select an authorized hotel and sign in with a billing-enabled staff account.</p></Panel>
  </>;
  return <div className="billing-workspace">
-  <div className="billing-header">
+  {!selectedId&&<div className="billing-header">
    <div><span className="rr-eyebrow">GUEST ACCOUNTS · CASHIERING</span>
     <Heading title="Guest billing" description="Find a guest, review their bill, and manage payments or checkout statements."/></div>
    <div className="billing-header-actions">
     <Link to="/cashier-shifts" className="rr-secondary-action"><Banknote size={16}/> Cashier shifts</Link>
     <Link to="/reservations" className="rr-secondary-action"><ClipboardList size={16}/> Bookings</Link>
    </div>
-  </div>
+  </div>}
+  {!selectedId&&<div className="billing-guidance"><Info size={18}/><p>Review existing payment records before collecting again. A recorded payment is not automatically independently verified.</p></div>}
   {originGroup&&<div className="gb-workflow-notice">
    {originHotel&&originHotel!==hotelId
     ?<strong role="alert">This group link belongs to a different property. Select the original hotel before continuing.</strong>
@@ -64,7 +65,7 @@ function LiveBilling(){
        hotel:originHotel??undefined}}>View group calendar <ArrowRight size={14}/></Link>}
      </div></>}
   </div>}
-  <div className="billing-guidance"><Info size={18}/><p><strong>Before collecting or closing an account:</strong> Check recorded charges and payment reviews. Displayed differences are not final amounts due until finance verifies the account.</p></div>
+
   {!selectedId&&<section className="billing-index" aria-label="Guest folio directory">
    <div className="billing-section-heading">
     <div><span className="rr-eyebrow">GUEST ACCOUNTS</span><h3>Who would you like to bill?</h3>
@@ -144,10 +145,13 @@ function LiveBilling(){
    </>}
   </section>}
   {selectedId?<section className="billing-selected" aria-label="Selected guest folio">
-   <div className="billing-selected-heading">
-    <div><span className="rr-eyebrow">GUEST BILL</span><h3>Review guest charges and payments</h3>
-     <p>Check the recorded amounts first. Use the manager tools only if an update is needed.</p></div>
-    <button type="button" className="rr-secondary-action" onClick={clear}><ArrowRight size={16} style={{transform:'rotate(180deg)'}}/> Back to guest accounts</button>
+   <div className="billing-selected-compact-nav">
+    <button type="button" className="btn-inline" onClick={clear}>
+     <ArrowRight size={15} style={{transform:'rotate(180deg)'}}/> Guest accounts
+    </button>
+    <span>Guest billing</span>
+    <Link to="/cashier-shifts" search={{booking:selectedId,hotel:hotelId??undefined}}
+     className="btn-inline">Cashier shifts <ArrowRight size={14}/></Link>
    </div>
    <SettlementPanel key={hotelId+'-'+selectedId} bookingId={selectedId}/>
   </section>:null}

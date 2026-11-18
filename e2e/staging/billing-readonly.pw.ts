@@ -12,14 +12,14 @@ async function openBilling(page:Page,email:string,password:string,mobile=false){
  if(mobile)await page.getByRole('button',{name:'Open navigation'}).click();
  await page.getByRole('navigation',{name:'Hotel workspace navigation'})
   .getByRole('link',{name:/Billing|Guest folios/i}).click();
- await expect(page.getByRole('heading',{name:'Billing & guest folios'})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Guest billing'})).toBeVisible();
 }
 test('real priced folio directory and settlement statement are accessible without writes',async({page})=>{
  const email=process.env.PMS_STAGING_ADMIN_EMAIL??process.env.PMS_STAGING_EMAIL;
  const password=process.env.PMS_STAGING_ADMIN_PASSWORD??process.env.PMS_STAGING_PASSWORD;
  if(!email||!password)throw Error('Provide dedicated staging finance staff account.');
  await openBilling(page,email,password);
- await expect(page.getByRole('heading',{name:'Find a guest or booking'})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Who would you like to bill?'})).toBeVisible();
  await expect(page.locator('text=Sample folio overview')).toHaveCount(0);
  const search=page.getByRole('searchbox',{name:'Search folios'});
  await search.fill('nonexistent-folio-999891');
@@ -29,10 +29,11 @@ test('real priced folio directory and settlement statement are accessible withou
  const row=page.locator('.billing-folio-row').first();
  if(await row.count()){
   await row.getByRole('link',{name:/Open folio for booking/}).click();
-  await expect(page.getByRole('heading',{name:'Guest folio statement'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Guest account statement'})).toBeVisible();
+  await expect(page.getByRole('region',{name:'Guest account overview'})).toBeVisible();
   await expect(page.getByText('This is an internal PMS guest-account statement',{exact:false})).toBeVisible();
   await page.getByRole('button',{name:'Back to guest accounts'}).click();
-  await expect(page.getByRole('heading',{name:'Guest folio statement'})).toHaveCount(0);
+  await expect(page.getByRole('heading',{name:'Guest account statement'})).toHaveCount(0);
  }
  const sizes=await page.evaluate(()=>[document.documentElement.scrollWidth,document.documentElement.clientWidth]);
  expect(sizes[0]).toBeLessThanOrEqual(sizes[1]+2);
@@ -42,11 +43,11 @@ test('front-desk account can review folios without manager-only financial write 
  const password=process.env.PMS_STAGING_FRONT_DESK_PASSWORD;
  test.skip(!email||!password,'Dedicated reception staging account required.');
  await openBilling(page,email!,password!);
- await expect(page.getByRole('heading',{name:'Find a guest or booking'})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Who would you like to bill?'})).toBeVisible();
  const row=page.locator('.billing-folio-row').first();
  if(await row.count()){
   await row.getByRole('link',{name:/Open folio for booking/}).click();
-  await expect(page.getByRole('heading',{name:'Guest folio statement'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Guest account statement'})).toBeVisible();
   await expect(page.getByRole('region',{name:'Manager folio actions'})).toHaveCount(0);
  }
 });

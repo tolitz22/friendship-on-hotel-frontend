@@ -177,6 +177,28 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       :<><ShieldCheck size={19}/><p><strong>Review before checkout.</strong> These amounts reflect saved records, not proof of bank settlement or a final payable amount.</p></>}
     </div>
    </div>
+   <section className="settlement-progress" aria-label="Financial settlement stages">
+    <div className="settlement-progress-title"><ClipboardCheck size={17}/>
+     <strong>Payment and checkout progress</strong></div>
+    <ol>
+     <li><strong>1. Staff confirmation</strong><span>{data.payments.some(p=>p.status==='staff_confirmed')
+      ?'Staff-confirmed payment recorded':'Awaiting a staff-confirmed payment'}</span></li>
+     <li><strong>2. Independent evidence review</strong><span>{data.payments.some(p=>p.status==='staff_confirmed'&&p.verificationStatus==='verified')
+      ?'At least one payment reviewed independently':'No independently reviewed payment yet'}</span></li>
+     <li><strong>3. Payment allocation</strong><span>{data.verifiedAllocatedMinor>0
+      ?money(data.verifiedAllocatedMinor,data.currency)+' allocated to recorded charges'
+      :'No verified funds allocated yet'}</span></li>
+     <li><strong>4. Settlement sign-off</strong><span>{data.signed
+      ?data.signedSnapshotIntegrity?'Signed; snapshot integrity checked':'Signed; integrity review required'
+      :data.canSignOff?'Ready for authorized sign-off':'Not yet eligible for sign-off'}</span></li>
+    </ol>
+    {data.unallocatedVerifiedDepositsMinor>0&&<p role="status" className="settlement-progress-unallocated">
+     <AlertTriangle size={16}/> {money(data.unallocatedVerifiedDepositsMinor,data.currency)}
+     {' '}of verified deposits remains unallocated. These funds are not applied to charges or externally settled.
+    </p>}
+    <p className="desk-muted">Staff confirmation is not bank verification. Internal documentary review is not
+     provider settlement, and allocating a payment does not sign off the guest account.</p>
+   </section>
    {!data.signed&&<div className="billing-main-actions" aria-label="Guest bill actions">
     <button type="button" className="btn-primary" onClick={()=>setActiveDialog('payment')}>
      <Banknote size={18}/> Record payment

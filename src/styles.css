@@ -1379,3 +1379,13 @@
 @media(max-width:630px){.ov-page{gap:23px}.ov-hero{flex-direction:column;padding:24px 21px}.ov-hero-aside{align-self:stretch;max-width:none;flex-direction:row;align-items:center;flex-wrap:wrap;gap:9px;padding:13px}.ov-hero-aside strong{font-size:13px}.ov-hero-aside small{font-size:9px}.ov-queue-grid{grid-template-columns:1fr}.ov-queue-card{min-height:unset;padding:14px 16px;gap:5px}.ov-queue-card>strong{font-size:26px}.ov-actions-grid{grid-template-columns:1fr}.ov-inventory-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ov-section-heading h3{font-size:17px}}
 @media(max-width:420px){.ov-inventory-grid{grid-template-columns:1fr}.ov-hero-actions>a{width:100%}.ov-bottom-card{padding:16px}}
 @media(prefers-reduced-motion:reduce){.ov-queue-card,.ov-action-card,.ov-action-primary{transition:none}.ov-queue-card:hover,.ov-action-card:hover,.ov-action-primary:hover{transform:none}}
+
+/* Overview polish: conservative loading and touch interactions */
+.ov-skeleton{pointer-events:none}
+.ov-skeleton span,.ov-skeleton strong,.ov-skeleton small{display:block;background:var(--canvas);border-radius:6px}
+.ov-skeleton span{width:46%;height:11px}.ov-skeleton strong{width:29%;height:28px}.ov-skeleton small{width:70%;height:10px}
+.ov-table-loading{padding:26px 8px;font-size:12px;color:var(--muted)}
+.ov-hero a:focus-visible,.ov-action-card:focus-visible,.ov-queue-card:focus-visible,.ov-icon-button:focus-visible,.ov-text-button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.ov-action-card,.ov-queue-card{min-height:76px}
+@media(hover:none){.ov-action-card:hover,.ov-queue-card:hover,.ov-action-primary:hover{transform:none;box-shadow:none}}
+@media(max-width:630px){.ov-section-heading{align-items:flex-start}.ov-section-heading>.ov-text-button{align-self:center}.ov-queue-card{min-height:94px}.ov-action-card{min-height:76px}.ov-hero-aside strong{overflow-wrap:anywhere}}

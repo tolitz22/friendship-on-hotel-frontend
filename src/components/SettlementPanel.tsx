@@ -129,10 +129,12 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const unconfirmed=data?.payments.filter(p=>p.status==='pending_review')??[];
  const unverified=data?.payments.filter(p=>p.status==='staff_confirmed'
   &&p.verificationStatus!=='verified')??[];
- const verifiedUnallocated=data?.payments.filter(p=>p.status==='staff_confirmed'
+ const allocatedByPayment=new Map<string,number>();
+ for(const row of data?.allocations??[])
+  allocatedByPayment.set(row.paymentId,(allocatedByPayment.get(row.paymentId)??0)+row.amountMinor);
+ const verifiedUnallocated=(data?.payments??[]).filter(p=>p.status==='staff_confirmed'
   &&p.verificationStatus==='verified'
-  &&p.amountMinor>(data.allocations.filter(a=>a.paymentId===p.id)
-   .reduce((sum,a)=>sum+a.amountMinor,0)))??[];
+  &&p.amountMinor>(allocatedByPayment.get(p.id)??0));
  const nextPayment=unverified[0]??verifiedUnallocated[0]??null;
  const pendingOtherReviewer=nextPayment?.verificationStatus==='pending'
   &&nextPayment.verificationPreparedBy===user?.id;

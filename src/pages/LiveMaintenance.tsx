@@ -1,5 +1,6 @@
 import {useEffect,useState,type FormEvent} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
+import {Link} from '@tanstack/react-router';
 import {ArrowRight,CheckCircle2,ClipboardList,Clock3,History,Info,Plus,RefreshCcw,Search,ShieldAlert,UserRound,Wrench,X} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {useLiveRooms} from '../api/liveCatalogQueries';
@@ -210,6 +211,7 @@ export function LiveMaintenance(){
       {order.affectsRoom&&<p className="mnt-impact-advisory"><ShieldAlert size={16}/>
        Room affected · check separate room restrictions before booking</p>}
       {order.status==='resolved'&&<p className="mnt-completion-advisory"><CheckCircle2 size={15}/> Repair marked resolved; review before closing.</p>}
+      <Link to="/rooms" search={{room:order.roomNumber}} className="ops-room-link">Check room readiness <ArrowRight size={14}/></Link>
       <button type="button" className="mnt-work-action" onClick={()=>openEdit(order)}>
        {action} <ArrowRight size={16}/></button>
      </article>;

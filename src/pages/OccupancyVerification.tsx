@@ -44,7 +44,7 @@ function CheckCard({check,manager,isCurrentDate,onChanged}:{check:OccupancyVerif
   finally{setBusy(false);}
  }
  const statusText=check.status==='assigned'?'Observation needed':check.status==='submitted'
-  ?'Manager review needed':check.status==='verified'?'Reviewed · matches PMS':'Investigation needed';
+  ?'Manager review needed':check.status==='verified'?'Reviewed · matches PMS':'Flagged observation';
  const mismatch=check.discrepancy==='unexpected_occupied'?'Observed occupied, PMS has no checked-in stay':
   check.discrepancy==='expected_occupied_vacant'?'Observed vacant, PMS has a checked-in stay':
   check.discrepancy==='unverified'?'Could not confirm occupancy':'Observation matches PMS snapshot';

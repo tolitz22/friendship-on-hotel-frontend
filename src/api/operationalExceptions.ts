@@ -11,7 +11,7 @@ const item=z.object({
 });
 const activity=z.object({
  id:positiveId,bookingId:positiveId,reference:z.string(),
- actorId:positiveId,eventType:z.string(),createdAt:z.string(),
+ actorId:positiveId,actorName:z.string().nullable().optional(),eventType:z.string(),createdAt:z.string(),
 });
 const schema=z.object({
  data:z.object({

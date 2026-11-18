@@ -151,8 +151,8 @@ export function LiveRoomCalendar(){
    <div className="lrc-toolbar">
     <div className="lrc-navigation">
      <button type="button" className="btn-inline" onClick={()=>setAnchor(today)}>Today</button>
-     <button type="button" className="btn-inline" aria-label="Previous period" onClick={()=>setAnchor(d=>navigate(d,mode,-1))}><ChevronLeft size={16}/></button>
-     <button type="button" className="btn-inline" aria-label="Next period" onClick={()=>setAnchor(d=>navigate(d,mode,1))}><ChevronRight size={16}/></button>
+     <button type="button" className="btn-inline" aria-label="Previous period" onClick={()=>setAnchor((d:string)=>navigate(d,mode,-1))}><ChevronLeft size={16}/></button>
+     <button type="button" className="btn-inline" aria-label="Next period" onClick={()=>setAnchor((d:string)=>navigate(d,mode,1))}><ChevronRight size={16}/></button>
      <strong aria-live="polite">{periodLabel}</strong>
     </div>
     <div className="lrc-period-controls">

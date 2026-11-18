@@ -1,0 +1,57 @@
+name: Phase 62.5 role-specific staging acceptance (read only)
+
+# This cannot be triggered by a push. It inspects a dedicated staging property
+# using separate staff roles, without collecting cash or changing bookings.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase62-5-staging-readonly
+  cancel-in-progress: false
+
+jobs:
+  browser:
+    name: Hotel manager / front desk / housekeeping smoke
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 25
+    env:
+      PMS_STAGING_URL: ${{ secrets.PMS_STAGING_URL }}
+      PMS_STAGING_READ_ONLY: '1'
+      PMS_STAGING_EMAIL: ${{ secrets.PMS_STAGING_EMAIL }}
+      PMS_STAGING_PASSWORD: ${{ secrets.PMS_STAGING_PASSWORD }}
+      PMS_STAGING_ADMIN_EMAIL: ${{ secrets.PMS_STAGING_ADMIN_EMAIL }}
+      PMS_STAGING_ADMIN_PASSWORD: ${{ secrets.PMS_STAGING_ADMIN_PASSWORD }}
+      PMS_STAGING_FRONT_DESK_EMAIL: ${{ secrets.PMS_STAGING_FRONT_DESK_EMAIL }}
+      PMS_STAGING_FRONT_DESK_PASSWORD: ${{ secrets.PMS_STAGING_FRONT_DESK_PASSWORD }}
+      PMS_STAGING_HOUSEKEEPING_EMAIL: ${{ secrets.PMS_STAGING_HOUSEKEEPING_EMAIL }}
+      PMS_STAGING_HOUSEKEEPING_PASSWORD: ${{ secrets.PMS_STAGING_HOUSEKEEPING_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate dedicated role fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          for key in PMS_STAGING_URL PMS_STAGING_EMAIL PMS_STAGING_PASSWORD \
+                     PMS_STAGING_ADMIN_EMAIL PMS_STAGING_ADMIN_PASSWORD \
+                     PMS_STAGING_FRONT_DESK_EMAIL PMS_STAGING_FRONT_DESK_PASSWORD \
+                     PMS_STAGING_HOUSEKEEPING_EMAIL PMS_STAGING_HOUSEKEEPING_PASSWORD; do
+            if [ -z "${!key:-}" ]; then
+              echo "::error::Missing required staging role secret: $key"
+              exit 1
+            fi
+          done
+          node -e "const u=new URL(process.env.PMS_STAGING_URL); if(u.protocol!=='https:') throw Error('HTTPS staging required');"
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run read-only multi-role acceptance
+        run: npm run test:e2e:staging
+      # No screenshots, traces, or videos; avoid leaking guest information.

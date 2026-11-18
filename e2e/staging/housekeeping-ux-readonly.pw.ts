@@ -33,9 +33,9 @@ test('housekeeping list supports focused task filters and read-only task review'
  await page.getByRole('group',{name:'Task status'}).getByRole('button',{name:'All tasks'}).click();
  const card=page.locator('.hk-cleaning-card').first();
  if(await card.count()){
-  await card.getByRole('button',{name:/task|cleaning/i}).click();
+  await card.locator('.hk-open-task').click();
   await expect(page.getByRole('dialog')).toBeVisible();
-  await expect(page.getByRole('dialog').getByText('A completed task does not automatically approve room readiness.')).toHaveCount(0);
+  await expect(page.getByRole('dialog').getByText('Cleaning record only.')).toBeVisible();
   await page.getByRole('dialog').getByRole('button',{name:'Close',exact:true}).first().click();
  }
  const sizes=await page.evaluate(()=>[document.documentElement.scrollWidth,document.documentElement.clientWidth]);

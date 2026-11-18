@@ -26,7 +26,7 @@ const types:Record<OperationalException['type'],{title:string;area:string;next:s
  cashier_shift_review:{title:'Reconcile a cashier shift',area:'Cashier shifts',next:'Another manager must check the cash count and receipts'},
 };
 function TaskLink({item}:{item:OperationalException}){
- if(item.type==='room_inspection_review')return <Link to="/rooms" search={{}}>Review room readiness <ArrowRight size={15}/></Link>;
+ if(item.type==='room_inspection_review')return <Link to="/rooms" search={{room:item.roomNumber||undefined}}>Review room readiness <ArrowRight size={15}/></Link>;
  if(item.type==='occupancy_review'||item.type==='occupancy_investigation')
   return <Link to="/occupancy-verification" search={{room:item.roomId||undefined,date:item.checkDate||undefined}}>Open room check <ArrowRight size={15}/></Link>;
  if(item.type==='cashier_shift_review')return <Link to="/cashier-shifts">Review cashier shifts <ArrowRight size={15}/></Link>;

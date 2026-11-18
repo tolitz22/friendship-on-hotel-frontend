@@ -1,5 +1,6 @@
 import {describe,expect,it} from 'vitest';
-import {cashEventDetails,describeAuditChanges} from './ReadableAuditEvent';
+import {auditActorName,cashEventDetails,describeAuditChanges,ReadableInspectionAuditEvent} from './ReadableAuditEvent';
+import {renderToStaticMarkup} from 'react-dom/server';
 
 describe('staff-readable activity history',()=>{
  it('shows actual changed fields, not only a revision or numeric ID',()=>{
@@ -27,6 +28,23 @@ describe('staff-readable activity history',()=>{
     {label:'Progress',from:null,to:'To Do'},
     {label:'Task type',from:null,to:'Checkout Clean'},
    ]);
+ });
+ it('prioritizes attributed actor names and does not show opaque IDs',()=>{
+  expect(auditActorName('1','Angelito')).toBe('Angelito');
+  expect(auditActorName('1',null,'1','Angelito')).toBe('Angelito');
+  expect(auditActorName('22',null,'1','Angelito')).toBe('Employee name unavailable');
+ });
+ it('renders the actual inspection checks and review note with actor name',()=>{
+  const html=renderToStaticMarkup(<ReadableInspectionAuditEvent event={{
+   id:'10',inspectionId:'7',actorId:'1',actorName:'Angelito',action:'submitted',
+   details:{checks:{cleaningVerified:true,safetyVerified:true,amenitiesVerified:false}},
+   createdAt:'2026-11-18T06:44:20Z',
+  }}/>);
+  expect(html).toContain('Angelito');
+  expect(html).toContain('Submitted room inspection');
+  expect(html).toContain('Cleanliness');
+  expect(html).toContain('Not verified');
+  expect(html).not.toContain('Staff #1');
  });
  it('describes real cash receipt evidence with peso amount and booking reference',()=>{
   expect(cashEventDetails('cash_received',{

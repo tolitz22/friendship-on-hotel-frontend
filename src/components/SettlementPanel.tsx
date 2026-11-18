@@ -1,5 +1,6 @@
 import {useEffect,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
+import {Link} from '@tanstack/react-router';
 import {z} from 'zod';
 import {AlertTriangle,CheckCircle2,ClipboardCheck,Printer,RefreshCw,ShieldCheck,Wallet,Banknote,PlusCircle,X} from 'lucide-react';
 import {getJson,requestJson} from '../api/http';
@@ -9,6 +10,7 @@ import {QueryFeedback} from './QueryFeedback';
 import {BillingActions} from './BillingActions';
 import {RecordGuestPayment} from './RecordGuestPayment';
 import {parseBillingAmount} from '../api/billing';
+import {useCurrentCashierShift} from '../api/cashierShifts';
 import {readableDate,readableDateTime} from '../lib/format';
 import './settlement-print.css';
 
@@ -71,8 +73,11 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const {hotelId,user}=useHotelAuth();
  const client=useQueryClient();
  const manager=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
+ const shift=useCurrentCashierShift(!!hotelId);
  const [selected,setSelected]=useState('');
  const [activeDialog,setActiveDialog]=useState<'payment'|'charges'|null>(null);
+ const [reviewExpanded,setReviewExpanded]=useState(false);
+ const [showAllControls,setShowAllControls]=useState(false);
  const [reference,setReference]=useState('');
  const [reviewNote,setReviewNote]=useState('');
  const [payerKind,setPayerKind]=useState('guest');
@@ -94,7 +99,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const valid=!!hotelId&&/^[1-9]\d*$/.test(bookingId);
  const endpoint='/bookings/'+bookingId;
  useEffect(()=>{
-  setActiveDialog(null);setSelected('');setReference('');setReviewNote('');setPayerKind('guest');
+  setActiveDialog(null);setReviewExpanded(false);setShowAllControls(false);setSelected('');setReference('');setReviewNote('');setPayerKind('guest');
   setPayerRef('');setAmount('');setEntryId('');setAck(false);setBusy(false);
   setError('');setSuccess('');setRequestKey(crypto.randomUUID());
   setRefundPayment('');setRefundAmount('');setRefundReason('');
@@ -122,6 +127,26 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   :/^\d+$/.test(text)&&Number.isSafeInteger(Number(text))&&Number(text)>0?Number(text):null;
  const allocationMinor=minorInput(amount);
  const refundMinor=minorInput(refundAmount);
+ const unconfirmed=data?.payments.filter(p=>p.status!=='staff_confirmed')??[];
+ const unverified=data?.payments.filter(p=>p.status==='staff_confirmed'
+  &&p.verificationStatus!=='verified')??[];
+ const verifiedUnallocated=data?.payments.filter(p=>p.status==='staff_confirmed'
+  &&p.verificationStatus==='verified'
+  &&p.amountMinor>(data.allocations.filter(a=>a.paymentId===p.id)
+   .reduce((sum,a)=>sum+a.amountMinor,0)))??[];
+ const nextPayment=unverified[0]??verifiedUnallocated[0]??null;
+ const pendingOtherReviewer=nextPayment?.verificationStatus==='pending'
+  &&nextPayment.verificationPreparedBy===user?.id;
+ const nextTask=data?.signed?'signed':!data?.settlementWorkflowEnabled?'disabled'
+  :unconfirmed.length>0?'confirmation':unverified.length>0?'verification'
+  :verifiedUnallocated.length>0?'allocation':data?.canSignOff?'signoff':'review';
+ function openPaymentReview(){
+  if(nextPayment)selectPayment(nextPayment);
+  setReviewExpanded(true);
+  window.setTimeout(()=>document.getElementById('settlement-review-workspace')
+   ?.scrollIntoView({behavior:'smooth',block:'start'}),0);
+ }
+
  const active=()=>!!hotelId&&readSession().hotelId===hotelId;
  async function mutation(path:string,body:Record<string,unknown>,message:string):Promise<boolean>{
   if(!active()||!manager||!data?.settlementWorkflowEnabled||busy||data.signed)return false;
@@ -177,6 +202,70 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       :<><ShieldCheck size={19}/><p><strong>Review before checkout.</strong> These amounts reflect saved records, not proof of bank settlement or a final payable amount.</p></>}
     </div>
    </div>
+   <section className="checkout-guide" aria-label="Guided payment and checkout">
+    <div className="checkout-guide-header">
+     <div><span className="rr-eyebrow">PAYMENT & CHECKOUT</span>
+      <h3>{data.signed?'Financial sign-off completed':'Complete this guest account'}</h3>
+      <p>Follow the next action below. Payments and approvals stay linked to the original folio.</p>
+     </div>
+     <span className="checkout-guide-status">{data.signed?'Signed':data.canSignOff?'Ready for sign-off':'In progress'}</span>
+    </div>
+    <div className="checkout-guide-steps" aria-label="Checkout stages">
+     <div><strong>1. Collect</strong><small>Cash or payment evidence</small></div>
+     <div><strong>2. Verify & apply</strong><small>Independent review and allocation</small></div>
+     <div><strong>3. Authorize</strong><small>Final folio sign-off before checkout</small></div>
+    </div>
+    {!data.signed&&<div className="checkout-guide-next">
+     <span className="rr-eyebrow">YOUR NEXT ACTION</span>
+     {nextTask==='disabled'?<>
+      <h4>Financial settlement is not enabled</h4>
+      <p>Payments can be recorded and reviewed, but final sign-off needs the hotel's approved finance configuration.</p>
+     </>:nextTask==='confirmation'?<>
+      <h4>Review recorded payment evidence</h4>
+      <p>{unconfirmed.length} payment record{unconfirmed.length===1?'':'s'} still need staff confirmation before independent verification.</p>
+     </>:nextTask==='verification'?<>
+      <h4>{pendingOtherReviewer?'Awaiting another manager':'Verify the payment evidence'}</h4>
+      <p>{pendingOtherReviewer?'The person who prepared this verification cannot approve it. Another authorized manager must review it.'
+       :'Confirm the evidence and have a different authorized reviewer approve it where required.'}</p>
+     </>:nextTask==='allocation'?<>
+      <h4>Allocate independently reviewed funds</h4>
+      <p>Verified funds have not all been applied to recorded charges. Allocate only eligible amounts; no new payment is created.</p>
+     </>:nextTask==='signoff'?<>
+      <h4>Authorize the final settlement</h4>
+      <p>All server-side requirements currently permit sign-off. An authorized manager must review and acknowledge the statement.</p>
+     </>:<>
+      <h4>Resolve the remaining checkout checks</h4>
+      <p>Review the server-reported blockers below; do not assume the displayed difference is a final amount due.</p>
+     </>}
+     <div className="checkout-guide-actions">
+      <button type="button" className="btn-primary" disabled={busy||data.signed}
+       onClick={()=>setActiveDialog('payment')}><Banknote size={16}/> Record a payment</button>
+      {manager&&data.settlementWorkflowEnabled&&nextTask!=='confirmation'&&
+       <button type="button" className="rr-secondary-action"
+        onClick={openPaymentReview}><ShieldCheck size={16}/>
+        {nextTask==='signoff'?'Open final authorization':'Continue manager review'}
+       </button>}
+      {nextTask==='confirmation'&&<button type="button" className="rr-secondary-action"
+       onClick={()=>setShowAllControls(true)}>Review payment history</button>}
+     </div>
+     {shift.isSuccess&&!shift.data&&<div className="checkout-guide-shift">
+      <AlertTriangle size={16}/>
+      <div><strong>No active cash shift for your account.</strong>
+       <p>Open your cashier shift before accepting physical cash. Bank-transfer evidence follows its separate verification process.</p>
+       <Link to="/cashier-shifts" search={{booking:bookingId,hotel:hotelId??undefined}}>
+        Open my cashier shift <ArrowRight size={14}/></Link></div>
+     </div>}
+     {shift.isSuccess&&shift.data&&<p className="checkout-guide-shift-ok">
+      <CheckCircle2 size={15}/> Your cash shift is open. Cash receipts will be linked to this drawer.</p>}
+    </div>}
+    {data.signed&&<p className="checkout-guide-complete">
+     <CheckCircle2 size={16}/> Settlement sign-off recorded. Complete the separate operational checkout checks in Bookings.
+     <Link to="/reservations" search={{booking:bookingId}}>Open booking <ArrowRight size={14}/></Link></p>}
+    {data.blockers.length>0&&!data.signed&&<details className="checkout-guide-blockers">
+     <summary>{data.blockers.length} outstanding settlement check{data.blockers.length===1?'':'s'}</summary>
+     <ul>{data.blockers.map((blocker,index)=><li key={index}>{blocker}</li>)}</ul>
+    </details>}
+   </section>
    <section className="settlement-progress" aria-label="Financial settlement stages">
     <div className="settlement-progress-title"><ClipboardCheck size={17}/>
      <strong>Payment and checkout progress</strong></div>
@@ -224,7 +313,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       :<BillingActions bookingId={bookingId} signed={data.signed}/>}
     </section>
    </div>}
-   <details className="billing-statement-details">
+   <details className="billing-statement-details" open={showAllControls?true:undefined}>
     <summary><span><strong>View itemized bill and payment history</strong>
      <small>Room charges, payment reviews, refunds and printable statement</small></span>
      <span className="billing-expand-hint">Show details</span></summary>
@@ -331,7 +420,8 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
     <ul>{data.blockers.map((b,i)=><li key={i}>{b}</li>)}</ul>
    </div>}
    </details>
-   {manager&&!data.signed&&<details className="billing-manager-details">
+   {manager&&!data.signed&&<details id="settlement-review-workspace" className="billing-manager-details"
+    open={reviewExpanded?true:undefined}>
     <summary><div><strong>Advanced settlement tools</strong>
      <span>Verify allocations, manage refunds and finalize accounts</span></div>
      <span className="billing-expand-hint">Show tools</span></summary>

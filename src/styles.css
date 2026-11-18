@@ -2528,3 +2528,13 @@
 .billing-evidence-summary strong{text-align:left}
 .billing-evidence-dialog-actions{flex-direction:column-reverse}
 .billing-evidence-dialog-actions button{width:100%}}
+
+
+.billing-void-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none}
+.billing-void-heading::-webkit-details-marker{display:none}
+.billing-void-heading strong,.billing-void-heading small{display:block}
+.billing-void-heading strong{font-size:13px}
+.billing-void-heading small{font-size:11px;margin-top:4px;color:var(--muted)}
+.billing-void-section[open] .billing-void-heading{padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:13px}
+.billing-void-section[open] .billing-void-heading .billing-expand-hint{font-size:0}
+.billing-void-section[open] .billing-void-heading .billing-expand-hint::after{content:"Hide records";font-size:11px}

@@ -1,7 +1,7 @@
 import {useEffect,useState} from 'react';
 import {Link,useNavigate,useSearch} from '@tanstack/react-router';
 import {
- AlertTriangle,ArrowRight,Banknote,CheckCircle2,ClipboardList,
+ AlertTriangle,ArrowRight,Banknote,ClipboardList,
  FileText,Info,RefreshCcw,Search,X,
 } from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';

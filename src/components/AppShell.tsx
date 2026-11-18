@@ -132,22 +132,31 @@ export function AppShell(){
       :<div className="topbar-avatar" aria-label="Demo user">FO</div>}
     </div>
    </header>
-   {dataMode==='api'&&<div className="workflow-shortcuts" aria-label="Quick actions">
-    <span>QUICK ACTIONS</span>
-    {(role==='admin'||role==='front_desk')&&<Link to="/front-desk">Today's front desk <ArrowRight size={13}/></Link>}
-    {role==='admin'&&<Link to="/reservations">Manage bookings <ArrowRight size={13}/></Link>}
-    {(role==='admin'||role==='front_desk')&&<Link to="/room-calendar">Room calendar <ArrowRight size={13}/></Link>}
-    {(role==='admin'||role==='housekeeping'||role==='maintenance')&&<Link to="/housekeeping">Cleaning tasks <ArrowRight size={13}/></Link>}
-    <Link to="/rooms">Room readiness <ArrowRight size={13}/></Link>
-    {role==='maintenance'&&<Link to="/maintenance">Work orders <ArrowRight size={13}/></Link>}
-    {admin&&<Link to="/operational-exceptions">Exceptions & audit <ArrowRight size={13}/></Link>}
-    {admin&&<Link to="/manager-approvals">Review approvals <ArrowRight size={13}/></Link>}
-    {(role==='admin'||role==='front_desk')&&<Link to="/cashier-shifts">Cash drawer <ArrowRight size={13}/></Link>}
-    {(role==='admin'||role==='housekeeping')&&<Link to="/occupancy-verification">Occupancy checks <ArrowRight size={13}/></Link>}
-    {admin&&<Link to="/occupancy-coverage">Occupancy report <ArrowRight size={13}/></Link>}
-    {admin&&<Link to="/night-audit">Night audit preflight <ArrowRight size={13}/></Link>}
-    {admin&&<Link to="/tax-policies">Tax policies <ArrowRight size={13}/></Link>}
-    {admin&&<Link to="/folio-night-accounting">Revenue review <ArrowRight size={13}/></Link>}
+   {dataMode==='api'&&<div className="workflow-shortcuts" aria-label="Related actions">
+    <span>RELATED</span>
+    {pathname==='/group-reservations'?<>
+     {(role==='admin'||role==='front_desk')&&<Link to="/reservations">Bookings <ArrowRight size={13}/></Link>}
+     <Link to="/room-calendar">Room calendar <ArrowRight size={13}/></Link>
+     {(role==='admin'||role==='front_desk')&&<Link to="/front-desk">Front desk <ArrowRight size={13}/></Link>
+    </>:pathname==='/room-calendar'?<>
+     <Link to="/group-reservations">Group Bookings <ArrowRight size={13}/></Link>
+     <Link to="/reservations">Bookings <ArrowRight size={13}/></Link>
+     <Link to="/rooms">Room readiness <ArrowRight size={13}/></Link>
+    </>:pathname==='/billing'?<>
+     <Link to="/group-reservations">Group Bookings <ArrowRight size={13}/></Link>
+     <Link to="/reservations">Bookings <ArrowRight size={13}/></Link>
+     {(role==='admin'||role==='front_desk')&&<Link to="/cashier-shifts">Cashier shifts <ArrowRight size={13}/></Link>}
+    </>:pathname==='/housekeeping'?<>
+     <Link to="/rooms">Room readiness <ArrowRight size={13}/></Link>
+     {admin&&<Link to="/operational-exceptions">Exceptions & audit <ArrowRight size={13}/></Link>}
+    </>:<>
+     {(role==='admin'||role==='front_desk')&&<Link to="/front-desk">Front desk <ArrowRight size={13}/></Link>}
+     {(role==='admin'||role==='front_desk')&&<Link to="/reservations">Bookings <ArrowRight size={13}/></Link>}
+     {(role==='admin'||role==='front_desk')&&<Link to="/group-reservations">Group Bookings <ArrowRight size={13}/></Link>}
+     {(role==='admin'||role==='front_desk')&&<Link to="/room-calendar">Room calendar <ArrowRight size={13}/></Link>}
+     {role==='housekeeping'&&<Link to="/housekeeping">Cleaning tasks <ArrowRight size={13}/></Link>}
+     {role==='maintenance'&&<Link to="/maintenance">Work orders <ArrowRight size={13}/></Link>}
+    </>}
    </div>}
    <div className="page-content"><Outlet/></div>
   </main>

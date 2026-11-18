@@ -362,7 +362,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        onChange={e=>setRefundReason(e.target.value)}/>
      </label>
      <button type="button" className="btn-inline" disabled={busy||!data.settlementWorkflowEnabled||
-      !refundPayment||!/^\\d+$/.test(refundAmount)||Number(refundAmount)<1||refundReason.trim().length<5}
+      !refundPayment||!/^\d+$/.test(refundAmount)||Number(refundAmount)<1||refundReason.trim().length<5}
       onClick={()=>void (async()=>{
        const ok=await mutation(endpoint+'/refund-requests',{
         requestKey:refundKey,paymentRecordId:Number(refundPayment),

@@ -12,6 +12,13 @@ const resultSchema=z.object({
   bookings:z.array(z.object({id,reference:z.string(),roomId:id,checkIn:day,checkOut:day,status:z.string().nullable(),guestName:z.string().nullable().optional()})),
   blocks:z.array(z.object({id,roomId:id,checkIn:day,checkOut:day,reason:z.string()})),
   unassignedBookings:z.number().int().nonnegative(),
+  unassignedGroupBookings:z.array(z.object({
+   bookingId:id,reference:z.string(),groupId:id,groupReference:z.string(),
+   groupName:z.string(),guestName:z.string().nullable(),
+   checkIn:day,checkOut:day,status:z.string().nullable(),
+  })),
+  unassignedGroupTotal:z.number().int().nonnegative(),
+  unassignedGroupTruncated:z.boolean(),
  }),
  meta:z.object({page:z.number().int().positive(),perPage:z.number().int().positive(),
   total:z.number().int().nonnegative(),totalPages:z.number().int().nonnegative(),

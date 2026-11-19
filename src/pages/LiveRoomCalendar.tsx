@@ -15,7 +15,6 @@ import {projectRackBars} from '../features/reservations/roomRackLayout';
 import {Heading} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {useHotelAuth} from '../components/AuthProvider';
-import {useGroupBooking} from '../api/groupReservations';
 import {readableDate} from '../lib/format';
 
 type Mode='week'|'month';
@@ -49,7 +48,6 @@ export function LiveRoomCalendar(){
  const focus=useSearch({from:'/room-calendar'});
  const contextMatches=!focus.hotel||focus.hotel===hotelId;
  const focusGroupId=contextMatches?focus.group:undefined;
- const focusedGroup=useGroupBooking(focusGroupId??null);
  const [mode,setMode]=useState<Mode>('week');
  const [anchor,setAnchor]=useState(()=>focus.date??hotelToday());
  const property=useLiveProperty();

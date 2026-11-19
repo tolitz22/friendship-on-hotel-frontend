@@ -45,6 +45,13 @@ function RoomGuestField({value,index,disabled,onChange,onAddGuest,canAddGuest,cr
  </div>;
 }
 
+function GroupReviewGuest({guestId,createdGuest}:{guestId:string;createdGuest?:Guest}){
+ const selected=useSelectedGuest(guestId||null);
+ const guest=createdGuest?.id===guestId?createdGuest:selected.data;
+ return <span>{guest?guest.firstName+' '+guest.lastName:
+  selected.isPending?'Checking guest…':'Registered guest name unavailable'}</span>;
+}
+
 function GroupPayerAllocation({groupId,report}:{
  groupId:string;report:NonNullable<ReturnType<typeof useGroupFinancialSummary>['data']>;
 }){
@@ -550,23 +557,26 @@ export function GroupReservations(){
      <p>Manage multi-room stays, temporary room holds, and group billing in one workspace.</p>
     </div>
     {canBook&&view!=='new'&&<button className="btn-primary" type="button" disabled={!!pending||busy}
-     onClick={()=>{setView('new');setSelectedAllotment(null);}}>
+     onClick={()=>{setView('new');setFormStep(1);setSelectedAllotment(null);}}>
      <Plus size={17}/> New group booking</button>}
    </div>
    {pending&&view!=='new'&&<div className="gb-pending-notice" role="alert">
     A group booking submission still needs confirmation.
     <button className="btn-inline" type="button" onClick={()=>setView('new')}>Return to booking</button>
    </div>}
-   <div className="gb-tabs" role="group" aria-label="Group booking workspace">
+   {view!=='new'&&<div className="gb-tabs" role="group" aria-label="Group booking workspace">
     <button type="button" disabled={!!pending||busy} aria-pressed={view==='groups'} className={view==='groups'?'active':''}
      onClick={()=>{setView('groups');}}><Layers3 size={16}/> Group bookings</button>
     <button type="button" disabled={!!pending||busy} aria-pressed={view==='holds'} className={view==='holds'?'active':''}
      onClick={()=>{setView('holds');}}><Clock3 size={16}/> Temporary holds</button>
-    {canBook&&<button type="button" aria-pressed={view==='new'} className={view==='new'?'active':''}
-     onClick={()=>{setView('new');}}><Plus size={16}/> Create booking</button>}
-   </div>
+
+   </div>}
+   {view==='new'&&<button className="btn-inline gb-wizard-back" type="button"
+    disabled={locked} onClick={()=>{setView('groups');setFormStep(1);}}>
+    <ChevronLeft size={15}/> Back to group bookings
+   </button>}
    {view==='holds'&&hotelId&&<GroupAllotmentsPanel hotelId={hotelId} onConvert={hold=>{
-    setSelectedAllotment(hold);setView('new');setName(hold.name);
+    setSelectedAllotment(hold);setView('new');setFormStep(1);setName(hold.name);
     setCheckIn(hold.checkIn);setCheckOut(hold.checkOut);
     setRooms(Array.from({length:hold.quantity},()=>({
      guestId:'',roomTypeId:hold.roomTypeId,ratePlanId:'',
@@ -672,9 +682,7 @@ export function GroupReservations(){
      <div className="gb-wizard-review-rooms">
       {rooms.map((room,index)=><div key={index}>
        <strong>Room {index+1}</strong>
-       <span>{createdGuests[room.guestId]
-        ?createdGuests[room.guestId].firstName+' '+createdGuests[room.guestId].lastName
-        :'Guest selected · '+room.guestId}</span>
+       <GroupReviewGuest guestId={room.guestId} createdGuest={createdGuests[room.guestId]}/>
        <span>{types.data?.data.find(type=>type.id===room.roomTypeId)?.name??'Room type'} ·
         {rates.data?.data.find(rate=>rate.id===room.ratePlanId)?.name??'Rate not selected'}</span>
       </div>)}

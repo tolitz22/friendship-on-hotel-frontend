@@ -1,6 +1,6 @@
 import {useMemo,useState} from 'react';
 import {Link} from '@tanstack/react-router';
-import {AlertTriangle,ArrowRight,BedDouble,CalendarDays,CheckCircle2,ChevronLeft,ChevronRight,ClipboardList,Filter,LogIn,LogOut,Plus,RefreshCw,Search,RotateCcw,X} from 'lucide-react';
+import {AlertTriangle,ArrowRight,BedDouble,CalendarDays,ChevronLeft,ChevronRight,ClipboardList,Filter,LogIn,LogOut,Plus,RefreshCw,Search,RotateCcw,X} from 'lucide-react';
 import {useRoomCalendar} from '../api/liveRoomCalendar';
 import type {LiveRecord,ReservationListFilter} from '../api/liveReservations';
 import {addDays,hotelToday} from '../features/reservations/calendarDate';

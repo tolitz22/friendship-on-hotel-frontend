@@ -1,8 +1,9 @@
-import {afterEach,describe,expect,it,vi} from 'vitest';
+import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
 import {clearSession,setSessionHotel,setSessionToken} from './session';
 import {getReservationSimulation} from './reservationSimulation';
 
-afterEach(()=>{clearSession();vi.unstubAllGlobals();});
+beforeEach(()=>{vi.stubEnv('VITE_AUTH_MODE','bearer');});
+afterEach(()=>{clearSession();vi.unstubAllGlobals();vi.unstubAllEnvs();});
 
 describe('Phase 12 structural reservation simulation',()=>{
  it('calls the selected property read-only endpoint with bearer authentication',async()=>{

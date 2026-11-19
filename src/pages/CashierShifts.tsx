@@ -65,7 +65,8 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
    <div><small>Needs payment review</small><strong>{shift.unconfirmedReceiptCount}</strong></div>
   </div>
   {shift.status==='open'&&<p className="cash-shift-explainer"><Info size={15}/>
-   The expected drawer total stays hidden until you submit your physical cash count.</p>}
+   The expected drawer total stays hidden until you submit your physical cash count.
+   Cash receipts increase the drawer by the net payment only (cash tendered minus change given).</p>}
   {shift.expectedCashMinor!==null&&<div className="cash-shift-metrics cash-shift-reconciliation">
    <div><small>Expected cash</small><strong>{money(shift.expectedCashMinor,shift.currency)}</strong></div>
    <div><small>Counted cash</small><strong>{money(shift.countedCashMinor??0,shift.currency)}</strong></div>
@@ -115,10 +116,15 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
   {manager&&!ownShift&&shift.status==='submitted'&&<div>
    <h4>Recorded receipts for independent verification</h4>
    <QueryFeedback loading={detail.isPending} error={detail.error} onRetry={()=>void detail.refetch()}/>
-   {detail.data&&<div className="table-scroll"><table><thead><tr><th>Payment</th><th>Reservation</th><th>Reference</th><th>Amount</th><th>Review status</th></tr></thead><tbody>
+   {detail.data&&<div className="table-scroll"><table><thead><tr><th>Payment</th><th>Reservation</th><th>Reference</th><th>Net payment</th><th>Cash handed over</th><th>Change given</th><th>Review status</th></tr></thead><tbody>
     {(detail.data.receipts??[]).map(receipt=><tr key={receipt.id}><td>{receipt.paymentId}</td><td><Link to="/billing"
      search={{booking:receipt.bookingId}}>Review guest bill <ArrowRight size={13}/></Link></td>
-     <td>{receipt.reference}</td><td>{money(receipt.amountMinor,shift.currency)}</td><td>{receipt.paymentStatus}</td></tr>)}
+     <td>{receipt.reference}</td><td>{money(receipt.amountMinor,shift.currency)}</td>
+     <td>{receipt.cashTenderedMinor===null?'Not captured (older receipt)':
+      money(receipt.cashTenderedMinor,shift.currency)}</td>
+     <td>{receipt.changeGivenMinor===null?'Not captured (older receipt)':
+      money(receipt.changeGivenMinor,shift.currency)}</td>
+     <td>{receipt.paymentStatus}</td></tr>)}
    </tbody></table></div>}
    {detail.data?.receipts?.length===0&&<p>No cash receipts recorded; verify opening float separately.</p>}
    <label className="wizard-label">Independent manager review note

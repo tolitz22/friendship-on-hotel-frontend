@@ -1,7 +1,10 @@
 import {useEffect,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
-import {AlertTriangle,Calculator,ClipboardCheck,RefreshCw,ShieldCheck} from 'lucide-react';
+import {
+ AlertTriangle,BadgePercent,Calculator,CheckCircle2,ClipboardCheck,
+ Clock3,FileCheck2,RefreshCw,ShieldCheck,
+} from 'lucide-react';
 import {getJson,requestJson} from '../api/http';
 import {hotelPath,readSession} from '../api/session';
 import {useHotelAuth} from '../components/AuthProvider';
@@ -80,13 +83,14 @@ export function TaxPolicies(){
  const [previewAmount,setPreviewAmount]=useState('');
  const [preview,setPreview]=useState<Preview|null>(null);
  const [showHistory,setShowHistory]=useState(false);
+ const [touched,setTouched]=useState({rate:false,from:false,until:false,note:false});
 
  useEffect(()=>{
   setClassification('vat_standard');setPriceMode('inclusive');setPercent('12.00');
   setFrom('');setUntil('');setNote('');setBusy(false);setApproveId(null);
   setAck(false);setDraftError('');setDraftSuccess('');setApprovalError('');setApprovalSuccess('');
   setPreviewError('');setPreview(null);setPreviewDate('');setPreviewAmount('');
-  setShowHistory(false);
+  setShowHistory(false);setTouched({rate:false,from:false,until:false,note:false});
  },[hotelId]);
 
  const query=useQuery({
@@ -125,7 +129,8 @@ export function TaxPolicies(){
      effectiveFrom:from,effectiveUntil:until||null,reviewNote:note.trim()},
    });
    if(!safeHotel())return;
-   setNote('');setDraftSuccess('Draft saved. A different authorized administrator must review and approve it. No folio or journal was changed.');
+   setNote('');setTouched({rate:false,from:false,until:false,note:false});
+   setDraftSuccess('Draft saved. A different authorized administrator must review and approve it. No folio or journal was changed.');
    await client.invalidateQueries({queryKey:['live','tax-policies',hotelId]});
   }catch(e){if(safeHotel())setDraftError(e instanceof Error?e.message:'Unable to save draft.');}
   finally{setBusy(false);}
@@ -168,23 +173,40 @@ export function TaxPolicies(){
   Math.round(sample*rateBps/(10000+rateBps)):
   Math.round(sample*rateBps/10000);
  const treatment=classifications.find(x=>x.value===classification);
- return <>
-  <Heading title="Tax configuration" description="Prepare, independently approve, and preview effective-dated hotel tax treatment."/>
+ const approved=policies.some(p=>p.status==='approved');
+ const hasDraft=policies.some(p=>p.status==='draft');
+ return <main className="tax-page">
+  <Heading title="Tax configuration" description="Prepare, independently approve, and preview effective-dated hotel tax treatment."
+   action={<span className="tax-page-badge"><ShieldCheck size={15}/> Preview-only controls</span>}/>
+  <section className="tax-overview" aria-label="Tax configuration overview">
   <Panel title="Current configuration">
    <div className="tax-state">
-    <strong>{current?'Current approved preview policy':upcoming?'Approved — starts on '+fmt(upcoming.effective_from):policies.some(p=>p.status==='draft')?'Draft awaiting independent review':'Tax configuration not started'}</strong>
-    <p>{current?policyLabel(current):'No approved policy applies to today.'}</p>
-    <span>Automatic guest tax calculation: Not enabled by this page · Guest folios and journals affected: No</span>
+    <span className={'tax-state-icon '+(current?'is-approved':hasDraft?'is-pending':'')} aria-hidden="true">
+     {current?<CheckCircle2 size={23}/>:hasDraft?<Clock3 size={23}/>:<BadgePercent size={23}/>}</span>
+    <div><small>CONFIGURATION STATUS</small>
+     <strong>{current?'Current approved preview policy':upcoming?'Approved — starts on '+fmt(upcoming.effective_from):hasDraft?'Draft awaiting independent review':'Tax configuration not started'}</strong>
+     <p>{current?policyLabel(current):'No approved policy applies to today.'}</p>
+     <span>Automatic guest tax calculation: Not enabled by this page · Guest folios and journals affected: No</span>
+    </div>
    </div>
    <div className="tax-workflow" aria-label="Tax policy approval workflow">
-    <span>1 · Prepare draft</span><span>2 · Independent review</span><span>3 · Approved for previews</span>
+    <div className={'tax-workflow-step '+(policies.length?'is-complete':'is-active')}>
+     <span>1</span><div><strong>Prepare draft</strong><small>Define treatment and dates</small></div>
+    </div>
+    <div className={'tax-workflow-step '+(approved?'is-complete':hasDraft?'is-active':'')}>
+     <span>2</span><div><strong>Independent review</strong><small>A different admin verifies it</small></div>
+    </div>
+    <div className={'tax-workflow-step '+(approved?'is-complete':'')}>
+     <span>3</span><div><strong>Preview approved</strong><small>No folio or journal posting</small></div>
+    </div>
    </div>
-   <button type="button" className="btn-primary" onClick={()=>document.getElementById('tax-draft-heading')?.scrollIntoView({block:'start'})}>
+   <button type="button" className="btn-primary tax-overview-action" onClick={()=>document.getElementById('tax-draft-heading')?.scrollIntoView({block:'start'})}>
     <ClipboardCheck size={16}/> Prepare draft policy
    </button>
   </Panel>
+  </section>
 
-  <section className="tax-form-panel" aria-labelledby="tax-draft-heading">
+  <section className="tax-form-panel tax-main-card" aria-labelledby="tax-draft-heading">
    <Panel title="Prepare a tax policy draft">
     <h3 id="tax-draft-heading" className="tax-section-heading">1. Tax treatment</h3>
     <div className="tax-form-grid">
@@ -201,10 +223,11 @@ export function TaxPolicies(){
      </label>
      <label>Tax rate (%)
       <span className="tax-input-unit"><input className="wizard-input" type="text" inputMode="decimal"
-       aria-describedby="tax-rate-help tax-rate-error" value={percent}
+       aria-describedby={touched.rate&&rateError?'tax-rate-help tax-rate-error':'tax-rate-help'} value={percent}
+       onBlur={()=>setTouched(value=>({...value,rate:true}))}
        onChange={e=>setPercent(e.target.value)} placeholder="12.00"/><span>%</span></span>
       <small id="tax-rate-help">Enter the percentage, not basis points.</small>
-      {rateError&&<small id="tax-rate-error" className="tax-field-error">{rateError}</small>}
+      {touched.rate&&rateError&&<small id="tax-rate-error" className="tax-field-error">{rateError}</small>}
      </label>
     </div>
     <p className="desk-muted">{treatment?.help}</p>
@@ -219,15 +242,18 @@ export function TaxPolicies(){
     <h3 className="tax-section-heading">2. Effective period</h3>
     <div className="tax-form-grid">
      <label>Effective from
-      <input className="wizard-input" type="date" value={from} aria-describedby="tax-from-error"
-       onChange={e=>setFrom(e.target.value)}/>
-      {fromError&&<small id="tax-from-error" className="tax-field-error">{fromError}</small>}
+      <input className="wizard-input" type="date" value={from}
+       aria-describedby={touched.from&&fromError?'tax-from-error':undefined}
+       onBlur={()=>setTouched(value=>({...value,from:true}))} onChange={e=>setFrom(e.target.value)}/>
+      {touched.from&&fromError&&<small id="tax-from-error" className="tax-field-error">{fromError}</small>}
      </label>
      <label>Effective until (optional)
       <input className="wizard-input" type="date" value={until} min={from||undefined}
-       aria-describedby="tax-until-help tax-until-error" onChange={e=>setUntil(e.target.value)}/>
+       aria-describedby={touched.until&&untilError?'tax-until-help tax-until-error':'tax-until-help'}
+       onBlur={()=>setTouched(value=>({...value,until:true}))}
+       onChange={e=>setUntil(e.target.value)}/>
       <small id="tax-until-help">The end date is inclusive. Blank means no planned end.</small>
-      {untilError&&<small id="tax-until-error" className="tax-field-error">{untilError}</small>}
+      {touched.until&&untilError&&<small id="tax-until-error" className="tax-field-error">{untilError}</small>}
      </label>
     </div>
     {conflicts.length>0&&<p className="tax-field-error" role="alert">
@@ -236,9 +262,11 @@ export function TaxPolicies(){
     <h3 className="tax-section-heading">3. Finance review evidence</h3>
     <label className="tax-note-field">Finance review note
      <textarea className="wizard-input" rows={3} maxLength={2000} value={note}
-      aria-describedby="tax-note-error" onChange={e=>setNote(e.target.value)}
+      aria-describedby={touched.note&&noteError?'tax-note-error':undefined}
+      onBlur={()=>setTouched(value=>({...value,note:true}))}
+      onChange={e=>setNote(e.target.value)}
       placeholder="Document registration, rate treatment, effective dates, and evidence for independent review."/>
-     {noteError&&<small id="tax-note-error" className="tax-field-error">{noteError}</small>}
+     {touched.note&&noteError&&<small id="tax-note-error" className="tax-field-error">{noteError}</small>}
     </label>
     <div className="tax-draft-summary">
      <strong>Draft summary</strong>
@@ -247,7 +275,7 @@ export function TaxPolicies(){
      <small>Saving creates a draft only. It does not approve a policy, post journals, change guest folios, or establish tax eligibility.</small>
     </div>
     {!canDraft&&<div className="tax-prerequisites" role="status">
-     <strong>To save this draft:</strong>
+     <strong>Before this draft can be saved</strong>
      <ul>
       {fromError&&<li>Select a valid effective start date.</li>}
       {rateError&&<li>Enter a valid rate for this classification.</li>}
@@ -266,8 +294,10 @@ export function TaxPolicies(){
    </Panel>
   </section>
 
+  <div className="tax-support-grid">
+  <div className="tax-support-card tax-review-card">
   <Panel title="Independent review">
-   <p>A different authorized hotel administrator must approve each draft. The creator cannot approve their own policy. Older drafts without a verified creator must be recreated.</p>
+   <div className="tax-card-intro"><span><FileCheck2 size={19}/></span><p>A different authorized hotel administrator must approve each draft. The creator cannot approve their own policy. Older drafts without a verified creator must be recreated.</p></div>
    <div className="desk-tools"><button type="button" className="btn-inline" onClick={()=>void query.refetch()} disabled={query.isFetching}>
     <RefreshCw size={15}/> Refresh policies
    </button></div>
@@ -305,9 +335,11 @@ export function TaxPolicies(){
    </div>}
    {approvalSuccess&&<p className="stay-feedback-success" role="status">{approvalSuccess}</p>}
   </Panel>
+  </div>
 
+  <div className="tax-support-card tax-preview-card">
   <Panel title="Approved policy preview">
-   <p className="desk-muted">Calculate an illustration using the approved policy covering the preview date. No guest charges or journals are posted.</p>
+   <div className="tax-card-intro"><span><Calculator size={19}/></span><p>Calculate an illustration using the approved policy covering the preview date. No guest charges or journals are posted.</p></div>
    <div className="tax-form-grid">
     <label>Preview date
      <input className="wizard-input" type="date" value={previewDate}
@@ -340,6 +372,8 @@ export function TaxPolicies(){
    </div>}
    <p className="desk-muted">Entered amounts must already reflect independently validated discounts. The preview does not confirm statutory eligibility or money received.</p>
   </Panel>
+  </div>
+  </div>
 
   <details className="workflow-disclosure tax-safeguards"><summary><AlertTriangle size={16}/> Accounting and legal safeguards</summary>
    <p>This module does not establish VAT registration, zero-rating, senior/PWD eligibility, exemption, or compliant invoicing. A qualified Philippine tax professional must verify the hotel's registration and applicable treatment before live activation.</p>
@@ -358,5 +392,5 @@ export function TaxPolicies(){
     </div>
    </article>)}
   </details>
- </>;
+ </main>;
 }

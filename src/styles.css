@@ -3290,38 +3290,68 @@
 .rack-readiness-queue .readiness-hub{min-width:0;margin-top:12px}
 @media(max-width:375px){.gb-finance-key-figures{grid-template-columns:minmax(0,1fr)}}
 
-/* Finance tax configuration: guided steps and responsive evidence review */
-.tax-state{display:grid;gap:5px;padding:14px;border:1px solid var(--border);border-radius:11px;background:var(--canvas);margin-bottom:14px}
-.tax-state strong{font-size:15px}.tax-state p{margin:0;font-size:13px}.tax-state span{color:var(--muted);font-size:12px;line-height:1.6}
-.tax-workflow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:15px}
-.tax-workflow span{display:flex;align-items:center;min-height:45px;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:color-mix(in srgb,var(--accent) 7%,var(--surface));font-size:12px;font-weight:700;line-height:1.45}
-.tax-section-heading{margin:16px 0 10px;font-size:15px}
-.tax-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:13px;margin:12px 0}
-.tax-form-grid>label,.tax-note-field{display:grid;align-content:start;gap:6px;min-width:0;font-size:12px;font-weight:700}
-.tax-form-grid input,.tax-form-grid select,.tax-note-field textarea{width:100%;min-width:0}
+/* Finance tax configuration: calm hierarchy for a high-stakes admin workflow. */
+.tax-page{display:grid;gap:18px;width:min(100%,1320px);margin:0 auto;min-width:0}
+.tax-page>.heading{margin-bottom:2px}
+.tax-page-badge{display:inline-flex;align-items:center;gap:7px;min-height:34px;padding:7px 11px;border:1px solid color-mix(in srgb,var(--accent) 40%,var(--border));border-radius:999px;background:color-mix(in srgb,var(--accent) 9%,var(--surface));font-size:11px;font-weight:750;color:var(--text);white-space:nowrap}
+.tax-page-badge svg{color:var(--accent)}
+.tax-overview>.panel{position:relative;overflow:hidden;padding:24px;border-color:color-mix(in srgb,var(--accent) 28%,var(--border));background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 7%,var(--surface)),var(--surface) 58%)}
+.tax-overview>.panel:after{content:"";position:absolute;right:-90px;top:-115px;width:270px;height:270px;border-radius:50%;background:color-mix(in srgb,var(--accent) 8%,transparent);pointer-events:none}
+.tax-overview .panel-title,.tax-overview .tax-state,.tax-overview .tax-workflow,.tax-overview-action{position:relative;z-index:1}
+.tax-state{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:13px;padding:16px;border:1px solid var(--border);border-radius:13px;background:color-mix(in srgb,var(--surface) 92%,transparent);margin-bottom:16px;box-shadow:0 8px 25px #0000000a}
+.tax-state-icon{display:grid;place-items:center;width:46px;height:46px;border-radius:12px;background:var(--canvas);color:var(--muted);border:1px solid var(--border)}
+.tax-state-icon.is-approved{color:#17834b;background:color-mix(in srgb,#22a860 12%,var(--surface));border-color:color-mix(in srgb,#22a860 32%,var(--border))}
+.tax-state-icon.is-pending{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--surface));border-color:color-mix(in srgb,var(--accent) 34%,var(--border))}
+.tax-state>div{display:grid;gap:4px;min-width:0}.tax-state>div>small{font-size:9px;letter-spacing:1.25px;color:var(--muted);font-weight:800}
+.tax-state strong{font-size:16px;line-height:1.35}.tax-state p{margin:0;font-size:13px}.tax-state>div>span{color:var(--muted);font-size:11px;line-height:1.6}
+.tax-workflow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:17px}
+.tax-workflow-step{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;min-height:66px;padding:11px 12px;border:1px solid var(--border);border-radius:11px;background:var(--surface)}
+.tax-workflow-step>span{display:grid;place-items:center;width:30px;height:30px;border:1px solid var(--border);border-radius:50%;background:var(--canvas);color:var(--muted);font-size:12px;font-weight:800}
+.tax-workflow-step>div{display:grid;gap:3px}.tax-workflow-step strong{font-size:12px;line-height:1.35}.tax-workflow-step small{font-size:10px;line-height:1.4;color:var(--muted)}
+.tax-workflow-step.is-active{border-color:color-mix(in srgb,var(--accent) 55%,var(--border));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 15%,transparent)}
+.tax-workflow-step.is-active>span{border-color:var(--accent);background:var(--accent);color:#222326}
+.tax-workflow-step.is-complete>span{border-color:#27945a;background:#27945a;color:white}
+.tax-overview-action{min-height:44px}
+.tax-main-card>.panel{padding:24px;border-radius:15px;box-shadow:0 10px 35px #0000000a}
+.tax-main-card>.panel>.panel-title{margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.tax-main-card .tax-section-heading{display:flex;align-items:center;min-height:38px;margin:24px 0 12px;padding:8px 12px;border-radius:8px;background:color-mix(in srgb,var(--accent) 6%,var(--canvas));border-left:3px solid var(--accent);font-size:13px;font-weight:700}
+.tax-main-card .panel-title+.tax-section-heading{margin-top:2px}
+.tax-main-card .tax-example+.tax-section-heading,.tax-main-card .tax-form-grid+.tax-section-heading{margin-top:24px}
+.tax-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:13px 0}
+.tax-form-grid>label,.tax-note-field{display:grid;align-content:start;gap:7px;min-width:0;font-size:12px;font-weight:650}
+.tax-form-grid input,.tax-form-grid select,.tax-note-field textarea{width:100%;min-width:0;border-radius:9px;font-weight:450;transition:border-color .16s,box-shadow .16s}
+.tax-form-grid select{font-weight:550}
+.tax-form-grid input,.tax-form-grid select{min-height:44px}
+.tax-note-field textarea{line-height:1.55;resize:vertical}
 .tax-form-grid small,.tax-note-field small{font-size:11px;line-height:1.5;font-weight:400;color:var(--muted)}
-.tax-form-grid .tax-field-error,.tax-note-field .tax-field-error,.tax-field-error{color:#b42318;font-size:12px;font-weight:600;line-height:1.55}
-.tax-input-unit{display:flex;align-items:center;gap:7px;border:1px solid var(--border);border-radius:8px;background:var(--surface);padding:0 10px}
+.tax-form-grid .tax-field-error,.tax-note-field .tax-field-error,.tax-field-error{color:#b42318;font-size:12px;font-weight:650;line-height:1.55}
+:root[data-theme="dark"] .tax-field-error{color:#ff9b91}
+.tax-input-unit{display:flex;align-items:center;gap:7px;min-height:44px;border:1px solid var(--border);border-radius:9px;background:var(--surface);padding:0 11px;transition:border-color .16s,box-shadow .16s}
 .tax-input-unit input{border:0!important;box-shadow:none!important;background:transparent!important;padding-left:2px;padding-right:2px}
-.tax-input-unit:focus-within{outline:2px solid var(--accent);outline-offset:2px}
-.tax-input-unit>span{font-size:13px;color:var(--muted);font-weight:700}
-.tax-example,.tax-draft-summary,.tax-applicable-policy{padding:12px 14px;border-radius:9px;border:1px solid var(--border);background:var(--canvas);font-size:12px;line-height:1.6}
-.tax-example p,.tax-draft-summary p{margin:6px 0}.tax-example small,.tax-draft-summary small{color:var(--muted)}
-.tax-note-field{margin-top:11px}
-.tax-draft-summary{margin:15px 0}
-.tax-prerequisites{margin:12px 0;color:var(--text);font-size:12px}
-.tax-prerequisites ul{margin:7px 0;padding-left:19px}
+.tax-input-unit:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+.tax-input-unit>span{font-size:13px;color:var(--muted);font-weight:750}
+.tax-example,.tax-draft-summary,.tax-applicable-policy{padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--canvas);font-size:12px;line-height:1.55}
+.tax-example{border-color:color-mix(in srgb,var(--accent) 30%,var(--border));background:color-mix(in srgb,var(--accent) 5%,var(--canvas))}
+.tax-example strong,.tax-draft-summary strong{font-size:12px;letter-spacing:.1px}.tax-example p,.tax-draft-summary p{margin:5px 0}.tax-example small,.tax-draft-summary small{color:var(--muted)}
+.tax-note-field{margin-top:11px}.tax-draft-summary{margin:16px 0;border-left:3px solid var(--accent)}
+.tax-prerequisites{margin:13px 0;padding:12px 14px;border-radius:9px;background:color-mix(in srgb,var(--accent) 7%,var(--canvas));color:var(--text);font-size:12px}
+.tax-prerequisites ul{margin:7px 0 0;padding-left:19px}.tax-prerequisites li{margin:4px 0}
 .tax-primary-action{display:inline-flex;justify-content:center;align-items:center;gap:8px;min-height:44px;margin-top:12px}
-.tax-policy-row{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;padding:13px 0;border-bottom:1px solid var(--border)}
-.tax-policy-row>div{display:grid;gap:5px;min-width:0}
-.tax-policy-row strong{font-size:13px;overflow-wrap:anywhere}
-.tax-policy-row small{font-size:12px;color:var(--muted)}
-.tax-policy-row p{margin:5px 0;font-size:12px;overflow-wrap:anywhere}
-.tax-preview-result{margin-top:14px}
-.tax-preview-result>strong{display:block;font-size:13px}
-.tax-safeguards,.tax-history{margin-top:15px}
-.tax-safeguards>summary,.tax-history>summary{display:flex;align-items:center;gap:8px;cursor:pointer;min-height:44px}
-.tax-safeguards p{padding:0 12px;font-size:12px;line-height:1.7}
+.tax-support-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:18px}
+.tax-support-card,.tax-support-card>.panel{min-width:0}.tax-support-card>.panel{padding:22px;border-radius:14px;box-shadow:0 8px 28px #0000000a}
+.tax-card-intro{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start;margin-bottom:13px;padding:12px;border-radius:10px;background:var(--canvas)}
+.tax-card-intro>span{display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:color-mix(in srgb,var(--accent) 12%,var(--surface));color:var(--accent)}
+.tax-card-intro p{margin:0;font-size:12px;line-height:1.6;color:var(--muted)}
+.tax-policy-row{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-top:9px;padding:13px;border:1px solid var(--border);border-radius:10px;background:var(--canvas)}
+.tax-policy-row>div{display:grid;gap:5px;min-width:0;flex:1}.tax-policy-row strong{font-size:13px;overflow-wrap:anywhere}.tax-policy-row small{font-size:11px;line-height:1.45;color:var(--muted)}.tax-policy-row p{margin:5px 0;font-size:12px;line-height:1.55;overflow-wrap:anywhere}
+.tax-preview-result{margin-top:15px;padding:14px;border:1px solid color-mix(in srgb,#27945a 38%,var(--border));border-radius:11px;background:color-mix(in srgb,#27945a 6%,var(--surface))}
+.tax-preview-result>strong{display:block;margin-bottom:11px;font-size:13px}
+.tax-applicable-policy{min-height:54px;display:flex;align-items:center}
+.tax-safeguards,.tax-history{margin-top:0;border-radius:12px;background:var(--surface)}
+.tax-safeguards>summary,.tax-history>summary{display:flex;align-items:center;gap:8px;cursor:pointer;min-height:48px;padding:0 4px;font-weight:700}
+.tax-safeguards>summary svg{color:var(--accent)}.tax-safeguards p{padding:0 14px;font-size:12px;line-height:1.7}
+.tax-history[open]{padding-bottom:10px}.tax-history .tax-policy-row{margin-left:12px;margin-right:12px}
 .tax-form-panel,.tax-form-panel *{min-width:0}
-.tax-form-panel button:focus-visible,.tax-history summary:focus-visible,.tax-safeguards summary:focus-visible,.tax-form-panel input:focus-visible,.tax-form-panel select:focus-visible,.tax-form-panel textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-@media(max-width:600px){.tax-workflow{grid-template-columns:minmax(0,1fr)}.tax-form-grid{grid-template-columns:minmax(0,1fr)}.tax-primary-action{width:100%}.tax-policy-row>button{width:100%;min-height:44px}}
+.tax-page button:focus-visible,.tax-page a:focus-visible,.tax-history summary:focus-visible,.tax-safeguards summary:focus-visible,.tax-form-panel input:focus-visible,.tax-form-panel select:focus-visible,.tax-form-panel textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+@media(max-width:900px){.tax-support-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){.tax-page{gap:14px}.tax-page>.heading{align-items:stretch}.tax-page-badge{align-self:flex-start}.tax-overview>.panel,.tax-main-card>.panel,.tax-support-card>.panel{padding:16px}.tax-state{grid-template-columns:minmax(0,1fr)}.tax-state-icon{width:40px;height:40px}.tax-workflow{grid-template-columns:minmax(0,1fr)}.tax-workflow-step{min-height:58px}.tax-form-grid{grid-template-columns:minmax(0,1fr)}.tax-primary-action,.tax-overview-action{width:100%}.tax-policy-row>button{width:100%;min-height:44px}}

@@ -123,7 +123,10 @@ const functionalRoutes=[
   validateSearch:(value:Record<string,unknown>):{task?:string}=>({
    task:typeof value.task==='string'&&/^[1-9][0-9]*$/.test(value.task)?value.task:undefined,
   }),component:dataMode==='api'?LiveHousekeeping:Housekeeping}),
- createRoute({getParentRoute:()=>root,path:'/maintenance',component:dataMode==='api'?LiveMaintenance:Maintenance}),
+ createRoute({getParentRoute:()=>root,path:'/maintenance',
+  validateSearch:(value:Record<string,unknown>):{order?:string}=>({
+   order:typeof value.order==='string'&&/^[1-9][0-9]*$/.test(value.order)?value.order:undefined,
+  }),component:dataMode==='api'?LiveMaintenance:Maintenance}),
  createRoute({getParentRoute:()=>root,path:'/reports',component:Reports}),
  createRoute({getParentRoute:()=>root,path:'/settings',component:dataMode==='api'?LiveSettings:Settings}),
  createRoute({getParentRoute:()=>root,path:'/staff',component:LiveStaff}),

@@ -35,9 +35,13 @@ export function roomNextAction(room:RackRoom,canInspect=true):string{
  if(room.blockers.latestTurnoverIncomplete||room.blockers.unfinishedHousekeeping||
     room.cleaning==='checkout_cleaning'||room.cleaning==='cleaning_in_progress')
   return 'Open housekeeping task';
- if(!room.advisoryReady)return canInspect?'Inspect room':'View inspection';
+ // A guest already in house is a front-desk workflow, not an automatic
+ // instruction to inspect the room. Show readiness separately in the drawer.
  if(room.occupancy==='due_for_checkout')return 'Review departure';
  if(room.occupancy==='occupied')return 'Open reservation';
+ if(room.inspectionStatus==='submitted')
+  return canInspect?'Repeat inspection':'View pending inspection';
+ if(!room.advisoryReady)return canInspect?'Inspect room':'View inspection';
  if(room.upcomingStay)return 'Review arrival';
  return 'View room';
 }

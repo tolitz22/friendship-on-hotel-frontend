@@ -2946,3 +2946,7 @@
 .stay-operation-next-links a{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:10px 14px;border:1px solid var(--border);border-radius:9px;font-size:12px;font-weight:700;color:var(--text)}
 .stay-operation-next-links a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 @media(max-width:520px){.stay-operation-next-links{display:grid}.stay-operation-next-links a{width:100%}}
+
+.gb-active-filters{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.gb-active-filters button{display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:9px 13px;border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border));border-radius:999px;background:color-mix(in srgb,var(--accent) 8%,var(--surface));color:var(--text);font-size:12px;font-weight:700;max-width:100%;overflow-wrap:anywhere}
+.gb-active-filters button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}

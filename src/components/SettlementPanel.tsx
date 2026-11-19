@@ -509,6 +509,12 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
     <p className="desk-muted">Payment evidence, staff confirmation, independent verification and allocation
      are separate stages. An unallocated amount does not mean the guest needs to pay twice.</p>
    </details>
+   {!data.signed&&data.status!=='checked_out'&&manager&&
+    <div className="billing-guest-actions">
+     <button type="button" className="rr-secondary-action" disabled={busy}
+      onClick={()=>openDialog('charges')}><Banknote size={15}/> Add charge to guest bill</button>
+     <span className="desk-muted">Record an extra service or incidental before checkout. This does not collect money.</span>
+    </div>}
    {(activeDialog==='payment'||activeDialog==='charges')&&<div className="billing-modal-backdrop">
     <section id="settlement-current-dialog" className="billing-action-modal" role="dialog" aria-modal="true"
      aria-label={activeDialog==='payment'?'Record guest payment':'Update guest bill'}>

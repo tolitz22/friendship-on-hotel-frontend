@@ -16,7 +16,7 @@ type QueueItem={
  bookingId?:string;taskId?:string;orderId?:string;blockId?:string;
 };
 const perPage=12;
-const issue=(flags:DashboardRoom['blockers']|null|undefined,status:DashboardRoom['status']|null|undefined)=>{
+export const readinessProblem=(flags:DashboardRoom['blockers']|null|undefined,status:DashboardRoom['status']|null|undefined)=>{
  if(flags?.activeRoomImpactMaintenance)return 'Maintenance restriction active';
  if(flags?.activeInventoryBlockToday)return 'Inventory block active today';
  if(flags?.latestTurnoverIncomplete||flags?.unfinishedHousekeeping)return 'Housekeeping incomplete';
@@ -26,7 +26,7 @@ const issue=(flags:DashboardRoom['blockers']|null|undefined,status:DashboardRoom
  if(status==='needs_inspection'||status==='blocked_or_stale')return 'Approved inspection missing or outdated';
  return 'No current inspection problem reported';
 };
-const priority=(arrival:DashboardArrival,today:string)=>{
+export const arrivalUrgency=(arrival:DashboardArrival,today:string)=>{
  if(arrival.checkIn===today&&arrival.risk==='unassigned_room')return 0;
  if(arrival.checkIn===today&&arrival.risk!=='no_current_readiness_issue')return 1;
  if(arrival.risk==='unassigned_room')return 2;
@@ -37,8 +37,8 @@ function createArrivalItem(arrival:DashboardArrival,today:string):QueueItem{
  const unassigned=arrival.risk==='unassigned_room';
  const problem=unassigned?'Physical room has not been assigned':
   arrival.risk==='room_record_missing'?'Assigned room record cannot be verified':
-  issue(arrival.roomBlockers,arrival.roomStatus);
- return {key:'arrival-'+arrival.bookingId,priority:priority(arrival,today),
+  readinessProblem(arrival.roomBlockers,arrival.roomStatus);
+ return {key:'arrival-'+arrival.bookingId,priority:arrivalUrgency(arrival,today),
   date:arrival.checkIn,title:arrival.guestName??arrival.reference,
   subtitle:(arrival.roomNumber?'Room '+arrival.roomNumber:'Unassigned room')+' · '+arrival.reference+
     ' · Arrives '+readableDate(arrival.checkIn),
@@ -57,7 +57,7 @@ function createRoomItem(room:DashboardRoom):QueueItem|null{
  const priority=room.status==='awaiting_review'?4:(hasMaintenance||hasBlock||hasCleaning)?5:6;
  return {key:'room-'+room.roomId,priority,date:'9999-12-31',
   title:'Room '+room.roomNumber,subtitle:'Room readiness · '+room.status.replaceAll('_',' '),
-  problem:issue(flags,room.status),
+  problem:readinessProblem(flags,room.status),
   role:kind==='maintenance'?'Maintenance / authorized manager':
    kind==='housekeeping'?'Housekeeping supervisor':
    kind==='inventory'?'Inventory / front desk manager':
@@ -117,7 +117,7 @@ export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumb
     <div className="rh-urgent-heading"><AlertTriangle size={19} aria-hidden="true"/>
      <div><strong>{arrivalsToday.length} arrival{arrivalsToday.length===1?'':'s'} needing action today</strong>
       <small>{readableDate(data.asOfHotelDate)} · Resolve before guest check-in</small></div></div>
-    {arrivalsToday.sort((a,b)=>priority(a,data.asOfHotelDate)-priority(b,data.asOfHotelDate)).slice(0,3).map(arrival=>{
+    {arrivalsToday.sort((a,b)=>arrivalUrgency(a,data.asOfHotelDate)-arrivalUrgency(b,data.asOfHotelDate)).slice(0,3).map(arrival=>{
      const item=createArrivalItem(arrival,data.asOfHotelDate);
      return <div className="rh-urgent-row" key={item.key}>
       <div><strong>{item.title}</strong><small>{item.subtitle}</small><p>{item.problem}</p></div>

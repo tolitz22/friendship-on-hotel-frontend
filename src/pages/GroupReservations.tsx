@@ -170,22 +170,28 @@ function GroupFinance({groupId,hotelId,checkIn,checkOut,open=false}:{
      <strong>{total.currency} · {total.pricedFolioCount} priced folios</strong>
      <dl className="readable-audit-changes">
       <div><dt>Net recorded charges</dt><dd>{(total.netRecordedChargesMinor/100).toLocaleString('en-PH',{style:'currency',currency:total.currency})}</dd></div>
+      <div><dt>Recorded, awaiting review</dt><dd>{money(total.pendingReviewPaymentsMinor,total.currency)}</dd></div>
+      <div><dt>All recorded payment evidence (provisional)</dt><dd>{money(total.recordedPaymentsMinor,total.currency)}</dd></div>
+      <div><dt>Charges minus recorded payment evidence (provisional)</dt><dd>{money(total.balanceAfterRecordedPaymentsMinor,total.currency)}</dd></div>
       <div><dt>Staff-confirmed payments</dt><dd>{(total.staffConfirmedPaymentsMinor/100).toLocaleString('en-PH',{style:'currency',currency:total.currency})}</dd></div>
       <div><dt>Independently reviewed allocations</dt><dd>{(total.verifiedAllocatedMinor/100).toLocaleString('en-PH',{style:'currency',currency:total.currency})}</dd></div>
       <div><dt>Group payer allocations (reviewed)</dt><dd>{(total.verifiedGroupPayerAllocatedMinor/100).toLocaleString('en-PH',{style:'currency',currency:total.currency})}</dd></div>
-      <div><dt>Unallocated recorded charges</dt><dd>{(total.unallocatedNetChargesMinor/100).toLocaleString('en-PH',{style:'currency',currency:total.currency})}</dd></div>
+      <div><dt>Charges remaining after independently verified allocations</dt><dd>{(total.unallocatedNetChargesMinor/100).toLocaleString('en-PH',{style:'currency',currency:total.currency})}</dd></div>
      </dl>
     </div>)}
     <div className="gb-billing-progress" aria-label="Group payment and settlement progress">
      <div><small>Priced guest folios</small><strong>{data.rooms.filter(row=>row.priced).length} / {data.rooms.length}</strong></div>
-     <div><small>Payment evidence recorded</small><strong>{data.rooms.filter(row=>row.priced&&row.staffConfirmedPaymentsMinor>0).length} / {data.rooms.length}</strong></div>
-     <div><small>Verified allocations recorded</small><strong>{data.rooms.filter(row=>row.priced&&row.verifiedAllocatedMinor>0).length} / {data.rooms.length}</strong></div>
+     <div><small>Recorded, awaiting review</small><strong>{data.rooms.filter(row=>row.priced&&row.pendingReviewPaymentCount>0).length} / {data.rooms.length}</strong></div>
+     <div><small>Staff-confirmed</small><strong>{data.rooms.filter(row=>row.priced&&row.staffConfirmedPaymentCount>0).length} / {data.rooms.length}</strong></div>
+     <div><small>Independently verified</small><strong>{data.rooms.filter(row=>row.priced&&row.independentlyVerifiedPaymentCount>0).length} / {data.rooms.length}</strong></div>
+     <div><small>Allocated to charges</small><strong>{data.rooms.filter(row=>row.priced&&row.verifiedAllocatedMinor>0).length} / {data.rooms.length}</strong></div>
      <div><small>Settlement sign-offs recorded</small><strong>{data.rooms.filter(row=>row.priced&&row.signed).length} / {data.rooms.length}</strong></div>
     </div>
+    <p className="desk-muted">Provisional figures subtract all active recorded evidence, including payments awaiting review. They are not the collectible balance or proof of cash/bank settlement. Only independently verified allocations reduce the reviewed outstanding charges. Refunds and final payable amounts must be checked on each folio.</p>
     <div className="gb-billing-folios">
      {data.rooms.map(row=><div className="gb-billing-folio" key={row.bookingId}>
       <div><strong>{row.reference}</strong><small>{row.priced
-       ?row.signed?'Settlement signed':row.verifiedAllocatedMinor>0?'Reviewed allocation recorded':'Settlement incomplete'
+       ?row.signed?'Settlement signed':row.verifiedAllocatedMinor>0?'Reviewed allocation recorded':row.independentlyVerifiedPaymentCount>0?'Verified, awaiting allocation':row.staffConfirmedPaymentCount>0?'Staff-confirmed, review pending':row.pendingReviewPaymentCount>0?'Payment awaiting review':'No payment evidence yet'
        :'No priced folio available'}</small></div>
       <Link to="/billing" search={{booking:row.bookingId,group:groupId,hotel:hotelId,
        checkIn,checkOut}}>Review guest folio <ArrowRight size={14}/></Link>
@@ -387,6 +393,33 @@ function GroupDetails({id,billingOpen=false,originHotel}:{id:string;billingOpen?
     <div><small>Checked out</small><strong>{departed} / {group.roomCount}</strong>
      <span>Managed per room</span></div>
    </section>
+   <section className="gb-detail-panel" aria-label="Group next actions">
+    <div className="gb-table-head"><div><h3>What needs attention next?</h3>
+     <p>Open the affected guest booking to complete checks safely. No bulk action bypasses room readiness or payment review.</p></div></div>
+    <div className="gb-billing-progress">
+     <div><small>Rooms awaiting assignment</small><strong>{group.rooms.filter(room=>!room.roomId&&room.status==='confirmed').length}</strong></div>
+     <div><small>Guests awaiting check-in</small><strong>{group.rooms.filter(room=>room.status==='confirmed').length}</strong></div>
+     <div><small>Folios awaiting payment review</small><strong>{finance.data?finance.data.rooms.filter(row=>row.priced&&row.pendingReviewPaymentCount>0).length:finance.isPending?'Loading…':'Unavailable'}</strong></div>
+     <div><small>Departure due for eligibility review</small><strong>{group.rooms.filter(room=>room.status==='checked_in'&&room.checkOut<=hotelToday()).length}</strong></div>
+     <div><small>Cleaning tasks awaiting assignment</small><strong>{group.operations.checkoutCleaningUnassignedCount}</strong></div>
+    </div>
+    {group.rooms.filter(room=>room.status==='confirmed'||(room.status==='checked_in'&&room.checkOut<=hotelToday())).map(room=>
+     <div key={room.bookingId} className="gb-billing-folio">
+      <div><strong>{room.guestName??room.reference}</strong>
+       <small>{!room.roomId?'Assign room · ':''}{room.status==='confirmed'?'Check-in pending':'Departure due · verify checkout requirements'}</small></div>
+      <Link to="/reservations" search={{booking:room.bookingId,group:group.id,hotel:hotelId??undefined,checkIn:group.checkIn??undefined,checkOut:group.checkOut??undefined}}>
+       Manage booking <ArrowRight size={14}/></Link>
+     </div>)}
+    {finance.data?.rooms.filter(row=>row.priced&&row.pendingReviewPaymentCount>0).map(row=>
+     <div key={'review-'+row.bookingId} className="gb-billing-folio">
+      <div><strong>{row.reference}</strong><small>Recorded payment evidence awaiting manager review</small></div>
+      <Link to="/billing" search={{booking:row.bookingId,group:group.id,hotel:hotelId??undefined,checkIn:group.checkIn??undefined,checkOut:group.checkOut??undefined}}>
+       Review folio <ArrowRight size={14}/></Link>
+     </div>)}
+    {group.operations.checkoutCleaningUnassignedCount>0&&<Link to="/housekeeping" search={{}}>
+     Assign checkout-cleaning tasks <ArrowRight size={14}/></Link>}
+    <p className="desk-muted">Checkout due means the scheduled departure date has arrived, not that checkout is authorized. Each booking still requires its own operational and financial validation.</p>
+   </section>
    <div className="gb-detail-tabs" role="tablist" aria-label="Group booking details">
     <button role="tab" aria-selected={detailTab==='rooms'} className={detailTab==='rooms'?'active':''}
      onClick={()=>setDetailTab('rooms')}><BedDouble size={16}/> Rooms & guests</button>
@@ -429,7 +462,7 @@ function GroupDetails({id,billingOpen=false,originHotel}:{id:string;billingOpen?
       ?finance.data.rooms.filter(row=>row.priced).length+' / '+group.roomCount
       :finance.isPending?'Loading…':'Unavailable'}</strong></div>
      <div><small>With payment evidence</small><strong>{finance.data
-      ?finance.data.rooms.filter(row=>row.priced&&row.staffConfirmedPaymentsMinor>0).length+' / '+group.roomCount
+      ?finance.data.rooms.filter(row=>row.priced&&(row.pendingReviewPaymentCount>0||row.staffConfirmedPaymentCount>0)).length+' / '+group.roomCount
       :finance.isPending?'Loading…':'Unavailable'}</strong></div>
      <div><small>Independent sign-offs</small><strong>{finance.data
       ?finance.data.rooms.filter(row=>row.priced&&row.signed).length+' / '+group.roomCount

@@ -174,7 +174,11 @@ function GroupFinance({groupId,hotelId,checkIn,checkOut,open=false}:{
       <div><dt>Recorded, awaiting review</dt><dd>{money(total.pendingReviewPaymentsMinor,total.currency)}</dd></div>
       <div><dt>All recorded payment evidence (provisional)</dt><dd>{money(total.recordedPaymentsMinor,total.currency)}</dd></div>
       <div><dt>Charges minus recorded payment evidence (provisional)</dt><dd>{money(total.balanceAfterRecordedPaymentsMinor,total.currency)}</dd></div>
-      <div><dt>Staff-confirmed payments</dt><dd>{(total.staffConfirmedPaymentsMinor/100).toLocaleString('en-PH',{style:'currency',currency:total.currency})}</dd></div>
+      <div><dt>Staff-confirmed evidence</dt><dd>{money(total.staffConfirmedPaymentsMinor,total.currency)}</dd></div>
+      <div><dt>Independently verified payment evidence</dt><dd>{money(total.independentlyVerifiedPaymentsMinor,total.currency)}</dd></div>
+      <div><dt>Refunds awaiting approval</dt><dd>{money(total.requestedRefundsMinor,total.currency)}</dd></div>
+      <div><dt>Refunds approved (not proof of payout)</dt><dd>{money(total.approvedRefundsMinor,total.currency)}</dd></div>
+      <div><dt>Verified refund disbursement evidence</dt><dd>{money(total.verifiedRefundDisbursementEvidenceMinor,total.currency)}</dd></div>
       <div><dt>Independently reviewed allocations</dt><dd>{(total.verifiedAllocatedMinor/100).toLocaleString('en-PH',{style:'currency',currency:total.currency})}</dd></div>
       <div><dt>Group payer allocations (reviewed)</dt><dd>{(total.verifiedGroupPayerAllocatedMinor/100).toLocaleString('en-PH',{style:'currency',currency:total.currency})}</dd></div>
       <div><dt>Charges remaining after independently verified allocations</dt><dd>{(total.unallocatedNetChargesMinor/100).toLocaleString('en-PH',{style:'currency',currency:total.currency})}</dd></div>
@@ -188,7 +192,7 @@ function GroupFinance({groupId,hotelId,checkIn,checkOut,open=false}:{
      <div><small>Allocated to charges</small><strong>{data.rooms.filter(row=>row.priced&&row.verifiedAllocatedMinor>0).length} / {data.rooms.length}</strong></div>
      <div><small>Settlement sign-offs recorded</small><strong>{data.rooms.filter(row=>row.priced&&row.signed).length} / {data.rooms.length}</strong></div>
     </div>
-    <p className="desk-muted">Provisional figures subtract all active recorded evidence, including payments awaiting review. They are not the collectible balance or proof of cash/bank settlement. Only independently verified allocations reduce the reviewed outstanding charges. Refunds and final payable amounts must be checked on each folio.</p>
+    <p className="desk-muted">Provisional figures subtract all active recorded payment evidence, including payments awaiting review. They are not the collectible balance or proof of cash/bank settlement. Refunds requested, approved and independently verified as disbursement evidence are separate stages. Only independently verified allocations reduce the reviewed outstanding charges. Refunds and final payable amounts must be checked on each folio.</p>
     <div className="gb-billing-folios">
      {data.rooms.map(row=><div className="gb-billing-folio" key={row.bookingId}>
       <div><strong>{row.reference}</strong><small>{row.priced

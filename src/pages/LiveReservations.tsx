@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react';
 import {GroupContextBar} from '../components/GroupContextBar';
-import {Link,useNavigate,useSearch} from '@tanstack/react-router';
+import {useNavigate,useSearch} from '@tanstack/react-router';
 import {useHotelAuth} from '../components/AuthProvider';
 import {LiveReservationOperations} from './LiveReservationOperations';
 import {LiveBookingForm} from './LiveBookingForm';

@@ -1,4 +1,5 @@
 import {useEffect,useState} from 'react';
+import {GroupContextBar} from '../components/GroupContextBar';
 import {Link,useNavigate,useSearch} from '@tanstack/react-router';
 import {useHotelAuth} from '../components/AuthProvider';
 import {LiveReservationOperations} from './LiveReservationOperations';
@@ -83,20 +84,8 @@ export function LiveReservations(){
  </>;
  return <>
   {!selectedRecordId&&<Heading title="Bookings" description="Find a guest booking, see what needs attention, and complete the next step."/>}
-  {routeSearch.group&&<div className="gb-workflow-notice">
-   {routeSearch.hotel&&routeSearch.hotel!==hotelId
-    ?<strong role="alert">This group belongs to a different property. Select the original hotel before proceeding.</strong>
-    :<><strong>Group booking context</strong>
-     {routeSearch.checkIn&&routeSearch.checkOut&&<span> · {readableDate(routeSearch.checkIn)} – {readableDate(routeSearch.checkOut)}</span>}
-     <div className="gb-context-actions">
-      <Link to="/group-reservations" search={{group:routeSearch.group,hotel:routeSearch.hotel}}>
-       Back to group <ArrowRight size={14}/></Link>
-      {routeSearch.checkIn&&<Link to="/room-calendar" search={{date:routeSearch.checkIn,end:routeSearch.checkOut,
-       group:routeSearch.group,hotel:routeSearch.hotel}}>
-       View group on calendar <ArrowRight size={14}/></Link>}
-     </div></>}
-  </div>}
-  {selectedRecordId?<>
+  {routeSearch.group&&<GroupContextBar groupId={routeSearch.group} originHotel={routeSearch.hotel} selectedTab="rooms"/>}
+    {selectedRecordId?<>
    <section className="stay-selected-workflow" aria-label="Selected reservation">
     <QueryFeedback loading={detail.isPending} error={detail.error} onRetry={()=>void detail.refetch()}/>
     {selectedRecord&&<LiveReservationOperations key={hotelId+'-'+selectedRecord.id}

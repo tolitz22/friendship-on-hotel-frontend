@@ -167,7 +167,7 @@ export function LiveBookingsWorkspace({
    {!isPending&&!isError&&!searching&&rows.length>0&&<div className="bk-table-scroll">
     <table className="bk-table">
      <thead><tr><th>Guest / Booking</th><th>Room</th><th>Stay dates</th>
-      <th>Status</th><th>Next step</th><th>Actions</th></tr></thead>
+      <th>Status</th><th>Contact</th><th>Next step</th><th>Actions</th></tr></thead>
      <tbody>{rows.map(record=><tr key={record.id}>
       <td><button type="button" className="bk-guest-link" onClick={()=>onOpen(record.id)}>
        {record.guestName?.trim()||'Guest details unavailable'}</button>
@@ -179,6 +179,7 @@ export function LiveBookingsWorkspace({
        <small>to {readableDate(record.checkOut)}</small></td>
       <td><span className={'bk-state bk-state-'+(record.lifecycleState??'unknown').replaceAll('_','-')}>
        {lifecycleName(record.lifecycleState)}</span></td>
+      <td><span className="bk-contact">{record.guestPhone?.trim()||'Not provided'}</span></td>
       <td><span className="bk-next">{nextReservationAction(record)}</span></td>
       <td><div className="bk-actions">
        <button type="button" className="btn-inline" onClick={()=>onOpen(record.id)}>

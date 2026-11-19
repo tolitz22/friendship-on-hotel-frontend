@@ -2860,3 +2860,25 @@
 .gb-wizard-review-rooms span{color:var(--muted)}
 @media(max-width:1050px){.gb-summary-grid,.gb-detail-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){.gb-summary-grid,.gb-detail-summary,.gb-detail-finance-highlights{grid-template-columns:repeat(2,minmax(0,1fr))}.gb-wizard-review-rooms>div{grid-template-columns:1fr}.gb-wizard-nav{gap:4px}.gb-wizard-nav button{font-size:10px;flex-direction:column;padding:7px 4px}.gb-groups-table-panel,.gb-detail-panel{padding:12px}.gb-table-filters{align-items:stretch}.gb-status-filter{flex:1}}
+
+
+/* Temporary inventory holds: visually distinct from confirmed group bookings. */
+.gb-hold-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:14px 0 6px}
+.gb-hold-kpis>div{display:grid;gap:5px;padding:12px 14px;border:1px solid var(--border);border-radius:9px;background:var(--canvas)}
+.gb-hold-kpis small{color:var(--muted);font-size:11px}
+.gb-hold-kpis strong{font-size:22px;font-variant-numeric:tabular-nums}
+.gb-hold-list{display:grid;gap:10px;margin:13px 0}
+.gb-hold-card{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px 20px;border:1px solid var(--border);border-radius:10px;background:var(--canvas);padding:14px}
+.gb-hold-card-main{display:grid;gap:5px;min-width:0}
+.gb-hold-card-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.gb-hold-card-head strong{font-size:13px}
+.gb-hold-card-main small{color:var(--muted);font-size:11px;line-height:1.5}
+.gb-hold-dates{display:flex;align-items:center;gap:7px;font-size:12px}
+.gb-hold-dates svg{color:var(--accent)}
+.gb-hold-card-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap}
+.gb-hold-card-actions a,.gb-hold-card-actions button{display:inline-flex;align-items:center;gap:6px;font-size:12px}
+.gb-hold-card-actions small{color:var(--muted);font-size:11px;max-width:180px}
+.gb-hold-held{background:color-mix(in srgb,var(--accent) 13%,var(--surface))}
+.gb-hold-expired,.gb-hold-released{background:color-mix(in srgb,#64748b 12%,var(--surface))}
+.gb-hold-converted{background:color-mix(in srgb,#16a34a 13%,var(--surface))}
+@media(max-width:650px){.gb-hold-card{align-items:stretch;flex-direction:column}.gb-hold-card-actions{justify-content:flex-start}.gb-hold-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.gb-hold-kpis>div{padding:9px}.gb-hold-kpis strong{font-size:18px}}

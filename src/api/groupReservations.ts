@@ -63,6 +63,7 @@ export const groupStatusLabel=(status:DerivedGroupStatus)=>({
 const list=z.object({
  data:z.array(z.object({id,reference:z.string(),name:z.string(),
   contactName:z.string().nullable(),roomCount:z.number().int().nonnegative(),
+  assignedCount:z.number().int().nonnegative(),
   createdAt:z.string(),checkIn:z.iso.date().nullable(),checkOut:z.iso.date().nullable(),
   status:z.enum(['confirmed','partially_checked_in','fully_checked_in',
    'partially_checked_out','checked_out','cancelled']),
@@ -85,12 +86,14 @@ export type GroupBookingInput={
  idempotencyKey:string;name:string;contactName?:string;allotmentId?:number;
  checkIn:string;checkOut:string;rooms:GroupRoomInput[];
 };
-export function useGroupBookings(page=1,search='',status:GroupStatusFilter='all'){
+export type GroupAssignmentFilter='all'|'assigned'|'unassigned';
+export function useGroupBookings(page=1,search='',status:GroupStatusFilter='all',assignment:GroupAssignmentFilter='all'){
  const {hotelId}=readSession();
  return useQuery({
-  queryKey:['live','group-reservations',hotelId,page,search,status],enabled:!!hotelId,
+  queryKey:['live','group-reservations',hotelId,page,search,status,assignment],enabled:!!hotelId,
   queryFn:async()=>list.parse(await getJson<unknown>(hotelPath('/group-reservations'),{
-   page,...(search?{search}:{}),...(status!=='all'?{status}:{})
+   page,...(search?{search}:{}),...(status!=='all'?{status}:{}),
+   ...(assignment!=='all'?{assignment}:{})
   })),
   retry:false,
  });

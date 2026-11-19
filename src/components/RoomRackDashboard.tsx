@@ -132,7 +132,7 @@ function RackDrawer({room,hotelId,onClose,restoreFocus}:{
 
 export function RoomRackDashboard({hotelId}:{hotelId:string}){
  const [page,setPage]=useState(1);
- const [perPage,setPerPage]=useState(30);
+ const [perPage,setPerPage]=useState(100);
  const [quick,setQuick]=useState<RackQuickFilter>('all');
  const [filter,setFilter]=useState<Filters>(emptyFilters);
  const [listView,setListView]=useState(false);

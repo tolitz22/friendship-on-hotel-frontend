@@ -2702,3 +2702,10 @@
 .cashier-flagged-overview summary{cursor:pointer;font-size:13px;font-weight:750}
 .cashier-flagged-shifts{display:grid;gap:12px;margin-top:12px}
 @media(max-width:660px){.cashier-owner-counters{grid-template-columns:1fr}.cashier-owner-overview{padding:12px}}
+
+
+/* Additional guest services stay visible near the bill totals, not buried in audits. */
+.billing-guest-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px 14px;padding:2px 0 5px}
+.billing-guest-actions>button{display:inline-flex;align-items:center;gap:8px;min-height:42px;font-weight:750}
+.billing-guest-actions>.desk-muted{font-size:12px;line-height:1.5}
+@media(max-width:560px){.billing-guest-actions>button{width:100%;justify-content:center}}

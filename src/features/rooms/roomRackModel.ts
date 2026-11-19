@@ -26,7 +26,7 @@ export function roomTone(room:RackRoom):RackTone{
    room.readinessStatus==='blocked_or_stale')return 'attention';
  if(room.upcomingStay)return 'reserved';
  if(room.advisoryReady)return 'approved';
- if(room.readinessStatus==='needs_inspection'||room.cleaning==='awaiting_inspection')return 'attention';
+ if(room.cleaning==='awaiting_inspection')return 'attention';
  return 'unknown';
 }
 export function roomNextAction(room:RackRoom):string{

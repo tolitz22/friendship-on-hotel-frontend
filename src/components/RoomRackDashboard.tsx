@@ -1,4 +1,4 @@
-import {useEffect,useMemo,useRef,useState} from 'react';
+import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {Link} from '@tanstack/react-router';
 import {
@@ -158,8 +158,8 @@ export function RoomRackDashboard({hotelId}:{hotelId:string}){
  const clear=()=>{setQuick('all');setFilter(emptyFilters());setPage(1);};
  useEffect(()=>{setPage(1);setQuick('all');setFilter(emptyFilters());setSelected(null);},[hotelId]);
  const select=(room:RackRoom,button:HTMLButtonElement)=>{trigger.current=button;setSelected(room);};
- const close=()=>setSelected(null);
- const restore=()=>trigger.current?.focus();
+ const close=useCallback(()=>setSelected(null),[]);
+ const restore=useCallback(()=>trigger.current?.focus(),[]);
  const summary=data?.summary;
  return <section className="rack-dashboard" aria-label="Live hotel room rack">
   <div className="rack-heading">

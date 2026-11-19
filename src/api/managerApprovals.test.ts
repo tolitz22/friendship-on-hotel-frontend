@@ -32,8 +32,16 @@ describe('Phase 51 approval response safety',()=>{
   expect(result.data[0].status).toBe('pending');
   expect(result.data[0].snapshot.checkIn).toBe('2026-12-10');
  });
+ it('accepts an early checkout request with checked-in snapshot and no automatic date amendment',()=>{
+  const early={...row,action:'early_check_out',payload:{},
+   snapshot:{...row.snapshot,status:'checked_in',assignedRoomId:'41'}};
+  const parsed=parseApprovals({...data,data:[early]},'1','12');
+  expect(parsed.data[0].action).toBe('early_check_out');
+  expect(parsed.data[0].snapshot.checkOut).toBe('2026-12-11');
+  expect(parsed.data[0].payload).toEqual({});
+ });
  it('accepts existing Laravel empty-array payloads on cancellations and early check-in',()=>{
-  for(const action of ['cancel_booking','early_check_in'] as const){
+  for(const action of ['cancel_booking','early_check_in','early_check_out'] as const){
    const legacy={...row,action,payload:[]};
    const parsed=parseApprovals({...data,data:[legacy]},'1','12');
    expect(parsed.data[0].payload).toEqual({});

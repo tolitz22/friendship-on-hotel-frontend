@@ -74,8 +74,8 @@ export function LiveRoomCalendar(){
   groupId:focusGroupId});
  const hasFilters=floor!=='all'||roomTypeId!==''||search.trim().length>0;
  const clearFilters=()=>{setFloor('all');setRoomTypeId('');setSearch('');setPage(1);};
- useEffect(()=>{setPage(1);setFloor('all');setRoomTypeId('');setSearch('');setSelected(null);},
-  [hotelId,focusGroupId]);
+ useEffect(()=>{setPage(1);setFloor('all');setRoomTypeId('');setSearch(contextMatches?focus.room??'':'');setSelected(null);},
+  [hotelId,focusGroupId,focus.room,contextMatches]);
  useEffect(()=>{setAnchor(contextMatches&&focus.date?focus.date:today);},
   [hotelId,property.data?.data.timeZone,focus.date,contextMatches]);
  useEffect(()=>{setSelected(null);setDragPreview(null);dragOrigin.current=null;},[mode,anchor,page,floor,roomTypeId,search,focusGroupId]);
@@ -131,6 +131,11 @@ export function LiveRoomCalendar(){
   <Heading title="Room rack" description="Follow bookings across nights. Select a bar for details or an empty date to start a booking."/>
   {!contextMatches&&<div className="gb-workflow-notice" role="alert">
    The saved link belongs to a different property. Select the original hotel to view its group bookings.
+  </div>}
+  {contextMatches&&focus.room&&<div role="status" className="lrc-focus-banner">
+   <strong>Inspecting Room {focus.room} inventory restrictions</strong>
+   <span>Showing the selected room and its recorded calendar blocks for this period.</span>
+   <Link to="/room-calendar" search={{date:focus.date}} className="btn-inline">Show all rooms</Link>
   </div>}
   {focusGroupId&&<><GroupContextBar groupId={focusGroupId} originHotel={hotelId??undefined} selectedTab="rooms"/>
    <p className="desk-muted">Only rooms assigned to this group are displayed. Unassigned group bookings remain in the queue below.</p></>}

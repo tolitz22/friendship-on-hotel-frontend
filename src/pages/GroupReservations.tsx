@@ -465,16 +465,16 @@ function GroupDetails({id,selectedTab,originHotel}:{id:string;selectedTab?:'room
       <Link className="btn-inline" to="/reservations" search={{booking:room.bookingId,group:group.id,hotel:hotelId??undefined,checkIn:group.checkIn??undefined,checkOut:group.checkOut??undefined}}>Assign room <ArrowRight size={14}/></Link>
      </li>)}
      {group.rooms.filter(room=>room.status==='confirmed'&&!!room.roomId).map(room=><li key={'ready-'+room.bookingId}>
-      <div><strong>Confirm readiness · Room {room.roomNumber??'number unavailable'}</strong>
+      <div><strong>Verify readiness · Room {room.roomNumber??'number unavailable'}</strong>
        <span>{room.guestName??room.reference} · {room.reference}</span>
-       <p>Check the room's actual housekeeping and approved inspection records. Assignment alone does not establish readiness.</p>
+       <p>Before check-in, verify actual housekeeping, inspection approval and the hotel's current enforcement policy. Assignment alone does not establish readiness; this is a verification task, not proof of a blocker.</p>
        <small>Responsible role: Housekeeping / authorized inspector</small></div>
       <Link className="btn-inline" to="/rooms" search={{room:room.roomId??undefined}}>Review room readiness <ArrowRight size={14}/></Link>
      </li>)}
      {group.rooms.filter(room=>room.status==='confirmed').map(room=><li key={'arrival-'+room.bookingId}>
       <div><strong>Review guest check-in · {room.guestName??room.reference}</strong>
        <span>{room.roomNumber?'Room '+room.roomNumber:'Room not assigned'} · {readableDate(room.checkIn)}</span>
-       <p>{!room.roomId?'Blocked: assign a physical room first.':'Requires identity, approved readiness and other booking-policy checks.'}</p>
+       <p>{!room.roomId?'Physical room assignment is required first.':'Verify identity, room state and all applicable check-in rules. Inspection enforcement depends on hotel policy.'}</p>
        <small>Responsible role: Front desk</small></div>
       <Link className="btn-inline" to="/reservations" search={{booking:room.bookingId,group:group.id,hotel:hotelId??undefined,checkIn:group.checkIn??undefined,checkOut:group.checkOut??undefined}}>Manage check-in <ArrowRight size={14}/></Link>
      </li>)}
@@ -545,7 +545,10 @@ function GroupDetails({id,selectedTab,originHotel}:{id:string;selectedTab?:'room
       </div>
       <p><BedDouble size={15} aria-hidden="true"/> {room.roomNumber?'Room '+room.roomNumber:'Room not assigned'} · {room.roomTypeName}</p>
       <p><CalendarDays size={15} aria-hidden="true"/> {readableDate(room.checkIn)} – {readableDate(room.checkOut)}</p>
-      <p className="desk-muted"><AlertTriangle size={14} aria-hidden="true"/> Readiness approval: check room inspection before check-in</p>
+      {room.status==='confirmed'&&<p className="desk-muted"><AlertTriangle size={14} aria-hidden="true"/> {room.roomId?'Before check-in, verify this room’s actual cleaning, inspection and applicable readiness policy.':'Assign a physical room before check-in; readiness cannot be assessed yet.'}</p>}
+      {room.status==='checked_in'&&<p className="desk-muted">Guest is checked in. Follow the active-stay and checkout workflows.</p>}
+      {room.status==='checked_out'&&<p className="desk-muted">Guest checked out. Any cleaning and subsequent inspection are separate room turnover tasks.</p>}
+      {room.status==='cancelled'&&<p className="desk-muted">Reservation cancelled. No check-in readiness action applies.</p>}
       <div className="gb-mobile-room-actions">
        <Link className="btn-primary" to="/reservations" search={{booking:room.bookingId,group:group.id,hotel:hotelId??undefined,checkIn:group.checkIn??undefined,checkOut:group.checkOut??undefined}}>
         Manage booking <ArrowRight size={14}/></Link>

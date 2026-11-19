@@ -148,6 +148,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
 
  const isConfirmed=record.lifecycleState==='confirmed';
  const isInHouse=record.lifecycleState==='checked_in';
+ const earlyDepartureWindow=isInHouse&&hotelDate>=record.checkIn&&hotelDate<record.checkOut;
  const isFinished=record.lifecycleState==='checked_out'||record.lifecycleState==='cancelled';
  const roomAssigned=!!record.assignedRoomId;
  const allowStayAction=canOperate&&(isConfirmed||isInHouse);
@@ -198,9 +199,10 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
       <div className="stay-section-icon">{isConfirmed?<UserRound size={20}/>:<Clock3 size={20}/>}</div>
       <div>
        <p className="stay-overline">{isConfirmed?'ARRIVAL / NEXT ACTION':'DEPARTURE / NEXT ACTION'}</p>
-       <h3 id="stay-action-heading">{isConfirmed?'Ready to check in?':'Complete guest checkout'}</h3>
+       <h3 id="stay-action-heading">{isConfirmed?'Ready to check in?':earlyDepartureWindow?'Guest leaving early?':'Complete guest checkout'}</h3>
        <p className="stay-action-description">{isConfirmed
         ?'Confirm guest identity and room readiness before recording arrival.'
+        :earlyDepartureWindow?'Request an early departure and have it reviewed by an authorized manager.'
         :'Confirm departure and financial follow-up before ending this registered stay.'}</p>
       </div>
      </div>
@@ -240,14 +242,14 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
        <li>Room readiness still requires a current inspection and separate cleaning records.</li>
       </ul>
      </div>}
-     <label className="stay-confirm-check">
+     {!earlyDepartureWindow&&<label className="stay-confirm-check">
       <input type="checkbox" checked={acknowledged} disabled={busy}
        onChange={e=>setAcknowledged(e.target.checked)}/>
       <span>{isConfirmed
        ?'I have verified the guest’s identity, assigned room, and housekeeping readiness.'
        :'I have verified departure timing and reviewed any payment or balance follow-up.'}</span>
-     </label>
-     <div className="stay-action-footer">
+     </label>}
+     {!earlyDepartureWindow&&<div className="stay-action-footer">
       <button type="button" className="btn-primary stay-submit-btn" disabled={!canProceed}
        onClick={()=>void perform(isConfirmed?'check-in':'check-out')}>
        {busy?'Saving…':actionLabel} <ArrowRight size={17}/>
@@ -255,10 +257,10 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
       {blockedReason&&<span className="stay-blocked-hint">{isConfirmed&&record.checkIn>hotelDate
        ?'Normal check-in opens '+dateLabel(record.checkIn)+'.'
        :blockedReason}</span>}
-     </div>
+     </div>}
      {isConfirmed&&record.checkIn>hotelDate&&
       <EarlyCheckInRequest key={record.id+'-'+hotelId} record={record} today={hotelDate}/>}
-     {isInHouse&&record.checkOut>hotelDate&&
+     {earlyDepartureWindow&&
       <EarlyCheckOutRequest key={'checkout-'+record.id+'-'+hotelId} record={record} today={hotelDate}/>}
      {lastOperation!==null&&lastOperation!=='assign'&&error&&
       <p role="alert" className="stay-feedback-error"><AlertTriangle size={16}/>{error}</p>}
@@ -269,7 +271,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
        <Link to="/billing" search={{booking:record.id}}>Review guest bill <ArrowRight size={14}/></Link>
       </div>
      </>}
-     <p className="stay-security-note">The server independently checks stay dates, permissions and room readiness. This action does not change payments.</p>
+     <p className="stay-security-note">The server checks stay dates, permissions and applicable financial checkout rules. Early checkout does not change payments or automatically refund unused nights.</p>
     </section>}
     {!canOperate&&(isConfirmed||isInHouse)&&<p className="stay-blocked-hint" role="status">
      Your hotel role cannot check in or check out this guest. Ask authorized front-desk staff or an administrator.

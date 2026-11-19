@@ -1,15 +1,15 @@
 import {useEffect,useMemo,useState} from 'react';
 import {Link} from '@tanstack/react-router';
 import {
- AlertTriangle,ArrowRight,CalendarDays,CheckCircle2,ChevronLeft,
- ChevronRight,ClipboardCheck,Clock3,RefreshCw,ShieldAlert,ShieldCheck,
+ AlertTriangle,ArrowRight,CheckCircle2,ChevronLeft,
+ ChevronRight,Clock3,RefreshCw,
 } from 'lucide-react';
 import {useHotelAuth} from './AuthProvider';
 import {QueryFeedback} from './QueryFeedback';
 import {useReadinessDashboard,type DashboardArrival,type DashboardRoom} from '../api/readinessDashboard';
 import {readableDate} from '../lib/format';
 
-type QueueFilter='all'|'arrivals'|'blocked'|'review'|'inspection'|'approved';
+type QueueFilter='all'|'arrivals'|'rooms';
 type QueueItem={
  key:string;priority:number;date:string;title:string;subtitle:string;problem:string;
  role:string;roomNumber?:string;kind:'booking'|'inspection'|'housekeeping'|'maintenance'|'inventory';
@@ -23,7 +23,7 @@ export const readinessProblem=(flags:DashboardRoom['blockers']|null|undefined,st
  if(flags?.latestTurnoverIncomplete||flags?.unfinishedHousekeeping)return 'Housekeeping incomplete';
  if(flags?.newTurnoverSinceInspection)return 'New checkout turnover requires a fresh inspection';
  if(flags?.newRoomWorkSinceInspection)return 'Room work has made the previous inspection outdated';
- if(status==='awaiting_review')return 'Waiting for independent review';
+ if(status==='awaiting_review')return 'Old inspection needs to be completed again';
  if(status==='needs_inspection'||status==='blocked_or_stale')return 'Approved inspection missing or outdated';
  return 'No current inspection problem reported';
 };
@@ -55,14 +55,14 @@ function createRoomItem(room:DashboardRoom):QueueItem|null{
  const hasBlock=flags.activeInventoryBlockToday;
  const hasCleaning=flags.latestTurnoverIncomplete||flags.unfinishedHousekeeping;
  const kind=hasMaintenance?'maintenance':hasBlock?'inventory':hasCleaning?'housekeeping':'inspection';
- const priority=room.status==='awaiting_review'?4:(hasMaintenance||hasBlock||hasCleaning)?5:6;
+ const priority=(hasMaintenance||hasBlock||hasCleaning)?5:6;
  return {key:'room-'+room.roomId,priority,date:'9999-12-31',
   title:'Room '+room.roomNumber,subtitle:'Room readiness · '+room.status.replaceAll('_',' '),
   problem:readinessProblem(flags,room.status),
   role:kind==='maintenance'?'Maintenance / authorized manager':
    kind==='housekeeping'?'Housekeeping supervisor':
    kind==='inventory'?'Inventory / front desk manager':
-   room.status==='awaiting_review'?'Independent authorized reviewer':'Authorized inspector',
+   'Authorized inspector',
   roomNumber:room.roomNumber,kind,roomStatus:room.status,
   taskId:room.openHousekeepingTaskId??undefined,
   orderId:room.activeMaintenanceOrderId??undefined,
@@ -87,12 +87,11 @@ export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumb
   return [...arrivals,...rooms].sort((a,b)=>a.priority-b.priority||a.date.localeCompare(b.date)||a.key.localeCompare(b.key));
  },[data]);
  const arrivalsToday=data?.arrivals.filter(a=>a.checkIn===data.asOfHotelDate&&a.risk!=='no_current_readiness_issue')??[];
- const outstanding=data?data.summary.needsInspection+data.summary.awaitingReview+data.summary.blockedOrStale:0;
+ const arrivalCount=data?.arrivals.filter(a=>a.risk!=='no_current_readiness_issue').length??0;
+ const roomCount=data?data.summary.needsInspection+data.summary.awaitingReview+data.summary.blockedOrStale:0;
  const filtered=queue.filter(item=>filter==='all'||
   filter==='arrivals'&&item.kind==='booking'||
-  filter==='blocked'&&item.roomStatus==='blocked_or_stale'||
-  filter==='review'&&item.roomStatus==='awaiting_review'||
-  filter==='inspection'&&item.roomStatus==='needs_inspection');
+  filter==='rooms'&&item.kind!=='booking');
  const totalPages=Math.max(1,Math.ceil(filtered.length/perPage));
  const safePage=Math.min(listPage,totalPages);
  const shown=filtered.slice((safePage-1)*perPage,safePage*perPage);
@@ -102,7 +101,7 @@ export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumb
  return <div className="readiness-hub rh-action-workspace">
   <div className="rh-header">
    <div><span className="rr-eyebrow">FRONT DESK · ACTION QUEUE</span>
-    <h3>Readiness & arrivals</h3><p>Today's arrivals first. Review real inspection and restriction records before check-in.</p></div>
+    <h3>Rooms to prepare</h3><p>Start at the top. Each task shows what is wrong and where to fix it.</p></div>
    <div className="rh-header-controls">
     <label>Arrival window
      <select aria-label="Arrival reporting window" value={days}
@@ -115,52 +114,33 @@ export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumb
   </div>
   <QueryFeedback loading={query.isPending} error={query.error} onRetry={()=>void query.refetch()}/>
   {data&&meta&&<>
-   {arrivalsToday.length>0&&<section className="rh-urgent" aria-label="Urgent arrivals today">
-    <div className="rh-urgent-heading"><AlertTriangle size={19} aria-hidden="true"/>
-     <div><strong>{arrivalsToday.length} arrival{arrivalsToday.length===1?'':'s'} needing action today</strong>
-      <small>{readableDate(data.asOfHotelDate)} · Resolve before guest check-in</small></div></div>
-    {arrivalsToday.sort((a,b)=>arrivalUrgency(a,data.asOfHotelDate)-arrivalUrgency(b,data.asOfHotelDate)).slice(0,3).map(arrival=>{
-     const item=createArrivalItem(arrival,data.asOfHotelDate);
-     return <div className="rh-urgent-row" key={item.key}>
-      <div><strong>{item.title}</strong><small>{item.subtitle}</small><p>{item.problem}</p></div>
-      <Link to="/reservations" search={{booking:arrival.bookingId,deskAction:arrival.risk==='unassigned_room'?'assign':'check-in'}}>
-       Open booking <ArrowRight size={15}/></Link>
-     </div>;
-    })}
-   </section>}
-   <div className="rh-snapshot"><Clock3 size={15} aria-hidden="true"/>
-    Snapshot {readableDate(data.asOfHotelDate)} · {meta.arrivalTotal} confirmed arrivals in selected window ·
-    Check-in inspection gate: {data.enforceAtCheckIn?'Enforced':'Not enforced'}
+   <div className="rh-simple-summary" role="group" aria-label="Filter outstanding tasks">
+    <button type="button" aria-pressed={filter==='all'} className={filter==='all'?'active':''}
+     onClick={()=>setFilter('all')}><strong>{arrivalCount+roomCount}</strong><span>All tasks</span></button>
+    <button type="button" aria-pressed={filter==='arrivals'} className={filter==='arrivals'?'active':''}
+     onClick={()=>setFilter('arrivals')}><strong>{arrivalCount}</strong><span>Arrivals to prepare</span></button>
+    <button type="button" aria-pressed={filter==='rooms'} className={filter==='rooms'?'active':''}
+     onClick={()=>setFilter('rooms')}><strong>{roomCount}</strong><span>Rooms to prepare</span></button>
    </div>
-   <div className="rh-overview rh-action-summary" role="group" aria-label="Filter readiness action queue">
-    {([
-     ['all','All issues',outstanding+data.arrivals.filter(a=>a.risk!=='no_current_readiness_issue').length,ClipboardCheck],
-     ['arrivals','Arrivals to review',data.arrivals.filter(a=>a.risk!=='no_current_readiness_issue').length,CalendarDays],
-     ['review','Awaiting approval',data.summary.awaitingReview,Clock3],
-     ['blocked','Blocked or outdated',data.summary.blockedOrStale,ShieldAlert],
-     ['inspection','Inspections required',data.summary.needsInspection,ShieldCheck],
-    ] as const).map(([value,label,count,Symbol])=><button key={value} type="button"
-     aria-pressed={filter===value} onClick={()=>setFilter(value)}
-     className={'rh-overview-card rh-summary-button'+(filter===value?' active':'')+(count>0&&value==='blocked'?' rh-blocked':'')}>
-      <Symbol size={19} aria-hidden="true"/><span>{label}</span><strong>{count}</strong>
-      <small>{value==='all'?'Hotel totals; room cards paginated':count===0?'No current issues':'Filter the queue'}</small>
-     </button>)}
+   <div className="rh-snapshot"><Clock3 size={15} aria-hidden="true"/>
+    <span>{arrivalsToday.length>0?arrivalsToday.length+' arrival(s) needing attention today · ':''}
+     {meta.arrivalTotal} confirmed arrivals over {days} days · Snapshot {readableDate(data.asOfHotelDate)}</span>
    </div>
    <section className="rh-section" aria-labelledby="rh-action-heading">
     <div className="rh-section-head"><div className="rh-section-copy">
-     <span className="rr-eyebrow">PRIORITIZED OPERATIONS</span>
-     <h3 id="rh-action-heading">What staff should do next</h3>
-     <p>Unassigned arrivals → arrival blockers → approvals → housekeeping and maintenance → inspections.</p>
+     <span className="rr-eyebrow">NEXT ACTIONS</span>
+     <h3 id="rh-action-heading">What needs to be done?</h3>
+     <p>Arrivals today come first. A completed inspection does not bypass active room restrictions.</p>
     </div></div>
     <div className="rh-action-list" aria-live="polite">
      {shown.map(item=><article key={item.key} className={'rh-action-card'+(item.priority<=1?' urgent':'')}>
       <div className="rh-action-info">
-       <strong>{item.title}</strong><small>{item.subtitle}</small>
+       <strong>{item.priority<=1?'TODAY · ':''}{item.title}</strong><small>{item.subtitle}</small>
        <p><AlertTriangle size={15} aria-hidden="true"/> {item.problem}</p>
-       <span>Responsible: {item.role}</span>
+       <span>{item.role}</span>
       </div>
       <div className="rh-action-controls">
-       {item.kind==='booking'&&<Link to="/reservations" search={{booking:item.bookingId,deskAction:item.problem==='Physical room has not been assigned'?'assign':'check-in'}}>
+       {item.kind==='booking'&&<Link to="/reservations" search={{booking:item.bookingId,deskAction:item.problem==='Physical room has not been assigned'?'assign':undefined}}>
         Open booking <ArrowRight size={15}/></Link>}
        {item.kind==='booking'&&item.taskId&&<Link to="/housekeeping" search={{task:item.taskId}}>
         Open cleaning task <ArrowRight size={15}/></Link>}
@@ -172,7 +152,7 @@ export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumb
         onClick={()=>{if(item.roomNumber)onInspectRoom(item.roomNumber);}}>
         Inspection details</button>}
        {item.kind==='inspection'&&item.roomNumber&&<button type="button" onClick={()=>{if(item.roomNumber)onInspectRoom(item.roomNumber);}}>
-        {item.roomStatus==='awaiting_review'?'Review inspection':canInspect?'Inspect room':'View inspection'} <ArrowRight size={15}/></button>}
+        {canInspect?'Inspect room':'View inspection'} <ArrowRight size={15}/></button>}
        {item.kind==='housekeeping'&&item.roomNumber&&<Link to="/housekeeping" search={{task:item.taskId}}>
         Open housekeeping task <ArrowRight size={15}/></Link>}
        {item.kind==='maintenance'&&item.roomNumber&&<Link to="/maintenance" search={{order:item.orderId}}>

@@ -160,7 +160,7 @@ export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumb
       <div className="rh-action-controls">
        {item.kind==='booking'&&<Link to="/reservations" search={{booking:item.bookingId,deskAction:item.problem==='Physical room has not been assigned'?'assign':'check-in'}}>
         Open booking <ArrowRight size={15}/></Link>}
-       {item.kind==='inspection'&&item.roomNumber&&<button type="button" onClick={()=>onInspectRoom(item.roomNumber)}>
+       {item.kind==='inspection'&&item.roomNumber&&<button type="button" onClick={()=>{if(item.roomNumber)onInspectRoom(item.roomNumber);}}>
         {item.problem==='Waiting for independent review'?'Review inspection':'Inspect room'} <ArrowRight size={15}/></button>}
        {item.kind==='housekeeping'&&item.roomNumber&&<Link to="/housekeeping" search={{task:item.taskId}}>
         Open housekeeping task <ArrowRight size={15}/></Link>}

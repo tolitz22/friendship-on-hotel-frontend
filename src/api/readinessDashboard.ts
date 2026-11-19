@@ -29,17 +29,21 @@ const report=z.object({
   rooms:z.array(z.object({
    roomId:id,roomNumber:z.string(),roomTypeId:id,status:roomStatus,
    latestInspectionId:id.nullable(),
+   openHousekeepingTaskId:id.nullable(),activeMaintenanceOrderId:id.nullable(),
+   activeInventoryBlockId:id.nullable(),
    inspectionStatus:z.enum(['submitted','approved','rejected']).nullable(),
    blockers:blockerFlags,
   })),
   arrivals:z.array(z.object({
-   bookingId:id,reference:z.string(),checkIn:day,checkOut:day,
+   bookingId:id,reference:z.string(),guestName:z.string().nullable(),checkIn:day,checkOut:day,
    assignedRoomId:id.nullable(),roomNumber:z.string().nullable(),
    risk:z.enum([
     'unassigned_room','room_record_missing',
     'no_current_readiness_issue','inspection_or_blocker',
    ]),
-   roomStatus:roomStatus.nullable(),
+   roomStatus:roomStatus.nullable(),roomBlockers:blockerFlags.nullable(),
+   openHousekeepingTaskId:id.nullable(),activeMaintenanceOrderId:id.nullable(),
+   activeInventoryBlockId:id.nullable(),
   })),
  }),
  meta:z.object({

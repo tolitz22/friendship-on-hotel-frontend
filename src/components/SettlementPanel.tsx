@@ -8,8 +8,8 @@ import {getJson,requestJson} from '../api/http';
 import {hotelPath,readSession} from '../api/session';
 import {useHotelAuth} from './AuthProvider';
 import {QueryFeedback} from './QueryFeedback';
-import {BillingActions} from './BillingActions';
 import {RecordGuestPayment} from './RecordGuestPayment';
+import {GuestIncidentalChargeForm} from './GuestIncidentalChargeForm';
 import {parseBillingAmount} from '../api/billing';
 import {readableDate,readableDateTime} from '../lib/format';
 import './settlement-print.css';
@@ -509,18 +509,19 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
     <p className="desk-muted">Payment evidence, staff confirmation, independent verification and allocation
      are separate stages. An unallocated amount does not mean the guest needs to pay twice.</p>
    </details>
-   {!data.signed&&data.status!=='checked_out'&&manager&&
+   {!data.signed&&['confirmed','checked_in'].includes(data.status)&&
+    !!user?.hotels.some(h=>h.id===hotelId&&['admin','front_desk'].includes(h.role))&&
     <div className="billing-guest-actions">
      <button type="button" className="rr-secondary-action" disabled={busy}
       onClick={()=>openDialog('charges')}><Banknote size={15}/> Add charge to guest bill</button>
-     <span className="desk-muted">Record an extra service or incidental before checkout. This does not collect money.</span>
+     <span className="desk-muted">Add an incidental during the stay; it does not collect money.</span>
     </div>}
    {(activeDialog==='payment'||activeDialog==='charges')&&<div className="billing-modal-backdrop">
     <section id="settlement-current-dialog" className="billing-action-modal" role="dialog" aria-modal="true"
      aria-label={activeDialog==='payment'?'Record guest payment':'Update guest bill'}>
      <div className="billing-action-modal-header">
       <div><span className="rr-eyebrow">BOOKING {data.reservationReference}</span>
-       <h3>{activeDialog==='payment'?'Record guest payment':'Add a charge or correction'}</h3>
+       <h3>{activeDialog==='payment'?'Record guest payment':'Add an extra charge'}</h3>
        <p>Current recorded difference: {money(data.remainingMinor,data.currency)} · Not a final amount due</p>
       </div>
       <button type="button" ref={dialogCloser} className="billing-modal-dismiss" aria-label="Close dialog"
@@ -530,7 +531,9 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       ?<RecordGuestPayment key={hotelId+'-payment-'+bookingId} bookingId={bookingId}
         currency={data.currency} signed={data.signed} recordedDifferenceMinor={data.remainingMinor}
         onDone={()=>{closeDialog();void query.refetch();}}/>
-      :<BillingActions bookingId={bookingId} signed={data.signed}/>}
+      :<GuestIncidentalChargeForm bookingId={bookingId} currency={data.currency}
+        currentChargesMinor={data.netRecordedChargesMinor} recordedPaymentMinor={recordedTotal}
+        onSaved={()=>{closeDialog();void query.refetch();}}/>}
     </section>
    </div>}
    <details id="billing-account-history" className="billing-statement-details">

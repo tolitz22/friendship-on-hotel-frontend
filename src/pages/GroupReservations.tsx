@@ -442,7 +442,7 @@ function GroupDetails({id,selectedTab,originHotel}:{id:string;selectedTab?:'room
      </li>)}
      {finance.data?.rooms.filter(row=>row.priced&&row.pendingReviewPaymentCount>0).map(row=><li key={'finance-'+row.bookingId}>
       <div><strong>Review payment evidence · {row.reference}</strong>
-       <span>{money(row.pendingReviewPaymentsMinor,row.currency)} recorded and awaiting staff review</span>
+       <span>{row.priced?money(row.pendingReviewPaymentsMinor,row.currency):'Amount unavailable'} recorded and awaiting staff review</span>
        <p>Recorded evidence is not independent verification, allocation or final settlement.</p>
        <small>Responsible role: Authorized payment reviewer; independent verification requires a separate authorized reviewer</small></div>
       <Link className="btn-inline" to="/billing" search={{booking:row.bookingId,group:group.id,hotel:hotelId??undefined,checkIn:group.checkIn??undefined,checkOut:group.checkOut??undefined}}>Open guest bill <ArrowRight size={14}/></Link>
@@ -465,7 +465,7 @@ function GroupDetails({id,selectedTab,originHotel}:{id:string;selectedTab?:'room
       &&!group.operations.checkoutCleaningUnassignedCount
       &&(!finance.data||finance.data.rooms.every(row=>!row.priced||row.pendingReviewPaymentCount===0))
       &&<p className="desk-muted">No immediate next actions identified in the loaded records. Continue monitoring guest folios, room inspections and scheduled departures.</p>}
-    {finance.isError&&<QueryFeedback error={finance.error} onRetry={()=>void finance.refetch()}/>}
+    {finance.isError&&<QueryFeedback loading={false} error={finance.error} onRetry={()=>void finance.refetch()}/>}
    </section>
    <div className="gb-detail-tabs" role="tablist" aria-label="Group booking details" onKeyDown={handleTabKeys}>
     <button role="tab" id="gb-tab-rooms" aria-controls="gb-panel-rooms" tabIndex={detailTab==='rooms'?0:-1} aria-selected={detailTab==='rooms'} className={detailTab==='rooms'?'active':''}

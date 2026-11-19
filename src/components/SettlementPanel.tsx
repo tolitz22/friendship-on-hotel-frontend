@@ -210,9 +210,17 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   &&!data?.signed&&data?.status==='checked_in';
  const routineCashCheckedOut=simplifiedCash&&hasExistingMoney&&!data?.signed
   &&data?.status==='checked_out';
+ const recordedCashShiftStatuses=(data?.cashShiftContexts??[]).filter(row=>
+  recordedActive.some(p=>p.id===row.paymentId&&p.method==='cash'))
+  .map(row=>row.cashShiftStatus);
+ const allCashShiftsReconciled=routineCashCheckedOut&&recordedCashShiftStatuses.length>0
+  &&recordedCashShiftStatuses.every(status=>status==='reconciled');
+ const cashAuditValid=data?.routineCashCheckoutAudit?.integrityValid!==false;
  const paymentStatus=data?.signed
   ?data.signedSnapshotIntegrity?'Financial approval complete':'Account requires investigation'
-  :routineCashCheckedOut?'Guest checked out — cashier review still pending'
+  :routineCashCheckedOut?!cashAuditValid?'Guest checked out — audit investigation needed'
+    :allCashShiftsReconciled?'Guest checked out — cash reconciled'
+    :'Guest checked out — cash reconciliation pending'
   :!hasExistingMoney?'No payment recorded'
   :routineCashReady?'Cash payment accepted — ready for checkout'
   :routineCashException?'Cash payment recorded — review needed'
@@ -238,7 +246,11 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   :'Review settlement checks';
  const shiftLabel=handoff?.cashShiftId?'Shift '+handoff.cashShiftId:'Cashier shift';
  const operationalDescription=routineCashCheckedOut
-  ?'Guest checkout has been recorded. The cashier must still close and count the drawer, then a different manager must reconcile it. No additional guest payment or ordinary post-checkout bill changes are needed.'
+  ?!cashAuditValid
+   ?'The saved cash checkout audit failed its integrity check. Stop ordinary financial changes and ask the owner to investigate.'
+   :allCashShiftsReconciled
+    ?'Guest checkout was recorded and all linked cash drawers were independently reconciled. No additional guest payment is needed. This is an operational cash close, not a bank settlement or tax invoice.'
+    :'Guest checkout is recorded. The cashier must still close and count the drawer; another authorized manager must reconcile it. Do not charge the guest again.'
   :routineCashReady
   ?'Cash payment is recorded and covers the guest bill. Routine checkout can proceed without per-payment manager approval. The cashier still needs to count the drawer; another manager reconciles it afterward.'
   :routineCashException
@@ -380,7 +392,11 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        :'The signed statement failed its integrity check. Stop checkout and request investigation.'
       :operationalDescription}</p>
      {!data.signed&&<div className="frontdesk-payment-primary">
-      {routineCashCheckedOut
+      {routineCashCheckedOut&&allCashShiftsReconciled&&cashAuditValid
+       ?<span className="frontdesk-payment-waiting"><CheckCircle2 size={16}/>
+         Independent cash reconciliation completed. No guest payment action needed.
+        </span>
+       :routineCashCheckedOut
        ?<Link to="/cashier-shifts" search={{booking:bookingId,hotel:hotelId??undefined,
            shift:handoff?.cashShiftId??undefined}}
           className="rr-secondary-action">View cashier shift <ArrowRight size={16}/></Link>

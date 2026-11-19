@@ -5,7 +5,11 @@ import {hotelPath,readSession} from './session';
 
 const id=z.string().regex(/^[1-9]\d*$/);
 const receipt=z.object({
- id,paymentId:id,bookingId:id,reference:z.string(),amountMinor:z.number().int().nonnegative(),paymentStatus:z.string(),
+ id,paymentId:id,bookingId:id,reference:z.string(),amountMinor:z.number().int().nonnegative(),
+ cashTenderedMinor:z.number().int().nonnegative().nullable(),
+ changeGivenMinor:z.number().int().nonnegative().nullable(),
+ netReceiptMinor:z.number().int().nonnegative().nullable(),
+ paymentStatus:z.string(),
 });
 const shift=z.object({
  id,hotelId:id,cashierId:id,currency:z.string(),status:z.enum(['open','submitted','reconciled','flagged']),
@@ -96,11 +100,15 @@ export async function reconcileCashShift(hotelId:string,shiftId:string,decision:
  return data;
 }
 export async function receiveCash(hotelId:string,shiftId:string,bookingId:string,payload:{
- requestKey:string;reference:string;amountMinor:number;duplicateOverrideReason?:string;
+ requestKey:string;reference:string;amountMinor:number;
+ cashTenderedMinor:number;changeGivenMinor:number;duplicateOverrideReason?:string;
 }){
  if(readSession().hotelId!==hotelId)throw new Error('Property changed.');
  return z.object({data:z.object({
   paymentId:id,shiftId:id,status:z.string(),replayed:z.boolean(),
+  cashTenderedMinor:z.number().int().nonnegative().nullable(),
+  changeGivenMinor:z.number().int().nonnegative().nullable(),
+  netReceiptMinor:z.number().int().nonnegative().nullable(),
  })}).parse(await requestJson<unknown>(
   hotelPath('/cashier-shifts/'+encodeURIComponent(shiftId)+'/bookings/'+encodeURIComponent(bookingId)+'/cash-receipts'),
   {method:'POST',body:payload},

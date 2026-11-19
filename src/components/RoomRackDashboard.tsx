@@ -283,14 +283,15 @@ export function RoomRackDashboard({hotelId,focusRoomNumber,onEditRoom}:{hotelId:
     <button type="button" className="rack-clear" onClick={clear}>Clear filters</button>
    </div>}
    <div className="rack-results" role="status">
-    <strong>{visible.length} shown</strong> from {data?.rooms.length??0} rooms on page {page}
-    <span>· {meta?.total??0} registered rooms hotel-wide</span>
+    <strong>{visible.length} {visible.length===1?'room':'rooms'}</strong> shown
+    <span>· {meta?.total??0} registered hotel-wide</span>
+    {meta&&meta.totalPages>1&&<span>· Page {page} of {meta.totalPages}</span>}
     {meta&&meta.totalPages>1&&<small> Filters/search apply to the loaded page. Change pages to check other rooms.</small>}
    </div>
    {visible.length>0?
     listView?<div className="rack-list" role="list">{visible.map(room=><RoomTile key={room.roomId} room={room}
      arrivals={arrivals} today={data!.hotelDate} list canInspect={data!.allowedActions.completeInspection} onSelect={select}/>)}</div>:
-    <div className="rack-grid">{visible.map(room=><RoomTile key={room.roomId} room={room}
+    <div className={'rack-grid'+(visible.length<=4?' rack-grid-small':'')}>{visible.map(room=><RoomTile key={room.roomId} room={room}
      arrivals={arrivals} today={data!.hotelDate} canInspect={data!.allowedActions.completeInspection} onSelect={select}/>)}</div>:
     <div className="rack-empty" role="status"><Info size={22}/><strong>No matching rooms on this page</strong>
      <p>Adjust filters, or navigate to another room page.</p>

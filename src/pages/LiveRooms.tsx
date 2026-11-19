@@ -12,6 +12,7 @@ import {CatalogEditDialog} from '../components/CatalogEditDialog';
 import {RoomReadinessPanel} from '../components/RoomReadinessPanel';
 import {ReadinessEnforcementPanel} from '../components/ReadinessEnforcementPanel';
 import {ReadinessDashboardPanel} from '../components/ReadinessDashboardPanel';
+import {RoomRackDashboard} from '../components/RoomRackDashboard';
 import type {LiveRoom} from '../api/liveCatalog';
 import type {InventoryRoomStatus} from '../api/roomInventoryStatus';
 import {useHotelAuth} from '../components/AuthProvider';
@@ -134,7 +135,7 @@ export function LiveRooms(){
  const retry=()=>{void rooms.refetch();void summary.refetch();void roomTypes.refetch();};
  return <>
   <div className="rr-page-heading">
-   <Heading title="Rooms & readiness" description="Resolve urgent arrival readiness issues, or manage the physical room directory."/>
+   <Heading title="Rooms & readiness" description="View the live room rack or manage the room inventory."/>
    <div className="rr-heading-actions">
     {canSeeStay&&<Link to="/room-calendar" className="rr-secondary-action"><BedDouble size={16}/> Room calendar <ArrowRight size={15}/></Link>}
     {admin&&view==='catalog'&&<button type="button" className="btn-primary" onClick={()=>setShowCreate(true)}><Plus size={16}/> Add room</button>}
@@ -144,7 +145,7 @@ export function LiveRooms(){
    <button type="button" aria-pressed={view==='catalog'} className={view==='catalog'?'active':''}
     onClick={()=>changeView('catalog')}><BedDouble size={18}/><span><strong>Room Inventory</strong><small>Search and manage rooms</small></span></button>
    <button type="button" aria-pressed={view==='readiness'} className={view==='readiness'?'active':''}
-    onClick={()=>changeView('readiness')}><ClipboardCheck size={18}/><span><strong>Arrivals & Room Tasks</strong><small>What staff should do next</small></span></button>
+    onClick={()=>changeView('readiness')}><ClipboardCheck size={18}/><span><strong>Room Status Dashboard</strong><small>Occupancy, cleaning and room tasks</small></span></button>
   </div>
   {view==='catalog'&&<>
    <p className="rr-one-note">Cleaning completion and readiness approval are separate records.</p>
@@ -242,8 +243,9 @@ export function LiveRooms(){
    </section>
   </>}
   {view==='readiness'&&<div className="rr-readiness-workspace">
-   <p className="rr-one-note">Cleaning completion and readiness approval are separate records.</p>
-   <ReadinessDashboardPanel onInspectRoom={openInspection}/>
+   {canSeeStay&&hotelId?<RoomRackDashboard key={hotelId} hotelId={hotelId}/>:
+    <ReadinessDashboardPanel onInspectRoom={openInspection}/>}
+
    <details className="rr-how-disclosure"><summary>How readiness works</summary>
     <p>Cleaning is recorded by housekeeping; a completed physical inspection certifies readiness. New checkout turnovers, maintenance or inventory restrictions may require further action. Booking availability is not an inspection result.</p>
    </details>

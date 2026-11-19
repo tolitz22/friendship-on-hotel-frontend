@@ -1,8 +1,9 @@
-import {afterEach,describe,expect,it,vi} from 'vitest';
+import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
 import {clearSession,setSessionToken} from './session';
 import {changeStaffPassword,requestPasswordReset,resetStaffPassword} from './auth';
 
-afterEach(()=>{clearSession();vi.unstubAllGlobals();});
+beforeEach(()=>{vi.stubEnv('VITE_AUTH_MODE','bearer');});
+afterEach(()=>{clearSession();vi.unstubAllGlobals();vi.unstubAllEnvs();});
 
 describe('Phase 16 staff password API',()=>{
  it('requests password reset without requiring a bearer token',async()=>{

@@ -61,7 +61,8 @@ export function LiveRooms(){
  const role=user?.hotels.find(h=>h.id===hotelId)?.role;
  const admin=role==='admin';
  const canSeeStay=admin||role==='front_desk';
- const [view,setView]=useState<View>('catalog');
+ const [view,setView]=useState<View>('readiness');
+ const [requestedInspectionNumber,setRequestedInspectionNumber]=useState<string|null>(null);
  const [showCreate,setShowCreate]=useState(false);
  const [editingRoom,setEditingRoom]=useState<LiveRoom|null>(null);
  const [readinessRoom,setReadinessRoom]=useState<LiveRoom|null>(null);
@@ -108,7 +109,7 @@ export function LiveRooms(){
  const hasFilters=floor!=='all'||search.trim().length>0||attentionFilter!=='all';
  const resetFilters=()=>{setFloor('all');setSearch('');setAttentionFilter('all');setPage(1);};
  useEffect(()=>{
-  setView('catalog');setShowCreate(false);setEditingRoom(null);setReadinessRoom(null);
+  setView(linkedRoomNumber?'catalog':'readiness');setRequestedInspectionNumber(null);setShowCreate(false);setEditingRoom(null);setReadinessRoom(null);
   setFloor('all');setSearch(linkedRoomNumber??'');setPage(1);setAttentionFilter('all');
  },[hotelId,linkedRoomNumber]);
  useEffect(()=>{
@@ -131,13 +132,22 @@ export function LiveRooms(){
   return ()=>{document.body.style.overflow=previousOverflow;
    window.removeEventListener('keydown',handleKey);inspectionTrigger.current?.focus();};
  },[readinessRoom]);
+ useEffect(()=>{
+  if(!requestedInspectionNumber||!rooms.isSuccess)return;
+  const room=rooms.data.data.find(item=>item.number===requestedInspectionNumber);
+  if(room){setReadinessRoom(room);setRequestedInspectionNumber(null);}
+ },[requestedInspectionNumber,rooms.isSuccess,rooms.data]);
+ const openInspection=(roomNumber:string)=>{
+  setView('catalog');setFloor('all');setSearch(roomNumber);
+  setAttentionFilter('all');setPage(1);setRequestedInspectionNumber(roomNumber);
+ };
  const changeView=(next:View)=>{
   setView(next);setEditingRoom(null);setReadinessRoom(null);
  };
  const retry=()=>{void rooms.refetch();void summary.refetch();void roomTypes.refetch();};
  return <>
   <div className="rr-page-heading">
-   <Heading title="Rooms & readiness" description="Manage the physical room catalogue and review recorded occupancy, cleaning, and inspection evidence."/>
+   <Heading title="Rooms & readiness" description="Resolve urgent arrival readiness issues, or manage the physical room directory."/>
    <div className="rr-heading-actions">
     {canSeeStay&&<Link to="/room-calendar" className="rr-secondary-action"><BedDouble size={16}/> Room calendar <ArrowRight size={15}/></Link>}
     {admin&&view==='catalog'&&<button type="button" className="btn-primary" onClick={()=>setShowCreate(true)}><Plus size={16}/> Add room</button>}
@@ -150,41 +160,10 @@ export function LiveRooms(){
     onClick={()=>changeView('readiness')}><ClipboardCheck size={18}/><span><strong>Readiness & arrivals</strong><small>Hotel-wide inspection and arrival queue</small></span></button>
   </div>
   {view==='catalog'&&<>
-   <div className="rr-explainer"><Info size={18}/>
-    <div><strong>Cleaning and inspection are different</strong>
-     <p>Housekeeping marks cleaning complete; an authorized reviewer separately approves the physical inspection. <strong>Not yet verified does not mean dirty.</strong> Approved rooms do not need a repeat inspection every day unless turnover, maintenance, or new work changes their condition. Availability is checked separately.</p></div>
-   </div>
-
-   {canSeeStay&&<section className="rr-status-section" aria-label="Room status for the current page">
-    <div className="rr-section-head">
-     <div><span className="rr-eyebrow">OPERATIONS · CURRENT ROOM PAGE</span><h3>Room status at a glance</h3>
-      <p>{visibleRoomIds.length} room(s) on this page · Figures are not hotel-wide totals</p></div>
-     <button type="button" className="rr-secondary-action" disabled={operationStatus.isFetching||visibleRoomIds.length===0}
-      onClick={()=>void operationStatus.refetch()}><RefreshCw size={16}/> {operationStatus.isFetching?'Refreshing…':'Refresh status'}</button>
-    </div>
-    <QueryFeedback loading={operationStatus.isPending&&visibleRoomIds.length>0} error={operationStatus.error}
-     onRetry={()=>void operationStatus.refetch()}/>
-    <div className="rr-summary-grid">
-     <button type="button" className={attentionFilter==='all'?'rr-summary active':'rr-summary'}
-      aria-pressed={attentionFilter==='all'} onClick={()=>setAttentionFilter('all')}>
-      <Layers3 size={19}/><span>Rooms on this page</span><strong>{rooms.isSuccess?catalogRows.length:'—'}</strong><small>All room statuses</small>
-     </button>
-     <button type="button" className={attentionFilter==='attention'?'rr-summary active rr-summary-warning':'rr-summary rr-summary-warning'}
-      aria-pressed={attentionFilter==='attention'} disabled={!statusReady} onClick={()=>setAttentionFilter('attention')}>
-      <AlertTriangle size={19}/><span>Needs attention</span><strong>{statusReady?counts.attention:'—'}</strong><small>Cleaning, inspection, or block</small>
-     </button>
-     <button type="button" className={attentionFilter==='vacant_ready'?'rr-summary active rr-summary-good':'rr-summary rr-summary-good'}
-      aria-pressed={attentionFilter==='vacant_ready'} disabled={!statusReady} onClick={()=>setAttentionFilter('vacant_ready')}>
-      <ShieldCheck size={19}/><span>Vacant & approved</span><strong>{statusReady?counts.ready:'—'}</strong><small>Current inspection status only</small>
-     </button>
-     <button type="button" className={attentionFilter==='occupied'?'rr-summary active':'rr-summary'}
-      aria-pressed={attentionFilter==='occupied'} disabled={!statusReady} onClick={()=>setAttentionFilter('occupied')}>
-      <Users size={19}/><span>In-house / checkout</span><strong>{statusReady?counts.occupied:'—'}</strong><small>According to PMS stays</small>
-     </button>
-    </div>
-    {statusReady&&counts.blocked>0&&<p className="rr-block-count"><ShieldAlert size={15}/> {counts.blocked} room(s) on this page have an active maintenance or inventory block.</p>}
-   </section>}
-
+   <p className="rr-one-note">Cleaning completion and readiness approval are separate records.</p>
+   <details className="rr-how-disclosure"><summary>How readiness works</summary>
+    <p>Housekeeping records cleaning, a staff member inspects physical conditions, and an independent authorized manager reviews the inspection. New turnover or room work may invalidate readiness. Inventory and payment checks remain separate.</p>
+   </details>
    <section className="rr-inventory-section" aria-labelledby="rr-room-list-title">
     <div className="rr-section-head">
      <div><span className="rr-eyebrow">ROOM DIRECTORY</span><h3 id="rr-room-list-title">Find and inspect a room</h3>
@@ -208,14 +187,6 @@ export function LiveRooms(){
      <button type="button" className="rr-secondary-action rr-refresh-list" disabled={rooms.isFetching}
       onClick={retry}><RefreshCw size={15}/> {rooms.isFetching?'Refreshing…':'Refresh rooms'}</button>
     </div>
-    {canSeeStay&&<div className="rr-filter-chips" role="group" aria-label="Room operational filter">
-     {(Object.entries(attentionLabels) as [AttentionFilter,string][]).map(([key,label])=>
-      <button type="button" key={key} aria-pressed={attentionFilter===key}
-       className={attentionFilter===key?'selected':''} disabled={key!=='all'&&!statusReady}
-       onClick={()=>setAttentionFilter(key)}>{label}</button>)}
-    </div>}
-    {canSeeStay&&attentionFilter!=='all'&&<p className="rr-page-scope">
-     <Info size={14}/> Status filters only apply to the {catalogRows.length} rooms loaded on this page. They do not search the entire hotel.</p>}
     <QueryFeedback loading={rooms.isPending||summary.isPending} error={rooms.error??summary.error??roomTypes.error}
      onRetry={retry} empty={rooms.isSuccess&&catalogRows.length===0}
      emptyMessage={hasFilters?'No rooms match these filters. Clear filters to see all registered rooms.':'No rooms registered yet. An administrator can add the first room.'}/>
@@ -284,11 +255,11 @@ export function LiveRooms(){
    </section>
   </>}
   {view==='readiness'&&<div className="rr-readiness-workspace">
-   <div className="rr-explainer"><Info size={18}/><div><strong>Inspection when needed—not automatic every day</strong>
-    <p>Housekeeping cleans, a different authorized person reviews the inspection, and the PMS checks current blockers. The hotel administrator controls whether approved readiness is enforced at check-in. Inspections are not automatic daily tasks. Booking availability, physical occupancy, identity, and payment remain separate checks.</p></div></div>
-   <ReadinessDashboardPanel onFindRoom={roomNumber=>{
-    setView('catalog');setFloor('all');setSearch(roomNumber);setAttentionFilter('all');setPage(1);
-   }}/>
+   <p className="rr-one-note">Cleaning completion and readiness approval are separate records.</p>
+   <ReadinessDashboardPanel onInspectRoom={openInspection}/>
+   <details className="rr-how-disclosure"><summary>How readiness works</summary>
+    <p>Cleaning is recorded by housekeeping; a separate inspection and independent review approve readiness. New checkout turnovers, maintenance or inventory restrictions may require further action. Booking availability is not an inspection result.</p>
+   </details>
    {admin&&<details className="workflow-disclosure">
     <summary><span><Settings2 size={17}/> Advanced · Check-in readiness enforcement policy</span></summary>
     <ReadinessEnforcementPanel/>

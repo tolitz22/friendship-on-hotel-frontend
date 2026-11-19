@@ -1,12 +1,12 @@
 import {useEffect,useState,type FormEvent} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
-import {Link} from '@tanstack/react-router';
+import {Link,useSearch} from '@tanstack/react-router';
 import {ArrowRight,CheckCircle2,ClipboardList,Clock3,History,Info,Plus,RefreshCcw,Search,ShieldAlert,UserRound,Wrench,X} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {useLiveRooms} from '../api/liveCatalogQueries';
 import {createMaintenance,listMaintenance,maintenanceHistory,
  type LiveWorkOrder,type MaintenancePriority,type MaintenanceStatus,type MaintenanceFilters,
- parseLiveMaintenance,parseMaintenanceHistory,patchValidatedMaintenance,
+ parseLiveMaintenance,parseMaintenanceHistory,patchValidatedMaintenance,fetchMaintenanceOrder,
  mayUpdateMaintenance} from '../api/liveMaintenance';
 import {ApiError} from '../api/http';
 import {readSession} from '../api/session';
@@ -33,6 +33,7 @@ const fromOrder=(order:LiveWorkOrder):Draft=>({
 });
 
 export function LiveMaintenance(){
+ const {order:linkedOrder}=useSearch({from:'/maintenance'});
  const {hotelId,user}=useHotelAuth();
  const role=user?.hotels.find(h=>h.id===hotelId)?.role;
  const admin=role==='admin';
@@ -65,6 +66,11 @@ export function LiveMaintenance(){
   },retry:false,
  });
  const rooms=useLiveRooms({page:1,perPage:100});
+ const linked=useQuery({
+  queryKey:['live','maintenance-order',hotelId,linkedOrder],
+  enabled:!!hotelId&&!!linkedOrder,retry:false,
+  queryFn:()=>fetchMaintenanceOrder(linkedOrder!),
+ });
  const [selected,setSelected]=useState<LiveWorkOrder|null>(null);
  const [draft,setDraft]=useState<Draft|null>(null);
  const [saving,setSaving]=useState(false);
@@ -81,6 +87,11 @@ export function LiveMaintenance(){
   setSelected(null);setDraft(null);setHistoryVisible(false);setError('');setPage(1);
   setStatusFilter('');setPriorityFilter('');setSearch('');setMineOnly(false);setHistoryPage(1);
  },[hotelId]);
+ useEffect(()=>{
+  if(!linked.data||linked.data.hotelId!==hotelId)return;
+  setSelected(linked.data);setDraft(fromOrder(linked.data));
+  setHistoryVisible(false);setError('');setFieldErrors({});setHistoryPage(1);
+ },[hotelId,linked.data]);
  const openCreate=()=>{
   setSelected(null);setDraft(newDraft());setHistoryVisible(false);setError('');setFieldErrors({});setHistoryPage(1);
  };

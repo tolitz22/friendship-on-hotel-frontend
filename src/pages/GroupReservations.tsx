@@ -558,6 +558,18 @@ export function GroupReservations(){
     <button className="btn-primary" onClick={()=>void navigate({to:'/group-reservations',search:{group:result.id,hotel:hotelId??undefined}})}>
      View group and assign rooms <ArrowRight size={16}/></button>
    </div>:<>
+    <nav className="gb-wizard-nav" aria-label="Create group booking steps">
+     <button type="button" aria-current={formStep===1?'step':undefined}
+      className={formStep===1?'active':''} disabled={locked} onClick={()=>setFormStep(1)}>
+      <span>1</span> Group & dates</button>
+     <button type="button" aria-current={formStep===2?'step':undefined}
+      className={formStep===2?'active':''} disabled={locked||!stepOneValid} onClick={()=>setFormStep(2)}>
+      <span>2</span> Rooms & guests</button>
+     <button type="button" aria-current={formStep===3?'step':undefined}
+      className={formStep===3?'active':''} disabled={locked||!stepOneValid||!roomEntriesValid}
+      onClick={()=>setFormStep(3)}><span>3</span> Review</button>
+    </nav>
+    {formStep===1&&<section className="gb-wizard-step" aria-label="Group stay details">
     <div className="gb-form-step"><span>1</span><div><strong>Group and stay details</strong>
      <small>Rooms are reserved together. Physical room assignment and check-in happen afterward.</small></div></div>
     <fieldset disabled={locked} className="rb-fieldset">
@@ -579,8 +591,15 @@ export function GroupReservations(){
         min={addDays(checkIn,1)} max={addDays(checkIn,31)}
         value={checkOut} onChange={e=>setCheckOut(e.target.value)}/></div>
      </div>
+    </fieldset>
+    <div className="gb-wizard-actions">
+     <button type="button" className="btn-primary" disabled={!stepOneValid||locked}
+      onClick={()=>setFormStep(2)}>Next: rooms and guests <ArrowRight size={16}/></button>
+    </div></section>}
+    {formStep===2&&<section className="gb-wizard-step" aria-label="Rooms and registered guests">
      <div className="gb-form-step"><span>2</span><div><strong>Rooms and registered guests</strong>
       <small>Select a registered guest, room category and rate for each room.</small></div></div>
+    <fieldset disabled={locked} className="rb-fieldset">
      <QueryFeedback loading={types.isPending||rates.isPending}
       error={types.error??rates.error}/>
      {rooms.map((room,index)=><div key={index} className="rb-section gb-room-entry">
@@ -616,11 +635,29 @@ export function GroupReservations(){
       ?'Search for an existing guest first, or use Add guest in the room card to register someone without leaving this booking.'
       :'Search for an existing guest. Ask a hotel administrator to register a missing guest.'}</p>
     </fieldset>
+    <div className="gb-wizard-actions">
+     <button type="button" className="btn-inline" disabled={locked} onClick={()=>setFormStep(1)}>
+      <ChevronLeft size={15}/> Back</button>
+     <button type="button" className="btn-primary" disabled={!stepOneValid||!roomEntriesValid||locked}
+      onClick={()=>setFormStep(3)}>Review group booking <ArrowRight size={16}/></button>
+    </div></section>}
+    {formStep===3&&<section className="gb-wizard-step" aria-label="Review group booking">
     <div className="rb-review gb-booking-review">
      <div className="gb-form-step"><span>3</span><div><strong>Review and confirm</strong>
       <small>Check the stay summary before creating the linked bookings.</small></div></div>
      {selectedAllotment&&<p>Converting hold {selectedAllotment.reference}. Dates, room type and quantity must match the existing hold.</p>}
+     <p><strong>{name.trim()}</strong>{contact.trim()?' · Contact: '+contact.trim():''}</p>
      <p>{rooms.length} rooms · {readableDate(checkIn)} – {readableDate(checkOut)}</p>
+     <div className="gb-wizard-review-rooms">
+      {rooms.map((room,index)=><div key={index}>
+       <strong>Room {index+1}</strong>
+       <span>{createdGuests[room.guestId]
+        ?createdGuests[room.guestId].firstName+' '+createdGuests[room.guestId].lastName
+        :'Guest selected · '+room.guestId}</span>
+       <span>{types.data?.data.find(type=>type.id===room.roomTypeId)?.name??'Room type'} ·
+        {rates.data?.data.find(rate=>rate.id===room.ratePlanId)?.name??'Rate not selected'}</span>
+      </div>)}
+     </div>
      <p><strong>Estimated room subtotal: {estimate===null?'Mixed currencies — review individual rates':money(estimate,'PHP')}</strong></p>
      <p className="desk-muted">Estimated room charges only. Taxes, service fees, discounts, deposits, and payments are separate. Inventory is verified again when you confirm.</p>
      {error&&<p role="alert" className="wizard-error">{error}</p>}
@@ -630,6 +667,10 @@ export function GroupReservations(){
       <button className="btn-primary" type="button" disabled={!ready||busy}
        onClick={confirm}>{busy?'Saving…':'Confirm all room bookings'} <ArrowRight size={16}/></button>}
     </div>
+    <div className="gb-wizard-actions">
+     <button type="button" className="btn-inline" disabled={locked} onClick={()=>setFormStep(2)}>
+      <ChevronLeft size={15}/> Back to rooms</button>
+    </div></section>}
    </>}
   </Panel>:view==='groups'?<section className="gb-groups-workspace" aria-label="Group booking dashboard">
    <div className="gb-summary-grid">

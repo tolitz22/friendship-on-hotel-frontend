@@ -67,6 +67,9 @@ const statement=z.object({
  signedAt:z.string().nullable(),signedBy:id.nullable(),
  isTaxInvoice:z.literal(false),bankOrGatewayApiVerified:z.literal(false),
  paymentEvidenceIndependentlyReviewed:z.boolean(),settlementWorkflowEnabled:z.boolean(),
+ simplifiedCashierModeEnabled:z.boolean().optional().default(false),
+ routineCashCheckoutEligible:z.boolean().optional().default(false),
+ routineCashCheckoutReason:z.string().nullable().optional(),
 });
 type Statement=z.infer<typeof statement>;
 type Payment=z.infer<typeof payment>;
@@ -194,9 +197,16 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const needsCashInvestigation=nextTask==='verification'&&cashNeedsReconciliation
   &&!['open','submitted'].includes(cashShiftStatus);
  const actionIsWaiting=mustWaitForCashier||mustWaitForOtherManager||mustWaitForVerifier;
+ const simplifiedCash=data?.simplifiedCashierModeEnabled??false;
+ const routineCashReady=simplifiedCash&&(data?.routineCashCheckoutEligible??false)
+  &&data?.status==='checked_in';
+ const routineCashException=simplifiedCash&&hasExistingMoney&&!routineCashReady
+  &&!data?.signed&&data?.status==='checked_in';
  const paymentStatus=data?.signed
   ?data.signedSnapshotIntegrity?'Financial approval complete':'Account requires investigation'
   :!hasExistingMoney?'No payment recorded'
+  :routineCashReady?'Cash payment accepted — ready for checkout'
+  :routineCashException?'Cash payment recorded — review needed'
   :needsCashInvestigation?'Payment needs investigation'
   :nextTask==='disabled'?'Payment recorded — approval unavailable'
   :nextTask==='signoff'?'Payment verified — final approval needed'
@@ -218,7 +228,11 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   :nextTask==='disabled'?'Final approval unavailable'
   :'Review settlement checks';
  const shiftLabel=handoff?.cashShiftId?'Shift '+handoff.cashShiftId:'Cashier shift';
- const operationalDescription=canSubmitOwnCount
+ const operationalDescription=routineCashReady
+  ?'Cash payment is recorded and covers the guest bill. Routine checkout can proceed without per-payment manager approval. The cashier still needs to count the drawer; another manager reconciles it afterward.'
+  :routineCashException
+  ?'Routine cash checkout is not eligible: '+(data?.routineCashCheckoutReason??'manager review is required')+'. Do not collect the guest payment again.'
+  :canSubmitOwnCount
   ?'The payment was already recorded and confirmed. Count the cash in your drawer and submit '+shiftLabel+'. No additional guest payment is needed.'
   :mustWaitForCashier
    ?'The payment was already confirmed. '+(handoff?.cashierName??'The assigned cashier')+
@@ -328,7 +342,8 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
      <div><span className="rr-eyebrow">ACCOUNT SUMMARY</span>
       <h3>{data.reservationReference}</h3><p>{readableDate(data.checkIn)} to {readableDate(data.checkOut)} · Guest account</p></div>
      <span className={'billing-account-tag '+(data.signed?'complete':'pending')}>
-      {data.signed?'Settlement signed':'Settlement not final'}</span>
+      {data.signed?'Settlement signed':routineCashReady?'Cash paid · checkout ready':
+       simplifiedCash?'Cash on file':'Settlement not final'}</span>
     </div>
    </div>
    <section className="frontdesk-payment-hub" aria-label="Front desk payment and checkout">
@@ -345,6 +360,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        <h3>{paymentStatus}</h3></div>
       <span className="checkout-guide-status">{data.signed
        ?data.signedSnapshotIntegrity?'Approved':'Investigate'
+       :routineCashReady?'Ready for checkout'
        :hasExistingMoney?'Payment on file':'Payment needed'}</span>
      </div>
      <p>{data.signed
@@ -353,7 +369,15 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        :'The signed statement failed its integrity check. Stop checkout and request investigation.'
       :operationalDescription}</p>
      {!data.signed&&<div className="frontdesk-payment-primary">
-      {canSubmitOwnCount||canReviewShift||needsCashInvestigation
+      {routineCashReady
+       ?<Link to="/reservations" search={{booking:bookingId}}
+         className="btn-primary">Continue guest checkout <ArrowRight size={16}/></Link>
+       :routineCashException
+       ?<div className="frontdesk-payment-waiting">
+         <ShieldCheck size={16}/><strong>Owner/manager review required</strong>
+         <span>Payment is already on file. See the eligibility reason above.</span>
+        </div>
+       :canSubmitOwnCount||canReviewShift||needsCashInvestigation
        ?<Link to="/cashier-shifts" search={{booking:bookingId,hotel:hotelId??undefined,shift:handoff?.cashShiftId??undefined}}
          className="btn-primary">{operationalAction}<ArrowRight size={16}/></Link>
        :actionIsWaiting||nextTask==='disabled'&&hasExistingMoney
@@ -375,6 +399,11 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
      {data.signed&&data.signedSnapshotIntegrity&&<Link to="/reservations"
       search={{booking:bookingId}}>Continue checkout <ArrowRight size={15}/></Link>}
     </div>
+    {routineCashReady&&<p className="frontdesk-cash-handoff">
+     <CheckCircle2 size={16}/> Counting and independent cashier reconciliation are still required after checkout.
+     <Link to="/cashier-shifts" search={{booking:bookingId,hotel:hotelId??undefined,
+      shift:handoff?.cashShiftId??undefined}}>View linked cashier shift <ArrowRight size={14}/></Link>
+    </p>}
     {!data.signed&&hasExistingMoney&&<details className="frontdesk-payment-more">
      <summary>Payment processing details · confirmations, verification and cashier shift</summary>
      <div className="frontdesk-payment-stages" aria-label="Payment review stages">

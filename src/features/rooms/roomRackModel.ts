@@ -29,13 +29,13 @@ export function roomTone(room:RackRoom):RackTone{
  if(room.cleaning==='awaiting_inspection')return 'attention';
  return 'unknown';
 }
-export function roomNextAction(room:RackRoom):string{
+export function roomNextAction(room:RackRoom,canInspect=true):string{
  if(room.blockers.activeRoomImpactMaintenance)return 'Open maintenance order';
  if(room.blockers.activeInventoryBlockToday)return 'Review inventory block';
  if(room.blockers.latestTurnoverIncomplete||room.blockers.unfinishedHousekeeping||
     room.cleaning==='checkout_cleaning'||room.cleaning==='cleaning_in_progress')
   return 'Open housekeeping task';
- if(!room.advisoryReady)return 'Inspect room';
+ if(!room.advisoryReady)return canInspect?'Inspect room':'View inspection';
  if(room.occupancy==='due_for_checkout')return 'Review departure';
  if(room.occupancy==='occupied')return 'Open reservation';
  if(room.upcomingStay)return 'Review arrival';

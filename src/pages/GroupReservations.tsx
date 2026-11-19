@@ -300,6 +300,8 @@ function GroupAllotmentsPanel({hotelId,onConvert}:{hotelId:string;onConvert:(hol
 
 function GroupDetails({id,billingOpen=false,originHotel}:{id:string;billingOpen?:boolean;originHotel?:string}){
  const {hotelId}=useHotelAuth();
+ const [detailTab,setDetailTab]=useState<'rooms'|'billing'|'activity'>(billingOpen?'billing':'rooms');
+ useEffect(()=>{if(billingOpen)setDetailTab('billing');},[billingOpen]);
  const mismatch=!!originHotel&&originHotel!==hotelId;
  const details=useGroupBooking(mismatch?null:id);
  const finance=useGroupFinancialSummary(mismatch?'':id);
@@ -338,59 +340,88 @@ function GroupDetails({id,billingOpen=false,originHotel}:{id:string;billingOpen?
      search={{group:group.id,tab:'billing' as const,hotel:hotelId??undefined}}>
      Open group billing <ArrowRight size={15}/></Link>
    </div>
-   <section className="gb-progress" aria-label="Group operational status">
-    <div><small>Room assignment</small><strong>{group.operations.assignedCount} / {group.roomCount}</strong>
-     <span>{assigned===group.roomCount?'All rooms assigned':'Assignment still needed'}</span></div>
-    <div><small>Check-in</small><strong>{group.operations.checkedInOrOutCount} / {group.roomCount}</strong>
-     <span>{arrived===group.roomCount?'All guests arrived or departed':'Check individual arrivals'}</span></div>
-    <div><small>Checkout</small><strong>{group.operations.checkedOutCount} / {group.roomCount}</strong>
-     <span>{departed===group.roomCount?'All rooms checked out':'Not all rooms checked out'}</span></div>
-    <div><small>Advisory room readiness</small>
-     <strong>{group.operations.readinessAdvisoryReadyCount} / {group.operations.readinessCheckedCount}</strong>
-     <Link to="/rooms" search={{}}>Inspect approval and blockers <ArrowRight size={13}/></Link></div>
-    <div><small>Verified payment allocations</small>
-     <strong>{finance.data
-      ?finance.data.rooms.filter(row=>row.priced&&row.verifiedAllocatedMinor>0).length+' / '+group.roomCount
-      :finance.isError?'Access or report unavailable':finance.isPending?'Loading finance…':'Not available'}</strong>
-     <Link to="/group-reservations" search={{group:group.id,tab:'billing' as const,hotel:hotelId??undefined}}>
-      Review payment progress <ArrowRight size={13}/></Link></div>
-    <div><small>Folio settlement sign-offs</small>
-     <strong>{finance.data
-      ?finance.data.rooms.filter(row=>row.priced&&row.signed).length+' / '+group.roomCount
-      :finance.isError?'Access or report unavailable':finance.isPending?'Loading finance…':'Not available'}</strong>
-     <Link to="/group-reservations" search={{group:group.id,tab:'billing' as const,hotel:hotelId??undefined}}>
-      Review sign-offs <ArrowRight size={13}/></Link></div>
-    <div><small>Checkout housekeeping</small>
-     <strong>{group.operations.checkoutCleaningCompleteCount} / {group.operations.checkedOutCount}</strong>
-     <span>{group.operations.checkoutCleaningPendingCount} pending · {group.operations.checkoutCleaningNoTaskCount} awaiting task</span>
-     <Link to="/housekeeping" search={{}}>Review cleaning handoff <ArrowRight size={13}/></Link></div>
+   <section className="gb-detail-summary" aria-label="Group stay progress">
+    <div><small>Group status</small>
+     <strong className="gb-detail-lifecycle">{groupStatusLabel(deriveGroupStatus(group.rooms.map(room=>room.status)))}</strong>
+     <span>Calculated from individual reservations</span></div>
+    <div><small>Rooms assigned</small><strong>{assigned} / {group.roomCount}</strong>
+     <span>{assigned===group.roomCount?'All assigned':'Rooms still need assignment'}</span></div>
+    <div><small>Arrived or departed</small><strong>{arrived} / {group.roomCount}</strong>
+     <span>{group.roomCount-arrived} not yet arrived or cancelled</span></div>
+    <div><small>Checked out</small><strong>{departed} / {group.roomCount}</strong>
+     <span>Managed per room</span></div>
    </section>
-   {billingOpen&&<div className="gb-workflow-notice" role="status">
-    Group billing is below. All figures are from individual guest folios; no group invoice or external settlement is implied.
-   </div>}
-   <GroupFinance groupId={group.id} hotelId={hotelId??undefined}
-    checkIn={group.checkIn??undefined} checkOut={group.checkOut??undefined} open={billingOpen}/>
-   <Panel title="Rooms and guests">
-    <p className="desk-muted">Readiness figures are advisory only, not a guarantee of check-in eligibility.
-     Cleaning completion never automatically approves a room. Each booking is managed independently. The group links the stay,
-     but does not automatically approve readiness, settle payments, or complete housekeeping.</p>
-    <div className="reservation-manage-list">
-     {group.rooms.map(room=><article className="reservation-manage-card" key={room.bookingId}>
-      <div className="reservation-manage-primary">
-       <strong>{room.guestName??'Guest name unavailable'}</strong>
-       <p>{room.reference} · {room.roomTypeName} · {room.roomNumber?'Room '+room.roomNumber:'Room not assigned'}</p>
-       <small>{readableDate(room.checkIn)} – {readableDate(room.checkOut)} · {statusLabel(room.status??'Unknown')}</small>
-      </div>
-      <div className="reservation-manage-action">
-       <Link className="btn-primary" to="/reservations" search={{booking:room.bookingId,group:group.id,
-         hotel:hotelId??undefined,checkIn:group.checkIn??undefined,checkOut:group.checkOut??undefined}}>
-        Manage booking <ArrowRight size={16}/></Link>
+   <div className="gb-detail-tabs" role="tablist" aria-label="Group booking details">
+    <button role="tab" aria-selected={detailTab==='rooms'} className={detailTab==='rooms'?'active':''}
+     onClick={()=>setDetailTab('rooms')}><BedDouble size={16}/> Rooms & guests</button>
+    <button role="tab" aria-selected={detailTab==='billing'} className={detailTab==='billing'?'active':''}
+     onClick={()=>setDetailTab('billing')}><Layers3 size={16}/> Group billing</button>
+    <button role="tab" aria-selected={detailTab==='activity'} className={detailTab==='activity'?'active':''}
+     onClick={()=>setDetailTab('activity')}><History size={16}/> Activity & history</button>
+   </div>
+   {detailTab==='rooms'&&<section className="gb-detail-panel" role="tabpanel">
+    <div className="gb-table-head"><div><h3>Rooms and registered guests</h3>
+     <p>Each room has its own assignment, check-in, checkout and guest bill.</p></div>
+     {group.checkIn&&<Link to="/room-calendar" className="btn-inline"
+      search={{date:group.checkIn,end:group.checkOut??undefined,group:group.id,hotel:hotelId??undefined}}>
+      <CalendarDays size={15}/> Group calendar</Link>}</div>
+    <div className="gb-detail-room-table-scroll"><table className="gb-table">
+     <thead><tr><th>Guest / booking</th><th>Room</th><th>Stay</th><th>Status</th><th>Actions</th></tr></thead>
+     <tbody>{group.rooms.map(room=><tr key={room.bookingId}>
+      <td><strong>{room.guestName??'Guest name unavailable'}</strong><small>{room.reference}</small></td>
+      <td><strong>{room.roomNumber?'Room '+room.roomNumber:'Unassigned'}</strong>
+       <small>{room.roomTypeName}</small></td>
+      <td>{readableDate(room.checkIn)}<small>to {readableDate(room.checkOut)}</small></td>
+      <td><span className={'gb-lifecycle-badge gb-lifecycle-'+(room.status??'confirmed')}>
+       {statusLabel(room.status??'Unknown')}</span></td>
+      <td><div className="gb-list-actions">
+       <Link className="btn-inline" to="/reservations" search={{booking:room.bookingId,
+        group:group.id,hotel:hotelId??undefined,checkIn:group.checkIn??undefined,
+        checkOut:group.checkOut??undefined}}>Manage booking <ArrowRight size={14}/></Link>
        <Link to="/billing" search={{booking:room.bookingId,group:group.id,hotel:hotelId??undefined,
-        checkIn:group.checkIn??undefined,checkOut:group.checkOut??undefined}}>Review guest folio</Link>
-      </div>
-     </article>)}
+        checkIn:group.checkIn??undefined,checkOut:group.checkOut??undefined}}>Guest billing</Link>
+      </div></td>
+     </tr>)}</tbody>
+    </table></div>
+    <p className="desk-muted">Room readiness is advisory here ({group.operations.readinessAdvisoryReadyCount} of {group.operations.readinessCheckedCount} assigned rooms). Verify actual readiness before check-in. A group action never bypasses individual guest checks.</p>
+   </section>}
+   {detailTab==='billing'&&<section className="gb-detail-panel" role="tabpanel">
+    <div className="gb-table-head"><div><h3>Group billing</h3>
+     <p>Consolidated visibility only. Each guest folio remains authoritative.</p></div></div>
+    <div className="gb-detail-finance-highlights">
+     <div><small>Guest bills with prices</small><strong>{finance.data
+      ?finance.data.rooms.filter(row=>row.priced).length+' / '+group.roomCount
+      :finance.isPending?'Loading…':'Unavailable'}</strong></div>
+     <div><small>With payment evidence</small><strong>{finance.data
+      ?finance.data.rooms.filter(row=>row.priced&&row.staffConfirmedPaymentsMinor>0).length+' / '+group.roomCount
+      :finance.isPending?'Loading…':'Unavailable'}</strong></div>
+     <div><small>Independent sign-offs</small><strong>{finance.data
+      ?finance.data.rooms.filter(row=>row.priced&&row.signed).length+' / '+group.roomCount
+      :finance.isPending?'Loading…':'Unavailable'}</strong></div>
     </div>
-   </Panel>
+    <GroupFinance groupId={group.id} hotelId={hotelId??undefined}
+     checkIn={group.checkIn??undefined} checkOut={group.checkOut??undefined} open/>
+   </section>}
+   {detailTab==='activity'&&<section className="gb-detail-panel" role="tabpanel">
+    <div className="gb-table-head"><div><h3>Group activity and operational history</h3>
+     <p>Known booking milestones from current records; individual audit trails remain on each booking.</p></div></div>
+    <div className="gb-activity-list">
+     <div><CheckCircle2 size={16}/><div><strong>Group reservation created</strong>
+      <span>{readableDateTime(group.createdAt)} · {group.reference}</span></div></div>
+     {group.rooms.map(room=><div key={room.bookingId}>
+      {room.status==='checked_out'?<LogOut size={16}/>:room.status==='checked_in'?<LogIn size={16}/>:<CalendarDays size={16}/>}
+      <div><strong>{room.guestName??'Guest'} · {room.roomNumber?'Room '+room.roomNumber:'No assigned room'}</strong>
+       <span>{statusLabel(room.status??'Unknown')} · {readableDate(room.checkIn)} to {readableDate(room.checkOut)}</span>
+       <Link to="/reservations" search={{booking:room.bookingId,group:group.id,
+        hotel:hotelId??undefined}}>Open booking history <ArrowRight size={13}/></Link></div>
+     </div>)}
+    </div>
+    <p className="desk-muted">These are current statuses, not timestamped audit changes. For who changed a room, payment or booking, open its detailed history. No employee or action is inferred.</p>
+    <div className="gb-detail-operational-links">
+     <Link to="/housekeeping" search={{}}>Housekeeping · {group.operations.checkoutCleaningCompleteCount} complete / {group.operations.checkoutCleaningPendingCount} pending</Link>
+     <Link to="/rooms" search={{}}>Room inspections and readiness</Link>
+    </div>
+   </section>}
   </div>}
  </>;
 }

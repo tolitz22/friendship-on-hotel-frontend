@@ -38,6 +38,7 @@ describe('hotel room rack status mapping',()=>{
  });
  it('never labels PMS vacancy as reservation availability',()=>{
   expect(roomNextAction(room('1',{advisoryReady:true}))).toBe('View room');
+  expect(roomNextAction(room('1'),false)).toBe('View inspection');
   expect(roomProblem(room('2',{blockers:{...flags,activeInventoryBlockToday:true}})))
    .toBe('Inventory block active');
  });

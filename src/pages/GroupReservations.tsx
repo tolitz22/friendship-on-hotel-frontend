@@ -345,6 +345,8 @@ function GroupDetails({id,selectedTab,originHotel}:{id:string;selectedTab?:'room
  const {hotelId}=useHotelAuth();
  const navigate=useNavigate();
  const detailTab=selectedTab??'rooms';
+ const [activityFilter,setActivityFilter]=useState<'all'|'booking'|'housekeeping'|'room_inspection'|'manager_approval'>('all');
+
  const setDetailTab=(tab:'rooms'|'billing'|'activity')=>{
   void navigate({to:'/group-reservations',search:{group:id,hotel:hotelId??undefined,tab},replace:true});
  };
@@ -377,6 +379,29 @@ function GroupDetails({id,selectedTab,originHotel}:{id:string;selectedTab?:'room
  const assigned=group?.operations.assignedCount??0;
  const arrived=group?.operations.checkedInOrOutCount??0;
  const departed=group?.operations.checkedOutCount??0;
+ const timeline=group?[
+  ...group.activity.map(event=>({
+   id:'booking-'+event.id,source:'booking' as const,action:event.action,at:event.at,
+   actorName:event.actorName,bookingId:group.rooms.find(room=>room.reference===event.bookingReference)?.bookingId??null,
+   subject:event.guestName??event.bookingReference,
+   context:event.before!==null&&event.after!==null&&event.before!==event.after
+    ?statusLabel(event.before)+' → '+statusLabel(event.after):event.bookingReference,
+   roomId:null as string|null,
+  })),
+  ...group.relatedOperationalEvents.map(event=>({
+   id:event.id,source:event.source,action:event.action,at:event.at,actorName:event.actorName,
+   bookingId:event.bookingId,
+   subject:event.source==='room_inspection'
+    ?'Physical room inspection'
+    :group.rooms.find(room=>room.bookingId===event.bookingId)?.guestName??
+     group.rooms.find(room=>room.bookingId===event.bookingId)?.reference??'Linked reservation',
+   context:event.source==='housekeeping'?'Linked checkout-cleaning task':
+    event.source==='manager_approval'?'Recorded manager exception decision':
+    'Readiness event on a currently assigned room (may not be group-specific)',
+   roomId:event.roomId??null,
+  })),
+ ].sort((a,b)=>b.at.localeCompare(a.at)||b.id.localeCompare(a.id)):[];
+
  return <>
   <Link className="gb-back-link" to="/group-reservations" search={{}}><ChevronLeft size={16}/> All Group Bookings</Link>
   <QueryFeedback loading={details.isPending} error={details.error} onRetry={()=>void details.refetch()}/>
@@ -540,25 +565,42 @@ function GroupDetails({id,selectedTab,originHotel}:{id:string;selectedTab?:'room
    {detailTab==='activity'&&<section id="gb-panel-activity" aria-labelledby="gb-tab-activity" tabIndex={0} className="gb-detail-panel" role="tabpanel">
     <div className="gb-table-head"><div><h3>Group activity and operational history</h3>
      <p>Real reservation audit events with employee names, actions and timestamps.</p></div></div>
-    <div className="gb-activity-list">
-     <div><CheckCircle2 size={16}/><div><strong>Group reservation created</strong>
-      <span>{readableDateTime(group.createdAt)} · By {group.createdByName??'Employee name unavailable'}</span>
-      <span>{group.reference} · {group.roomCount} linked room bookings</span></div></div>
-     {group.activity.map(event=><div key={event.id}>
-      {event.action==='check_out'?<LogOut size={16}/>:event.action==='check_in'||event.action==='early_check_in'
-       ?<LogIn size={16}/>:<CalendarDays size={16}/>}
-      <div><strong>{groupEventLabel(event.action)} · {event.guestName??event.bookingReference}</strong>
-       <span>{readableDateTime(event.at)} · By {event.actorName??'Employee name unavailable'}</span>
-       {event.before!==null&&event.after!==null&&event.before!==event.after&&
-        <span>{statusLabel(event.before)} → {statusLabel(event.after)}</span>}
-       <Link to="/reservations" search={{booking:group.rooms.find(room=>room.reference===event.bookingReference)?.bookingId,
-        group:group.id,hotel:hotelId??undefined}}>View booking and audit details <ArrowRight size={13}/></Link>
-      </div>
-     </div>)}
+    <label className="gb-timeline-filter">Show events
+     <select aria-label="Filter group operational history" value={activityFilter}
+      onChange={e=>setActivityFilter(e.target.value as typeof activityFilter)}>
+      <option value="all">All available events</option>
+      <option value="booking">Bookings</option>
+      <option value="housekeeping">Housekeeping</option>
+      <option value="room_inspection">Room inspections</option>
+      <option value="manager_approval">Manager decisions</option>
+     </select></label>
+    <div className="gb-activity-list" aria-label="Chronological operational events">
+     {timeline.filter(event=>activityFilter==='all'||event.source===activityFilter).map(event=>
+      <div key={event.id}>
+       {event.source==='housekeeping'?<BedDouble size={16} aria-hidden="true"/>:
+        event.source==='manager_approval'?<CheckCircle2 size={16} aria-hidden="true"/>:
+        event.source==='booking'&&event.action==='check_out'?<LogOut size={16} aria-hidden="true"/>:
+        event.source==='booking'&&event.action==='check_in'?<LogIn size={16} aria-hidden="true"/>:
+        <History size={16} aria-hidden="true"/>}
+       <div><strong>{event.source==='booking'?groupEventLabel(event.action):
+        event.source==='housekeeping'?'Housekeeping: '+statusLabel(event.action):
+        event.source==='manager_approval'?'Manager decision: '+statusLabel(event.action):
+        'Inspection: '+statusLabel(event.action)} · {event.subject}</strong>
+        <span>{readableDateTime(event.at)} · {event.actorName??'Employee name unavailable'}</span>
+        <span>{event.context}</span>
+        {event.source==='booking'&&event.bookingId&&<Link to="/reservations" search={{booking:event.bookingId,group:group.id,hotel:hotelId??undefined}}>
+         Open booking history <ArrowRight size={13}/></Link>}
+        {event.source==='housekeeping'&&<Link to="/housekeeping" search={{}}>Open housekeeping record <ArrowRight size={13}/></Link>}
+        {event.source==='manager_approval'&&<Link to="/manager-approvals">Open manager approvals <ArrowRight size={13}/></Link>}
+        {event.source==='room_inspection'&&event.roomId&&<Link to="/rooms" search={{room:event.roomId}}>
+         Open room inspection history <ArrowRight size={13}/></Link>}
+       </div>
+      </div>)}
+     {timeline.filter(event=>activityFilter==='all'||event.source===activityFilter).length===0&&
+      <p className="desk-muted">No recorded events match this filter.</p>}
     </div>
-    {group.activityHasMore&&<p className="gb-attention-note">Showing the latest 50 events. Open individual reservation history for older changes.</p>}
-    <p className="desk-muted">The activity above comes from saved booking events. Financial changes,
-     room inspections and cashier actions have their own independent audit histories.</p>
+    {(group.activityHasMore||group.relatedOperationalEventsLimited)&&<p className="gb-attention-note">Showing recent linked events only. Open each authoritative booking, housekeeping, inspection or manager record for the full history.</p>}
+    <p className="desk-muted">The timeline combines saved booking, linked housekeeping, manager decision and currently assigned-room inspection events. Inspection events are room-linked, not necessarily group-specific. Financial transactions and cashier actions remain in separate, permission-protected audit records.</p>
     <div className="gb-detail-operational-links">
      <Link to="/housekeeping" search={{}}>Housekeeping · {group.operations.checkoutCleaningCompleteCount} complete / {group.operations.checkoutCleaningPendingCount} pending</Link>
      <Link to="/rooms" search={{}}>Room inspections and readiness</Link>

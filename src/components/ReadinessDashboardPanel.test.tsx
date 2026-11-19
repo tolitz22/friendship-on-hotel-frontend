@@ -21,14 +21,14 @@ describe('Readiness & arrivals operational priorities',()=>{
   expect(arrivalUrgency(arrival('unassigned_room','2026-11-20'),'2026-11-19')).toBe(2);
   expect(arrivalUrgency(arrival('inspection_or_blocker','2026-11-20'),'2026-11-19')).toBe(3);
  });
- it('distinguishes real blockers, missing approvals and independent review',()=>{
+ it('distinguishes real blockers and inspections requiring fresh physical checks',()=>{
   expect(readinessProblem({...emptyFlags,activeInventoryBlockToday:true},'blocked_or_stale'))
    .toBe('Inventory block active today');
   expect(readinessProblem({...emptyFlags,activeRoomImpactMaintenance:true},'blocked_or_stale'))
    .toBe('Maintenance restriction active');
   expect(readinessProblem({...emptyFlags,unfinishedHousekeeping:true},'needs_inspection'))
    .toBe('Housekeeping incomplete');
-  expect(readinessProblem(emptyFlags,'awaiting_review')).toBe('Waiting for independent review');
+  expect(readinessProblem(emptyFlags,'awaiting_review')).toBe('Old inspection needs to be completed again');
   expect(readinessProblem(emptyFlags,'needs_inspection')).toBe('Approved inspection missing or outdated');
  });
 });

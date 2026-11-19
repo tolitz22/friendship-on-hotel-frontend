@@ -3,7 +3,7 @@ import {createPortal} from 'react-dom';
 import {Link,useSearch} from '@tanstack/react-router';
 import {
  AlertTriangle,ArrowRight,BedDouble,CheckCircle2,ClipboardCheck,
- Clock3,Filter,Info,Layers3,Plus,RefreshCw,Search,Settings2,
+ Clock3,Filter,Info,Plus,RefreshCw,Search,Settings2,
  ShieldAlert,ShieldCheck,Users,X,
 } from 'lucide-react';
 import {useLiveCatalogSummary,useLiveRooms,useLiveRoomTypes} from '../api/liveCatalogQueries';
@@ -51,9 +51,6 @@ function cardAction(status:InventoryRoomStatus|undefined,admin:boolean,canOpenCl
  };
  return {title:'View room status',kind:'inspection' as const};
 }
-const attentionLabels:Record<AttentionFilter,string>={
- all:'All on page',attention:'Needs attention',vacant_ready:'Vacant & approved',occupied:'In-house / checkout',
-};
 
 export function LiveRooms(){
  const {room:linkedRoomNumber}=useSearch({from:'/rooms'});
@@ -96,16 +93,6 @@ export function LiveRooms(){
    &&!status.maintenanceBlocked&&!status.inventoryBlockedToday;
   return status.occupancy!=='vacant';
  }),[catalogRows,statuses,canSeeStay,statusReady,attentionFilter]);
- const counts=useMemo(()=>{
-  const list=operationStatus.isSuccess?operationStatus.data.data:[];
-  return {
-   attention:list.filter(needsAttention).length,
-   ready:list.filter(s=>s.occupancy==='vacant'&&s.cleaning==='ready'&&s.advisoryReady
-    &&!s.maintenanceBlocked&&!s.inventoryBlockedToday).length,
-   occupied:list.filter(s=>s.occupancy!=='vacant').length,
-   blocked:list.filter(s=>s.maintenanceBlocked||s.inventoryBlockedToday).length,
-  };
- },[statusReady,operationStatus.data]);
  const hasFilters=floor!=='all'||search.trim().length>0||attentionFilter!=='all';
  const resetFilters=()=>{setFloor('all');setSearch('');setAttentionFilter('all');setPage(1);};
  useEffect(()=>{

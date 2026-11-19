@@ -1,8 +1,9 @@
-import {afterEach,describe,expect,it,vi} from 'vitest';
+import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
 import {clearSession,setSessionHotel,setSessionToken} from './session';
 import {getReservationPolicyDraft,getReservationPolicyHistory,getReservationPolicyReadiness,updateReservationPolicyDraft} from './reservationPolicy';
 
-afterEach(()=>{clearSession();vi.unstubAllGlobals();});
+beforeEach(()=>{vi.stubEnv('VITE_AUTH_MODE','bearer');});
+afterEach(()=>{clearSession();vi.unstubAllGlobals();vi.unstubAllEnvs();});
 
 describe('Phase 10 hotel-scoped policy drafts',()=>{
  it('reads the selected hotel draft with authentication',async()=>{

@@ -340,19 +340,33 @@ function GroupAllotmentsPanel({hotelId,onConvert}:{hotelId:string;onConvert:(hol
  </section>;
 }
 
-function GroupDetails({id,billingOpen=false,originHotel}:{id:string;billingOpen?:boolean;originHotel?:string}){
+function GroupDetails({id,selectedTab,originHotel}:{id:string;selectedTab?:'rooms'|'billing'|'activity';originHotel?:string}){
  const {hotelId}=useHotelAuth();
- const [detailTab,setDetailTab]=useState<'rooms'|'billing'|'activity'>(billingOpen?'billing':'rooms');
- useEffect(()=>{if(billingOpen)setDetailTab('billing');},[billingOpen]);
+ const navigate=useNavigate();
+ const detailTab=selectedTab??'rooms';
+ const setDetailTab=(tab:'rooms'|'billing'|'activity')=>{
+  void navigate({to:'/group-reservations',search:{group:id,hotel:hotelId??undefined,tab},replace:true});
+ };
+ const handleTabKeys=(event:React.KeyboardEvent<HTMLDivElement>)=>{
+  if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+  const tabs=['rooms','billing','activity'] as const;
+  const current=tabs.indexOf(detailTab);
+  const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:
+   (current+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;
+  event.preventDefault();
+  setDetailTab(tabs[next]);
+  const buttons=event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+  buttons[next]?.focus();
+ };
  const mismatch=!!originHotel&&originHotel!==hotelId;
  const details=useGroupBooking(mismatch?null:id);
  const finance=useGroupFinancialSummary(mismatch?'':id);
  const group=details.data;
  useEffect(()=>{
-  if(billingOpen&&group?.id===id){
+  if(detailTab==='billing'&&group?.id===id){
    document.getElementById('group-billing-overview')?.scrollIntoView({block:'start',behavior:'smooth'});
   }
- },[billingOpen,group?.id,id]);
+ },[detailTab,group?.id,id]);
  if(mismatch)return <Panel title="Select the original property">
   <p role="alert">This group booking link belongs to another hotel. Select that hotel in the property selector to open the original group safely.</p>
   <Link to="/group-reservations" search={{}}>Back to Group Bookings</Link>
@@ -420,15 +434,15 @@ function GroupDetails({id,billingOpen=false,originHotel}:{id:string;billingOpen?
      Assign checkout-cleaning tasks <ArrowRight size={14}/></Link>}
     <p className="desk-muted">Checkout due means the scheduled departure date has arrived, not that checkout is authorized. Each booking still requires its own operational and financial validation.</p>
    </section>
-   <div className="gb-detail-tabs" role="tablist" aria-label="Group booking details">
-    <button role="tab" aria-selected={detailTab==='rooms'} className={detailTab==='rooms'?'active':''}
+   <div className="gb-detail-tabs" role="tablist" aria-label="Group booking details" onKeyDown={handleTabKeys}>
+    <button role="tab" id="gb-tab-rooms" aria-controls="gb-panel-rooms" tabIndex={detailTab==='rooms'?0:-1} aria-selected={detailTab==='rooms'} className={detailTab==='rooms'?'active':''}
      onClick={()=>setDetailTab('rooms')}><BedDouble size={16}/> Rooms & guests</button>
-    <button role="tab" aria-selected={detailTab==='billing'} className={detailTab==='billing'?'active':''}
+    <button role="tab" id="gb-tab-billing" aria-controls="gb-panel-billing" tabIndex={detailTab==='billing'?0:-1} aria-selected={detailTab==='billing'} className={detailTab==='billing'?'active':''}
      onClick={()=>setDetailTab('billing')}><Layers3 size={16}/> Group billing</button>
-    <button role="tab" aria-selected={detailTab==='activity'} className={detailTab==='activity'?'active':''}
+    <button role="tab" id="gb-tab-activity" aria-controls="gb-panel-activity" tabIndex={detailTab==='activity'?0:-1} aria-selected={detailTab==='activity'} className={detailTab==='activity'?'active':''}
      onClick={()=>setDetailTab('activity')}><History size={16}/> Activity & history</button>
    </div>
-   {detailTab==='rooms'&&<section className="gb-detail-panel" role="tabpanel">
+   {detailTab==='rooms'&&<section id="gb-panel-rooms" aria-labelledby="gb-tab-rooms" tabIndex={0} className="gb-detail-panel" role="tabpanel">
     <div className="gb-table-head"><div><h3>Rooms and registered guests</h3>
      <p>Each room has its own assignment, check-in, checkout and guest bill.</p></div>
      {group.checkIn&&<Link to="/room-calendar" className="btn-inline"
@@ -452,9 +466,28 @@ function GroupDetails({id,billingOpen=false,originHotel}:{id:string;billingOpen?
       </div></td>
      </tr>)}</tbody>
     </table></div>
+    <div className="gb-mobile-room-cards" aria-label="Group rooms and guest actions">
+     {group.rooms.map(room=><article className="gb-mobile-room-card" key={room.bookingId}>
+      <div className="gb-mobile-room-card-heading">
+       <div><strong>{room.guestName??'Guest name unavailable'}</strong>
+        <small>{room.reference}</small></div>
+       <span className={'gb-lifecycle-badge gb-lifecycle-'+(room.status??'confirmed')}>
+        {statusLabel(room.status??'Unknown')}</span>
+      </div>
+      <p><BedDouble size={15} aria-hidden="true"/> {room.roomNumber?'Room '+room.roomNumber:'Room not assigned'} · {room.roomTypeName}</p>
+      <p><CalendarDays size={15} aria-hidden="true"/> {readableDate(room.checkIn)} – {readableDate(room.checkOut)}</p>
+      <p className="desk-muted"><AlertTriangle size={14} aria-hidden="true"/> Readiness approval: check room inspection before check-in</p>
+      <div className="gb-mobile-room-actions">
+       <Link className="btn-primary" to="/reservations" search={{booking:room.bookingId,group:group.id,hotel:hotelId??undefined,checkIn:group.checkIn??undefined,checkOut:group.checkOut??undefined}}>
+        Manage booking <ArrowRight size={14}/></Link>
+       <Link className="btn-inline" to="/billing" search={{booking:room.bookingId,group:group.id,hotel:hotelId??undefined,checkIn:group.checkIn??undefined,checkOut:group.checkOut??undefined}}>
+        Guest bill <ArrowRight size={14}/></Link>
+      </div>
+     </article>)}
+    </div>
     <p className="desk-muted">Room readiness is advisory here ({group.operations.readinessAdvisoryReadyCount} of {group.operations.readinessCheckedCount} assigned rooms). Verify actual readiness before check-in. A group action never bypasses individual guest checks.</p>
    </section>}
-   {detailTab==='billing'&&<section className="gb-detail-panel" role="tabpanel">
+   {detailTab==='billing'&&<section id="gb-panel-billing" aria-labelledby="gb-tab-billing" tabIndex={0} className="gb-detail-panel" role="tabpanel">
     <div className="gb-table-head"><div><h3>Group billing</h3>
      <p>Consolidated visibility only. Each guest folio remains authoritative.</p></div></div>
     <div className="gb-detail-finance-highlights">
@@ -471,7 +504,7 @@ function GroupDetails({id,billingOpen=false,originHotel}:{id:string;billingOpen?
     <GroupFinance groupId={group.id} hotelId={hotelId??undefined}
      checkIn={group.checkIn??undefined} checkOut={group.checkOut??undefined} open/>
    </section>}
-   {detailTab==='activity'&&<section className="gb-detail-panel" role="tabpanel">
+   {detailTab==='activity'&&<section id="gb-panel-activity" aria-labelledby="gb-tab-activity" tabIndex={0} className="gb-detail-panel" role="tabpanel">
     <div className="gb-table-head"><div><h3>Group activity and operational history</h3>
      <p>Real reservation audit events with employee names, actions and timestamps.</p></div></div>
     <div className="gb-activity-list">
@@ -593,7 +626,7 @@ export function GroupReservations(){
   setPending({hotelId,payload});
   void send(payload,hotelId);
  };
- if(search.group)return <GroupDetails id={search.group} billingOpen={search.tab==='billing'} originHotel={search.hotel}/>;
+ if(search.group)return <GroupDetails id={search.group} selectedTab={search.tab} originHotel={search.hotel}/>;
  return <>
   <div className="gb-page">
    <div className="gb-page-header">

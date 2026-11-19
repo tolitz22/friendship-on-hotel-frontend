@@ -50,13 +50,20 @@ const list=z.object({
  data:z.array(z.object({id,reference:z.string(),name:z.string(),
   contactName:z.string().nullable(),roomCount:z.number().int().nonnegative(),
   createdAt:z.string(),checkIn:z.iso.date().nullable(),checkOut:z.iso.date().nullable(),
-  status:z.enum(groupStatuses.filter(v=>v!=='all') as [DerivedGroupStatus,...DerivedGroupStatus[]]),
+  status:z.enum(['confirmed','partially_checked_in','fully_checked_in',
+   'partially_checked_out','checked_out','cancelled']),
   statusCounts:z.object({confirmed:z.number().int().nonnegative(),
    checkedIn:z.number().int().nonnegative(),checkedOut:z.number().int().nonnegative(),
    cancelled:z.number().int().nonnegative()}),
   })),
  meta:z.object({page:z.number().int().positive(),total:z.number().int().nonnegative(),
-  totalPages:z.number().int().nonnegative(),perPage:z.number().int().positive()}),
+  totalPages:z.number().int().nonnegative(),perPage:z.number().int().positive(),
+  summary:z.object({
+   totalGroups:z.number().int().nonnegative(),upcomingArrivals:z.number().int().nonnegative(),
+   inHouseGroups:z.number().int().nonnegative(),attentionGroups:z.number().int().nonnegative(),
+   upcomingWindowStart:z.iso.date(),upcomingWindowEnd:z.iso.date(),
+  }),
+ }),
 });
 export type GroupBooking=z.infer<typeof group>;
 export type GroupRoomInput={guestId:number;roomTypeId:number;ratePlanId?:number};

@@ -189,8 +189,8 @@ export function RoomRackDashboard({hotelId}:{hotelId:string}){
      ['Occupied in PMS',summary.pmsOccupiedRooms,Users,false],
      ['Arrivals today',summary.arrivalsToday,CalendarClock,false],
      ['Departures today',summary.departuresToday,ArrowRight,false],
-     ['Open housekeeping',summary.roomsWithOpenHousekeeping,ClipboardCheck,true],
-     ['Legacy reviews',summary.inspectionsAwaitingReview,Info,true],
+     ['Rooms needing cleaning',summary.roomsNeedingCleaning,ClipboardCheck,true],
+     ['Legacy inspections pending',summary.legacyPendingInspections,Info,true],
      ['Active blockers',summary.activelyBlockedRooms,LockKeyhole,true],
     ] as const).map(([label,value,Symbol,problem])=><div className={'rack-metric'+(problem&&value>0?' rack-metric-alert':'')} key={label}>
      <span>{label}<Symbol size={16} aria-hidden="true"/></span><strong>{value}</strong>

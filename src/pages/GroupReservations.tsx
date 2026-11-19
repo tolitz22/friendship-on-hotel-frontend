@@ -1,4 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
+import type {KeyboardEvent} from 'react';
 import {Link,useNavigate,useSearch} from '@tanstack/react-router';
 import {useQueryClient} from '@tanstack/react-query';
 import {CalendarDays,Plus,ArrowRight,RefreshCw,Trash2,Search,Layers3,Clock3,ChevronLeft,ChevronRight,UserPlus,BedDouble,CheckCircle2,AlertTriangle,LogIn,LogOut,Filter,X,History} from 'lucide-react';
@@ -347,7 +348,7 @@ function GroupDetails({id,selectedTab,originHotel}:{id:string;selectedTab?:'room
  const setDetailTab=(tab:'rooms'|'billing'|'activity')=>{
   void navigate({to:'/group-reservations',search:{group:id,hotel:hotelId??undefined,tab},replace:true});
  };
- const handleTabKeys=(event:React.KeyboardEvent<HTMLDivElement>)=>{
+ const handleTabKeys=(event:KeyboardEvent<HTMLDivElement>)=>{
   if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
   const tabs=['rooms','billing','activity'] as const;
   const current=tabs.indexOf(detailTab);

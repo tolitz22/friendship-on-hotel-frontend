@@ -15,7 +15,6 @@ import {projectRackBars} from '../features/reservations/roomRackLayout';
 import {Heading} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {useHotelAuth} from '../components/AuthProvider';
-import {readableDate} from '../lib/format';
 
 type Mode='week'|'month';
 type Selection={room:RoomCalendarData['rooms'][number];day:string;bookingId?:string};

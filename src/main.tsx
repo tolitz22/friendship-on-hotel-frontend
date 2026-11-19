@@ -59,9 +59,9 @@ const reservations=createRoute({getParentRoute:()=>root,path:'/reservations',
   checkOut:typeof value.checkOut==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.checkOut)&&!Number.isNaN(Date.parse(value.checkOut+'T00:00:00Z'))&&new Date(value.checkOut+'T00:00:00Z').toISOString().slice(0,10)===value.checkOut?value.checkOut:undefined,
  }),component:Reservations});
 const groupReservations=createRoute({getParentRoute:()=>root,path:'/group-reservations',
- validateSearch:(value:Record<string,unknown>):{group?:string;tab?:'billing';hotel?:string}=>({
+ validateSearch:(value:Record<string,unknown>):{group?:string;tab?:'rooms'|'billing'|'activity';hotel?:string}=>({
   group:typeof value.group==='string'&&/^[1-9][0-9]*$/.test(value.group)?value.group:undefined,
-  tab:value.tab==='billing'?'billing':undefined,
+  tab:value.tab==='billing'||value.tab==='rooms'||value.tab==='activity'?value.tab:undefined,
   hotel:typeof value.hotel==='string'&&/^[1-9][0-9]*$/.test(value.hotel)?value.hotel:undefined,
  }),component:GroupReservations});
 const rooms=createRoute({getParentRoute:()=>root,path:'/rooms',

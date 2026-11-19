@@ -493,10 +493,7 @@ export function GroupReservations(){
  };
  useEffect(()=>{setView('groups');setSearchText('');setAppliedSearch('');setGroupFilter('all');setFormStep(1);setSelectedAllotment(null);setPage(1);setPending(null);setResult(null);setError(null);setGuestDialogRoom(null);setCreatedGuests({});},[hotelId]);
  const visibleGroups=groups.data?.data??[];
- const pageConfirmed=visibleGroups.filter(g=>g.status==='confirmed').length;
- const pageInHouse=visibleGroups.filter(g=>['partially_checked_in','fully_checked_in','partially_checked_out'].includes(g.status)).length;
- const pageDeparted=visibleGroups.filter(g=>g.status==='checked_out').length;
- const pageAttention=visibleGroups.filter(g=>g.status==='partially_checked_in'||g.status==='partially_checked_out').length;
+ const groupSummary=groups.data?.meta.summary;
  const stepOneValid=name.trim().length>=2&&validLiveStay({
   roomTypeId:rooms[0].roomTypeId||'1',checkIn,checkOut
  })&&checkIn>=hotelToday()&&(!selectedAllotment||(
@@ -702,18 +699,18 @@ export function GroupReservations(){
     </div></section>}
    </>}
   </Panel>:view==='groups'?<section className="gb-groups-workspace" aria-label="Group booking dashboard">
-   <div className="gb-summary-grid">
-    <div><small>Total matching groups</small><strong>{groups.data?.meta.total??'—'}</strong>
-     <span>All matching records across pages</span></div>
-    <div><small>Confirmed</small><strong>{groups.isError?'—':pageConfirmed}</strong>
-     <span>Groups on this page</span></div>
-    <div><small>In house / partially arrived</small><strong>{groups.isError?'—':pageInHouse}</strong>
-     <span>Groups on this page</span></div>
-    <div><small>Checked out</small><strong>{groups.isError?'—':pageDeparted}</strong>
-     <span>Groups on this page</span></div>
+   <div className="gb-summary-grid" aria-label="Hotel-wide group booking summary">
+    <div><small>Total groups</small><strong>{groupSummary?.totalGroups??'—'}</strong>
+     <span>All group reservations at this hotel</span></div>
+    <div><small>Arrivals in next 7 days</small><strong>{groupSummary?.upcomingArrivals??'—'}</strong>
+     <span>{groupSummary?readableDate(groupSummary.upcomingWindowStart)+' – '+readableDate(groupSummary.upcomingWindowEnd):'Hotel-local dates'}</span></div>
+    <div><small>Groups in house</small><strong>{groupSummary?.inHouseGroups??'—'}</strong>
+     <span>Partially or fully checked in</span></div>
+    <div><small>Need attention</small><strong>{groupSummary?.attentionGroups??'—'}</strong>
+     <span>Partially checked in or out</span></div>
    </div>
-   {pageAttention>0&&<div className="gb-attention-note" role="status">
-    <AlertTriangle size={17}/> {pageAttention} partially arrived/departed group{pageAttention===1?'':'s'} on this page require individual room follow-up.
+   {(groupSummary?.attentionGroups??0)>0&&<div className="gb-attention-note" role="status">
+    <AlertTriangle size={17}/> {groupSummary?.attentionGroups} group{groupSummary?.attentionGroups===1?'':'s'} with partially completed check-in or checkout. Open a group to see which rooms need follow-up.
    </div>}
    <div className="gb-groups-table-panel">
     <div className="gb-table-head"><div><h3><Layers3 size={18}/> Group reservations</h3>
@@ -742,7 +739,7 @@ export function GroupReservations(){
     <p className="desk-muted" role="status">{groups.isFetching||appliedSearch!==searchText.trim()
      ?'Updating group list…'
      :groups.data?groups.data.meta.total+' matching group reservations':'No verified group totals available'}
-     {pageAttention>0?' · '+pageAttention+' partially complete on this page':''}</p>
+</p>
     <QueryFeedback loading={groups.isPending} error={groups.error} onRetry={()=>void groups.refetch()}/>
     {groups.data&&visibleGroups.length===0&&<div className="gb-empty">
      <Layers3 size={25}/><strong>{appliedSearch||groupFilter!=='all'?'No matching group bookings':'No group bookings yet'}</strong>

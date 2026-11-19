@@ -166,7 +166,7 @@ export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumb
         Open housekeeping task <ArrowRight size={15}/></Link>}
        {item.kind==='maintenance'&&item.roomNumber&&<Link to="/maintenance" search={{order:item.orderId}}>
         Open maintenance order <ArrowRight size={15}/></Link>}
-       {item.kind==='inventory'&&item.roomNumber&&<Link to="/room-calendar" search={{date:data.asOfHotelDate}}>
+       {item.kind==='inventory'&&item.roomNumber&&<Link to="/room-calendar" search={{date:data.asOfHotelDate,room:item.roomNumber}}>
         Review inventory block <ArrowRight size={15}/></Link>}
        {item.kind!=='booking'&&item.roomNumber&&<button type="button" className="rh-secondary-action" onClick={()=>{if(item.roomNumber)onInspectRoom(item.roomNumber);}}>
         Inspection details</button>}

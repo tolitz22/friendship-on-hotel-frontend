@@ -1,4 +1,5 @@
 import {useEffect,useState} from 'react';
+import {GroupContextBar} from '../components/GroupContextBar';
 import {Link,useNavigate,useSearch} from '@tanstack/react-router';
 import {
  AlertTriangle,ArrowRight,Banknote,ClipboardList,
@@ -53,20 +54,9 @@ function LiveBilling(){
    </div>
   </div>}
   {!selectedId&&<div className="billing-guidance"><Info size={18}/><p>Review existing payment records before collecting again. A recorded payment is not automatically independently verified.</p></div>}
-  {originGroup&&<div className="gb-workflow-notice">
-   {originHotel&&originHotel!==hotelId
-    ?<strong role="alert">This group link belongs to a different property. Select the original hotel before continuing.</strong>
-    :<><strong>Opened from a group booking</strong>
-     {groupCheckIn&&groupCheckOut&&<span> · {readableDate(groupCheckIn)} – {readableDate(groupCheckOut)}</span>}
-     <div className="gb-context-actions">
-      <Link to="/group-reservations" search={{group:originGroup,tab:'billing' as const,
-       hotel:originHotel??undefined}}>Return to group billing <ArrowRight size={14}/></Link>
-      {groupCheckIn&&<Link to="/room-calendar" search={{date:groupCheckIn,end:groupCheckOut,group:originGroup,
-       hotel:originHotel??undefined}}>View group calendar <ArrowRight size={14}/></Link>}
-     </div></>}
-  </div>}
+  {originGroup&&<GroupContextBar groupId={originGroup} originHotel={originHotel} selectedTab="billing"/>}
 
-  {!selectedId&&<section className="billing-index" aria-label="Guest folio directory">
+    {!selectedId&&<section className="billing-index" aria-label="Guest folio directory">
    <div className="billing-section-heading">
     <div><span className="rr-eyebrow">GUEST ACCOUNTS</span><h3>Who would you like to bill?</h3>
      <p>Search by guest name or reservation reference, then select the guest account.</p></div>

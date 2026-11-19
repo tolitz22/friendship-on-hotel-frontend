@@ -1,4 +1,5 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
+import {GroupContextBar} from '../components/GroupContextBar';
 import type {CSSProperties} from 'react';
 import {createPortal} from 'react-dom';
 import {Link,useSearch} from '@tanstack/react-router';
@@ -134,20 +135,9 @@ export function LiveRoomCalendar(){
   {!contextMatches&&<div className="gb-workflow-notice" role="alert">
    The saved link belongs to a different property. Select the original hotel to view its group bookings.
   </div>}
-  {focusGroupId&&<div className="lrc-focus-banner" role="status">
-   <div><strong>Showing group: {focusedGroup.data?.name??'Loading group details…'}</strong>
-    <small>{focusedGroup.data?.reference??'Group booking'} · {focusedGroup.data?.checkIn&&focusedGroup.data?.checkOut
-     ?readableDate(focusedGroup.data.checkIn)+' – '+readableDate(focusedGroup.data.checkOut)
-     :'Stay dates not yet available'}</small>
-    <small>Only rooms assigned to this group are displayed. Unassigned group stays remain in the queue below.</small>
-   </div>
-   <div className="lrc-focus-actions">
-    <Link to="/group-reservations" search={{group:focusGroupId,hotel:hotelId??undefined}}>
-     Back to group <ArrowUpRight size={14}/></Link>
-    <Link to="/room-calendar" search={{date:focus.date,end:focus.end}} className="btn-inline">Show all rooms</Link>
-   </div>
-  </div>}
-  <section className="live-room-calendar" aria-label="Room inventory calendar">
+  {focusGroupId&&<><GroupContextBar groupId={focusGroupId} originHotel={hotelId??undefined} selectedTab="rooms"/>
+   <p className="desk-muted">Only rooms assigned to this group are displayed. Unassigned group bookings remain in the queue below.</p></>}
+    <section className="live-room-calendar" aria-label="Room inventory calendar">
    <div className="lrc-toolbar">
     <div className="lrc-navigation">
      <button type="button" className="btn-inline" onClick={()=>setAnchor(today)}>Today</button>

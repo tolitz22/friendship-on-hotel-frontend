@@ -414,15 +414,21 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       shift:handoff?.cashShiftId??undefined}}>View linked cashier shift <ArrowRight size={14}/></Link>
     </p>}
     {!data.signed&&hasExistingMoney&&<details className="frontdesk-payment-more">
-     <summary>Payment processing details · confirmations, verification and cashier shift</summary>
+     <summary>{routineCashReady||routineCashCheckedOut
+      ?'Cash drawer and finance audit details':'Payment processing details · confirmation, verification and cashier shift'}</summary>
      <div className="frontdesk-payment-stages" aria-label="Payment review stages">
       <div><CheckCircle2 size={15}/> Payment recorded<strong>On file</strong></div>
-      <div><ShieldCheck size={15}/> Payment approval
-       <strong>{data.verifiedPaymentsMinor>0?'Independently verified'
+      <div><ShieldCheck size={15}/> {routineCashReady||routineCashCheckedOut?'Cashier review':'Payment approval'}
+       <strong>{routineCashReady||routineCashCheckedOut
+        ?cashShiftStatus==='reconciled'?'Drawer reconciled':cashShiftStatus==='submitted'?'Cash count awaiting independent review'
+         :cashShiftStatus==='open'?'Cash drawer still open':'Requires investigation'
+        :data.verifiedPaymentsMinor>0?'Independently verified'
         :confirmedPendingVerification.length>0?'Staff-confirmed; independent verification pending'
         :unconfirmed.length>0?'Awaiting staff confirmation':'Awaiting review'}</strong></div>
-      <div><ClipboardCheck size={15}/> Applied to bill
-       <strong>{data.verifiedAllocatedMinor>0
+      <div><ClipboardCheck size={15}/> {routineCashReady||routineCashCheckedOut?'Operational checkout':'Applied to bill'}
+       <strong>{routineCashCheckedOut?'Guest checked out'
+        :routineCashReady?'Checkout eligible'
+        :data.verifiedAllocatedMinor>0
         ?money(data.verifiedAllocatedMinor,data.currency):'Not yet applied'}</strong></div>
      </div>
      {nextCashPayment&&<div className="frontdesk-payment-shift">

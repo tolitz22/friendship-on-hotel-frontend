@@ -14,6 +14,7 @@ type QueueItem={
  key:string;priority:number;date:string;title:string;subtitle:string;problem:string;
  role:string;roomNumber?:string;kind:'booking'|'inspection'|'housekeeping'|'maintenance'|'inventory';
  bookingId?:string;taskId?:string;orderId?:string;blockId?:string;
+ roomStatus?:DashboardRoom['status'];
 };
 const perPage=12;
 export const readinessProblem=(flags:DashboardRoom['blockers']|null|undefined,status:DashboardRoom['status']|null|undefined)=>{
@@ -62,14 +63,15 @@ function createRoomItem(room:DashboardRoom):QueueItem|null{
    kind==='housekeeping'?'Housekeeping supervisor':
    kind==='inventory'?'Inventory / front desk manager':
    room.status==='awaiting_review'?'Independent authorized reviewer':'Authorized inspector',
-  roomNumber:room.roomNumber,kind,
+  roomNumber:room.roomNumber,kind,roomStatus:room.status,
   taskId:room.openHousekeepingTaskId??undefined,
   orderId:room.activeMaintenanceOrderId??undefined,
   blockId:room.activeInventoryBlockId??undefined};
 }
 
 export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumber:string)=>void}){
- const {hotelId}=useHotelAuth();
+ const {hotelId,user}=useHotelAuth();
+ const canInspect=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const [days,setDays]=useState(7);
  const [page,setPage]=useState(1);
  const [filter,setFilter]=useState<QueueFilter>('all');
@@ -88,9 +90,9 @@ export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumb
  const outstanding=data?data.summary.needsInspection+data.summary.awaitingReview+data.summary.blockedOrStale:0;
  const filtered=queue.filter(item=>filter==='all'||
   filter==='arrivals'&&item.kind==='booking'||
-  filter==='blocked'&&(item.kind==='maintenance'||item.kind==='housekeeping'||item.kind==='inventory')||
-  filter==='review'&&item.kind==='inspection'&&item.problem==='Waiting for independent review'||
-  filter==='inspection'&&item.kind==='inspection'&&item.problem!=='Waiting for independent review');
+  filter==='blocked'&&item.roomStatus==='blocked_or_stale'||
+  filter==='review'&&item.roomStatus==='awaiting_review'||
+  filter==='inspection'&&item.roomStatus==='needs_inspection');
  const totalPages=Math.max(1,Math.ceil(filtered.length/perPage));
  const safePage=Math.min(listPage,totalPages);
  const shown=filtered.slice((safePage-1)*perPage,safePage*perPage);
@@ -161,7 +163,7 @@ export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumb
        {item.kind==='booking'&&<Link to="/reservations" search={{booking:item.bookingId,deskAction:item.problem==='Physical room has not been assigned'?'assign':'check-in'}}>
         Open booking <ArrowRight size={15}/></Link>}
        {item.kind==='inspection'&&item.roomNumber&&<button type="button" onClick={()=>{if(item.roomNumber)onInspectRoom(item.roomNumber);}}>
-        {item.problem==='Waiting for independent review'?'Review inspection':'Inspect room'} <ArrowRight size={15}/></button>}
+        {item.roomStatus==='awaiting_review'?'Review inspection':canInspect?'Inspect room':'View inspection'} <ArrowRight size={15}/></button>}
        {item.kind==='housekeeping'&&item.roomNumber&&<Link to="/housekeeping" search={{task:item.taskId}}>
         Open housekeeping task <ArrowRight size={15}/></Link>}
        {item.kind==='maintenance'&&item.roomNumber&&<Link to="/maintenance" search={{order:item.orderId}}>
@@ -189,7 +191,6 @@ export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumb
     <div><button type="button" className="btn-inline" disabled={page<=1} onClick={()=>setPage(page-1)}>Previous rooms</button>
      <button type="button" className="btn-inline" disabled={page>=meta.roomTotalPages} onClick={()=>setPage(page+1)}>Next rooms</button></div>
    </div>
-   <p className="desk-muted">Cleaning completion and readiness approval are separate records. These are operational snapshots, not guarantees of room availability or financial settlement.</p>
   </>}
  </div>;
 }

@@ -2882,3 +2882,34 @@
 .gb-hold-expired,.gb-hold-released{background:color-mix(in srgb,#64748b 12%,var(--surface))}
 .gb-hold-converted{background:color-mix(in srgb,#16a34a 13%,var(--surface))}
 @media(max-width:650px){.gb-hold-card{align-items:stretch;flex-direction:column}.gb-hold-card-actions{justify-content:flex-start}.gb-hold-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.gb-hold-kpis>div{padding:9px}.gb-hold-kpis strong{font-size:18px}}
+
+/* Group workflow — mobile cards, keyboard controls, and prioritized tasks.
+   Uses existing hotel theme tokens rather than introducing a new palette. */
+.gb-mobile-room-cards{display:none}
+.gb-mobile-room-card{display:grid;gap:11px;min-width:0;padding:15px;border:1px solid var(--border);border-radius:11px;background:var(--surface)}
+.gb-mobile-room-card-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.gb-mobile-room-card-heading strong{display:block;font-size:14px;overflow-wrap:anywhere}
+.gb-mobile-room-card-heading small{display:block;margin-top:4px;font-size:11px;color:var(--muted)}
+.gb-mobile-room-card p{display:flex;align-items:flex-start;gap:7px;margin:0;font-size:12px;line-height:1.6}
+.gb-mobile-room-card p svg{flex:none;margin-top:2px}
+.gb-mobile-room-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gb-mobile-room-actions a{display:inline-flex;justify-content:center;align-items:center;gap:6px;text-align:center;min-width:0;min-height:44px;padding:10px 8px;font-size:12px}
+.gb-detail-tabs{flex-wrap:wrap;overflow:visible}
+.gb-detail-tabs button{min-height:44px}
+.gb-detail-tabs button:focus-visible,.gb-mobile-room-actions a:focus-visible,.gb-detail-panel a:focus-visible,.gb-detail-panel button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.gb-detail-panel,.gb-detail-panel *{min-width:0}
+.gb-detail-panel .gb-billing-folio{overflow-wrap:anywhere}
+@media(max-width:760px){
+ .gb-detail-room-table-scroll{display:none}
+ .gb-mobile-room-cards{display:grid;gap:11px}
+ .gb-detail-tabs{display:grid;grid-template-columns:1fr;gap:7px}
+ .gb-detail-tabs button{justify-content:flex-start;white-space:normal}
+ .gb-detail-panel .gb-billing-progress{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:375px){
+ .gb-mobile-room-actions{grid-template-columns:1fr}
+ .gb-detail-summary,.gb-detail-finance-highlights,.gb-detail-panel .gb-billing-progress{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){
+ .gb-detail-panel,.gb-mobile-room-card{scroll-behavior:auto}
+}

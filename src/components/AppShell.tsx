@@ -1,6 +1,6 @@
 import {Link,Outlet,useRouterState} from '@tanstack/react-router';
 import {LayoutDashboard,CalendarDays,CalendarRange,BedDouble,Users,Wallet,ClipboardCheck,Wrench,ChartNoAxesCombined,Settings,Bell,Sun,Moon,Menu,X,Hotel,LogOut,ArrowRight,ChevronDown,ShieldCheck,ShieldAlert,ClipboardList} from 'lucide-react';
-import {useEffect,useState} from 'react';
+import {Suspense,useEffect,useState} from 'react';
 import {useTheme} from './ThemeProvider';
 import {dataMode} from '../api';
 import {useHotelAuth} from './AuthProvider';
@@ -172,7 +172,7 @@ export function AppShell(){
      {role==='maintenance'&&<Link to="/maintenance">Work orders <ArrowRight size={13}/></Link>}
     </>}
    </div>}
-   <div className="page-content"><Outlet/></div>
+   <div className="page-content"><Suspense fallback={<div role="status" className="workspace-loading">Loading hotel workspace…</div>}><Outlet/></Suspense></div>
   </main>
  </div>;
 }

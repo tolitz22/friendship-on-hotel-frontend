@@ -4,9 +4,10 @@ import {Link} from '@tanstack/react-router';
 import {
  AlertTriangle,ArrowRight,BedDouble,CalendarClock,CheckCircle2,ChevronLeft,
  ChevronRight,ClipboardCheck,DoorOpen,Grid2X2,Info,List,LockKeyhole,Menu,
- RefreshCw,Search,ShieldAlert,Users,X,
+ RefreshCw,Search,Settings2,ShieldAlert,Users,X,
 } from 'lucide-react';
 import {useRoomRack,type RackRoom} from '../api/roomRack';
+import type {LiveRoom} from '../api/liveCatalog';
 import {useLiveCatalogSummary,useLiveRoomTypes} from '../api/liveCatalogQueries';
 import {RoomReadinessPanel} from './RoomReadinessPanel';
 import {QueryFeedback} from './QueryFeedback';
@@ -45,8 +46,9 @@ const stateIcon=(tone:ReturnType<typeof roomTone>)=>({
  attention:ClipboardCheck,blocked:ShieldAlert,unknown:Info,
 })[tone];
 
-function RackDrawer({room,hotelId,canInspect,onClose,restoreFocus}:{
- room:RackRoom;hotelId:string;canInspect:boolean;onClose:()=>void;restoreFocus:()=>void;
+function RackDrawer({room,hotelId,canInspect,onEditRoom,onClose,restoreFocus}:{
+ room:RackRoom;hotelId:string;canInspect:boolean;onEditRoom?: (room:LiveRoom)=>void;
+ onClose:()=>void;restoreFocus:()=>void;
 }){
  const dialog=useRef<HTMLElement|null>(null);
  useEffect(()=>{
@@ -99,6 +101,9 @@ function RackDrawer({room,hotelId,canInspect,onClose,restoreFocus}:{
       <Link to="/reservations" search={{booking:room.upcomingStay.bookingId}}>Review upcoming booking <ArrowRight size={15}/></Link>
      </div>}
     </section>
+    {onEditRoom&&<button type="button" className="rack-manage-room" onClick={()=>{onClose();onEditRoom(liveRoom);}}>
+     <Settings2 size={16}/> Edit room details
+    </button>}
     <section className="rack-drawer-section"><h3>What needs doing?</h3>
      <strong>{roomNextAction(room,canInspect)}</strong>
      <p className="desk-muted">Housekeeping, inspections, maintenance and inventory restrictions are independent records.</p>
@@ -130,7 +135,9 @@ function RackDrawer({room,hotelId,canInspect,onClose,restoreFocus}:{
  </div>,document.body);
 }
 
-export function RoomRackDashboard({hotelId}:{hotelId:string}){
+export function RoomRackDashboard({hotelId,focusRoomNumber,onEditRoom}:{hotelId:string;
+ focusRoomNumber?:string;onEditRoom?:(room:LiveRoom)=>void;
+}){
  const [page,setPage]=useState(1);
  const [perPage,setPerPage]=useState(100);
  const [quick,setQuick]=useState<RackQuickFilter>('all');
@@ -160,11 +167,16 @@ export function RoomRackDashboard({hotelId}:{hotelId:string}){
  const select=(room:RackRoom,button:HTMLButtonElement)=>{trigger.current=button;setSelected(room);};
  const close=useCallback(()=>setSelected(null),[]);
  const restore=useCallback(()=>trigger.current?.focus(),[]);
+ useEffect(()=>{
+  if(!focusRoomNumber||!data||selected)return;
+  const target=data.rooms.find(room=>room.roomNumber===focusRoomNumber);
+  if(target)setSelected(target);
+ },[focusRoomNumber,data,selected]);
  const summary=data?.summary;
  return <section className="rack-dashboard" aria-label="Live hotel room rack">
   <div className="rack-heading">
-   <div><span className="rr-eyebrow">LIVE PMS SNAPSHOT</span>
-    <h2>Room status</h2><p>Recorded stays, cleaning, inspections and restrictions — each shown separately.</p></div>
+   <div><span className="rr-eyebrow">LIVE PMS ROOM RACK</span>
+    <h2>Room status</h2></div>
    <button className="rr-secondary-action" disabled={rack.isFetching} type="button" onClick={()=>void rack.refetch()}>
     <RefreshCw size={16}/>{rack.isFetching?'Refreshing…':'Refresh'}</button>
   </div>
@@ -272,7 +284,7 @@ export function RoomRackDashboard({hotelId}:{hotelId:string}){
   </>}
   {selected&&<RackDrawer key={hotelId+'-'+selected.roomId} room={selected} hotelId={hotelId}
    canInspect={data?.allowedActions.completeInspection??false}
-   onClose={close} restoreFocus={restore}/>}
+   onEditRoom={onEditRoom} onClose={close} restoreFocus={restore}/>}
  </section>;
 }
 
@@ -286,16 +298,19 @@ export function RoomTile({room,arrivals,today,list=false,canInspect=true,onSelec
  const stay=room.currentStay??room.upcomingStay;
  const arrival=arrivals.some(a=>a.assignedRoomId===room.roomId&&a.checkIn===today);
  const departure=room.currentStay?.checkOut===today;
+ const next=roomNextAction(room,canInspect);
  const tooltip='Room '+room.roomNumber+' · '+stateLabel(tone)+' · '+(problem??'No current readiness blocker')+
-  ' · Next: '+roomNextAction(room,canInspect);
+  ' · Next: '+next;
  return <button type="button" title={tooltip} aria-label={tooltip}
   className={'rack-tile rack-tone-'+tone+(list?' rack-tile-list':'')}
   onClick={e=>onSelect(room,e.currentTarget)}>
-  <span className="rack-tile-head"><strong>{room.roomNumber}</strong>
-   <span title={stateLabel(tone)}><Symbol size={16} aria-hidden="true"/>{stateLabel(tone)}</span></span>
-  <small>{room.roomTypeName} · {room.floor===null?'Floor unassigned':'Floor '+room.floor}</small>
+  <span className="rack-tile-head">
+   <strong className="rack-tile-number">{room.roomNumber}</strong>
+   <span className="rack-tile-state"><Symbol size={14} aria-hidden="true"/><span>{stateLabel(tone)}</span></span>
+  </span>
+  <span className="rack-tile-type">{room.roomTypeName} · {room.floor===null?'Floor —':'Floor '+room.floor}</span>
   <span className="rack-tile-occupancy">
-   {room.occupancy==='vacant'?'Vacant in PMS':room.occupancy==='due_for_checkout'?'Departure due · PMS':'In house · PMS'}
+   {room.occupancy==='vacant'?'Vacant in PMS':room.occupancy==='due_for_checkout'?'Departure due':'In house · PMS'}
   </span>
   {stay&&<span className="rack-tile-stay">
    <strong>{stay.guestName??'Guest name unavailable'}</strong>
@@ -303,8 +318,19 @@ export function RoomTile({room,arrivals,today,list=false,canInspect=true,onSelec
   </span>}
   {(arrival||departure)&&<span className="rack-tile-event">
    {arrival?'Arrival today':''}{arrival&&departure?' · ':''}{departure?'Departure today':''}</span>}
-  {problem&&<span className="rack-tile-problem"><AlertTriangle size={13} aria-hidden="true"/>{problem}</span>}
-  <span className="rack-tile-next">Next: {roomNextAction(room,canInspect)} <ArrowRight size={13} aria-hidden="true"/></span>
+  <span className="rack-tile-bottom">
+   <span className="rack-tile-quick-icons">
+    <span aria-label={'PMS occupancy: '+room.occupancy} title={'PMS occupancy: '+room.occupancy}>
+     {room.occupancy==='vacant'?<DoorOpen size={13}/>:<Users size={13}/>}</span>
+    <span aria-label={'Housekeeping: '+room.cleaning.replaceAll('_',' ')} title={'Housekeeping: '+room.cleaning.replaceAll('_',' ')}>
+     {room.cleaning==='ready'?<CheckCircle2 size={13}/>:<ClipboardCheck size={13}/>}</span>
+    <span aria-label={'Inspection: '+(room.advisoryReady?'Current approved':'Not verified')}
+     title={'Inspection: '+(room.advisoryReady?'Current approved':'Not verified')}>
+     {tone==='blocked'?<ShieldAlert size={13}/>:room.advisoryReady?<CheckCircle2 size={13}/>:<Info size={13}/>}</span>
+   </span>
+   <span className="rack-tile-next">Next: {next} <ArrowRight size={12} aria-hidden="true"/></span>
+  </span>
+  {problem&&<span className="rack-tile-problem" title={problem}><AlertTriangle size={12} aria-hidden="true"/>{problem}</span>}
  </button>;
 }
 type RoomRackDataArrivals=NonNullable<ReturnType<typeof useRoomRack>['data']>['data']['arrivals'];

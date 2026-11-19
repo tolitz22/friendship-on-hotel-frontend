@@ -20,7 +20,7 @@ import {
 const quickFilters=[
  ['all','All rooms'],['action','Needs action'],['arrivals','Arrivals today'],
  ['departures','Departures today'],['in_house','In house'],['cleaning','Needs cleaning'],
- ['review','Legacy review pending'],['blocked','Blocked'],['vacant_approved','Vacant & inspected'],
+ ['review','Redo inspection'],['blocked','Blocked'],['vacant_approved','Vacant & inspected'],
 ] as const satisfies ReadonlyArray<readonly [RackQuickFilter,string]>;
 
 type Filters={floor:string;type:string;occupancy:string;readiness:string;cleaning:string;blocked:string;date:string;search:string};
@@ -119,7 +119,7 @@ function RackDrawer({room,hotelId,canInspect,onEditRoom,onClose,restoreFocus}:{
     <section className="rack-drawer-section"><h3>Housekeeping and inspection evidence</h3>
      <dl className="rack-evidence">
       <div><dt>Cleaning</dt><dd>{room.cleaning.replaceAll('_',' ')}</dd></div>
-      <div><dt>Inspection</dt><dd>{room.inspectionStatus??'No inspection recorded'}</dd></div>
+      <div><dt>Inspection</dt><dd>{room.inspectionStatus==='submitted'?'Older inspection needs repeating':room.inspectionStatus==='approved'?'Completed':room.inspectionStatus==='rejected'?'Rejected':'No inspection recorded'}</dd></div>
       <div><dt>Current readiness</dt><dd>{room.advisoryReady?'Current inspection approved':'Not currently verified'}</dd></div>
       <div><dt>Last cleaned</dt><dd>{room.cleanedAt?readableDateTime(room.cleanedAt):'Not recorded'}</dd></div>
       <div><dt>Inspected</dt><dd>{room.inspectedAt?readableDateTime(room.inspectedAt):'Not recorded'}</dd></div>
@@ -205,7 +205,7 @@ export function RoomRackDashboard({hotelId,focusRoomNumber,onEditRoom}:{hotelId:
      ['Arrivals today',summary.arrivalsToday,CalendarClock,false],
      ['Departures today',summary.departuresToday,ArrowRight,false],
      ['Rooms needing cleaning',summary.roomsNeedingCleaning,ClipboardCheck,true],
-     ['Legacy inspections pending',summary.legacyPendingInspections,Info,true],
+     ['Old inspections to redo',summary.legacyPendingInspections,Info,true],
      ['Active blockers',summary.activelyBlockedRooms,LockKeyhole,true],
     ] as const).map(([label,value,Symbol,problem])=>{
      const setMetric=()=>{
@@ -215,7 +215,7 @@ export function RoomRackDashboard({hotelId,focusRoomNumber,onEditRoom}:{hotelId:
       else if(label==='Arrivals today')setQuick('arrivals');
       else if(label==='Departures today')setQuick('departures');
       else if(label==='Rooms needing cleaning')setQuick('cleaning');
-      else if(label==='Legacy inspections pending')setQuick('review');
+      else if(label==='Old inspections to redo')setQuick('review');
       else if(label==='Active blockers')setQuick('blocked');
      };
      const selectedMetric=label==='Total rooms'?quick==='all'&&filter.occupancy==='all':
@@ -224,7 +224,7 @@ export function RoomRackDashboard({hotelId,focusRoomNumber,onEditRoom}:{hotelId:
       label==='Arrivals today'?quick==='arrivals':
       label==='Departures today'?quick==='departures':
       label==='Rooms needing cleaning'?quick==='cleaning':
-      label==='Legacy inspections pending'?quick==='review':quick==='blocked';
+      label==='Old inspections to redo'?quick==='review':quick==='blocked';
      return <button type="button" key={label} onClick={setMetric}
       title={'Filter room rack: '+label}
       aria-pressed={selectedMetric}
@@ -264,7 +264,7 @@ export function RoomRackDashboard({hotelId,focusRoomNumber,onEditRoom}:{hotelId:
     </select></label>
     <label>Inspection<select value={filter.readiness} onChange={e=>setFilter(f=>({...f,readiness:e.target.value}))}>
      <option value="all">All</option><option value="approved_current">Current approved</option><option value="needs_inspection">Needs inspection</option>
-     <option value="awaiting_review">Legacy pending</option><option value="blocked_or_stale">Blocked or outdated</option>
+     <option value="awaiting_review">Older inspection to redo</option><option value="blocked_or_stale">Blocked or outdated</option>
     </select></label>
     <label>Housekeeping<select value={filter.cleaning} onChange={e=>setFilter(f=>({...f,cleaning:e.target.value}))}>
      <option value="all">All</option><option value="checkout_cleaning">Checkout cleaning</option><option value="cleaning_in_progress">Cleaning in progress</option>

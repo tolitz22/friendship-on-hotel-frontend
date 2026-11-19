@@ -99,7 +99,14 @@ export function cashEventDetails(event:string,details:unknown):CashDetail[]{
  if(event==='opened'&&number('openingFloatMinor')!==null)
   result.push({label:'Starting cash in drawer',value:number('openingFloatMinor')!});
  if(event==='cash_received'){
-  if(number('amountMinor')!==null)result.push({label:'Cash payment',value:number('amountMinor')!});
+  if(number('cashTenderedMinor')!==null)
+   result.push({label:'Cash handed over',value:number('cashTenderedMinor')!});
+  if(number('changeGivenMinor')!==null)
+   result.push({label:'Change returned to guest',value:number('changeGivenMinor')!});
+  if(number('netReceiptMinor')!==null)
+   result.push({label:'Net cash kept in drawer',value:number('netReceiptMinor')!});
+  else if(number('amountMinor')!==null)
+   result.push({label:'Net cash payment (older receipt; tender/change not captured)',value:number('amountMinor')!});
   if(safe('bookingId')!==null)result.push({label:'Guest booking',value:'Booking #'+safe('bookingId')});
   if(safe('reference')!==null)result.push({label:'Receipt reference',value:safe('reference')!});
  }

@@ -10,6 +10,7 @@ const base={
   rooms:[{
    roomId:'11',roomNumber:'101',roomTypeId:'8',
    status:'approved_current',latestInspectionId:'33',inspectionStatus:'approved',
+   openHousekeepingTaskId:null,activeMaintenanceOrderId:null,activeInventoryBlockId:null,
    blockers:{
     activeInventoryBlockToday:false,activeRoomImpactMaintenance:false,
     latestTurnoverIncomplete:false,newTurnoverSinceInspection:false,
@@ -17,8 +18,9 @@ const base={
    },
   }],
   arrivals:[{
-   bookingId:'51',reference:'BK-ONE',checkIn:'2026-12-11',checkOut:'2026-12-12',
+   bookingId:'51',reference:'BK-ONE',guestName:'Arrival Guest',checkIn:'2026-12-11',checkOut:'2026-12-12',
    assignedRoomId:null,roomNumber:null,risk:'unassigned_room',roomStatus:null,
+   roomBlockers:null,openHousekeepingTaskId:null,activeMaintenanceOrderId:null,activeInventoryBlockId:null,
   }],
  },
  meta:{
@@ -34,6 +36,8 @@ describe('Phase 37 operational readiness report contract',()=>{
   expect(value.data.summary.totalRooms).toBe(2);
   expect(value.data.rooms).toHaveLength(1);
   expect(value.data.arrivals[0].risk).toBe('unassigned_room');
+  expect(value.data.arrivals[0].guestName).toBe('Arrival Guest');
+  expect(value.data.arrivals[0].roomBlockers).toBeNull();
   expect(value.data.enforceAtCheckIn).toBe(true);
  });
  it('rejects cross-hotel or other reporting windows and pages',()=>{

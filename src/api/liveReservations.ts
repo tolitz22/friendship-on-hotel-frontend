@@ -108,7 +108,7 @@ export function parseQuote(value:unknown,stay:LiveStay,ratePlanId:string){
  return result;
 }
 
-export type ReservationListFilter='all'|'needs_room'|'arrivals'|'in_house'|'completed';
+export type ReservationListFilter='all'|'needs_room'|'arrivals'|'in_house'|'completed'|'checked_out'|'cancelled';
 export function useLiveReservationRecords(page:number,search='',filter:ReservationListFilter='all'){
  const {hotelId}=readSession();
  return useQuery({

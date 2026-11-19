@@ -207,9 +207,31 @@ export function RoomRackDashboard({hotelId,focusRoomNumber,onEditRoom}:{hotelId:
      ['Rooms needing cleaning',summary.roomsNeedingCleaning,ClipboardCheck,true],
      ['Legacy inspections pending',summary.legacyPendingInspections,Info,true],
      ['Active blockers',summary.activelyBlockedRooms,LockKeyhole,true],
-    ] as const).map(([label,value,Symbol,problem])=><div className={'rack-metric'+(problem&&value>0?' rack-metric-alert':'')} key={label}>
-     <span>{label}<Symbol size={16} aria-hidden="true"/></span><strong>{value}</strong>
-    </div>)}
+    ] as const).map(([label,value,Symbol,problem])=>{
+     const setMetric=()=>{
+      setQuick('all');setFilter(emptyFilters());setPage(1);
+      if(label==='Vacant in PMS')setFilter({...emptyFilters(),occupancy:'vacant'});
+      else if(label==='Occupied in PMS')setQuick('in_house');
+      else if(label==='Arrivals today')setQuick('arrivals');
+      else if(label==='Departures today')setQuick('departures');
+      else if(label==='Rooms needing cleaning')setQuick('cleaning');
+      else if(label==='Legacy inspections pending')setQuick('review');
+      else if(label==='Active blockers')setQuick('blocked');
+     };
+     const selectedMetric=label==='Total rooms'?quick==='all'&&filter.occupancy==='all':
+      label==='Vacant in PMS'?filter.occupancy==='vacant':
+      label==='Occupied in PMS'?quick==='in_house':
+      label==='Arrivals today'?quick==='arrivals':
+      label==='Departures today'?quick==='departures':
+      label==='Rooms needing cleaning'?quick==='cleaning':
+      label==='Legacy inspections pending'?quick==='review':quick==='blocked';
+     return <button type="button" key={label} onClick={setMetric}
+      title={'Filter room rack: '+label}
+      aria-pressed={selectedMetric}
+      className={'rack-metric rack-metric-button'+(problem&&value>0?' rack-metric-alert':'')}>
+      <span>{label}<Symbol size={16} aria-hidden="true"/></span><strong>{value}</strong>
+     </button>;
+    })}
    </div>
    <div className="rack-controls">
     <div className="rack-view-switch" aria-label="Room display">

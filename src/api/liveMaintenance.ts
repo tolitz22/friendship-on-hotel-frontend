@@ -92,3 +92,12 @@ export async function patchValidatedMaintenance(hotelId:string,order:LiveWorkOrd
  const result=await updateMaintenance(order.id,input);
  return parseUpdatedMaintenance(result,hotelId,order.id);
 }
+
+/** Resolve a specific work order through the hotel-scoped server endpoint. */
+export async function fetchMaintenanceOrder(orderId:string):Promise<LiveWorkOrder>{
+ if(!id.safeParse(orderId).success)throw new Error('Invalid maintenance order reference.');
+ const hotelId=readSession().hotelId;
+ if(!hotelId)throw new Error('Select a hotel before opening maintenance.');
+ const payload=await getJson<unknown>(hotelPath('/maintenance-work-orders/'+encodeURIComponent(orderId)));
+ return parseUpdatedMaintenance(payload,hotelId,orderId);
+}

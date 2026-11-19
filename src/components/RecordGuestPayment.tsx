@@ -96,11 +96,15 @@ export function RecordGuestPayment({bookingId,currency,signed,recordedDifference
     if(!shift.data||changeMinor===null)return;
     const result=await receiveCash(hotelId,shift.data.id,bookingId,{
      requestKey,reference:receiptReference.current,amountMinor,
+     cashTenderedMinor:tenderedMinor!,changeGivenMinor:changeMinor,
      ...(potentialDuplicate&&allowSecond?{duplicateOverrideReason:duplicateReason.trim()}:{}),
     });
     if(readSession().hotelId!==hotelId)return;
-    setNotice('Cash receipt #'+result.paymentId+' recorded in your shift. Give the guest '+
-     formatBillingMoney(changeMinor,currency)+' in change. The receipt still needs independent review.');
+    setNotice('Cash receipt #'+result.paymentId+' saved. Cash handed over: '+
+     formatBillingMoney(result.cashTenderedMinor??tenderedMinor!,currency)+
+     '. Change to return: '+formatBillingMoney(result.changeGivenMinor??changeMinor,currency)+
+     '. Net cash added to drawer: '+formatBillingMoney(result.netReceiptMinor??amountMinor,currency)+
+     '. Receipt remains subject to independent review.');
    }else{
     await recordBankEvidence(bookingId,requestKey,bankReference.trim(),amountMinor,
      potentialDuplicate&&allowSecond?duplicateReason.trim():undefined);
@@ -199,6 +203,10 @@ export function RecordGuestPayment({bookingId,currency,signed,recordedDifference
    {method==='cash'&&<div className="billing-change-summary" role="status">
     <span>Change to return to the guest</span>
     <strong>{changeMinor===null?'—':formatBillingMoney(changeMinor,currency)}</strong>
+    {changeMinor!==null&&amountMinor!==null&&tenderedMinor!==null&&
+     <small>Cash handed over: {formatBillingMoney(tenderedMinor,currency)}.
+      Net cash added to drawer: {formatBillingMoney(amountMinor,currency)}.
+      The change is not hotel revenue.</small>}
     {amountMinor!==null&&tenderedMinor!==null&&tenderedMinor<amountMinor&&
      <small>Cash received must be at least the payment amount.</small>}
    </div>}
@@ -230,7 +238,7 @@ export function RecordGuestPayment({bookingId,currency,signed,recordedDifference
    </button>
    <p className="billing-payment-explanation"><Info size={15}/>
     {method==='cash'
-     ?'The receipt is saved in your open cashier shift for manager review and end-of-shift cash reconciliation. The change shown is calculated here; only the payment amount is recorded.'
+     ?'The receipt saves cash tendered, change given, and net payment in your open shift. Only the net payment increases expected drawer cash. Give change immediately, then complete shift reconciliation later.'
      :'Recording a transfer reference does not confirm that the money reached the hotel’s bank account.'}</p>
   </div>}
   {notice&&<div className="billing-payment-complete" role="status">

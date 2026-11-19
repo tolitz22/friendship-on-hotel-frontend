@@ -268,7 +268,7 @@ export function RoomRackDashboard({hotelId}:{hotelId:string}){
  </section>;
 }
 
-function RoomTile({room,arrivals,today,list=false,onSelect}:{
+export function RoomTile({room,arrivals,today,list=false,onSelect}:{
  room:RackRoom;arrivals:RoomRackDataArrivals;today:string;list?:boolean;
  onSelect:(room:RackRoom,button:HTMLButtonElement)=>void;
 }){

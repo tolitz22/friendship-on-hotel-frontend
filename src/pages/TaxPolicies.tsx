@@ -79,7 +79,6 @@ export function TaxPolicies(){
  const [previewDate,setPreviewDate]=useState('');
  const [previewAmount,setPreviewAmount]=useState('');
  const [preview,setPreview]=useState<Preview|null>(null);
- const [showDraft,setShowDraft]=useState(false);
  const [showHistory,setShowHistory]=useState(false);
 
  useEffect(()=>{
@@ -87,7 +86,7 @@ export function TaxPolicies(){
   setFrom('');setUntil('');setNote('');setBusy(false);setApproveId(null);
   setAck(false);setDraftError('');setDraftSuccess('');setApprovalError('');setApprovalSuccess('');
   setPreviewError('');setPreview(null);setPreviewDate('');setPreviewAmount('');
-  setShowDraft(false);setShowHistory(false);
+  setShowHistory(false);
  },[hotelId]);
 
  const query=useQuery({
@@ -180,7 +179,7 @@ export function TaxPolicies(){
    <div className="tax-workflow" aria-label="Tax policy approval workflow">
     <span>1 · Prepare draft</span><span>2 · Independent review</span><span>3 · Approved for previews</span>
    </div>
-   <button type="button" className="btn-primary" onClick={()=>{setShowDraft(true);document.getElementById('tax-draft-heading')?.scrollIntoView({block:'start'});}}>
+   <button type="button" className="btn-primary" onClick={()=>document.getElementById('tax-draft-heading')?.scrollIntoView({block:'start'})}>
     <ClipboardCheck size={16}/> Prepare draft policy
    </button>
   </Panel>

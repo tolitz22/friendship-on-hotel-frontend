@@ -1,3 +1,4 @@
+import {parseGroupDetailTab} from './features/groups/groupNavigation';
 import React from 'react';import ReactDOM from 'react-dom/client';
 import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
 import {createRootRoute,createRoute,createRouter,RouterProvider} from '@tanstack/react-router';
@@ -61,7 +62,7 @@ const reservations=createRoute({getParentRoute:()=>root,path:'/reservations',
 const groupReservations=createRoute({getParentRoute:()=>root,path:'/group-reservations',
  validateSearch:(value:Record<string,unknown>):{group?:string;tab?:'rooms'|'billing'|'activity';hotel?:string}=>({
   group:typeof value.group==='string'&&/^[1-9][0-9]*$/.test(value.group)?value.group:undefined,
-  tab:value.tab==='billing'||value.tab==='rooms'||value.tab==='activity'?value.tab:undefined,
+  tab:parseGroupDetailTab(value.tab),
   hotel:typeof value.hotel==='string'&&/^[1-9][0-9]*$/.test(value.hotel)?value.hotel:undefined,
  }),component:GroupReservations});
 const rooms=createRoute({getParentRoute:()=>root,path:'/rooms',

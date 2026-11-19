@@ -1,7 +1,7 @@
 import {useEffect,useMemo,useState} from 'react';
 import {Link} from '@tanstack/react-router';
 import {
- AlertTriangle,ArrowRight,BedDouble,CalendarDays,CheckCircle2,ChevronLeft,
+ AlertTriangle,ArrowRight,CalendarDays,CheckCircle2,ChevronLeft,
  ChevronRight,ClipboardCheck,Clock3,RefreshCw,ShieldAlert,ShieldCheck,
 } from 'lucide-react';
 import {useHotelAuth} from './AuthProvider';
@@ -163,7 +163,7 @@ export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumb
         Open maintenance orders <ArrowRight size={15}/></Link>}
        {item.kind==='inventory'&&item.roomNumber&&<Link to="/room-calendar" search={{date:data.asOfHotelDate}}>
         Review inventory blocks <ArrowRight size={15}/></Link>}
-       {item.kind!=='booking'&&item.roomNumber&&<button type="button" className="rh-secondary-action" onClick={()=>onInspectRoom(item.roomNumber!)}>
+       {item.kind!=='booking'&&item.roomNumber&&<button type="button" className="rh-secondary-action" onClick={()=>{if(item.roomNumber)onInspectRoom(item.roomNumber);}}>
         Inspection details</button>}
       </div>
      </article>)}

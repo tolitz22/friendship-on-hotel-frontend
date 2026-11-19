@@ -3239,3 +3239,41 @@
 .rack-metric-button:hover{border-color:var(--accent)}
 .rack-metric-button[aria-pressed=true]{box-shadow:inset 0 0 0 1px var(--accent)}
 .rack-metric-button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+
+/* Operational room rack refinements: lead with rooms rather than oversized KPI cards. */
+.rack-dashboard{gap:10px}
+.rack-heading{padding-bottom:1px}
+.rack-metrics{grid-template-columns:repeat(8,minmax(0,1fr));gap:7px}
+.rack-metric{min-height:72px;padding:10px 11px;gap:6px}
+.rack-metric>span{font-size:10px;line-height:1.3}
+.rack-metric>span svg{width:14px;height:14px}
+.rack-metric>strong{font-size:23px;line-height:1}
+.rack-controls{gap:7px;padding:2px 0}
+.rack-quick{padding:0 0 4px}
+.rack-quick button{min-height:36px;padding:7px 10px}
+.rack-grid.rack-grid-small{gap:10px}
+.rack-grid.rack-grid-count-1{grid-template-columns:minmax(0,1fr)}
+.rack-grid.rack-grid-count-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.rack-grid.rack-grid-count-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.rack-grid.rack-grid-count-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.rack-grid-small .rack-tile{min-height:146px;max-height:180px}
+.rack-grid-small .rack-tile-stay strong{font-size:12px}
+.rack-grid-small .rack-tile-next{max-width:none}
+.rack-results{font-size:11px;padding-top:3px}
+@media(min-width:1400px){
+ .rack-grid.rack-grid-count-1{grid-template-columns:minmax(0,420px)}
+ .rack-grid.rack-grid-count-2{grid-template-columns:repeat(2,minmax(0,420px))}
+ .rack-grid.rack-grid-count-3{grid-template-columns:repeat(3,minmax(0,420px))}
+ .rack-grid.rack-grid-count-4{grid-template-columns:repeat(4,minmax(0,360px))}
+}
+@media(max-width:1350px){.rack-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:800px){
+ .rack-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .rack-grid.rack-grid-small{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:650px){
+ .rack-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .rack-grid.rack-grid-small{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .rack-metric{min-height:66px}
+ .rack-metric>strong{font-size:22px}
+}

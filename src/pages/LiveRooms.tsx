@@ -26,7 +26,8 @@ export function LiveRooms(){
  const [showCreate,setShowCreate]=useState(false);
  const [editingRoom,setEditingRoom]=useState<LiveRoom|null>(null);
  const [inspectionRoomNumber,setInspectionRoomNumber]=useState<string|null>(null);
- const inspectionRoomLookup=useLiveRooms({page:1,perPage:20,search:inspectionRoomNumber??undefined});
+ const inspectionRoomLookup=useLiveRooms({page:1,perPage:20,search:inspectionRoomNumber??undefined},
+  !!inspectionRoomNumber&&!canSeeStay);
  const roomTypes=useLiveRoomTypes();
  const queryClient=useQueryClient();
  useEffect(()=>{

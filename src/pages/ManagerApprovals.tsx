@@ -58,7 +58,7 @@ function ApprovalCard({item,hotelId}:{item:Approval;hotelId:string}){
    <label className="wizard-label" htmlFor={'review-note-'+item.id}>Manager decision note</label>
    <textarea id={'review-note-'+item.id} className="wizard-input" rows={2} maxLength={1000}
     value={note} onChange={e=>setNote(e.target.value)} disabled={busy} placeholder={item.action==='early_check_in'?'Describe verified guest arrival, room readiness and pricing follow-up':item.action==='early_check_out'?'Confirm actual departure, guest request and financial follow-up':'Reason for decision (required for rejection)'}/>
-   {item.action==='early_check_in'&&<p className="stay-early-inbox-tip">Approving immediately records the guest as checked in early. The original scheduled dates remain on the booking.</p>
+   {item.action==='early_check_in'&&<p className="stay-early-inbox-tip">Approving immediately records the guest as checked in early. The original scheduled dates remain on the booking.</p>}
    {item.action==='early_check_out'&&<p className="stay-early-inbox-tip">Approving immediately checks out the guest, revokes recorded keycard authorizations, and creates checkout cleaning. Scheduled dates and posted charges remain unchanged; no refund is generated. All configured settlement rules still apply.</p>}
    <label className="wizard-label">
     <input type="checkbox" checked={confirmed} disabled={busy}

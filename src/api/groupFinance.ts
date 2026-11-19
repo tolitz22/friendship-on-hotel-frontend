@@ -7,6 +7,7 @@ const id=z.string().regex(/^[1-9]\d*$/);
 const amount=z.number().int().refine(Number.isSafeInteger,'Amount exceeds safe integer range');
 const currency=z.object({
  currency:z.string(),netRecordedChargesMinor:amount,
+ pendingReviewPaymentsMinor:amount,recordedPaymentsMinor:amount,balanceAfterRecordedPaymentsMinor:amount,
  staffConfirmedPaymentsMinor:amount,verifiedAllocatedMinor:amount,
  verifiedGroupPayerAllocatedMinor:amount,unallocatedNetChargesMinor:amount,
  pricedFolioCount:z.number().int().nonnegative(),
@@ -15,6 +16,10 @@ const room=z.discriminatedUnion('priced',[
  z.object({bookingId:id,reference:z.string(),priced:z.literal(false)}),
  z.object({bookingId:id,reference:z.string(),priced:z.literal(true),
   folioId:id,currency:z.string(),netRecordedChargesMinor:amount,
+  pendingReviewPaymentsMinor:amount,recordedPaymentsMinor:amount,balanceAfterRecordedPaymentsMinor:amount,
+  pendingReviewPaymentCount:z.number().int().nonnegative(),
+  staffConfirmedPaymentCount:z.number().int().nonnegative(),
+  independentlyVerifiedPaymentCount:z.number().int().nonnegative(),
   staffConfirmedPaymentsMinor:amount,verifiedAllocatedMinor:amount,
   verifiedGroupPayerAllocatedMinor:amount,unallocatedNetChargesMinor:amount,
   signed:z.boolean(),eligiblePayments:z.array(z.object({

@@ -172,6 +172,8 @@ export function CashierShifts(){
  const ownOpenShift=useCurrentCashierShift(allowed);
  const ownPendingShifts=useCashierShifts(allowed&&!manager,1,'submitted');
  const managerReviewQueue=useCashierShifts(manager,1,'submitted');
+ const flaggedShifts=useCashierShifts(manager,1,'flagged');
+ const reconciledShifts=useCashierShifts(manager,1,'reconciled');
  const linkedShift=useCashierShiftDetails(allowed&&!!context.shift,context.shift??'');
  const active=ownOpenShift.data??null;
  const refresh=()=>hotelId&&Promise.all([
@@ -253,6 +255,32 @@ export function CashierShifts(){
    </div>}
    {message&&<p role="status" className="cashier-feedback-success">{message}</p>}
    {error&&<p className="auth-error" role="alert">{error} Check your shift before trying again.</p>}
+  </section>}
+  {manager&&!context.shift&&<section className="cashier-owner-overview" aria-label="Owner cash oversight">
+   <div className="cashier-panel-heading"><div>
+    <span className="rr-eyebrow">OWNER / MANAGER OVERSIGHT</span>
+    <h2>Cash control overview</h2>
+    <p>Routine cash collection does not require per-payment approval in simplified mode.
+     Independent shift reconciliation and discrepancy investigation remain mandatory.</p>
+   </div><button type="button" className="rr-secondary-action"
+    disabled={managerReviewQueue.isFetching||flaggedShifts.isFetching||reconciledShifts.isFetching}
+    onClick={()=>{void managerReviewQueue.refetch();void flaggedShifts.refetch();
+     void reconciledShifts.refetch();}}><RefreshCw size={15}/> Refresh</button></div>
+   <div className="cashier-owner-counters">
+    <div><small>Shifts awaiting review</small><strong>{managerReviewQueue.data?.meta.total??'—'}</strong></div>
+    <div><small>Flagged discrepancies</small><strong>{flaggedShifts.data?.meta.total??'—'}</strong></div>
+    <div><small>Reconciled shifts</small><strong>{reconciledShifts.data?.meta.total??'—'}</strong></div>
+   </div>
+   {flaggedShifts.data&&flaggedShifts.data.meta.total>0&&
+    <details className="cashier-flagged-overview" open>
+     <summary>{flaggedShifts.data.meta.total} flagged shift{flaggedShifts.data.meta.total===1?'':'s'} require investigation</summary>
+     <div className="cashier-flagged-shifts">
+      {flaggedShifts.data.data.map(shift=><ShiftRow key={'flagged-'+shift.id}
+       shift={shift} manager ownShift={shift.cashierId===user?.id}
+       onChange={()=>void refresh()}/>)}
+     </div>
+     {flaggedShifts.data.meta.totalPages>1&&<p>See Cashier Shift History for older flagged shifts.</p>}
+    </details>}
   </section>}
   {manager&&!context.shift&&<section className="cashier-manager-queue" aria-label="Independent cash reconciliation queue">
    <div className="cashier-panel-heading">

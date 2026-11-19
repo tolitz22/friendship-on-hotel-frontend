@@ -1,9 +1,10 @@
-import {afterEach,describe,expect,it,vi} from 'vitest';
+import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
 import {clearSession,setSessionHotel,setSessionToken} from './session';
 import {createMaintenance,listMaintenance,maintenanceHistory,updateMaintenance,parseLiveMaintenance,parseUpdatedMaintenance,parseMaintenanceHistory,nextLiveMaintenanceStatus,mayUpdateMaintenance,patchValidatedMaintenance} from './liveMaintenance';
 import type {LiveWorkOrder} from './liveMaintenance';
 
-afterEach(()=>{clearSession();vi.unstubAllGlobals();});
+beforeEach(()=>{vi.stubEnv('VITE_AUTH_MODE','bearer');});
+afterEach(()=>{clearSession();vi.unstubAllGlobals();vi.unstubAllEnvs();});
 
 describe('Phase 13 live maintenance API',()=>{
  it('reads work orders only in the selected hotel with authorization',async()=>{

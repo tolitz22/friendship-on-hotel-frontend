@@ -26,7 +26,8 @@ const arrival=stay.extend({
  openHousekeepingTaskId:id.nullable(),activeMaintenanceOrderId:id.nullable(),activeInventoryBlockId:id.nullable(),
 });
 const room=z.object({
- roomId:id,roomNumber:z.string(),roomTypeName:z.string(),floor:z.number().int().nullable(),
+ roomId:id,roomNumber:z.string(),roomTypeName:z.string(),roomTypeId:id,
+ maxOccupancy:z.number().int().positive(),floor:z.number().int().nullable(),
  occupancy:z.enum(['vacant','occupied','due_for_checkout']),
  cleaning:z.enum(['checkout_cleaning','cleaning_in_progress','awaiting_inspection','ready','not_verified']),
  advisoryReady:z.boolean(),

@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {Link,useNavigate,useSearch} from '@tanstack/react-router';
 import {useQueryClient} from '@tanstack/react-query';
-import {CalendarDays,Plus,ArrowRight,RefreshCw,Trash2,Search,Layers3,Clock3,ChevronLeft,UserPlus,BedDouble} from 'lucide-react';
+import {CalendarDays,Plus,ArrowRight,RefreshCw,Trash2,Search,Layers3,Clock3,ChevronLeft,ChevronRight,UserPlus,BedDouble,CheckCircle2,AlertTriangle,LogIn,LogOut,Filter,X,History} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
@@ -11,7 +11,8 @@ import type {Guest} from '../api/types';
 import {useSelectedGuest} from '../api/liveSelectedGuest';
 import {useLiveRoomTypes,useLiveRatePlans,validLiveStay} from '../api/liveReservations';
 import {createGroupBooking,useGroupBooking,useGroupBookings} from '../api/groupReservations';
-import type {GroupBooking,GroupBookingInput} from '../api/groupReservations';
+import {deriveGroupStatus,groupStatusLabel} from '../api/groupReservations';
+import type {GroupBooking,GroupBookingInput,GroupStatusFilter} from '../api/groupReservations';
 import {hotelToday,addDays} from '../features/reservations/calendarDate';
 import {readSession} from '../api/session';
 import {useGroupAllotments,createGroupAllotment,releaseGroupAllotment} from '../api/groupAllotments';
@@ -402,11 +403,18 @@ export function GroupReservations(){
  const navigate=useNavigate();
  const client=useQueryClient();
  const [page,setPage]=useState(1);
- const groups=useGroupBookings(page);
+ const [groupFilter,setGroupFilter]=useState<GroupStatusFilter>('all');
+ const [appliedSearch,setAppliedSearch]=useState('');
+ const [formStep,setFormStep]=useState<1|2|3>(1);
+ const groups=useGroupBookings(page,appliedSearch,groupFilter);
  const types=useLiveRoomTypes();
  const rates=useLiveRatePlans();
  const [view,setView]=useState<'groups'|'holds'|'new'>('groups');
  const [searchText,setSearchText]=useState('');
+ useEffect(()=>{
+  const timer=window.setTimeout(()=>{setAppliedSearch(searchText.trim());setPage(1);},300);
+  return ()=>window.clearTimeout(timer);
+ },[searchText]);
  const [selectedAllotment,setSelectedAllotment]=useState<GroupAllotment|null>(null);
  const [name,setName]=useState('');
  const [contact,setContact]=useState('');
@@ -424,7 +432,20 @@ export function GroupReservations(){
   setRooms(old=>old.map((row,index)=>index===i
    ?{...row,[key]:value,...(key==='roomTypeId'?{ratePlanId:''}:{})}:row));
  };
- useEffect(()=>{setView('groups');setSearchText('');setSelectedAllotment(null);setPage(1);setPending(null);setResult(null);setError(null);setGuestDialogRoom(null);setCreatedGuests({});},[hotelId]);
+ useEffect(()=>{setView('groups');setSearchText('');setAppliedSearch('');setGroupFilter('all');setFormStep(1);setSelectedAllotment(null);setPage(1);setPending(null);setResult(null);setError(null);setGuestDialogRoom(null);setCreatedGuests({});},[hotelId]);
+ const visibleGroups=groups.data?.data??[];
+ const pageConfirmed=visibleGroups.filter(g=>g.status==='confirmed').length;
+ const pageInHouse=visibleGroups.filter(g=>['partially_checked_in','fully_checked_in','partially_checked_out'].includes(g.status)).length;
+ const pageDeparted=visibleGroups.filter(g=>g.status==='checked_out').length;
+ const pageAttention=visibleGroups.filter(g=>g.status==='partially_checked_in'||g.status==='partially_checked_out').length;
+ const stepOneValid=name.trim().length>=2&&validLiveStay({
+  roomTypeId:rooms[0].roomTypeId||'1',checkIn,checkOut
+ })&&checkIn>=hotelToday()&&(!selectedAllotment||(
+  checkIn===selectedAllotment.checkIn&&checkOut===selectedAllotment.checkOut));
+ const roomEntriesValid=rooms.length>=2&&rooms.every(room=>
+  Number(room.guestId)>0&&Number(room.roomTypeId)>0&&Number(room.ratePlanId)>0&&
+  rates.data?.data.some(rate=>rate.active&&rate.id===room.ratePlanId&&
+   rate.roomTypeId===room.roomTypeId));
  const datesValid=validLiveStay({roomTypeId:rooms[0].roomTypeId||'1',checkIn,checkOut})
   &&checkIn>=hotelToday();
  const ready=canBook&&name.trim().length>=2&&datesValid&&rooms.length>=2&&

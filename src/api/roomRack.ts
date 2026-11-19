@@ -47,7 +47,7 @@ const schema=z.object({
   summary:z.object({
    totalRooms:count,pmsVacantRooms:count,pmsOccupiedRooms:count,
    arrivalsToday:count,departuresToday:count,
-   roomsWithOpenHousekeeping:count,inspectionsAwaitingReview:count,activelyBlockedRooms:count,
+   roomsNeedingCleaning:count,legacyPendingInspections:count,activelyBlockedRooms:count,
   }),
  }),
  meta:z.object({

@@ -13,7 +13,7 @@ import {useSelectedGuest} from '../api/liveSelectedGuest';
 import {useLiveRoomTypes,useLiveRatePlans,validLiveStay} from '../api/liveReservations';
 import {createGroupBooking,useGroupBooking,useGroupBookings} from '../api/groupReservations';
 import {deriveGroupStatus,groupStatusLabel} from '../api/groupReservations';
-import type {GroupBooking,GroupBookingInput,GroupStatusFilter} from '../api/groupReservations';
+import type {GroupBooking,GroupBookingInput,GroupStatusFilter,GroupAssignmentFilter} from '../api/groupReservations';
 import {hotelToday,addDays} from '../features/reservations/calendarDate';
 import {readSession} from '../api/session';
 import {useGroupAllotments,createGroupAllotment,releaseGroupAllotment} from '../api/groupAllotments';
@@ -623,9 +623,10 @@ export function GroupReservations(){
  const client=useQueryClient();
  const [page,setPage]=useState(1);
  const [groupFilter,setGroupFilter]=useState<GroupStatusFilter>('all');
+ const [assignmentFilter,setAssignmentFilter]=useState<GroupAssignmentFilter>('all');
  const [appliedSearch,setAppliedSearch]=useState('');
  const [formStep,setFormStep]=useState<1|2|3>(1);
- const groups=useGroupBookings(page,appliedSearch,groupFilter);
+ const groups=useGroupBookings(page,appliedSearch,groupFilter,assignmentFilter);
  const types=useLiveRoomTypes();
  const rates=useLiveRatePlans();
  const [view,setView]=useState<'groups'|'holds'|'new'>('groups');
@@ -651,7 +652,7 @@ export function GroupReservations(){
   setRooms(old=>old.map((row,index)=>index===i
    ?{...row,[key]:value,...(key==='roomTypeId'?{ratePlanId:''}:{})}:row));
  };
- useEffect(()=>{setView('groups');setSearchText('');setAppliedSearch('');setGroupFilter('all');setFormStep(1);setSelectedAllotment(null);setPage(1);setPending(null);setResult(null);setError(null);setGuestDialogRoom(null);setCreatedGuests({});},[hotelId]);
+ useEffect(()=>{setView('groups');setSearchText('');setAppliedSearch('');setGroupFilter('all');setAssignmentFilter('all');setFormStep(1);setSelectedAllotment(null);setPage(1);setPending(null);setResult(null);setError(null);setGuestDialogRoom(null);setCreatedGuests({});},[hotelId]);
  const visibleGroups=groups.data?.data??[];
  const groupSummary=groups.data?.meta.summary;
  const stepOneValid=name.trim().length>=2&&validLiveStay({
@@ -881,7 +882,7 @@ export function GroupReservations(){
      <label className="gb-table-search"><Search size={16}/><input value={searchText}
       onChange={e=>setSearchText(e.target.value)}
       aria-label="Search all group reservations"
-      placeholder="Search group name, contact or reference"/>
+      placeholder="Group, guest, booking reference, room or contact"/>
       {searchText&&<button type="button" aria-label="Clear group search" onClick={()=>setSearchText('')}><X size={15}/></button>}
      </label>
      <label className="gb-status-filter"><Filter size={15}/>
@@ -895,17 +896,29 @@ export function GroupReservations(){
        <option value="checked_out">Checked out</option>
        <option value="cancelled">Cancelled</option>
       </select></label>
+     <label className="gb-status-filter"><BedDouble size={15} aria-hidden="true"/>
+      <select aria-label="Filter group room assignments" value={assignmentFilter}
+       onChange={e=>{setAssignmentFilter(e.target.value as GroupAssignmentFilter);setPage(1);}}>
+       <option value="all">All room assignments</option>
+       <option value="assigned">All rooms assigned</option>
+       <option value="unassigned">Needs room assignment</option>
+      </select></label>
     </div>
+    {(appliedSearch||groupFilter!=='all'||assignmentFilter!=='all')&&<div className="gb-active-filters" aria-label="Active group filters">
+     {appliedSearch&&<button type="button" onClick={()=>{setSearchText('');setAppliedSearch('');setPage(1);}}>Search: {appliedSearch} <X size={13} aria-hidden="true"/></button>}
+     {groupFilter!=='all'&&<button type="button" onClick={()=>{setGroupFilter('all');setPage(1);}}>Status: {statusLabel(groupFilter)} <X size={13} aria-hidden="true"/></button>}
+     {assignmentFilter!=='all'&&<button type="button" onClick={()=>{setAssignmentFilter('all');setPage(1);}}>Rooms: {assignmentFilter==='assigned'?'All assigned':'Assignment needed'} <X size={13} aria-hidden="true"/></button>}
+    </div>}
     <p className="desk-muted" role="status">{groups.isFetching||appliedSearch!==searchText.trim()
      ?'Updating group list…'
      :groups.data?groups.data.meta.total+' matching group reservations':'No verified group totals available'}
 </p>
     <QueryFeedback loading={groups.isPending} error={groups.error} onRetry={()=>void groups.refetch()}/>
     {groups.data&&visibleGroups.length===0&&<div className="gb-empty">
-     <Layers3 size={25}/><strong>{appliedSearch||groupFilter!=='all'?'No matching group bookings':'No group bookings yet'}</strong>
-     <p>{appliedSearch||groupFilter!=='all'?'Change or clear filters to see other group reservations.':'Start a group booking to link multiple room reservations under one reference.'}</p>
-     {(appliedSearch||groupFilter!=='all')&&<button className="btn-inline" type="button" onClick={()=>{
-      setSearchText('');setAppliedSearch('');setGroupFilter('all');setPage(1);
+     <Layers3 size={25}/><strong>{appliedSearch||groupFilter!=='all'||assignmentFilter!=='all'?'No matching group bookings':'No group bookings yet'}</strong>
+     <p>{appliedSearch||groupFilter!=='all'||assignmentFilter!=='all'?'Change or clear filters to see other group reservations.':'Start a group booking to link multiple room reservations under one reference.'}</p>
+     {(appliedSearch||groupFilter!=='all'||assignmentFilter!=='all')&&<button className="btn-inline" type="button" onClick={()=>{
+      setSearchText('');setAppliedSearch('');setGroupFilter('all');setAssignmentFilter('all');setPage(1);
      }}>Clear filters</button>}
     </div>}
     {visibleGroups.length>0&&<div className="gb-table-scroll"><table className="gb-table">

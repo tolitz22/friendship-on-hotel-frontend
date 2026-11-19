@@ -8,7 +8,9 @@ const amount=z.number().int().refine(Number.isSafeInteger,'Amount exceeds safe i
 const currency=z.object({
  currency:z.string(),netRecordedChargesMinor:amount,
  pendingReviewPaymentsMinor:amount,recordedPaymentsMinor:amount,balanceAfterRecordedPaymentsMinor:amount,
- staffConfirmedPaymentsMinor:amount,verifiedAllocatedMinor:amount,
+ staffConfirmedPaymentsMinor:amount,independentlyVerifiedPaymentsMinor:amount,
+ requestedRefundsMinor:amount,approvedRefundsMinor:amount,verifiedRefundDisbursementEvidenceMinor:amount,
+ verifiedAllocatedMinor:amount,
  verifiedGroupPayerAllocatedMinor:amount,unallocatedNetChargesMinor:amount,
  pricedFolioCount:z.number().int().nonnegative(),
 });
@@ -20,7 +22,9 @@ const room=z.discriminatedUnion('priced',[
   pendingReviewPaymentCount:z.number().int().nonnegative(),
   staffConfirmedPaymentCount:z.number().int().nonnegative(),
   independentlyVerifiedPaymentCount:z.number().int().nonnegative(),
-  staffConfirmedPaymentsMinor:amount,verifiedAllocatedMinor:amount,
+  staffConfirmedPaymentsMinor:amount,independentlyVerifiedPaymentsMinor:amount,
+ requestedRefundsMinor:amount,approvedRefundsMinor:amount,verifiedRefundDisbursementEvidenceMinor:amount,
+ verifiedAllocatedMinor:amount,
   verifiedGroupPayerAllocatedMinor:amount,unallocatedNetChargesMinor:amount,
   signed:z.boolean(),eligiblePayments:z.array(z.object({
    paymentId:id,reference:z.string(),remainingMinor:amount,

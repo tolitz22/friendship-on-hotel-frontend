@@ -70,6 +70,12 @@ const statement=z.object({
  simplifiedCashierModeEnabled:z.boolean().optional().default(false),
  routineCashCheckoutEligible:z.boolean().optional().default(false),
  routineCashCheckoutReason:z.string().nullable().optional(),
+ routineCashCheckoutAudit:z.object({
+  performedBy:id,performedByName:z.string().nullable(),
+  checkedOutAt:z.string(),recordedChargesMinor:z.number().int(),
+  netCashMinor:z.number().int(),receiptCount:z.number().int(),
+  integrityValid:z.boolean(),isIndependentFinancialSettlement:z.literal(false),
+ }).nullable().optional().default(null),
 });
 type Statement=z.infer<typeof statement>;
 type Payment=z.infer<typeof payment>;
@@ -450,6 +456,28 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
      </div>}
     </details>}
    </section>
+   {data.routineCashCheckoutAudit&&!data.routineCashCheckoutAudit.integrityValid&&
+    <p className="stay-feedback-error" role="alert"><AlertTriangle size={16}/>
+     Operational cash checkout evidence failed its integrity check.
+     Do not treat this historical record as independently reconciled; escalate to the owner.
+    </p>}
+   {data.routineCashCheckoutAudit&&<details className="billing-figures-details">
+    <summary>Cash checkout audit · who processed the guest and when</summary>
+    <div className="billing-account-totals">
+     <div><span>Checked out by</span>
+      <strong>{data.routineCashCheckoutAudit.performedByName??'Employee name unavailable'}</strong></div>
+     <div><span>Time of checkout</span>
+      <strong>{readableDateTime(data.routineCashCheckoutAudit.checkedOutAt)}</strong></div>
+     <div><span>Net cash recorded</span>
+      <strong>{money(data.routineCashCheckoutAudit.netCashMinor,data.currency)}</strong></div>
+     <div><span>Receipts included</span>
+      <strong>{data.routineCashCheckoutAudit.receiptCount}</strong></div>
+     <div><span>Checkout evidence integrity</span>
+      <strong>{data.routineCashCheckoutAudit.integrityValid?'Intact':'Investigation required'}</strong></div>
+    </div>
+    <p className="desk-muted">This records the operational guest checkout.
+     It is not a bank verification, final cashier reconciliation, or tax invoice.</p>
+   </details>}
    <details className="billing-figures-details">
     <summary>How are these payment amounts calculated?</summary>
     <div className="billing-account-totals">

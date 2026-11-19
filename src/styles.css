@@ -3233,3 +3233,9 @@
 }
 @media(max-width:360px){.rack-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.rack-grid .rack-tile{padding:8px}.rack-tile-quick-icons{gap:3px}.rack-tile-quick-icons>span{min-width:19px;min-height:19px}.rack-grid .rack-tile-next{font-size:8px}}
 @media(prefers-reduced-motion:reduce){.rack-grid .rack-tile:hover{transform:none}}
+
+/* Snapshot metrics are actionable filters, not decorative statistics. */
+.rack-metric-button{width:100%;font-family:inherit;text-align:left;color:var(--text);cursor:pointer}
+.rack-metric-button:hover{border-color:var(--accent)}
+.rack-metric-button[aria-pressed=true]{box-shadow:inset 0 0 0 1px var(--accent)}
+.rack-metric-button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}

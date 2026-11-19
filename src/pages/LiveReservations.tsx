@@ -14,7 +14,7 @@ import type {LiveStay} from '../api/liveReservations';
 import {readSession} from '../api/session';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
-import {dateLabel,readableDate} from '../lib/format';
+import {dateLabel} from '../lib/format';
 import {addDays,hotelToday} from '../features/reservations/calendarDate';
 
 const initialStay=()=>{

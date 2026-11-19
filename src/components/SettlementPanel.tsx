@@ -10,6 +10,7 @@ import {useHotelAuth} from './AuthProvider';
 import {QueryFeedback} from './QueryFeedback';
 import {RecordGuestPayment} from './RecordGuestPayment';
 import {GuestIncidentalChargeForm} from './GuestIncidentalChargeForm';
+import {BillingActions} from './BillingActions';
 import {parseBillingAmount} from '../api/billing';
 import {readableDate,readableDateTime} from '../lib/format';
 import './settlement-print.css';
@@ -94,7 +95,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const manager=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const [selected,setSelected]=useState('');
  const [reviewStage,setReviewStage]=useState<'confirmation'|'allocation'>('confirmation');
- const [activeDialog,setActiveDialog]=useState<'payment'|'charges'|'review'|'refunds'|'signoff'|null>(null);
+ const [activeDialog,setActiveDialog]=useState<'payment'|'charges'|'correction'|'review'|'refunds'|'signoff'|null>(null);
  const dialogCloser=useRef<HTMLButtonElement>(null);
  const dialogOpener=useRef<HTMLElement|null>(null);
  const busyRef=useRef(false);
@@ -291,7 +292,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   :nextTask==='disabled'
    ?'Payment evidence is on file, but the hotel has not enabled financial sign-off. Ask the manager to verify the approved configuration.'
   :'Check the remaining conditions before settlement. Recorded cash is not an instruction to collect again.';
- function openDialog(which:'payment'|'charges'|'review'|'refunds'|'signoff'){
+ function openDialog(which:'payment'|'charges'|'correction'|'review'|'refunds'|'signoff'){
   dialogOpener.current=document.activeElement instanceof HTMLElement?document.activeElement:null;
   setActiveDialog(which);
  }
@@ -525,12 +526,12 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
     <p className="desk-muted">Payment evidence, staff confirmation, independent verification and allocation
      are separate stages. An unallocated amount does not mean the guest needs to pay twice.</p>
    </details>
-   {(activeDialog==='payment'||activeDialog==='charges')&&<div className="billing-modal-backdrop">
+   {(activeDialog==='payment'||activeDialog==='charges'||activeDialog==='correction')&&<div className="billing-modal-backdrop">
     <section id="settlement-current-dialog" className="billing-action-modal" role="dialog" aria-modal="true"
      aria-label={activeDialog==='payment'?'Record guest payment':'Update guest bill'}>
      <div className="billing-action-modal-header">
       <div><span className="rr-eyebrow">BOOKING {data.reservationReference}</span>
-       <h3>{activeDialog==='payment'?'Record guest payment':'Add an extra charge'}</h3>
+       <h3>{activeDialog==='payment'?'Record guest payment':activeDialog==='correction'?'Manager: correct guest bill':'Add an extra charge'}</h3>
        <p>Current recorded difference: {money(data.remainingMinor,data.currency)} · Not a final amount due</p>
       </div>
       <button type="button" ref={dialogCloser} className="billing-modal-dismiss" aria-label="Close dialog"
@@ -540,7 +541,9 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       ?<RecordGuestPayment key={hotelId+'-payment-'+bookingId} bookingId={bookingId}
         currency={data.currency} signed={data.signed} recordedDifferenceMinor={data.remainingMinor}
         onDone={()=>{closeDialog();void query.refetch();}}/>
-      :<GuestIncidentalChargeForm bookingId={bookingId} currency={data.currency}
+      :activeDialog==='correction'
+       ?<BillingActions bookingId={bookingId} signed={data.signed}/>
+       :<GuestIncidentalChargeForm bookingId={bookingId} currency={data.currency}
         currentChargesMinor={data.netRecordedChargesMinor} recordedPaymentMinor={recordedTotal}
         onSaved={()=>{closeDialog();void query.refetch();}}/>}
     </section>
@@ -940,7 +943,8 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
     <div className="billing-secondary-actions">
      <button type="button" className="btn-inline" onClick={()=>{setReviewStage('confirmation');openDialog('review');}}>
       <ShieldCheck size={15}/> Review payments & allocation</button>
-     <button type="button" className="btn-inline" onClick={()=>openDialog('refunds')}>Refund requests</button>
+     <button type="button" className="btn-inline" onClick={()=>openDialog('correction')}>Manager bill corrections</button>
+      <button type="button" className="btn-inline" onClick={()=>openDialog('refunds')}>Refund requests</button>
      <button type="button" className="btn-inline" onClick={()=>openDialog('signoff')}>
       <ClipboardCheck size={15}/> Final authorization</button>
     </div>

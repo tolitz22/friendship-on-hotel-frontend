@@ -53,7 +53,8 @@ export function RecordGuestPayment({bookingId,currency,signed,recordedDifference
  const overDifference=amountMinor!==null&&recordedDifferenceMinor>0&&amountMinor>recordedDifferenceMinor;
  const canSubmit=!!hotelId&&!!allowed&&!signed&&!busy&&amountMinor!==null&&confirmed
   &&safety.isSuccess&&(!potentialDuplicate||allowSecond)&&(
-  method==='cash'?shift.isSuccess&&!shift.isFetching&&!!shift.data&&shift.data.status==='open'&&changeMinor!==null:
+  method==='cash'?shift.isSuccess&&!shift.isFetching&&!!shift.data&&shift.data.status==='open'
+   &&shift.data.cashTenderTrackingSupported&&changeMinor!==null:
   manager&&bankReference.trim().length>=3
  );
  const resetAttempt=()=>{
@@ -158,6 +159,11 @@ export function RecordGuestPayment({bookingId,currency,signed,recordedDifference
       View cashier shifts <ArrowRight size={14}/></Link>
     </div>}
   </div>}
+  {method==='cash'&&shift.data&&!shift.data.cashTenderTrackingSupported&&
+   <p role="alert" className="billing-payment-caution"><AlertTriangle size={16}/>
+    Cash payment entry is paused while the hotel backend deploys tender-and-change tracking.
+    Refresh after the backend migration has completed; do not submit the receipt again until it confirms support.
+   </p>}
   {(method!=='cash'||!!shift.data)&&<div className="billing-payment-fields">
    {method==='bank'&&<label>Bank transfer reference
     <input className="wizard-input" disabled={busy} value={bankReference}

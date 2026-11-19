@@ -45,8 +45,8 @@ const stateIcon=(tone:ReturnType<typeof roomTone>)=>({
  attention:ClipboardCheck,blocked:ShieldAlert,unknown:Info,
 })[tone];
 
-function RackDrawer({room,hotelId,onClose,restoreFocus}:{
- room:RackRoom;hotelId:string;onClose:()=>void;restoreFocus:()=>void;
+function RackDrawer({room,hotelId,canInspect,onClose,restoreFocus}:{
+ room:RackRoom;hotelId:string;canInspect:boolean;onClose:()=>void;restoreFocus:()=>void;
 }){
  const dialog=useRef<HTMLElement|null>(null);
  useEffect(()=>{
@@ -100,7 +100,7 @@ function RackDrawer({room,hotelId,onClose,restoreFocus}:{
      </div>}
     </section>
     <section className="rack-drawer-section"><h3>What needs doing?</h3>
-     <strong>{roomNextAction(room)}</strong>
+     <strong>{roomNextAction(room,canInspect)}</strong>
      <p className="desk-muted">Housekeeping, inspections, maintenance and inventory restrictions are independent records.</p>
      <div className="rack-drawer-links">
       {room.openHousekeepingTaskId&&<Link to="/housekeeping" search={{task:room.openHousekeepingTaskId}}>
@@ -245,9 +245,9 @@ export function RoomRackDashboard({hotelId}:{hotelId:string}){
    </div>
    {visible.length>0?
     listView?<div className="rack-list" role="list">{visible.map(room=><RoomTile key={room.roomId} room={room}
-     arrivals={arrivals} today={data!.hotelDate} list onSelect={select}/>)}</div>:
+     arrivals={arrivals} today={data!.hotelDate} list canInspect={data!.allowedActions.completeInspection} onSelect={select}/>)}</div>:
     <div className="rack-grid">{visible.map(room=><RoomTile key={room.roomId} room={room}
-     arrivals={arrivals} today={data!.hotelDate} onSelect={select}/>)}</div>:
+     arrivals={arrivals} today={data!.hotelDate} canInspect={data!.allowedActions.completeInspection} onSelect={select}/>)}</div>:
     <div className="rack-empty" role="status"><Info size={22}/><strong>No matching rooms on this page</strong>
      <p>Adjust filters, or navigate to another room page.</p>
      <button type="button" className="btn-inline" onClick={clear}>Clear filters</button></div>}
@@ -264,12 +264,13 @@ export function RoomRackDashboard({hotelId}:{hotelId:string}){
    </details>
   </>}
   {selected&&<RackDrawer key={hotelId+'-'+selected.roomId} room={selected} hotelId={hotelId}
+   canInspect={data?.allowedActions.completeInspection??false}
    onClose={close} restoreFocus={restore}/>}
  </section>;
 }
 
-export function RoomTile({room,arrivals,today,list=false,onSelect}:{
- room:RackRoom;arrivals:RoomRackDataArrivals;today:string;list?:boolean;
+export function RoomTile({room,arrivals,today,list=false,canInspect=true,onSelect}:{
+ room:RackRoom;arrivals:RoomRackDataArrivals;today:string;list?:boolean;canInspect?:boolean;
  onSelect:(room:RackRoom,button:HTMLButtonElement)=>void;
 }){
  const tone=roomTone(room);
@@ -279,7 +280,7 @@ export function RoomTile({room,arrivals,today,list=false,onSelect}:{
  const arrival=arrivals.some(a=>a.assignedRoomId===room.roomId&&a.checkIn===today);
  const departure=room.currentStay?.checkOut===today;
  const tooltip='Room '+room.roomNumber+' · '+stateLabel(tone)+' · '+(problem??'No current readiness blocker')+
-  ' · Next: '+roomNextAction(room);
+  ' · Next: '+roomNextAction(room,canInspect);
  return <button type="button" title={tooltip} aria-label={tooltip}
   className={'rack-tile rack-tone-'+tone+(list?' rack-tile-list':'')}
   onClick={e=>onSelect(room,e.currentTarget)}>
@@ -296,7 +297,7 @@ export function RoomTile({room,arrivals,today,list=false,onSelect}:{
   {(arrival||departure)&&<span className="rack-tile-event">
    {arrival?'Arrival today':''}{arrival&&departure?' · ':''}{departure?'Departure today':''}</span>}
   {problem&&<span className="rack-tile-problem"><AlertTriangle size={13} aria-hidden="true"/>{problem}</span>}
-  <span className="rack-tile-next">Next: {roomNextAction(room)} <ArrowRight size={13} aria-hidden="true"/></span>
+  <span className="rack-tile-next">Next: {roomNextAction(room,canInspect)} <ArrowRight size={13} aria-hidden="true"/></span>
  </button>;
 }
 type RoomRackDataArrivals=NonNullable<ReturnType<typeof useRoomRack>['data']>['data']['arrivals'];

@@ -128,7 +128,7 @@ export function AppShell(){
    <header className="topbar">
     <div className="topbar-left">
      <button className="icon-btn mobile-menu" type="button" onClick={()=>setOpen(true)} aria-label="Open navigation"><Menu size={20}/></button>
-     <div><span className="eyebrow">FRIENDSHIP ON HOTEL</span><h1>{current}</h1></div>
+     <div className="topbar-heading"><span className="eyebrow">FRIENDSHIP ON HOTEL</span><h1>{current}</h1></div>
     </div>
     <div className="topbar-actions">
      {dataMode==='api'&&user&&<label className="hotel-context-select">Property
@@ -137,12 +137,12 @@ export function AppShell(){
       </select>
      </label>}
      <span className="demo-pill" role="status">{experienceForPath(pathname,dataMode)}</span>
-     <button className="icon-btn" type="button" aria-label={theme==='light'?'Switch to dark mode':'Switch to light mode'} onClick={toggle}>
+     <button className="icon-btn topbar-action-theme" type="button" aria-label={theme==='light'?'Switch to dark mode':'Switch to light mode'} onClick={toggle}>
       {theme==='light'?<Moon size={19}/>:<Sun size={19}/>}
      </button>
-     <button className="icon-btn" disabled title="Notifications not connected" aria-label="Notifications unavailable"><Bell size={19}/></button>
+     <button className="icon-btn topbar-action-notifications" disabled title="Notifications not connected" aria-label="Notifications unavailable"><Bell size={19}/></button>
      {dataMode==='api'
-      ?<button className="icon-btn" type="button" aria-label="Sign out" title="Sign out" disabled={pending} onClick={()=>void signOut()}><LogOut size={18}/></button>
+      ?<button className="icon-btn topbar-action-signout" type="button" aria-label="Sign out" title="Sign out" disabled={pending} onClick={()=>void signOut()}><LogOut size={18}/></button>
       :<div className="topbar-avatar" aria-label="Demo user">FO</div>}
     </div>
    </header>

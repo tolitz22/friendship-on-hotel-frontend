@@ -39,6 +39,11 @@ describe('hotel room rack status mapping',()=>{
  it('never labels PMS vacancy as reservation availability',()=>{
   expect(roomNextAction(room('1',{advisoryReady:true}))).toBe('View room');
   expect(roomNextAction(room('1'),false)).toBe('View inspection');
+  expect(roomNextAction(room('10',{occupancy:'occupied',currentStay:{
+   bookingId:'10',reference:'BK-10',guestName:'Sample Guest',
+   checkIn:'2026-11-19',checkOut:'2026-11-21',
+  }}))).toBe('Open reservation');
+  expect(roomNextAction(room('11',{inspectionStatus:'submitted'}))).toBe('Repeat inspection');
   expect(roomProblem(room('2',{blockers:{...flags,activeInventoryBlockToday:true}})))
    .toBe('Inventory block active');
  });

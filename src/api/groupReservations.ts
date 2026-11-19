@@ -23,10 +23,38 @@ const group=z.object({
  rooms:z.array(groupRoom),billingMode:z.literal('individual_folios'),
  groupBillingTransfersEnabled:z.literal(false),idempotentReplay:z.boolean(),
 });
+export const groupStatuses=['all','confirmed','partially_checked_in','fully_checked_in',
+ 'partially_checked_out','checked_out','cancelled'] as const;
+export type GroupStatusFilter=typeof groupStatuses[number];
+export type DerivedGroupStatus=Exclude<GroupStatusFilter,'all'>;
+export function deriveGroupStatus(states:(string|null)[]):DerivedGroupStatus {
+ const total=states.length;
+ const cancelled=states.filter(s=>s==='cancelled').length;
+ const active=total-cancelled;
+ const departed=states.filter(s=>s==='checked_out').length;
+ const inHouse=states.filter(s=>s==='checked_in').length;
+ if(total>0&&cancelled===total)return 'cancelled';
+ if(active>0&&departed===active)return 'checked_out';
+ if(departed>0)return 'partially_checked_out';
+ if(active>0&&inHouse===active)return 'fully_checked_in';
+ if(inHouse>0)return 'partially_checked_in';
+ return 'confirmed';
+}
+export const groupStatusLabel=(status:DerivedGroupStatus)=>({
+ confirmed:'Confirmed',partially_checked_in:'Partially checked in',
+ fully_checked_in:'Fully checked in',partially_checked_out:'Partially checked out',
+ checked_out:'Checked out',cancelled:'Cancelled',
+}[status]);
+
 const list=z.object({
  data:z.array(z.object({id,reference:z.string(),name:z.string(),
   contactName:z.string().nullable(),roomCount:z.number().int().nonnegative(),
-  createdAt:z.string(),checkIn:z.iso.date().nullable(),checkOut:z.iso.date().nullable()})),
+  createdAt:z.string(),checkIn:z.iso.date().nullable(),checkOut:z.iso.date().nullable(),
+  status:z.enum(groupStatuses.filter(v=>v!=='all') as [DerivedGroupStatus,...DerivedGroupStatus[]]),
+  statusCounts:z.object({confirmed:z.number().int().nonnegative(),
+   checkedIn:z.number().int().nonnegative(),checkedOut:z.number().int().nonnegative(),
+   cancelled:z.number().int().nonnegative()}),
+  })),
  meta:z.object({page:z.number().int().positive(),total:z.number().int().nonnegative(),
   totalPages:z.number().int().nonnegative(),perPage:z.number().int().positive()}),
 });
@@ -36,11 +64,13 @@ export type GroupBookingInput={
  idempotencyKey:string;name:string;contactName?:string;allotmentId?:number;
  checkIn:string;checkOut:string;rooms:GroupRoomInput[];
 };
-export function useGroupBookings(page=1){
+export function useGroupBookings(page=1,search='',status:GroupStatusFilter='all'){
  const {hotelId}=readSession();
  return useQuery({
-  queryKey:['live','group-reservations',hotelId,page],enabled:!!hotelId,
-  queryFn:async()=>list.parse(await getJson<unknown>(hotelPath('/group-reservations'),{page})),
+  queryKey:['live','group-reservations',hotelId,page,search,status],enabled:!!hotelId,
+  queryFn:async()=>list.parse(await getJson<unknown>(hotelPath('/group-reservations'),{
+   page,...(search?{search}:{}),...(status!=='all'?{status}:{})
+  })),
   retry:false,
  });
 }

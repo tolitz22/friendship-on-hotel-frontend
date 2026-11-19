@@ -228,12 +228,12 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   :nextTask==='disabled'?'Payment recorded — approval unavailable'
   :nextTask==='signoff'?'Payment verified — final approval needed'
   :nextTask==='allocation'?'Payment verified — apply to bill'
-  :nextTask==='verification'&&cashNeedsReconciliation?'Payment recorded — cash check pending'
+  :nextTask==='verification'&&cashNeedsReconciliation?'Cash payment recorded — shift review pending'
   :nextTask==='verification'?'Payment confirmed — approval pending'
   :nextTask==='confirmation'?'Payment recorded — confirmation pending'
   :'Payment recorded — review pending';
- const operationalAction=canSubmitOwnCount?'Submit your cash count'
-  :canReviewShift?'Reconcile cashier shift'
+ const operationalAction=canSubmitOwnCount?'Cash counting is an end-of-shift task'
+  :canReviewShift?'Cash drawer review is separate'
   :mustWaitForCashier?'Waiting for cashier cash count'
   :mustWaitForOtherManager?'Waiting for independent manager'
   :needsCashInvestigation?'Cash receipt requires investigation'
@@ -256,12 +256,12 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   :routineCashException
   ?'Routine cash checkout is not eligible: '+(data?.routineCashCheckoutReason??'manager review is required')+'. Do not collect the guest payment again.'
   :canSubmitOwnCount
-  ?'The payment was already recorded and confirmed. Count the cash in your drawer and submit '+shiftLabel+'. No additional guest payment is needed.'
+  ?'The guest payment is recorded and confirmed. Do not collect it again. Count and submit '+shiftLabel+' in Cashier Shifts only when ending your shift. Strict financial settlement may still require independent reconciliation.'
   :mustWaitForCashier
    ?'The payment was already confirmed. '+(handoff?.cashierName??'The assigned cashier')+
-    ' must count and submit '+shiftLabel+' before a separate manager can reconcile it.'
+    ' submits '+shiftLabel+' at the end of the shift. A separate manager reconciles it afterward. No second guest payment is required.'
   :canReviewShift
-   ?'The cashier submitted '+shiftLabel+'. Review the physical cash count and receipts before reconciling. You cannot reconcile your own shift.'
+   ?'The guest payment is recorded. The cashier submitted '+shiftLabel+'; independent drawer review belongs in Cashier Shifts, not this guest bill.'
   :mustWaitForOtherManager
    ?'The cash count for '+shiftLabel+' was submitted. '+(ownCashierShift?'You cannot reconcile your own shift. ':'')+
     'A different authorized manager must reconcile it.'
@@ -408,9 +408,11 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
          <ShieldCheck size={16}/><strong>Owner/manager review required</strong>
          <span>Payment is already on file. See the eligibility reason above.</span>
         </div>
-       :canSubmitOwnCount||canReviewShift||needsCashInvestigation
-       ?<Link to="/cashier-shifts" search={{booking:bookingId,hotel:hotelId??undefined,shift:handoff?.cashShiftId??undefined}}
-         className="btn-primary">{operationalAction}<ArrowRight size={16}/></Link>
+       :nextCashPayment&&cashNeedsReconciliation
+       ?<div className="frontdesk-payment-waiting">
+         <ShieldCheck size={16}/><strong>Payment already recorded</strong>
+         <span>Cash counting and drawer reconciliation happen separately in Cashier Shifts, at the end of the cashier's shift. Do not collect the guest payment again.</span>
+        </div>
        :actionIsWaiting||nextTask==='disabled'&&hasExistingMoney
        ?<div className="frontdesk-payment-waiting">
          <ShieldCheck size={16}/><strong>{operationalAction}</strong>

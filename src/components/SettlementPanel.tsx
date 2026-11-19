@@ -208,8 +208,8 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   &&data?.status==='checked_in';
  const routineCashException=simplifiedCash&&hasExistingMoney&&!routineCashReady
   &&!data?.signed&&data?.status==='checked_in';
- const routineCashCheckedOut=simplifiedCash&&hasExistingMoney&&!data?.signed
-  &&data?.status==='checked_out';
+ const routineCashCheckedOut=simplifiedCash&&!!data?.routineCashCheckoutAudit
+  &&hasExistingMoney&&!data?.signed&&data?.status==='checked_out';
  const recordedCashShiftStatuses=(data?.cashShiftContexts??[]).filter(row=>
   recordedActive.some(p=>p.id===row.paymentId&&p.method==='cash'))
   .map(row=>row.cashShiftStatus);

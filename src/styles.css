@@ -3049,3 +3049,13 @@
  .topbar .mobile-menu,.topbar .topbar-action-theme,.topbar .topbar-action-signout{width:40px;height:44px;min-width:40px}
  .topbar .hotel-context-select select{font-size:12px;padding-left:8px}
 }
+
+/* Readiness simplified: one compact count selector instead of stacked report summaries. */
+.rh-simple-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}
+.rh-simple-summary button{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;min-height:65px;padding:12px 14px;border:1px solid var(--border);border-radius:11px;background:var(--surface);color:var(--text);cursor:pointer;text-align:left;font:inherit}
+.rh-simple-summary button.active{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.rh-simple-summary button strong{font-size:24px;font-weight:800;line-height:1}
+.rh-simple-summary button span{font-size:12px;font-weight:700;overflow-wrap:anywhere}
+.rh-simple-summary button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+@media(max-width:650px){.rh-simple-summary{gap:7px}.rh-simple-summary button{padding:10px;min-height:72px;display:grid;align-content:center;justify-items:start;gap:5px}.rh-simple-summary button strong{font-size:22px}.rh-simple-summary button span{font-size:11px}}
+@media(max-width:360px){.rh-simple-summary button{padding:8px}.rh-simple-summary button span{font-size:10px}}

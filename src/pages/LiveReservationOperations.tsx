@@ -17,6 +17,7 @@ import {useBookingTurnover} from '../api/liveBookingTurnover';
 import {useHotelAuth} from '../components/AuthProvider';
 import {ReservationApprovalRequests} from '../components/ReservationApprovalRequests';
 import {EarlyCheckInRequest} from '../components/EarlyCheckInRequest';
+import {EarlyCheckOutRequest} from '../components/EarlyCheckOutRequest';
 import {ReservationSpecialRequests} from '../components/ReservationSpecialRequests';
 import {Status} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
@@ -162,7 +163,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
   :isConfirmed&&!allowedOperation(record,'check-in',hotelDate)
    ?'Check-in is not available for this stay date.'
   :isInHouse&&!allowedOperation(record,'check-out',hotelDate)
-   ?'Checkout is not due yet. A manager must review any earlier departure.'
+   ?'Scheduled checkout has not arrived. Use Request early checkout below for an authorized exception.'
   :!acknowledged?'Complete the verification checkbox to continue.'
   :null;
 
@@ -236,7 +237,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
        <li>The reservation will be marked checked out after server validation.</li>
        <li>A checkout-clean housekeeping task will be created for the room.</li>
        <li>This action does not verify, allocate, refund or financially settle a payment.</li>
-       <li>Future room readiness remains subject to inspection and review.</li>
+       <li>Room readiness still requires a current inspection and separate cleaning records.</li>
       </ul>
      </div>}
      <label className="stay-confirm-check">
@@ -257,6 +258,8 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
      </div>
      {isConfirmed&&record.checkIn>hotelDate&&
       <EarlyCheckInRequest key={record.id+'-'+hotelId} record={record} today={hotelDate}/>}
+     {isInHouse&&record.checkOut>hotelDate&&
+      <EarlyCheckOutRequest key={'checkout-'+record.id+'-'+hotelId} record={record} today={hotelDate}/>}
      {lastOperation!==null&&lastOperation!=='assign'&&error&&
       <p role="alert" className="stay-feedback-error"><AlertTriangle size={16}/>{error}</p>}
      {lastOperation!==null&&lastOperation!=='assign'&&success&&<>

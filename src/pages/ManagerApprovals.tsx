@@ -40,6 +40,11 @@ function ApprovalCard({item,hotelId}:{item:Approval;hotelId:string}){
     client.invalidateQueries({queryKey:['live','reservation-detail',hotelId]}),
     client.invalidateQueries({queryKey:['live','front-desk','manifest',hotelId]}),
     client.invalidateQueries({queryKey:['live','reservation-history',hotelId]}),
+    client.invalidateQueries({queryKey:['live','room-rack',hotelId]}),
+    client.invalidateQueries({queryKey:['live','readiness-dashboard',hotelId]}),
+    client.invalidateQueries({queryKey:['live','housekeeping',hotelId]}),
+    client.invalidateQueries({queryKey:['live','booking-turnover',hotelId]}),
+    client.invalidateQueries({queryKey:['live','room-calendar',hotelId]}),
    ]).catch(()=>{});
   }catch(cause){setError(cause instanceof Error?cause.message:'Review result unknown. Refresh before retrying.');}
   finally{setBusy(false);}

@@ -53,6 +53,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const readinessPolicy=useReadinessPolicy();
  const readiness=useLiveReadiness(record.assignedRoomId);
  const turnover=useBookingTurnover(record.id,record.lifecycleState==='checked_out');
+ const earlyCheckoutEvent=history.data?.data.find(event=>event.eventType==='early_check_out');
  const selectedRoom=roomChoices.data?.data.find(r=>r.id===roomId);
  const canAssign=canOperate&&record.lifecycleState==='confirmed'
   &&!!selectedRoom&&selectedRoom.status==='available'
@@ -374,6 +375,15 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
       <div><small>Check-in</small><strong>{dateLabel(record.checkIn)}</strong></div>
       <div><small>Check-out</small><strong>{dateLabel(record.checkOut)}</strong></div>
      </div>
+     {earlyCheckoutEvent&&<div className="stay-facts-item stay-early-record">
+      <small>EARLY CHECKOUT · AUDITED</small>
+      <strong>Actual departure recorded: {readableDateTime(earlyCheckoutEvent.createdAt)}</strong>
+      <span>Originally scheduled departure: {dateLabel(record.checkOut)}</span>
+      <span>Recorded by {auditActorName(earlyCheckoutEvent.actorId,
+       earlyCheckoutEvent.actorName??staff.data?.data.find(m=>m.userId===earlyCheckoutEvent.actorId)?.name,
+       user?.id,user?.name)}</span>
+      <span>See the manager approval inbox for the reason and financial follow-up.</span>
+     </div>}
      {record.earlyCheckIn&&<div className="stay-facts-item stay-early-record">
       <small>EARLY CHECK-IN · AUDITED</small>
       <strong>Actual arrival: {readableDate(record.earlyCheckIn.actualCheckInDate)}</strong>

@@ -26,6 +26,14 @@ const money=(minor:number,currency:string)=>new Intl.NumberFormat('en-PH',{
  style:'currency',currency:currency==='PHP'?'PHP':'USD',
 }).format(minor/100);
 const start=()=>hotelToday();
+const groupEventLabel=(action:string)=>({
+ created:'Booking created',check_in:'Guest checked in',early_check_in:'Early check-in completed',
+ check_out:'Guest checked out',cancel:'Reservation cancelled',
+ assigned:'Room assigned',unassigned:'Room unassigned',
+ room_assigned:'Room assigned',room_reassigned:'Room reassigned',
+ no_show:'Marked no-show',
+} as Record<string,string>)[action]??statusLabel(action);
+
 
 function RoomGuestField({value,index,disabled,onChange,onAddGuest,canAddGuest,createdGuest}:{
  value:string;index:number;disabled:boolean;onChange:(id:string)=>void;
@@ -432,19 +440,26 @@ function GroupDetails({id,billingOpen=false,originHotel}:{id:string;billingOpen?
    </section>}
    {detailTab==='activity'&&<section className="gb-detail-panel" role="tabpanel">
     <div className="gb-table-head"><div><h3>Group activity and operational history</h3>
-     <p>Known booking milestones from current records; individual audit trails remain on each booking.</p></div></div>
+     <p>Real reservation audit events with employee names, actions and timestamps.</p></div></div>
     <div className="gb-activity-list">
      <div><CheckCircle2 size={16}/><div><strong>Group reservation created</strong>
-      <span>{readableDateTime(group.createdAt)} · {group.reference}</span></div></div>
-     {group.rooms.map(room=><div key={room.bookingId}>
-      {room.status==='checked_out'?<LogOut size={16}/>:room.status==='checked_in'?<LogIn size={16}/>:<CalendarDays size={16}/>}
-      <div><strong>{room.guestName??'Guest'} · {room.roomNumber?'Room '+room.roomNumber:'No assigned room'}</strong>
-       <span>{statusLabel(room.status??'Unknown')} · {readableDate(room.checkIn)} to {readableDate(room.checkOut)}</span>
-       <Link to="/reservations" search={{booking:room.bookingId,group:group.id,
-        hotel:hotelId??undefined}}>Open booking history <ArrowRight size={13}/></Link></div>
+      <span>{readableDateTime(group.createdAt)} · By {group.createdByName??'Employee name unavailable'}</span>
+      <span>{group.reference} · {group.roomCount} linked room bookings</span></div></div>
+     {group.activity.map(event=><div key={event.id}>
+      {event.action==='check_out'?<LogOut size={16}/>:event.action==='check_in'||event.action==='early_check_in'
+       ?<LogIn size={16}/>:<CalendarDays size={16}/>}
+      <div><strong>{groupEventLabel(event.action)} · {event.guestName??event.bookingReference}</strong>
+       <span>{readableDateTime(event.at)} · By {event.actorName??'Employee name unavailable'}</span>
+       {event.before!==null&&event.after!==null&&event.before!==event.after&&
+        <span>{statusLabel(event.before)} → {statusLabel(event.after)}</span>}
+       <Link to="/reservations" search={{booking:group.rooms.find(room=>room.reference===event.bookingReference)?.bookingId,
+        group:group.id,hotel:hotelId??undefined}}>View booking and audit details <ArrowRight size={13}/></Link>
+      </div>
      </div>)}
     </div>
-    <p className="desk-muted">These are current statuses, not timestamped audit changes. For who changed a room, payment or booking, open its detailed history. No employee or action is inferred.</p>
+    {group.activityHasMore&&<p className="gb-attention-note">Showing the latest 50 events. Open individual reservation history for older changes.</p>}
+    <p className="desk-muted">The activity above comes from saved booking events. Financial changes,
+     room inspections and cashier actions have their own independent audit histories.</p>
     <div className="gb-detail-operational-links">
      <Link to="/housekeeping" search={{}}>Housekeeping · {group.operations.checkoutCleaningCompleteCount} complete / {group.operations.checkoutCleaningPendingCount} pending</Link>
      <Link to="/rooms" search={{}}>Room inspections and readiness</Link>

@@ -382,6 +382,13 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       <strong>{money(recordedTotal,data.currency)}</strong>
       <span>{hasExistingMoney?'Already on file — do not collect again without checking':'No recorded payment yet'}</span></div>
     </div>
+   {!data.signed&&['confirmed','checked_in'].includes(data.status)&&
+    !!user?.hotels.some(h=>h.id===hotelId&&['admin','front_desk'].includes(h.role))&&
+    <div className="billing-guest-actions">
+     <button type="button" className="rr-secondary-action" disabled={busy}
+      onClick={()=>openDialog('charges')}><Banknote size={15}/> Add charge to guest bill</button>
+     <span className="desk-muted">Add an incidental during the stay; it does not collect money.</span>
+    </div>}
     <div className="frontdesk-payment-status" role="status">
      <div className="frontdesk-payment-status-title">
       <div><span className="rr-eyebrow">PAYMENT STATUS</span>
@@ -518,13 +525,6 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
     <p className="desk-muted">Payment evidence, staff confirmation, independent verification and allocation
      are separate stages. An unallocated amount does not mean the guest needs to pay twice.</p>
    </details>
-   {!data.signed&&['confirmed','checked_in'].includes(data.status)&&
-    !!user?.hotels.some(h=>h.id===hotelId&&['admin','front_desk'].includes(h.role))&&
-    <div className="billing-guest-actions">
-     <button type="button" className="rr-secondary-action" disabled={busy}
-      onClick={()=>openDialog('charges')}><Banknote size={15}/> Add charge to guest bill</button>
-     <span className="desk-muted">Add an incidental during the stay; it does not collect money.</span>
-    </div>}
    {(activeDialog==='payment'||activeDialog==='charges')&&<div className="billing-modal-backdrop">
     <section id="settlement-current-dialog" className="billing-action-modal" role="dialog" aria-modal="true"
      aria-label={activeDialog==='payment'?'Record guest payment':'Update guest bill'}>

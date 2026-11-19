@@ -3277,3 +3277,15 @@
  .rack-metric{min-height:66px}
  .rack-metric>strong{font-size:22px}
 }
+
+/* Clear financial hierarchy and an integrated readiness queue. */
+.gb-finance-key-figures{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:9px;margin:13px 0}
+.gb-finance-key-figures>div{min-width:0;display:grid;gap:5px;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+.gb-finance-key-figures span{font-size:12px;line-height:1.5;color:var(--muted)}
+.gb-finance-key-figures strong{font-size:16px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.gb-finance-breakdown{margin-top:12px}
+.rack-readiness-queue{margin-top:16px}
+.rack-readiness-queue>summary{display:flex;align-items:center;gap:9px;min-height:48px;cursor:pointer}
+.rack-readiness-queue>summary svg{color:var(--accent);flex:none}
+.rack-readiness-queue .readiness-hub{min-width:0;margin-top:12px}
+@media(max-width:375px){.gb-finance-key-figures{grid-template-columns:minmax(0,1fr)}}

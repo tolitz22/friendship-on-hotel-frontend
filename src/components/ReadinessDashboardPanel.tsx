@@ -23,7 +23,7 @@ export const readinessProblem=(flags:DashboardRoom['blockers']|null|undefined,st
  if(flags?.latestTurnoverIncomplete||flags?.unfinishedHousekeeping)return 'Housekeeping incomplete';
  if(flags?.newTurnoverSinceInspection)return 'New checkout turnover requires a fresh inspection';
  if(flags?.newRoomWorkSinceInspection)return 'Room work has made the previous inspection outdated';
- if(status==='awaiting_review')return 'Old inspection needs to be completed again';
+ if(status==='awaiting_review')return 'Inspection awaiting authorized review';
  if(status==='needs_inspection'||status==='blocked_or_stale')return 'Approved inspection missing or outdated';
  return 'No current inspection problem reported';
 };
@@ -55,7 +55,7 @@ function createRoomItem(room:DashboardRoom):QueueItem|null{
  const hasBlock=flags.activeInventoryBlockToday;
  const hasCleaning=flags.latestTurnoverIncomplete||flags.unfinishedHousekeeping;
  const kind=hasMaintenance?'maintenance':hasBlock?'inventory':hasCleaning?'housekeeping':'inspection';
- const priority=(hasMaintenance||hasBlock||hasCleaning)?5:6;
+ const priority=room.status==='awaiting_review'?4:(hasMaintenance||hasBlock||hasCleaning)?5:6;
  return {key:'room-'+room.roomId,priority,date:'9999-12-31',
   title:'Room '+room.roomNumber,subtitle:'Room readiness · '+room.status.replaceAll('_',' '),
   problem:readinessProblem(flags,room.status),
@@ -88,7 +88,7 @@ export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumb
  },[data]);
  const arrivalsToday=data?.arrivals.filter(a=>a.checkIn===data.asOfHotelDate&&a.risk!=='no_current_readiness_issue')??[];
  const arrivalCount=data?.arrivals.filter(a=>a.risk!=='no_current_readiness_issue').length??0;
- const roomCount=data?data.summary.needsInspection+data.summary.awaitingReview+data.summary.blockedOrStale:0;
+ const roomCount=data?data.rooms.filter(room=>room.status!=='approved_current').length:0;
  const filtered=queue.filter(item=>filter==='all'||
   filter==='arrivals'&&item.kind==='booking'||
   filter==='rooms'&&item.kind!=='booking');
@@ -116,12 +116,13 @@ export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumb
   {data&&meta&&<>
    <div className="rh-simple-summary" role="group" aria-label="Filter outstanding tasks">
     <button type="button" aria-pressed={filter==='all'} className={filter==='all'?'active':''}
-     onClick={()=>setFilter('all')}><strong>{arrivalCount+roomCount}</strong><span>All tasks</span></button>
+     onClick={()=>setFilter('all')}><strong>{arrivalCount+roomCount}</strong><span>Loaded tasks</span></button>
     <button type="button" aria-pressed={filter==='arrivals'} className={filter==='arrivals'?'active':''}
      onClick={()=>setFilter('arrivals')}><strong>{arrivalCount}</strong><span>Arrivals to prepare</span></button>
     <button type="button" aria-pressed={filter==='rooms'} className={filter==='rooms'?'active':''}
-     onClick={()=>setFilter('rooms')}><strong>{roomCount}</strong><span>Rooms to prepare</span></button>
+     onClick={()=>setFilter('rooms')}><strong>{roomCount}</strong><span>Rooms on this page</span></button>
    </div>
+   <p className="desk-muted">Hotel-wide exceptions: {data.summary.needsInspection} need inspection · {data.summary.awaitingReview} await review · {data.summary.blockedOrStale} blocked or outdated. Room action counts above reflect only the current room page; arrivals cover the selected arrival window.</p>
    <div className="rh-snapshot"><Clock3 size={15} aria-hidden="true"/>
     <span>{arrivalsToday.length>0?arrivalsToday.length+' arrival(s) needing attention today · ':''}
      {meta.arrivalTotal} confirmed arrivals over {days} days · Snapshot {readableDate(data.asOfHotelDate)}</span>
@@ -130,7 +131,7 @@ export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumb
     <div className="rh-section-head"><div className="rh-section-copy">
      <span className="rr-eyebrow">NEXT ACTIONS</span>
      <h3 id="rh-action-heading">What needs to be done?</h3>
-     <p>Arrivals today come first. A completed inspection does not bypass active room restrictions.</p>
+     <p>Arrivals today come first. A completed inspection does not bypass active room restrictions. Check-in inspection enforcement is {data.enforceAtCheckIn?'enabled':'disabled'}.</p>
     </div></div>
     <div className="rh-action-list" aria-live="polite">
      {shown.map(item=><article key={item.key} className={'rh-action-card'+(item.priority<=1?' urgent':'')}>
@@ -164,7 +165,7 @@ export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumb
       </div>
      </article>)}
      {shown.length===0&&<div className="rh-empty"><CheckCircle2 size={21} aria-hidden="true"/>
-      <strong>No matching actions on the loaded room page</strong>
+      <strong>No matching actions in this loaded snapshot</strong>
       <p>Arrivals cover the whole selected period; room exceptions are paginated. Choose another filter or room page.</p>
       <button type="button" className="btn-inline" onClick={()=>setFilter('all')}>Show all issues</button>
      </div>}

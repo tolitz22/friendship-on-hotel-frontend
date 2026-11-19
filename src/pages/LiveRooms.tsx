@@ -1,7 +1,7 @@
 import {useEffect,useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 import {Link,useSearch} from '@tanstack/react-router';
-import {BedDouble,Plus,Settings2} from 'lucide-react';
+import {BedDouble,Plus,Settings2,ClipboardCheck} from 'lucide-react';
 import type {LiveRoom} from '../api/liveCatalog';
 import {useLiveRoomTypes,useLiveRooms} from '../api/liveCatalogQueries';
 import {CatalogCreateDialog} from '../components/CatalogCreateDialog';
@@ -27,7 +27,7 @@ export function LiveRooms(){
  const [editingRoom,setEditingRoom]=useState<LiveRoom|null>(null);
  const [inspectionRoomNumber,setInspectionRoomNumber]=useState<string|null>(null);
  const inspectionRoomLookup=useLiveRooms({page:1,perPage:20,search:inspectionRoomNumber??undefined},
-  !!inspectionRoomNumber&&!canSeeStay);
+  !!inspectionRoomNumber);
  const roomTypes=useLiveRoomTypes();
  const queryClient=useQueryClient();
  useEffect(()=>{
@@ -50,11 +50,14 @@ export function LiveRooms(){
      <Plus size={16}/> Add room</button>}
    </div>
   </div>
-  {canSeeStay&&hotelId?
-   <RoomRackDashboard key={hotelId} hotelId={hotelId}
-    focusRoomNumber={linkedRoomNumber}
-    onEditRoom={admin?room=>setEditingRoom(room):undefined}/>:
-   <ReadinessDashboardPanel onInspectRoom={setInspectionRoomNumber}/>}
+  {canSeeStay&&hotelId&&<RoomRackDashboard key={hotelId} hotelId={hotelId}
+   focusRoomNumber={linkedRoomNumber}
+   onEditRoom={admin?room=>setEditingRoom(room):undefined}/>}
+  {canSeeStay?<details className="workflow-disclosure rack-readiness-queue" open={undefined}>
+   <summary><ClipboardCheck size={17} aria-hidden="true"/> Readiness & arrivals · prioritized staff actions</summary>
+   <p className="desk-muted">Room availability, housekeeping completion and inspection approval are separate checks. The queue shows a snapshot, not guaranteed eligibility to check in.</p>
+   <ReadinessDashboardPanel onInspectRoom={setInspectionRoomNumber}/>
+  </details>:<ReadinessDashboardPanel onInspectRoom={setInspectionRoomNumber}/>}
   {inspectionRoomNumber&&<div className="rack-drawer-overlay" role="presentation">
    <section className="rack-drawer" role="dialog" aria-modal="true"
     aria-label={'Room '+inspectionRoomNumber+' inspection'} tabIndex={-1}>

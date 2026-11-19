@@ -11,7 +11,8 @@ type Method='cash'|'bank';
 const makeReference=()=> 'CASH-'+crypto.randomUUID().replaceAll('-','').slice(0,18).toUpperCase();
 
 /** One guest payment form: cash is always linked to THIS cashier's shift.
- * A recorded receipt remains subject to independent review and reconciliation. */
+ * In simplified cashier mode, routine cash is staff-confirmed immediately.
+ * Independent CASH SHIFT reconciliation is still required. */
 export function RecordGuestPayment({bookingId,currency,signed,recordedDifferenceMinor,onDone}:{
  bookingId:string;currency:string;signed:boolean;recordedDifferenceMinor:number;
  onDone?:()=>void;
@@ -105,7 +106,9 @@ export function RecordGuestPayment({bookingId,currency,signed,recordedDifference
      formatBillingMoney(result.cashTenderedMinor??tenderedMinor!,currency)+
      '. Change to return: '+formatBillingMoney(result.changeGivenMinor??changeMinor,currency)+
      '. Net cash added to drawer: '+formatBillingMoney(result.netReceiptMinor??amountMinor,currency)+
-     '. Receipt remains subject to independent review.');
+     (result.status==='staff_confirmed'
+      ?'. Cash payment accepted. The drawer still needs an independent shift reconciliation.'
+      :'. Payment evidence awaits the required manager review.'));
    }else{
     await recordBankEvidence(bookingId,requestKey,bankReference.trim(),amountMinor,
      potentialDuplicate&&allowSecond?duplicateReason.trim():undefined);
@@ -244,7 +247,7 @@ export function RecordGuestPayment({bookingId,currency,signed,recordedDifference
    </button>
    <p className="billing-payment-explanation"><Info size={15}/>
     {method==='cash'
-     ?'The receipt saves cash tendered, change given, and net payment in your open shift. Only the net payment increases expected drawer cash. Give change immediately, then complete shift reconciliation later.'
+     ?'Your receipt saves the cash given, change returned and net collected amount. The guest payment is recorded immediately; cash counting and independent drawer reconciliation happen separately at shift close.'
      :'Recording a transfer reference does not confirm that the money reached the hotel’s bank account.'}</p>
   </div>}
   {notice&&<div className="billing-payment-complete" role="status">

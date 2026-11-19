@@ -4,6 +4,7 @@ import {describe,expect,it} from 'vitest';
 import type {RackRoom} from '../api/roomRack';
 import {RoomTile} from './RoomRackDashboard';
 import rackSource from './RoomRackDashboard.tsx?raw';
+import roomsPageSource from '../pages/LiveRooms.tsx?raw';
 
 const room: RackRoom={
  roomId:'42',roomNumber:'402',roomTypeId:'2',roomTypeName:'Standard',floor:4,maxOccupancy:2,
@@ -47,5 +48,25 @@ describe('Responsive and keyboard interaction contract',()=>{
   expect(rackSource).toContain('restoreFocus();');
   expect(rackSource).toContain('aria-label={tooltip}');
   expect(rackSource).toContain('allowedActions.completeInspection');
+ });
+});
+
+describe('Consolidated Rooms workspace',()=>{
+ it('uses one rack and contextual management instead of switching room tabs',()=>{
+  expect(roomsPageSource).toContain('<RoomRackDashboard');
+  expect(roomsPageSource).toContain('onEditRoom=');
+  expect(roomsPageSource).toContain('<CatalogCreateDialog');
+  expect(roomsPageSource).not.toContain('rr-page-tabs');
+  expect(roomsPageSource).not.toContain('changeView(');
+ });
+ it('keeps room tile details compact with accessible operations',()=>{
+  const html=renderToStaticMarkup(createElement(RoomTile,{
+   room,arrivals:[],today:'2026-11-19',canInspect:false,onSelect:()=>{},
+  }));
+  expect(html).toContain('rack-tile-number');
+  expect(html).toContain('rack-tile-quick-icons');
+  expect(html).toContain('Next: View inspection');
+  expect(html).toContain('title="Room 402');
+  expect(html).toContain('Housekeeping: not verified');
  });
 });

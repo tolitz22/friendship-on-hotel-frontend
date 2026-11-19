@@ -408,32 +408,64 @@ function GroupDetails({id,selectedTab,originHotel}:{id:string;selectedTab?:'room
     <div><small>Checked out</small><strong>{departed} / {group.roomCount}</strong>
      <span>Managed per room</span></div>
    </section>
-   <section className="gb-detail-panel" aria-label="Group next actions">
+   <section className="gb-detail-panel gb-next-actions" aria-label="Group next actions">
     <div className="gb-table-head"><div><h3>What needs attention next?</h3>
-     <p>Open the affected guest booking to complete checks safely. No bulk action bypasses room readiness or payment review.</p></div></div>
-    <div className="gb-billing-progress">
-     <div><small>Rooms awaiting assignment</small><strong>{group.rooms.filter(room=>!room.roomId&&room.status==='confirmed').length}</strong></div>
-     <div><small>Guests awaiting check-in</small><strong>{group.rooms.filter(room=>room.status==='confirmed').length}</strong></div>
-     <div><small>Folios awaiting payment review</small><strong>{finance.data?finance.data.rooms.filter(row=>row.priced&&row.pendingReviewPaymentCount>0).length:finance.isPending?'Loading…':'Unavailable'}</strong></div>
-     <div><small>Departure due for eligibility review</small><strong>{group.rooms.filter(room=>room.status==='checked_in'&&room.checkOut<=hotelToday()).length}</strong></div>
-     <div><small>Cleaning tasks awaiting assignment</small><strong>{group.operations.checkoutCleaningUnassignedCount}</strong></div>
+     <p>Work through the following tasks. Each linked page checks permissions and prerequisites before changing records.</p></div></div>
+    <div className="gb-billing-progress" aria-label="Outstanding group tasks">
+     <div><small>Unassigned rooms</small><strong>{group.rooms.filter(room=>!room.roomId&&room.status==='confirmed').length}</strong></div>
+     <div><small>Arrivals not checked in</small><strong>{group.rooms.filter(room=>room.status==='confirmed').length}</strong></div>
+     <div><small>Payment evidence needing review</small><strong>{finance.data?finance.data.rooms.filter(row=>row.priced&&row.pendingReviewPaymentCount>0).length:finance.isPending?'Loading…':'Unavailable'}</strong></div>
+     <div><small>Departures due for review</small><strong>{group.rooms.filter(room=>room.status==='checked_in'&&room.checkOut<=hotelToday()).length}</strong></div>
+     <div><small>Cleaning tasks unassigned</small><strong>{group.operations.checkoutCleaningUnassignedCount}</strong></div>
     </div>
-    {group.rooms.filter(room=>room.status==='confirmed'||(room.status==='checked_in'&&room.checkOut<=hotelToday())).map(room=>
-     <div key={room.bookingId} className="gb-billing-folio">
-      <div><strong>{room.guestName??room.reference}</strong>
-       <small>{!room.roomId?'Assign room · ':''}{room.status==='confirmed'?'Check-in pending':'Departure due · verify checkout requirements'}</small></div>
-      <Link to="/reservations" search={{booking:room.bookingId,group:group.id,hotel:hotelId??undefined,checkIn:group.checkIn??undefined,checkOut:group.checkOut??undefined}}>
-       Manage booking <ArrowRight size={14}/></Link>
-     </div>)}
-    {finance.data?.rooms.filter(row=>row.priced&&row.pendingReviewPaymentCount>0).map(row=>
-     <div key={'review-'+row.bookingId} className="gb-billing-folio">
-      <div><strong>{row.reference}</strong><small>Recorded payment evidence awaiting manager review</small></div>
-      <Link to="/billing" search={{booking:row.bookingId,group:group.id,hotel:hotelId??undefined,checkIn:group.checkIn??undefined,checkOut:group.checkOut??undefined}}>
-       Review folio <ArrowRight size={14}/></Link>
-     </div>)}
-    {group.operations.checkoutCleaningUnassignedCount>0&&<Link to="/housekeeping" search={{}}>
-     Assign checkout-cleaning tasks <ArrowRight size={14}/></Link>}
-    <p className="desk-muted">Checkout due means the scheduled departure date has arrived, not that checkout is authorized. Each booking still requires its own operational and financial validation.</p>
+    <ol className="gb-next-action-list">
+     {group.rooms.filter(room=>room.status==='confirmed'&&!room.roomId).map(room=><li key={'assign-'+room.bookingId}>
+      <div><strong>Assign a physical room · {room.guestName??room.reference}</strong>
+       <span>{room.roomTypeName} · {room.reference}</span>
+       <p>No physical room is currently assigned. Front desk must select an available room before check-in.</p>
+       <small>Responsible role: Front desk / authorized administrator</small></div>
+      <Link className="btn-inline" to="/reservations" search={{booking:room.bookingId,group:group.id,hotel:hotelId??undefined,checkIn:group.checkIn??undefined,checkOut:group.checkOut??undefined}}>Assign room <ArrowRight size={14}/></Link>
+     </li>)}
+     {group.rooms.filter(room=>room.status==='confirmed'&&!!room.roomId).map(room=><li key={'ready-'+room.bookingId}>
+      <div><strong>Confirm readiness · Room {room.roomNumber??'number unavailable'}</strong>
+       <span>{room.guestName??room.reference} · {room.reference}</span>
+       <p>Check the room's actual housekeeping and approved inspection records. Assignment alone does not establish readiness.</p>
+       <small>Responsible role: Housekeeping / authorized inspector</small></div>
+      <Link className="btn-inline" to="/rooms" search={{room:room.roomId??undefined}}>Review room readiness <ArrowRight size={14}/></Link>
+     </li>)}
+     {group.rooms.filter(room=>room.status==='confirmed').map(room=><li key={'arrival-'+room.bookingId}>
+      <div><strong>Review guest check-in · {room.guestName??room.reference}</strong>
+       <span>{room.roomNumber?'Room '+room.roomNumber:'Room not assigned'} · {readableDate(room.checkIn)}</span>
+       <p>{!room.roomId?'Blocked: assign a physical room first.':'Requires identity, approved readiness and other booking-policy checks.'}</p>
+       <small>Responsible role: Front desk</small></div>
+      <Link className="btn-inline" to="/reservations" search={{booking:room.bookingId,group:group.id,hotel:hotelId??undefined,checkIn:group.checkIn??undefined,checkOut:group.checkOut??undefined}}>Manage check-in <ArrowRight size={14}/></Link>
+     </li>)}
+     {finance.data?.rooms.filter(row=>row.priced&&row.pendingReviewPaymentCount>0).map(row=><li key={'finance-'+row.bookingId}>
+      <div><strong>Review payment evidence · {row.reference}</strong>
+       <span>{money(row.pendingReviewPaymentsMinor,row.currency)} recorded and awaiting staff review</span>
+       <p>Recorded evidence is not independent verification, allocation or final settlement.</p>
+       <small>Responsible role: Authorized payment reviewer; independent verification requires a separate authorized reviewer</small></div>
+      <Link className="btn-inline" to="/billing" search={{booking:row.bookingId,group:group.id,hotel:hotelId??undefined,checkIn:group.checkIn??undefined,checkOut:group.checkOut??undefined}}>Open guest bill <ArrowRight size={14}/></Link>
+     </li>)}
+     {group.rooms.filter(room=>room.status==='checked_in'&&room.checkOut<=hotelToday()).map(room=><li key={'departure-'+room.bookingId}>
+      <div><strong>Review checkout eligibility · {room.guestName??room.reference}</strong>
+       <span>{room.roomNumber?'Room '+room.roomNumber+' · ':''}Scheduled departure {readableDate(room.checkOut)}</span>
+       <p>The scheduled departure date has arrived. Guest and financial prerequisites still require verification.</p>
+       <small>Responsible role: Front desk / authorized checkout staff</small></div>
+      <Link className="btn-inline" to="/reservations" search={{booking:room.bookingId,group:group.id,hotel:hotelId??undefined,checkIn:group.checkIn??undefined,checkOut:group.checkOut??undefined}}>Review checkout <ArrowRight size={14}/></Link>
+     </li>)}
+     {group.operations.checkoutCleaningUnassignedCount>0&&<li>
+      <div><strong>Assign checkout cleaning · {group.operations.checkoutCleaningUnassignedCount} task(s)</strong>
+       <p>Checkout-linked housekeeping tasks have no assigned employee. These tasks do not prove a room is ready.</p>
+       <small>Responsible role: Housekeeping supervisor</small></div>
+      <Link className="btn-inline" to="/housekeeping" search={{}}>Open housekeeping <ArrowRight size={14}/></Link>
+     </li>}
+    </ol>
+    {group.rooms.every(room=>room.status!=='confirmed'&&!(room.status==='checked_in'&&room.checkOut<=hotelToday()))
+      &&!group.operations.checkoutCleaningUnassignedCount
+      &&(!finance.data||finance.data.rooms.every(row=>!row.priced||row.pendingReviewPaymentCount===0))
+      &&<p className="desk-muted">No immediate next actions identified in the loaded records. Continue monitoring guest folios, room inspections and scheduled departures.</p>}
+    {finance.isError&&<QueryFeedback error={finance.error} onRetry={()=>void finance.refetch()}/>}
    </section>
    <div className="gb-detail-tabs" role="tablist" aria-label="Group booking details" onKeyDown={handleTabKeys}>
     <button role="tab" id="gb-tab-rooms" aria-controls="gb-panel-rooms" tabIndex={detailTab==='rooms'?0:-1} aria-selected={detailTab==='rooms'} className={detailTab==='rooms'?'active':''}

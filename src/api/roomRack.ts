@@ -42,6 +42,7 @@ const room=z.object({
 const schema=z.object({
  data:z.object({
   hotelId:id,hotelDate:date,enforcedAtCheckIn:z.boolean(),
+  allowedActions:z.object({completeInspection:z.boolean()}),
   rooms:z.array(room),arrivals:z.array(arrival),
   summary:z.object({
    totalRooms:count,pmsVacantRooms:count,pmsOccupiedRooms:count,

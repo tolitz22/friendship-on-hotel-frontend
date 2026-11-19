@@ -162,6 +162,15 @@ export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumb
       <div className="rh-action-controls">
        {item.kind==='booking'&&<Link to="/reservations" search={{booking:item.bookingId,deskAction:item.problem==='Physical room has not been assigned'?'assign':'check-in'}}>
         Open booking <ArrowRight size={15}/></Link>}
+       {item.kind==='booking'&&item.taskId&&<Link to="/housekeeping" search={{task:item.taskId}}>
+        Open cleaning task <ArrowRight size={15}/></Link>}
+       {item.kind==='booking'&&item.orderId&&<Link to="/maintenance" search={{order:item.orderId}}>
+        Open maintenance order <ArrowRight size={15}/></Link>}
+       {item.kind==='booking'&&item.blockId&&item.roomNumber&&<Link to="/room-calendar" search={{date:data.asOfHotelDate,room:item.roomNumber}}>
+        Review inventory block <ArrowRight size={15}/></Link>}
+       {item.kind==='booking'&&item.roomNumber&&<button type="button" className="rh-secondary-action"
+        onClick={()=>{if(item.roomNumber)onInspectRoom(item.roomNumber);}}>
+        Inspection details</button>}
        {item.kind==='inspection'&&item.roomNumber&&<button type="button" onClick={()=>{if(item.roomNumber)onInspectRoom(item.roomNumber);}}>
         {item.roomStatus==='awaiting_review'?'Review inspection':canInspect?'Inspect room':'View inspection'} <ArrowRight size={15}/></button>}
        {item.kind==='housekeeping'&&item.roomNumber&&<Link to="/housekeeping" search={{task:item.taskId}}>

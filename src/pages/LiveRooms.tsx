@@ -142,14 +142,14 @@ export function LiveRooms(){
   </div>
   <div className="rr-page-tabs" role="group" aria-label="Room workspace views">
    <button type="button" aria-pressed={view==='catalog'} className={view==='catalog'?'active':''}
-    onClick={()=>changeView('catalog')}><BedDouble size={18}/><span><strong>Room inventory</strong><small>Find a room and review its status</small></span></button>
+    onClick={()=>changeView('catalog')}><BedDouble size={18}/><span><strong>Room Inventory</strong><small>Search and manage rooms</small></span></button>
    <button type="button" aria-pressed={view==='readiness'} className={view==='readiness'?'active':''}
-    onClick={()=>changeView('readiness')}><ClipboardCheck size={18}/><span><strong>Readiness & arrivals</strong><small>Hotel-wide inspection and arrival queue</small></span></button>
+    onClick={()=>changeView('readiness')}><ClipboardCheck size={18}/><span><strong>Arrivals & Room Tasks</strong><small>What staff should do next</small></span></button>
   </div>
   {view==='catalog'&&<>
    <p className="rr-one-note">Cleaning completion and readiness approval are separate records.</p>
    <details className="rr-how-disclosure"><summary>How readiness works</summary>
-    <p>Housekeeping records cleaning, a staff member inspects physical conditions, and an independent authorized manager reviews the inspection. New turnover or room work may invalidate readiness. Inventory and payment checks remain separate.</p>
+    <p>Housekeeping records cleaning, an authorized staff member inspects physical conditions and records the completed inspection. New turnover or room work may invalidate readiness. Inventory and payment checks remain separate.</p>
    </details>
    <section className="rr-inventory-section" aria-labelledby="rr-room-list-title">
     <div className="rr-section-head">
@@ -245,7 +245,7 @@ export function LiveRooms(){
    <p className="rr-one-note">Cleaning completion and readiness approval are separate records.</p>
    <ReadinessDashboardPanel onInspectRoom={openInspection}/>
    <details className="rr-how-disclosure"><summary>How readiness works</summary>
-    <p>Cleaning is recorded by housekeeping; a separate inspection and independent review approve readiness. New checkout turnovers, maintenance or inventory restrictions may require further action. Booking availability is not an inspection result.</p>
+    <p>Cleaning is recorded by housekeeping; a completed physical inspection certifies readiness. New checkout turnovers, maintenance or inventory restrictions may require further action. Booking availability is not an inspection result.</p>
    </details>
    {admin&&<details className="workflow-disclosure">
     <summary><span><Settings2 size={17}/> Advanced · Check-in readiness enforcement policy</span></summary>

@@ -1,8 +1,9 @@
-import {afterEach,describe,expect,it,vi} from 'vitest';
+import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
 import {clearSession,setSessionHotel,setSessionToken} from './session';
 import {createLiveRoom,createLiveRoomType,getCatalogAudit,getLiveCatalogSummary,getLiveProperty,getLiveRooms,updateLiveRoom,updateLiveRoomType} from './liveCatalog';
 
-afterEach(()=>{clearSession();vi.unstubAllGlobals();});
+beforeEach(()=>{vi.stubEnv('VITE_AUTH_MODE','bearer');});
+afterEach(()=>{clearSession();vi.unstubAllGlobals();vi.unstubAllEnvs();});
 
 describe('Phase 6 hotel-scoped catalogue requests',()=>{
  it('requests the selected hotel property with a bearer token',async()=>{

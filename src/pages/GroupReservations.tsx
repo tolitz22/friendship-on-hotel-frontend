@@ -23,7 +23,7 @@ import {readableDate,readableDateTime,statusLabel} from '../lib/format';
 type Room={guestId:string;roomTypeId:string;ratePlanId:string};
 const blank=():Room=>({guestId:'',roomTypeId:'',ratePlanId:''});
 const money=(minor:number,currency:string)=>new Intl.NumberFormat('en-PH',{
- style:'currency',currency:currency==='PHP'?'PHP':'USD',
+ style:'currency',currency,
 }).format(minor/100);
 const start=()=>hotelToday();
 const groupEventLabel=(action:string)=>({

@@ -1,8 +1,9 @@
-import {afterEach,describe,expect,it,vi} from 'vitest';
+import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
 import {clearSession,setSessionHotel,setSessionToken} from './session';
 import {inviteNewStaff,listStaffInvitations,revokeStaffInvitation} from './liveStaff';
 import {acceptStaffInvitation} from './auth';
 
+beforeEach(()=>{vi.stubEnv('VITE_AUTH_MODE','bearer');});
 afterEach(()=>{clearSession();vi.unstubAllGlobals();vi.unstubAllEnvs();});
 
 describe('Phase 18 hotel staff invitations',()=>{

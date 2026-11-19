@@ -178,11 +178,20 @@ function GroupFinance({groupId,hotelId,checkIn,checkOut,open=false}:{
     {data.currencies.length===0&&<p>No priced guest folios are available for this group.</p>}
     {data.currencies.map(total=><div key={total.currency} className="rb-section">
      <strong>{total.currency} · {total.pricedFolioCount} priced folios</strong>
+     <div className="gb-finance-key-figures" aria-label="Reviewed financial position">
+      <div><span>Room charges recorded</span><strong>{money(total.netRecordedChargesMinor,total.currency)}</strong></div>
+      <div><span>Payment evidence awaiting review</span><strong>{money(total.pendingReviewPaymentsMinor,total.currency)}</strong></div>
+      <div><span>Independently reviewed payment evidence</span><strong>{money(total.independentlyVerifiedPaymentsMinor,total.currency)}</strong></div>
+      <div><span>Verified amount allocated to charges</span><strong>{money(total.verifiedAllocatedMinor,total.currency)}</strong></div>
+      <div><span>Charges not yet covered by verified allocations</span><strong>{money(total.unallocatedNetChargesMinor,total.currency)}</strong></div>
+     </div>
+     <p className="gb-attention-note">Recorded payment evidence of {money(total.recordedPaymentsMinor,total.currency)} is provisional. Only independently verified allocations are reflected in the reviewed outstanding charges. This group overview is not a final balance, bank reconciliation or settlement statement.</p>
+     <details className="workflow-disclosure gb-finance-breakdown"><summary>View detailed financial evidence and refund stages</summary>
      <dl className="readable-audit-changes">
-      <div><dt>Net recorded charges</dt><dd>{(total.netRecordedChargesMinor/100).toLocaleString('en-PH',{style:'currency',currency:total.currency})}</dd></div>
+      <div><dt>Room charges recorded</dt><dd>{money(total.netRecordedChargesMinor,total.currency)}</dd></div>
       <div><dt>Recorded, awaiting review</dt><dd>{money(total.pendingReviewPaymentsMinor,total.currency)}</dd></div>
       <div><dt>All recorded payment evidence (provisional)</dt><dd>{money(total.recordedPaymentsMinor,total.currency)}</dd></div>
-      <div><dt>Charges minus recorded payment evidence (provisional)</dt><dd>{money(total.balanceAfterRecordedPaymentsMinor,total.currency)}</dd></div>
+      <div><dt>Charges less unverified and verified payment evidence (provisional calculation only)</dt><dd>{money(total.balanceAfterRecordedPaymentsMinor,total.currency)}</dd></div>
       <div><dt>Staff-confirmed evidence</dt><dd>{money(total.staffConfirmedPaymentsMinor,total.currency)}</dd></div>
       <div><dt>Independently verified payment evidence</dt><dd>{money(total.independentlyVerifiedPaymentsMinor,total.currency)}</dd></div>
       <div><dt>Refunds awaiting approval</dt><dd>{money(total.requestedRefundsMinor,total.currency)}</dd></div>
@@ -191,7 +200,7 @@ function GroupFinance({groupId,hotelId,checkIn,checkOut,open=false}:{
       <div><dt>Independently reviewed allocations</dt><dd>{(total.verifiedAllocatedMinor/100).toLocaleString('en-PH',{style:'currency',currency:total.currency})}</dd></div>
       <div><dt>Group payer allocations (reviewed)</dt><dd>{(total.verifiedGroupPayerAllocatedMinor/100).toLocaleString('en-PH',{style:'currency',currency:total.currency})}</dd></div>
       <div><dt>Charges remaining after independently verified allocations</dt><dd>{(total.unallocatedNetChargesMinor/100).toLocaleString('en-PH',{style:'currency',currency:total.currency})}</dd></div>
-     </dl>
+     </dl></details>
     </div>)}
     <div className="gb-billing-progress" aria-label="Group payment and settlement progress">
      <div><small>Priced guest folios</small><strong>{data.rooms.filter(row=>row.priced).length} / {data.rooms.length}</strong></div>
@@ -399,7 +408,7 @@ function GroupDetails({id,selectedTab,originHotel}:{id:string;selectedTab?:'room
    subject:event.guestName??event.bookingReference,
    context:event.before!==null&&event.after!==null&&event.before!==event.after
     ?statusLabel(event.before)+' → '+statusLabel(event.after):event.bookingReference,
-   roomId:null as string|null,
+   roomId:null as string|null,recordId:null as string|null,
   })),
   ...group.relatedOperationalEvents.map(event=>({
    id:event.id,source:event.source,action:event.action,at:event.at,actorName:event.actorName,
@@ -411,7 +420,7 @@ function GroupDetails({id,selectedTab,originHotel}:{id:string;selectedTab?:'room
    context:event.source==='housekeeping'?'Linked checkout-cleaning task':
     event.source==='manager_approval'?'Recorded manager exception decision':
     'Readiness event on a currently assigned room (may not be group-specific)',
-   roomId:event.roomId??null,
+   roomId:event.roomId??null,recordId:event.recordId,
   })),
  ].sort((a,b)=>b.at.localeCompare(a.at)||b.id.localeCompare(a.id)):[];
 
@@ -469,7 +478,7 @@ function GroupDetails({id,selectedTab,originHotel}:{id:string;selectedTab?:'room
        <span>{room.guestName??room.reference} · {room.reference}</span>
        <p>Before check-in, verify actual housekeeping, inspection approval and the hotel's current enforcement policy. Assignment alone does not establish readiness; this is a verification task, not proof of a blocker.</p>
        <small>Responsible role: Housekeeping / authorized inspector</small></div>
-      <Link className="btn-inline" to="/rooms" search={{room:room.roomId??undefined}}>Review room readiness <ArrowRight size={14}/></Link>
+      <Link className="btn-inline" to="/rooms" search={{room:room.roomNumber??undefined}}>Review room readiness <ArrowRight size={14}/></Link>
      </li>)}
      {group.rooms.filter(room=>room.status==='confirmed').map(room=><li key={'arrival-'+room.bookingId}>
       <div><strong>Review guest check-in · {room.guestName??room.reference}</strong>
@@ -578,7 +587,7 @@ function GroupDetails({id,selectedTab,originHotel}:{id:string;selectedTab?:'room
    </section>}
    {detailTab==='activity'&&<section id="gb-panel-activity" aria-labelledby="gb-tab-activity" tabIndex={0} className="gb-detail-panel" role="tabpanel">
     <div className="gb-table-head"><div><h3>Group activity and operational history</h3>
-     <p>Real reservation audit events with employee names, actions and timestamps.</p></div></div>
+     <p>Recent linked booking, housekeeping, inspection and manager events. Individual records remain authoritative; payment and cashier audit histories are not included in this feed.</p></div></div>
     <label className="gb-timeline-filter">Show events
      <select aria-label="Filter group operational history" value={activityFilter}
       onChange={e=>setActivityFilter(e.target.value as typeof activityFilter)}>
@@ -604,9 +613,9 @@ function GroupDetails({id,selectedTab,originHotel}:{id:string;selectedTab?:'room
         <span>{event.context}</span>
         {event.source==='booking'&&event.bookingId&&<Link to="/reservations" search={{booking:event.bookingId,group:group.id,hotel:hotelId??undefined}}>
          Open booking history <ArrowRight size={13}/></Link>}
-        {event.source==='housekeeping'&&<Link to="/housekeeping" search={{}}>Open housekeeping record <ArrowRight size={13}/></Link>}
+        {event.source==='housekeeping'&&<Link to="/housekeeping" search={{task:event.recordId}}>Open housekeeping record <ArrowRight size={13}/></Link>}
         {event.source==='manager_approval'&&<Link to="/manager-approvals">Open manager approvals <ArrowRight size={13}/></Link>}
-        {event.source==='room_inspection'&&event.roomId&&<Link to="/rooms" search={{room:event.roomId}}>
+        {event.source==='room_inspection'&&event.roomId&&<Link to="/rooms" search={{room:group.rooms.find(room=>room.roomId===event.roomId)?.roomNumber??undefined}}>
          Open room inspection history <ArrowRight size={13}/></Link>}
        </div>
       </div>)}

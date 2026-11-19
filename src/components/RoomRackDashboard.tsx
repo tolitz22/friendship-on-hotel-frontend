@@ -169,6 +169,13 @@ export function RoomRackDashboard({hotelId}:{hotelId:string}){
     <RefreshCw size={16}/>{rack.isFetching?'Refreshing…':'Refresh'}</button>
   </div>
   <QueryFeedback loading={rack.isPending} error={rack.error} onRetry={()=>void rack.refetch()}/>
+  {(catalog.isError||roomTypes.isError)&&<p role="status" className="rack-partial-warning">
+   Room status is available, but some floor or room-type filters could not load.
+   Refresh the directory filters before assuming a room is missing.
+   <button type="button" className="btn-inline" onClick={()=>{
+    void catalog.refetch();void roomTypes.refetch();
+   }}>Retry filters</button>
+  </p>}
   {summary&&<>
    {unassigned.length>0&&<div className="rack-unassigned" role="status">
     <AlertTriangle size={18}/><div><strong>{unassigned.length} unassigned arrival{unassigned.length===1?'':'s'} today</strong>

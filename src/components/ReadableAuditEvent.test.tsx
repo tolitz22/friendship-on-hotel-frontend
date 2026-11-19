@@ -51,9 +51,21 @@ describe('staff-readable activity history',()=>{
    paymentId:'17',bookingId:'2',amountMinor:250000,reference:'CASH-XYZ',
    password:'never visible',
   })).toEqual([
-   {label:'Cash payment',value:'₱2,500.00'},
+   {label:'Net cash payment (older receipt; tender/change not captured)',value:'₱2,500.00'},
    {label:'Guest booking',value:'Booking #2'},
    {label:'Receipt reference',value:'CASH-XYZ'},
+  ]);
+ });
+ it('distinguishes modern cash tender and change from older net-only receipts',()=>{
+  expect(cashEventDetails('cash_received',{
+   cashTenderedMinor:300000,changeGivenMinor:50000,netReceiptMinor:250000,
+   bookingId:'2',reference:'CASH-NEW',password:'never visible',
+  })).toEqual([
+   {label:'Cash handed over',value:'₱3,000.00'},
+   {label:'Change returned to guest',value:'₱500.00'},
+   {label:'Net cash kept in drawer',value:'₱2,500.00'},
+   {label:'Guest booking',value:'Booking #2'},
+   {label:'Receipt reference',value:'CASH-NEW'},
   ]);
  });
  it('describes the physical drawer count and discrepancy',()=>{

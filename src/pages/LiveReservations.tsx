@@ -4,7 +4,7 @@ import {useHotelAuth} from '../components/AuthProvider';
 import {LiveReservationOperations} from './LiveReservationOperations';
 import {LiveBookingForm} from './LiveBookingForm';
 import {LiveBookingsWorkspace} from './LiveBookingsWorkspace';
-import {AlertTriangle,CalendarDays,Plus,ArrowRight,ClipboardList} from 'lucide-react';
+import {AlertTriangle,CalendarDays,ArrowRight} from 'lucide-react';
 import {
  useLiveAvailability,useLiveRatePlans,useLiveReservationRecords,useLiveRoomQuote,
  useLiveRoomTypes,useLiveReservationDetail,validLiveStay,
@@ -104,15 +104,12 @@ export function LiveReservations(){
      preferredRoomNumber={routeSearch.roomNumber??null} deskAction={routeSearch.deskAction??null} onClose={closeBooking}/>}
    </section>
   </>:<>
-   <div className="reservation-workspace-bar" role="group" aria-label="Booking tasks">
-    <div className="view-switch">
-     <button type="button" aria-pressed={view==='manage'} className={view==='manage'?'selected':''}
-      onClick={()=>{setView('manage');void navigation({to:'/reservations',search:{}});}}><ClipboardList size={16}/> Manage reservations</button>
-     {canOperate&&<button type="button" aria-pressed={view==='new'} className={view==='new'?'selected':''}
-      onClick={()=>{setView('new');void navigation({to:'/reservations',search:{mode:'new'}});}}><Plus size={16}/> New reservation</button>}
-    </div>
-    <span className="table-count" role="status">{pagination?.total??'—'} matching reservations · newest first</span>
-   </div>
+   {view==='new'&&<div className="reservation-workspace-bar" aria-label="New reservation navigation">
+    <button type="button" className="btn-inline" onClick={()=>{
+     setView('manage');void navigation({to:'/reservations',search:{}});
+    }}><ArrowRight size={15} style={{transform:'rotate(180deg)'}}/> Back to bookings</button>
+    <span className="table-count">Create a new guest reservation</span>
+   </div>}
    {view==='new'&&canOperate?<LiveBookingForm/>:
     <LiveBookingsWorkspace rows={filtered} pagination={pagination}
      isPending={records.isPending} isError={records.isError} error={records.error}

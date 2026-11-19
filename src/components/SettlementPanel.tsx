@@ -202,8 +202,11 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   &&data?.status==='checked_in';
  const routineCashException=simplifiedCash&&hasExistingMoney&&!routineCashReady
   &&!data?.signed&&data?.status==='checked_in';
+ const routineCashCheckedOut=simplifiedCash&&hasExistingMoney&&!data?.signed
+  &&data?.status==='checked_out';
  const paymentStatus=data?.signed
   ?data.signedSnapshotIntegrity?'Financial approval complete':'Account requires investigation'
+  :routineCashCheckedOut?'Guest checked out — cashier review still pending'
   :!hasExistingMoney?'No payment recorded'
   :routineCashReady?'Cash payment accepted — ready for checkout'
   :routineCashException?'Cash payment recorded — review needed'
@@ -228,7 +231,9 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   :nextTask==='disabled'?'Final approval unavailable'
   :'Review settlement checks';
  const shiftLabel=handoff?.cashShiftId?'Shift '+handoff.cashShiftId:'Cashier shift';
- const operationalDescription=routineCashReady
+ const operationalDescription=routineCashCheckedOut
+  ?'Guest checkout has been recorded. The cashier must still close and count the drawer, then a different manager must reconcile it. No additional guest payment or ordinary post-checkout bill changes are needed.'
+  :routineCashReady
   ?'Cash payment is recorded and covers the guest bill. Routine checkout can proceed without per-payment manager approval. The cashier still needs to count the drawer; another manager reconciles it afterward.'
   :routineCashException
   ?'Routine cash checkout is not eligible: '+(data?.routineCashCheckoutReason??'manager review is required')+'. Do not collect the guest payment again.'
@@ -369,7 +374,11 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        :'The signed statement failed its integrity check. Stop checkout and request investigation.'
       :operationalDescription}</p>
      {!data.signed&&<div className="frontdesk-payment-primary">
-      {routineCashReady
+      {routineCashCheckedOut
+       ?<Link to="/cashier-shifts" search={{booking:bookingId,hotel:hotelId??undefined,
+           shift:handoff?.cashShiftId??undefined}}
+          className="rr-secondary-action">View cashier shift <ArrowRight size={16}/></Link>
+       :routineCashReady
        ?<Link to="/reservations" search={{booking:bookingId}}
          className="btn-primary">Continue guest checkout <ArrowRight size={16}/></Link>
        :routineCashException

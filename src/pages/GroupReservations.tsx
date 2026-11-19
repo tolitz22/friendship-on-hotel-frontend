@@ -54,6 +54,15 @@ function RoomGuestField({value,index,disabled,onChange,onAddGuest,canAddGuest,cr
  </div>;
 }
 
+function GroupLifecycleBadge({status}:{status:string|null}){
+ const value=status??'unknown';
+ const Symbol=['checked_in','fully_checked_in','checked_out'].includes(value)?CheckCircle2:
+  value==='cancelled'?X:value.startsWith('partially_')?AlertTriangle:Clock3;
+ return <span role="status" className={'gb-lifecycle-badge gb-lifecycle-'+value}>
+  <Symbol size={13} aria-hidden="true"/> {statusLabel(value)}
+ </span>;
+}
+
 function GroupReviewGuest({guestId,createdGuest}:{guestId:string;createdGuest?:Guest}){
  const selected=useSelectedGuest(guestId||null);
  const guest=createdGuest?.id===guestId?createdGuest:selected.data;
@@ -517,8 +526,7 @@ function GroupDetails({id,selectedTab,originHotel}:{id:string;selectedTab?:'room
       <td><strong>{room.roomNumber?'Room '+room.roomNumber:'Unassigned'}</strong>
        <small>{room.roomTypeName}</small></td>
       <td>{readableDate(room.checkIn)}<small>to {readableDate(room.checkOut)}</small></td>
-      <td><span className={'gb-lifecycle-badge gb-lifecycle-'+(room.status??'confirmed')}>
-       {statusLabel(room.status??'Unknown')}</span></td>
+      <td><GroupLifecycleBadge status={room.status}/></td>
       <td><div className="gb-list-actions">
        <Link className="btn-inline" to="/reservations" search={{booking:room.bookingId,
         group:group.id,hotel:hotelId??undefined,checkIn:group.checkIn??undefined,
@@ -533,8 +541,7 @@ function GroupDetails({id,selectedTab,originHotel}:{id:string;selectedTab?:'room
       <div className="gb-mobile-room-card-heading">
        <div><strong>{room.guestName??'Guest name unavailable'}</strong>
         <small>{room.reference}</small></div>
-       <span className={'gb-lifecycle-badge gb-lifecycle-'+(room.status??'confirmed')}>
-        {statusLabel(room.status??'Unknown')}</span>
+       <GroupLifecycleBadge status={room.status}/>
       </div>
       <p><BedDouble size={15} aria-hidden="true"/> {room.roomNumber?'Room '+room.roomNumber:'Room not assigned'} · {room.roomTypeName}</p>
       <p><CalendarDays size={15} aria-hidden="true"/> {readableDate(room.checkIn)} – {readableDate(room.checkOut)}</p>
@@ -932,8 +939,7 @@ export function GroupReservations(){
        <><strong>{readableDate(group.checkIn)}</strong><small>to {readableDate(group.checkOut)}</small></>
        :'Dates unavailable'}</td>
       <td><strong>{group.roomCount} rooms</strong></td>
-      <td><span className={'gb-lifecycle-badge gb-lifecycle-'+group.status}>
-       {groupStatusLabel(group.status)}</span></td>
+      <td><GroupLifecycleBadge status={group.status}/></td>
       <td><span>{group.statusCounts.checkedIn} in house</span>
        <small>{group.statusCounts.checkedOut} checked out · {group.statusCounts.cancelled} cancelled</small></td>
       <td><div className="gb-list-actions">

@@ -2687,3 +2687,18 @@
 .cashier-linked-title p,.cashier-linked-own,.cashier-linked-wait{font-size:12px;color:var(--muted);line-height:1.55;margin:0}
 .cashier-linked-wait{border-left:3px solid var(--accent);padding:10px 12px;background:var(--canvas);border-radius:5px}
 @media(max-width:650px){.frontdesk-payment-waiting{align-items:flex-start;flex-direction:column}}
+
+
+/* Operational checkout can precede later cash shift reconciliation. */
+.frontdesk-cash-handoff{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:0;padding:10px 13px;border:1px solid var(--border);border-radius:9px;font-size:12px;line-height:1.6;color:var(--muted)}
+.frontdesk-cash-handoff>svg{color:var(--accent);flex:none}
+.frontdesk-cash-handoff a{display:inline-flex;align-items:center;gap:5px;color:var(--accent);font-weight:750}
+.cashier-owner-overview{display:grid;gap:13px;padding:18px;margin:20px 0;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+.cashier-owner-counters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.cashier-owner-counters>div{border:1px solid var(--border);border-radius:10px;background:var(--canvas);padding:13px;display:grid;gap:5px}
+.cashier-owner-counters small{font-size:11px;color:var(--muted)}
+.cashier-owner-counters strong{font-size:23px;font-variant-numeric:tabular-nums}
+.cashier-flagged-overview{border:1px solid var(--border);border-radius:10px;padding:13px}
+.cashier-flagged-overview summary{cursor:pointer;font-size:13px;font-weight:750}
+.cashier-flagged-shifts{display:grid;gap:12px;margin-top:12px}
+@media(max-width:660px){.cashier-owner-counters{grid-template-columns:1fr}.cashier-owner-overview{padding:12px}}

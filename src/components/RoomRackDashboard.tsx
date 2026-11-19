@@ -4,7 +4,7 @@ import {Link} from '@tanstack/react-router';
 import {
  AlertTriangle,ArrowRight,BedDouble,CalendarClock,CheckCircle2,ChevronLeft,
  ChevronRight,ClipboardCheck,DoorOpen,Grid2X2,Info,List,LockKeyhole,Menu,
- RefreshCw,Search,ShieldAlert,Sparkles,Users,X,
+ RefreshCw,Search,ShieldAlert,Users,X,
 } from 'lucide-react';
 import {useRoomRack,type RackRoom} from '../api/roomRack';
 import {useLiveCatalogSummary,useLiveRoomTypes} from '../api/liveCatalogQueries';
@@ -12,7 +12,7 @@ import {RoomReadinessPanel} from './RoomReadinessPanel';
 import {QueryFeedback} from './QueryFeedback';
 import {readableDate,readableDateTime} from '../lib/format';
 import {
- matchRackQuick,matchRackSearch,roomNextAction,roomPriority,roomProblem,roomTone,sortRackRooms,
+ matchRackQuick,matchRackSearch,roomNextAction,roomProblem,roomTone,sortRackRooms,
  type RackQuickFilter,
 } from '../features/rooms/roomRackModel';
 
@@ -173,7 +173,7 @@ export function RoomRackDashboard({hotelId}:{hotelId:string}){
    {unassigned.length>0&&<div className="rack-unassigned" role="status">
     <AlertTriangle size={18}/><div><strong>{unassigned.length} unassigned arrival{unassigned.length===1?'':'s'} today</strong>
      <span>Room assignment is required before arrival check-in.</span></div>
-    <Link to="/reservations" search={{filter:'needs_room'}}>Assign rooms <ArrowRight size={15}/></Link>
+    <Link to="/reservations" search={{}}>Assign rooms <ArrowRight size={15}/></Link>
    </div>}
    <div className="rack-metrics" aria-label="Hotel-wide room and arrival totals">
     {([

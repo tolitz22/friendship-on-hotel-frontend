@@ -13,6 +13,7 @@ const receipt=z.object({
 });
 const shift=z.object({
  id,hotelId:id,cashierId:id,currency:z.string(),status:z.enum(['open','submitted','reconciled','flagged']),
+ cashTenderTrackingSupported:z.boolean().optional().default(false),
  openingFloatMinor:z.number().int().nonnegative(),expectedCashMinor:z.number().int().nonnegative().nullable(),
  countedCashMinor:z.number().int().nonnegative().nullable(),varianceMinor:z.number().int().nullable(),
  receiptCount:z.number().int().nonnegative(),unconfirmedReceiptCount:z.number().int().nonnegative(),
@@ -106,9 +107,9 @@ export async function receiveCash(hotelId:string,shiftId:string,bookingId:string
  if(readSession().hotelId!==hotelId)throw new Error('Property changed.');
  return z.object({data:z.object({
   paymentId:id,shiftId:id,status:z.string(),replayed:z.boolean(),
-  cashTenderedMinor:z.number().int().nonnegative().nullable(),
-  changeGivenMinor:z.number().int().nonnegative().nullable(),
-  netReceiptMinor:z.number().int().nonnegative().nullable(),
+  cashTenderedMinor:z.number().int().nonnegative().nullable().optional(),
+  changeGivenMinor:z.number().int().nonnegative().nullable().optional(),
+  netReceiptMinor:z.number().int().nonnegative().nullable().optional(),
  })}).parse(await requestJson<unknown>(
   hotelPath('/cashier-shifts/'+encodeURIComponent(shiftId)+'/bookings/'+encodeURIComponent(bookingId)+'/cash-receipts'),
   {method:'POST',body:payload},

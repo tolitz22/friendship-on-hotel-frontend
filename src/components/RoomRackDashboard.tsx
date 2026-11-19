@@ -291,7 +291,7 @@ export function RoomRackDashboard({hotelId,focusRoomNumber,onEditRoom}:{hotelId:
    {visible.length>0?
     listView?<div className="rack-list" role="list">{visible.map(room=><RoomTile key={room.roomId} room={room}
      arrivals={arrivals} today={data!.hotelDate} list canInspect={data!.allowedActions.completeInspection} onSelect={select}/>)}</div>:
-    <div className={'rack-grid'+(visible.length<=4?' rack-grid-small':'')}>{visible.map(room=><RoomTile key={room.roomId} room={room}
+    <div className={'rack-grid'+(visible.length<=4?' rack-grid-small rack-grid-count-'+visible.length:'')}>{visible.map(room=><RoomTile key={room.roomId} room={room}
      arrivals={arrivals} today={data!.hotelDate} canInspect={data!.allowedActions.completeInspection} onSelect={select}/>)}</div>:
     <div className="rack-empty" role="status"><Info size={22}/><strong>No matching rooms on this page</strong>
      <p>Adjust filters, or navigate to another room page.</p>

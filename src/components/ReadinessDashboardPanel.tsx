@@ -13,7 +13,7 @@ type QueueFilter='all'|'arrivals'|'blocked'|'review'|'inspection'|'approved';
 type QueueItem={
  key:string;priority:number;date:string;title:string;subtitle:string;problem:string;
  role:string;roomNumber?:string;kind:'booking'|'inspection'|'housekeeping'|'maintenance'|'inventory';
- bookingId?:string;taskId?:string;orderId?:string;
+ bookingId?:string;taskId?:string;orderId?:string;blockId?:string;
 };
 const perPage=12;
 const issue=(flags:DashboardRoom['blockers']|null|undefined,status:DashboardRoom['status']|null|undefined)=>{
@@ -43,7 +43,9 @@ function createArrivalItem(arrival:DashboardArrival,today:string):QueueItem{
   subtitle:(arrival.roomNumber?'Room '+arrival.roomNumber:'Unassigned room')+' · '+arrival.reference+
     ' · Arrives '+readableDate(arrival.checkIn),
   problem,role:'Front desk'+(unassigned?' (room assignment)':' / readiness reviewer'),
-  roomNumber:arrival.roomNumber??undefined,kind:'booking',bookingId:arrival.bookingId};
+  roomNumber:arrival.roomNumber??undefined,kind:'booking',bookingId:arrival.bookingId,
+  taskId:arrival.openHousekeepingTaskId??undefined,orderId:arrival.activeMaintenanceOrderId??undefined,
+  blockId:arrival.activeInventoryBlockId??undefined};
 }
 function createRoomItem(room:DashboardRoom):QueueItem|null{
  if(room.status==='approved_current')return null;
@@ -60,7 +62,10 @@ function createRoomItem(room:DashboardRoom):QueueItem|null{
    kind==='housekeeping'?'Housekeeping supervisor':
    kind==='inventory'?'Inventory / front desk manager':
    room.status==='awaiting_review'?'Independent authorized reviewer':'Authorized inspector',
-  roomNumber:room.roomNumber,kind};
+  roomNumber:room.roomNumber,kind,
+  taskId:room.openHousekeepingTaskId??undefined,
+  orderId:room.activeMaintenanceOrderId??undefined,
+  blockId:room.activeInventoryBlockId??undefined};
 }
 
 export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumber:string)=>void}){
@@ -157,12 +162,12 @@ export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumb
         Open booking <ArrowRight size={15}/></Link>}
        {item.kind==='inspection'&&item.roomNumber&&<button type="button" onClick={()=>onInspectRoom(item.roomNumber)}>
         {item.problem==='Waiting for independent review'?'Review inspection':'Inspect room'} <ArrowRight size={15}/></button>}
-       {item.kind==='housekeeping'&&item.roomNumber&&<Link to="/housekeeping" search={{}}>
-        Open housekeeping tasks <ArrowRight size={15}/></Link>}
-       {item.kind==='maintenance'&&item.roomNumber&&<Link to="/maintenance">
-        Open maintenance orders <ArrowRight size={15}/></Link>}
+       {item.kind==='housekeeping'&&item.roomNumber&&<Link to="/housekeeping" search={{task:item.taskId}}>
+        Open housekeeping task <ArrowRight size={15}/></Link>}
+       {item.kind==='maintenance'&&item.roomNumber&&<Link to="/maintenance" search={{order:item.orderId}}>
+        Open maintenance order <ArrowRight size={15}/></Link>}
        {item.kind==='inventory'&&item.roomNumber&&<Link to="/room-calendar" search={{date:data.asOfHotelDate}}>
-        Review inventory blocks <ArrowRight size={15}/></Link>}
+        Review inventory block <ArrowRight size={15}/></Link>}
        {item.kind!=='booking'&&item.roomNumber&&<button type="button" className="rh-secondary-action" onClick={()=>{if(item.roomNumber)onInspectRoom(item.roomNumber);}}>
         Inspection details</button>}
       </div>

@@ -3,7 +3,7 @@ import {z} from 'zod';
 import {getJson} from './http';
 import {hotelPath,readSession} from './session';
 
-const id=z.string().regex(/^[1-9]\\d*$/);
+const id=z.string().regex(/^[1-9]\d*$/);
 const count=z.number().int().nonnegative();
 const date=z.iso.date();
 const flags=z.object({

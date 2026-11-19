@@ -3,11 +3,12 @@ import {useQueryClient} from '@tanstack/react-query';
 import {Link,useSearch} from '@tanstack/react-router';
 import {BedDouble,Plus,Settings2} from 'lucide-react';
 import type {LiveRoom} from '../api/liveCatalog';
-import {useLiveRoomTypes} from '../api/liveCatalogQueries';
+import {useLiveRoomTypes,useLiveRooms} from '../api/liveCatalogQueries';
 import {CatalogCreateDialog} from '../components/CatalogCreateDialog';
 import {CatalogEditDialog} from '../components/CatalogEditDialog';
 import {ReadinessEnforcementPanel} from '../components/ReadinessEnforcementPanel';
 import {ReadinessDashboardPanel} from '../components/ReadinessDashboardPanel';
+import {RoomReadinessPanel} from '../components/RoomReadinessPanel';
 import {RoomRackDashboard} from '../components/RoomRackDashboard';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading} from '../components/ui';
@@ -24,10 +25,12 @@ export function LiveRooms(){
  const canSeeStay=admin||role==='front_desk';
  const [showCreate,setShowCreate]=useState(false);
  const [editingRoom,setEditingRoom]=useState<LiveRoom|null>(null);
+ const [inspectionRoomNumber,setInspectionRoomNumber]=useState<string|null>(null);
+ const inspectionRoomLookup=useLiveRooms({page:1,perPage:20,search:inspectionRoomNumber??undefined});
  const roomTypes=useLiveRoomTypes();
  const queryClient=useQueryClient();
  useEffect(()=>{
-  setShowCreate(false);setEditingRoom(null);
+  setShowCreate(false);setEditingRoom(null);setInspectionRoomNumber(null);
  },[hotelId]);
  const refreshRack=()=>{
   void Promise.all([
@@ -50,7 +53,24 @@ export function LiveRooms(){
    <RoomRackDashboard key={hotelId} hotelId={hotelId}
     focusRoomNumber={linkedRoomNumber}
     onEditRoom={admin?room=>setEditingRoom(room):undefined}/>:
-   <ReadinessDashboardPanel onInspectRoom={()=>{}}/>}
+   <ReadinessDashboardPanel onInspectRoom={setInspectionRoomNumber}/>}
+  {inspectionRoomNumber&&<div className="rack-drawer-overlay" role="presentation">
+   <section className="rack-drawer" role="dialog" aria-modal="true"
+    aria-label={'Room '+inspectionRoomNumber+' inspection'} tabIndex={-1}>
+    <div className="rack-drawer-head"><strong>Room {inspectionRoomNumber} inspection</strong>
+     <button type="button" className="rack-close" aria-label="Close inspection"
+      onClick={()=>setInspectionRoomNumber(null)}>Close</button></div>
+    <div className="rack-drawer-scroll">
+     {inspectionRoomLookup.isPending&&<p role="status">Loading room details…</p>}
+     {inspectionRoomLookup.isError&&<p role="alert">Room details could not be loaded.</p>}
+     {inspectionRoomLookup.isSuccess&&(()=>{
+      const room=inspectionRoomLookup.data.data.find(item=>item.number===inspectionRoomNumber);
+      return room?<RoomReadinessPanel room={room} onClose={()=>setInspectionRoomNumber(null)}/>:
+       <p role="status">This room was not found in the selected hotel's records.</p>;
+     })()}
+    </div>
+   </section>
+  </div>}
   {admin&&<details className="workflow-disclosure rack-admin-settings">
    <summary><span><Settings2 size={17}/> Advanced · Check-in readiness policy</span></summary>
    <ReadinessEnforcementPanel/>

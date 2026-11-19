@@ -230,24 +230,45 @@ function GroupAllotmentsPanel({hotelId,onConvert}:{hotelId:string;onConvert:(hol
    <QueryFeedback loading={holds.isPending||types.isPending}
     error={holds.error??types.error} onRetry={()=>{void holds.refetch();void types.refetch();}}/>
    {holds.data?.meta.hasMore&&<p role="status">Showing the 100 most recent holds; older records are not shown here.</p>}
-   <div className="reservation-manage-list">
-    {holds.data?.data.map(hold=><article key={hold.id} className="reservation-manage-card">
-     <div className="reservation-manage-primary">
-      <strong>{hold.name}</strong>
-      <p>{hold.reference} · {hold.quantity} × {hold.roomTypeName}</p>
-      <small>{readableDate(hold.checkIn)} – {readableDate(hold.checkOut)}
-       {' · '}Status: {statusLabel(hold.status)} · Expires {readableDateTime(hold.expiresAt)}</small>
+   {holds.data&&<div className="gb-hold-kpis" aria-label="Temporary room holds summary">
+    <div><small>Active holds</small><strong>{holds.data.data.filter(h=>h.status==='held').length}</strong></div>
+    <div><small>Converted</small><strong>{holds.data.data.filter(h=>h.status==='converted').length}</strong></div>
+    <div><small>Expired or released</small><strong>{holds.data.data.filter(h=>['expired','released'].includes(h.status)).length}</strong></div>
+   </div>}
+   <p className="desk-muted">Counts show only the latest {holds.data?.data.length??0} returned holds.
+    An inventory hold is not a booking, payment, guest folio, or assigned room.</p>
+   <div className="gb-hold-list">
+    {holds.data?.data.map(hold=><article key={hold.id} className="gb-hold-card">
+     <div className="gb-hold-card-main">
+      <div className="gb-hold-card-head">
+       <strong>{hold.name}</strong>
+       <span className={'gb-lifecycle-badge gb-hold-'+hold.status}>
+        {statusLabel(hold.status)}</span>
+      </div>
+      <small>{hold.reference} · {hold.quantity} × {hold.roomTypeName}</small>
+      <div className="gb-hold-dates"><CalendarDays size={15}/>
+       {readableDate(hold.checkIn)} – {readableDate(hold.checkOut)}</div>
+      <small>{hold.status==='held'?'Expires '+readableDateTime(hold.expiresAt):
+       hold.status==='converted'?'Converted to a confirmed group':'No active room inventory reserved'}</small>
       <small>Created by {hold.createdByName||'Employee name unavailable'}
        {hold.releasedByName?' · Released by '+hold.releasedByName:''}</small>
      </div>
-     {hold.status==='held'&&admin&&<div className="reservation-manage-action">
-      {hold.quantity>=2&&<button className="btn-primary" type="button" disabled={busy}
-       onClick={()=>onConvert(hold)}>Convert to booking</button>}
-      <button className="btn-inline" type="button" disabled={busy}
-       onClick={()=>void release(hold.id)}>Release hold</button>
-     </div>}
-     {hold.convertedGroupId&&<Link to="/group-reservations" search={{group:hold.convertedGroupId,hotel:hotelId}}>Open group</Link>}
+     <div className="gb-hold-card-actions">
+      {hold.status==='held'&&admin&&hold.quantity>=2&&
+       <button className="btn-primary" type="button" disabled={busy||!!pending}
+        onClick={()=>onConvert(hold)}>Convert to booking <ArrowRight size={14}/></button>}
+      {hold.status==='held'&&admin&&<button className="btn-inline" type="button"
+       disabled={busy||!!pending} onClick={()=>void release(hold.id)}>
+       Release hold</button>}
+      {hold.convertedGroupId&&<Link className="btn-inline" to="/group-reservations"
+       search={{group:hold.convertedGroupId,hotel:hotelId}}>Open confirmed group <ArrowRight size={14}/></Link>}
+      {hold.quantity<2&&hold.status==='held'&&<small>Single-room holds cannot convert to a multi-room group.</small>}
+     </div>
     </article>)}
+    {holds.data?.data.length===0&&<div className="gb-empty">
+     <Clock3 size={24}/><strong>No temporary room holds</strong>
+     <p>Use Create temporary hold only when a group has not committed to a reservation.</p>
+    </div>}
    </div>
    {admin&&<details className="gb-hold-form">
     <summary><Plus size={16}/> Create temporary hold</summary>

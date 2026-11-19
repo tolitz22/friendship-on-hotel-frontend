@@ -19,6 +19,12 @@ const group=z.object({
   bookingReference:z.string(),guestName:z.string().nullable(),at:z.string(),
  })),
  activityHasMore:z.boolean(),
+ relatedOperationalEvents:z.array(z.object({
+  id:z.string(),source:z.enum(['housekeeping','manager_approval','room_inspection']),
+  action:z.string(),actorName:z.string().nullable(),at:z.string(),
+  bookingId:id.nullable(),recordId:id,roomId:id.optional(),
+ })),
+ relatedOperationalEventsLimited:z.boolean(),
  operations:z.object({
   assignedCount:z.number().int().nonnegative(),readinessAdvisoryReadyCount:z.number().int().nonnegative(),
   readinessCheckedCount:z.number().int().nonnegative(),checkedInOrOutCount:z.number().int().nonnegative(),

@@ -2957,3 +2957,5 @@
 .gb-lifecycle-checked_in,.gb-lifecycle-fully_checked_in{border-color:color-mix(in srgb,#16a34a 48%,var(--border))}
 .gb-lifecycle-partially_checked_in,.gb-lifecycle-partially_checked_out{border-color:color-mix(in srgb,#e49a24 55%,var(--border))}
 .gb-lifecycle-cancelled,.gb-lifecycle-checked_out{color:var(--muted);background:color-mix(in srgb,#64748b 10%,var(--surface))}
+
+.workspace-loading{display:grid;place-items:center;min-height:180px;padding:24px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:12px;font-size:14px}

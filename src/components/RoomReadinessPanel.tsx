@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
-import {AlertTriangle,ArrowRight,CheckCircle2,Clock3,ShieldAlert,ShieldCheck} from 'lucide-react';
+import {AlertTriangle,CheckCircle2,Clock3,ShieldAlert,ShieldCheck} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
@@ -44,9 +44,8 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
  const latest=state.data?.inspection;
  const blockers=state.data?.blockers;
  const activeBlockers=Object.entries(blockers??{}).filter(([,active])=>active).map(([key])=>blockerLabels[key]??key);
- const blocked=activeBlockers.length>0;
  const approvedCurrent=state.isSuccess&&state.data.advisoryReady;
- const needsNewInspection=!approvedCurrent&&true;
+ const needsNewInspection=!approvedCurrent;
  const allChecks=Object.values(form).slice(0,3).every(Boolean);
  async function run(action:()=>Promise<unknown>){
   if(!hotelId||busy)return;

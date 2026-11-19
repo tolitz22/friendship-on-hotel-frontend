@@ -230,6 +230,15 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
       {readinessNeeded&&roomAssigned&&<QueryFeedback loading={readiness.isPending} error={readiness.error}
        onRetry={()=>void readiness.refetch()}/>}
      </>}
+     {isInHouse&&<div className="stay-operation-impact" aria-label="Checkout confirmation details">
+      <strong>Before checking out this guest{record.assignedRoomNumber?' from Room '+record.assignedRoomNumber:''}:</strong>
+      <ul>
+       <li>The reservation will be marked checked out after server validation.</li>
+       <li>A checkout-clean housekeeping task will be created for the room.</li>
+       <li>This action does not verify, allocate, refund or financially settle a payment.</li>
+       <li>Future room readiness remains subject to inspection and review.</li>
+      </ul>
+     </div>}
      <label className="stay-confirm-check">
       <input type="checkbox" checked={acknowledged} disabled={busy}
        onChange={e=>setAcknowledged(e.target.checked)}/>
@@ -250,10 +259,18 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
       <EarlyCheckInRequest key={record.id+'-'+hotelId} record={record} today={hotelDate}/>}
      {lastOperation!==null&&lastOperation!=='assign'&&error&&
       <p role="alert" className="stay-feedback-error"><AlertTriangle size={16}/>{error}</p>}
-     {lastOperation!==null&&lastOperation!=='assign'&&success&&
-      <p role="status" className="stay-feedback-success"><CheckCircle2 size={17}/>{success}</p>}
+     {lastOperation!==null&&lastOperation!=='assign'&&success&&<>
+      <p role="status" className="stay-feedback-success"><CheckCircle2 size={17}/>{success}</p>
+      <div className="stay-operation-next-links">
+       <Link to="/housekeeping" search={{}}>View housekeeping queue <ArrowRight size={14}/></Link>
+       <Link to="/billing" search={{booking:record.id}}>Review guest bill <ArrowRight size={14}/></Link>
+      </div>
+     </>}
      <p className="stay-security-note">The server independently checks stay dates, permissions and room readiness. This action does not change payments.</p>
     </section>}
+    {!canOperate&&(isConfirmed||isInHouse)&&<p className="stay-blocked-hint" role="status">
+     Your hotel role cannot check in or check out this guest. Ask authorized front-desk staff or an administrator.
+    </p>}
 
     {canOperate&&isConfirmed&&<section ref={assignmentRef} className="stay-room-section" aria-label="Room assignment">
      <div className="stay-section-heading">

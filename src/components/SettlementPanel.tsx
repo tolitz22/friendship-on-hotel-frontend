@@ -187,6 +187,9 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   data?.cashShiftContexts.find(row=>row.paymentId===nextPayment.id)?.recordedBy===user?.id;
  const cannotVerifyOwn=!!nextPayment&&(pendingOtherReviewer||recorderIsCurrent);
  const hasExistingMoney=recordedTotal>0;
+ const extraBalanceMinor=Math.max(0,(data?.netRecordedChargesMinor??0)-recordedTotal);
+ const canCollectExtra=extraBalanceMinor>0&&!data?.signed&&
+  ['confirmed','checked_in'].includes(data?.status??'');
  // Operational handoff: a payment is already recorded; the question is WHO
  // can complete the next control. Never confuse staff confirmation with
  // independently verified funds or a completed checkout.
@@ -254,7 +257,9 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   :routineCashReady
   ?'Cash payment is recorded and covers the guest bill. Routine checkout can proceed without per-payment manager approval. The cashier still needs to count the drawer; another manager reconciles it afterward.'
   :routineCashException
-  ?'Routine cash checkout is not eligible: '+(data?.routineCashCheckoutReason??'manager review is required')+'. Do not collect the guest payment again.'
+  ?extraBalanceMinor>0
+   ?'New charges increased the total. The original payment remains recorded. Collect only the additional '+money(extraBalanceMinor,data?.currency??'PHP')+' if the guest is paying now.'
+   :'Routine cash checkout is not eligible: '+(data?.routineCashCheckoutReason??'manager review is required')+'. Do not collect the guest payment again.'
   :canSubmitOwnCount
   ?'The guest payment is recorded and confirmed. Do not collect it again. Count and submit '+shiftLabel+' in Cashier Shifts only when ending your shift. Strict financial settlement may still require independent reconciliation.'
   :mustWaitForCashier
@@ -392,7 +397,11 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        :'The signed statement failed its integrity check. Stop checkout and request investigation.'
       :operationalDescription}</p>
      {!data.signed&&<div className="frontdesk-payment-primary">
-      {routineCashCheckedOut&&allCashShiftsReconciled&&cashAuditValid
+      {canCollectExtra&&hasExistingMoney
+       ?<button type="button" className="btn-primary" disabled={busy}
+         onClick={()=>openDialog('payment')}><Banknote size={16}/>
+         Record additional payment · {money(extraBalanceMinor,data.currency)}</button>
+       :routineCashCheckedOut&&allCashShiftsReconciled&&cashAuditValid
        ?<span className="frontdesk-payment-waiting"><CheckCircle2 size={16}/>
          Independent cash reconciliation completed. No guest payment action needed.
         </span>

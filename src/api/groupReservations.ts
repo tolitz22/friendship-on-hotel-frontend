@@ -12,6 +12,13 @@ const groupRoom=z.object({
 const group=z.object({
  id,hotelId:id,reference:z.string(),name:z.string(),contactName:z.string().nullable(),
  roomCount:z.number().int().nonnegative(),createdAt:z.string(),
+ createdByName:z.string().nullable(),
+ activity:z.array(z.object({
+  id,action:z.string(),before:z.string().nullable(),after:z.string().nullable(),
+  actorId:id,actorName:z.string().nullable(),
+  bookingReference:z.string(),guestName:z.string().nullable(),at:z.string(),
+ })),
+ activityHasMore:z.boolean(),
  operations:z.object({
   assignedCount:z.number().int().nonnegative(),readinessAdvisoryReadyCount:z.number().int().nonnegative(),
   readinessCheckedCount:z.number().int().nonnegative(),checkedInOrOutCount:z.number().int().nonnegative(),

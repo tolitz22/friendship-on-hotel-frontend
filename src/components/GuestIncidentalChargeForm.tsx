@@ -32,13 +32,15 @@ export function GuestIncidentalChargeForm({bookingId,currency,currentChargesMino
      description:description.trim(),amountMinor:parsed},
    });
    if(readSession().hotelId!==hotelId)return;
+   // The write already succeeded: a refresh error must not invite a
+   // second charge with a new request key.
    key.current=crypto.randomUUID();
-   await Promise.all([
+   onSaved();
+   void Promise.all([
     client.invalidateQueries({queryKey:['live','settlement-statement',hotelId,bookingId]}),
     client.invalidateQueries({queryKey:['live','folio-ledger',hotelId,bookingId]}),
     client.invalidateQueries({queryKey:['live','billing-folios',hotelId]}),
-   ]);
-   onSaved();
+   ]).catch(()=>{});
   }catch(e){if(readSession().hotelId===hotelId)
    setError((e instanceof Error?e.message:'Could not save this charge.')+
     ' If the request may have succeeded, refresh the bill before retrying.');}

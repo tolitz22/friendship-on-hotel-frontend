@@ -144,9 +144,10 @@ type InspectionHistoryEvent={
 export function ReadableInspectionAuditEvent({event,currentUserId,currentUserName}:{
  event:InspectionHistoryEvent;currentUserId?:string|null;currentUserName?:string|null;
 }){
- const action=event.action==='submitted'?'Submitted room inspection':
-  event.action==='approved'?'Approved room inspection':'Rejected room inspection';
  const checks=event.details.checks;
+ const isOneStepCompletion=event.action==='approved'&&checks!==null&&typeof checks==='object'&&!Array.isArray(checks);
+ const action=event.action==='submitted'?'Submitted room inspection':
+  event.action==='approved'?(isOneStepCompletion?'Completed room inspection':'Reviewed and approved room inspection'):'Rejected room inspection';
  const checklist=checks&&typeof checks==='object'&&!Array.isArray(checks)
   ?checks as Record<string,unknown>:null;
  const note=typeof event.details.note==='string'?event.details.note:null;
@@ -162,7 +163,7 @@ export function ReadableInspectionAuditEvent({event,currentUserId,currentUserNam
     <span aria-hidden="true"> · </span><Clock3 size={13}/> {readableDateTime(event.createdAt)}</span></div></div>
   {rows&&<dl className="readable-audit-changes">{rows.map(([label,checked])=>
    <div key={String(label)}><dt>{label}</dt><dd><strong>{checked===true?'Checked and verified':checked===false?'Not verified':'Not recorded'}</strong></dd></div>)}</dl>}
-  {note&&<p className="readable-audit-note"><strong>{event.action==='submitted'?'Inspection':'Review'} note:</strong> {note}</p>}
+  {note&&<p className="readable-audit-note"><strong>{isOneStepCompletion||event.action==='submitted'?'Inspection':'Review'} note:</strong> {note}</p>}
   {!rows&&!note&&<p className="readable-audit-context">Inspection decision recorded. No additional details were supplied.</p>}
  </article>;
 }

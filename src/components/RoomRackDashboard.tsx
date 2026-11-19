@@ -167,11 +167,14 @@ export function RoomRackDashboard({hotelId,focusRoomNumber,onEditRoom}:{hotelId:
  const select=(room:RackRoom,button:HTMLButtonElement)=>{trigger.current=button;setSelected(room);};
  const close=useCallback(()=>setSelected(null),[]);
  const restore=useCallback(()=>trigger.current?.focus(),[]);
+ const openedDeepLink=useRef<string|null>(null);
  useEffect(()=>{
-  if(!focusRoomNumber||!data||selected)return;
+  if(!focusRoomNumber||!data)return;
+  const key=hotelId+':'+focusRoomNumber;
+  if(openedDeepLink.current===key)return;
   const target=data.rooms.find(room=>room.roomNumber===focusRoomNumber);
-  if(target)setSelected(target);
- },[focusRoomNumber,data,selected]);
+  if(target){openedDeepLink.current=key;setSelected(target);}
+ },[focusRoomNumber,data,hotelId]);
  const summary=data?.summary;
  return <section className="rack-dashboard" aria-label="Live hotel room rack">
   <div className="rack-heading">

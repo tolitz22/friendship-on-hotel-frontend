@@ -65,10 +65,7 @@ export function EarlyCheckOutRequest({record,today}:{record:LiveRecord;today:str
     <textarea id="early-checkout-reason" className="wizard-input" rows={3} maxLength={1000}
      disabled={busy} value={reason} onChange={e=>{setReason(e.target.value);retry.current=null;setError('');setSuccess('');}}
      placeholder="Record the guest's request, actual departure and any agreed financial follow-up."/>
-    <label className="stay-confirm-check">
-     <input type="checkbox" disabled checked readOnly/>
-     <span>Original reserved dates, charges and financial audit remain unchanged by this request.</span>
-    </label>
+    <p className="desk-muted">Submitting the request does not check out the guest or change the bill. The manager will review the recorded departure and outstanding balance.</p>
     <div className="stay-early-form-actions">
      <button type="button" className="btn-primary" disabled={busy||reason.trim().length<10}
       onClick={()=>void submit()}>{busy?'Sending…':'Send for manager review'}</button>

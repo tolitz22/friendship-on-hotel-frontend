@@ -1,9 +1,10 @@
-import {afterEach,describe,expect,it,vi} from 'vitest';
+import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
 import {clearSession,setSessionHotel,setSessionToken} from './session';
 import {createHousekeepingTask,getHousekeepingHistory,listHousekeepingTasks,updateHousekeepingTask,parseLiveHousekeeping,parseUpdatedHousekeeping,parseHousekeepingHistory,nextLiveHousekeepingStatus,canProgressHousekeeping} from './liveHousekeeping';
 import type {LiveHousekeepingTask} from './liveHousekeeping';
 
-afterEach(()=>{clearSession();vi.unstubAllGlobals();});
+beforeEach(()=>{vi.stubEnv('VITE_AUTH_MODE','bearer');});
+afterEach(()=>{clearSession();vi.unstubAllGlobals();vi.unstubAllEnvs();});
 
 describe('Phase 14 live housekeeping API',()=>{
  it('reads tasks for the selected hotel with bearer authentication',async()=>{

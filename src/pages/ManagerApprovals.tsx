@@ -28,7 +28,7 @@ function ApprovalCard({item,hotelId}:{item:Approval;hotelId:string}){
   retry:false,
  });
  async function decide(decision:'approve'|'reject'){
-  if(busy||item.status!=='pending'||(decision==='approve'&&(!confirmed||(item.action==='early_check_in'&&note.trim().length<10)))
+  if(busy||item.status!=='pending'||(decision==='approve'&&(!confirmed||((item.action==='early_check_in'||item.action==='early_check_out')&&note.trim().length<10)))
    ||(decision==='reject'&&!note.trim()))return;
   setBusy(true);setError('');
   try{
@@ -45,7 +45,7 @@ function ApprovalCard({item,hotelId}:{item:Approval;hotelId:string}){
   finally{setBusy(false);}
  }
  return <article className={'stay-review-card'+(item.action==='early_check_in'?' stay-review-early':'')}>
-  <div className="desk-tools"><strong>{item.action==='cancel_booking'?'Cancel reservation':item.action==='early_check_in'?'Early check-in · Manager review':'Change stay dates'} <small>#{item.id}</small></strong>
+  <div className="desk-tools"><strong>{item.action==='cancel_booking'?'Cancel reservation':item.action==='early_check_in'?'Early check-in · Manager review':item.action==='early_check_out'?'Early checkout · Manager review':'Change stay dates'} <small>#{item.id}</small></strong>
    <span className="table-count">{item.status.toUpperCase()}</span></div>
   <p><Link to="/reservations" search={{booking:item.bookingId}}>Reservation #{item.bookingId}</Link>
    {' · '}Requested by {actor(item.requestedBy)} · {readableDateTime(item.createdAt)}</p>
@@ -53,20 +53,23 @@ function ApprovalCard({item,hotelId}:{item:Approval;hotelId:string}){
   <p><strong>Recorded booking:</strong> {readableDate(item.snapshot.checkIn)} → {readableDate(item.snapshot.checkOut)}
    {' · '}{item.snapshot.status} · Room {item.snapshot.assignedRoomId??'unassigned'}</p>
   {item.action==='amend_dates'&&<p><strong>Requested dates:</strong> {readableDate(item.payload.checkIn)} → {readableDate(item.payload.checkOut)}</p>}
-  <p className="desk-muted">Expires: {readableDateTime(item.expiresAt)}. For early check-in, approval immediately records the guest as checked in and an early-arrival audit record. Room availability, readiness and date rules are rechecked; payment is not changed.</p>
+  <p className="desk-muted">Expires: {readableDateTime(item.expiresAt)}. For early arrivals or departures, approval immediately performs the applicable guarded stay transition and records an audit event. Early checkout creates a housekeeping turnover task and still enforces financial checkout rules. Neither operation automatically refunds or changes charges.</p>
   {item.status==='pending'&&<>
    <label className="wizard-label" htmlFor={'review-note-'+item.id}>Manager decision note</label>
    <textarea id={'review-note-'+item.id} className="wizard-input" rows={2} maxLength={1000}
-    value={note} onChange={e=>setNote(e.target.value)} disabled={busy} placeholder={item.action==='early_check_in'?'Describe verified guest arrival, room readiness and pricing follow-up':'Reason for decision (required for rejection)'}/>
-   {item.action==='early_check_in'&&<p className="stay-early-inbox-tip">Approving immediately records the guest as checked in early. The original scheduled dates remain on the booking.</p>}
+    value={note} onChange={e=>setNote(e.target.value)} disabled={busy} placeholder={item.action==='early_check_in'?'Describe verified guest arrival, room readiness and pricing follow-up':item.action==='early_check_out'?'Confirm actual departure, guest request and financial follow-up':'Reason for decision (required for rejection)'}/>
+   {item.action==='early_check_in'&&<p className="stay-early-inbox-tip">Approving immediately records the guest as checked in early. The original scheduled dates remain on the booking.</p>
+   {item.action==='early_check_out'&&<p className="stay-early-inbox-tip">Approving immediately checks out the guest, revokes recorded keycard authorizations, and creates checkout cleaning. Scheduled dates and posted charges remain unchanged; no refund is generated. All configured settlement rules still apply.</p>}
    <label className="wizard-label">
     <input type="checkbox" checked={confirmed} disabled={busy}
      onChange={e=>setConfirmed(e.target.checked)}/>
-    I independently confirmed the request, guest identity, assigned room, readiness and potential additional-night charges.
+    {item.action==='early_check_out'
+     ?'I verified the guest has departed, reviewed applicable financial checkout requirements, and understand this immediately ends the registered stay without an automatic refund.'
+     :'I independently confirmed the request, guest identity, assigned room, readiness and potential additional-night charges.'}
    </label>
    <div className="desk-tools">
-    <button type="button" className="btn-primary" disabled={busy||!confirmed||(item.action==='early_check_in'&&note.trim().length<10)}
-     onClick={()=>void decide('approve')}>{busy?'Reviewing…':item.action==='early_check_in'?'Approve & check in early':'Approve and execute'}</button>
+    <button type="button" className="btn-primary" disabled={busy||!confirmed||((item.action==='early_check_in'||item.action==='early_check_out')&&note.trim().length<10)}
+     onClick={()=>void decide('approve')}>{busy?'Reviewing…':item.action==='early_check_in'?'Approve & check in early':item.action==='early_check_out'?'Approve & check out early':'Approve and execute'}</button>
     <button type="button" className="btn-inline" disabled={busy||!note.trim()}
      onClick={()=>void decide('reject')}>Reject request</button>
    </div>
@@ -92,7 +95,7 @@ function ApprovalCard({item,hotelId}:{item:Approval;hotelId:string}){
      {note&&<p className="readable-audit-note"><strong>Decision note:</strong> {note}</p>}
      {entry.event==='requested'&&<p className="readable-audit-context">
       Requested action: {item.action==='cancel_booking'?'Cancel reservation':
-       item.action==='amend_dates'?'Change stay dates':'Early check-in'}</p>}
+       item.action==='amend_dates'?'Change stay dates':item.action==='early_check_out'?'Early checkout':'Early check-in'}</p>}
     </article>;
    })}
   </div>}
@@ -131,6 +134,6 @@ export function ManagerApprovals(){
      <button type="button" className="btn-inline" disabled={page>=approvals.data.meta.totalPages} onClick={()=>setPage(p=>p+1)}>Next</button>
     </div></div>}
   </Panel>
-  <p className="desk-preview-note"><AlertTriangle size={16}/> An approved early check-in is recorded as an exception to the scheduled arrival date. It still requires an available, ready room. Payments and refunds remain on their separate manager-only flows.</p>
+  <p className="desk-preview-note"><AlertTriangle size={16}/> Early arrivals and departures are audited exceptions. Early checkout runs the usual financial checkout safeguards and housekeeping handoff; it does not refund unused nights automatically.</p>
  </>;
 }

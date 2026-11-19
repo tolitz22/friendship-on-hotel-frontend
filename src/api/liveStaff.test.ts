@@ -1,10 +1,11 @@
-import {afterEach,describe,expect,it,vi} from 'vitest';
+import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
 import {clearSession,setSessionHotel,setSessionToken} from './session';
 import {attachHotelStaff,getHotelStaffHistory,listHotelStaff,updateHotelStaff} from './liveStaff';
 import {updateHousekeepingTask} from './liveHousekeeping';
 import {updateMaintenance} from './liveMaintenance';
 
-afterEach(()=>{clearSession();vi.unstubAllGlobals();});
+beforeEach(()=>{vi.stubEnv('VITE_AUTH_MODE','bearer');});
+afterEach(()=>{clearSession();vi.unstubAllGlobals();vi.unstubAllEnvs();});
 
 describe('Phase 15 hotel staff and scoped task updates',()=>{
  it('lists property staff with bearer credentials',async()=>{

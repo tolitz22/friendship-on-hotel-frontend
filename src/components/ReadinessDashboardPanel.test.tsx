@@ -28,7 +28,7 @@ describe('Readiness & arrivals operational priorities',()=>{
    .toBe('Maintenance restriction active');
   expect(readinessProblem({...emptyFlags,unfinishedHousekeeping:true},'needs_inspection'))
    .toBe('Housekeeping incomplete');
-  expect(readinessProblem(emptyFlags,'awaiting_review')).toBe('Old inspection needs to be completed again');
+  expect(readinessProblem(emptyFlags,'awaiting_review')).toBe('Inspection awaiting authorized review');
   expect(readinessProblem(emptyFlags,'needs_inspection')).toBe('Approved inspection missing or outdated');
  });
 });

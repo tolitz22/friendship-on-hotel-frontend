@@ -600,53 +600,88 @@ export function GroupReservations(){
        onClick={confirm}>{busy?'Saving…':'Confirm all room bookings'} <ArrowRight size={16}/></button>}
     </div>
    </>}
-  </Panel>:view==='groups'?<Panel title="Saved group bookings">
-   <div className="gb-list-toolbar"><label className="search-box">
-    <Search size={17}/><input value={searchText} onChange={e=>setSearchText(e.target.value)}
-     aria-label="Filter groups on this page" placeholder="Filter group name, reference or contact"/>
-    </label>
-    <span>{groups.data?.meta.total??0} total groups</span>
-    <button className="btn-inline" type="button" disabled={groups.isFetching}
-     onClick={()=>void groups.refetch()}><RefreshCw size={15}/> Refresh</button></div>
-   <QueryFeedback loading={groups.isPending} error={groups.error} onRetry={()=>void groups.refetch()}/>
-   {groups.data?.data.length===0&&<div className="gb-empty">
-    <Layers3 size={26}/><strong>No group bookings yet</strong>
-    <p>Start a group booking to keep several rooms under one reference.</p>
-    {canBook&&<button className="btn-primary" type="button" onClick={()=>{setView('new');}}>
-     <Plus size={16}/> New group booking</button>}
-   </div>}
-   <p className="desk-muted">Filter searches the current page only. Use the page controls to browse older groups.</p>
-   <div className="reservation-manage-list gb-group-list">
-    {groups.data?.data.filter(group=>[group.name,group.reference,group.contactName??'']
-     .some(text=>text.toLowerCase().includes(searchText.trim().toLowerCase()))).map(group=><article key={group.id} className="reservation-manage-card">
-     <div><strong>{group.name}</strong>
-      <p className="gb-list-stay">{group.checkIn&&group.checkOut
-       ?readableDate(group.checkIn)+' – '+readableDate(group.checkOut)
-       :'Stay dates unavailable'}</p>
-      <p>{group.reference} · {group.roomCount} rooms</p>
-      <small>{group.contactName??'No contact recorded'} · Created {readableDateTime(group.createdAt)}</small></div>
-     <div className="gb-list-actions">
-      <Link to="/group-reservations" search={{group:group.id,hotel:hotelId??undefined}}>View group <ArrowRight size={16}/></Link>
-      {group.checkIn&&<Link to="/room-calendar"
-       search={{date:group.checkIn,end:group.checkOut??undefined,
-      group:group.id,hotel:hotelId??undefined}}>View on calendar</Link>}
-     </div>
-    </article>)}
+  </Panel>:view==='groups'?<section className="gb-groups-workspace" aria-label="Group booking dashboard">
+   <div className="gb-summary-grid">
+    <div><small>Total matching groups</small><strong>{groups.data?.meta.total??'—'}</strong>
+     <span>All matching records across pages</span></div>
+    <div><small>Confirmed</small><strong>{groups.isError?'—':pageConfirmed}</strong>
+     <span>Groups on this page</span></div>
+    <div><small>In house / partially arrived</small><strong>{groups.isError?'—':pageInHouse}</strong>
+     <span>Groups on this page</span></div>
+    <div><small>Checked out</small><strong>{groups.isError?'—':pageDeparted}</strong>
+     <span>Groups on this page</span></div>
    </div>
-   {groups.data&&groups.data.data.length>0&&searchText.trim()&&
-    !groups.data.data.some(group=>[group.name,group.reference,group.contactName??'']
-     .some(text=>text.toLowerCase().includes(searchText.trim().toLowerCase())))&&
-    <p className="gb-empty">No matches on this page. Try another search or page.</p>}
-   {groups.data&&groups.data.meta.totalPages>1&&<div className="desk-tools reservation-pagination">
-    <span className="desk-muted">Page {page} of {groups.data.meta.totalPages} · {groups.data.meta.total} groups</span>
-    <div className="desk-date-nav">
-     <button type="button" className="btn-inline" disabled={page<=1}
-      onClick={()=>setPage(current=>Math.max(1,current-1))}>Previous</button>
-     <button type="button" className="btn-inline" disabled={page>=groups.data.meta.totalPages}
-      onClick={()=>setPage(current=>current+1)}>Next</button>
-    </div>
+   {pageAttention>0&&<div className="gb-attention-note" role="status">
+    <AlertTriangle size={17}/> {pageAttention} partially arrived/departed group{pageAttention===1?'':'s'} on this page require individual room follow-up.
    </div>}
-  </Panel>:null}
+   <div className="gb-groups-table-panel">
+    <div className="gb-table-head"><div><h3><Layers3 size={18}/> Group reservations</h3>
+     <p>Search the entire hotel's group records. Open a group for rooms, guests and billing.</p></div>
+     <button type="button" className="btn-inline" disabled={groups.isFetching}
+      onClick={()=>void groups.refetch()}><RefreshCw size={15}/> Refresh</button></div>
+    <div className="gb-table-filters">
+     <label className="gb-table-search"><Search size={16}/><input value={searchText}
+      onChange={e=>setSearchText(e.target.value)}
+      aria-label="Search all group reservations"
+      placeholder="Search group name, contact or reference"/>
+      {searchText&&<button type="button" aria-label="Clear group search" onClick={()=>setSearchText('')}><X size={15}/></button>}
+     </label>
+     <label className="gb-status-filter"><Filter size={15}/>
+      <select aria-label="Filter group lifecycle status" value={groupFilter}
+       onChange={e=>{setGroupFilter(e.target.value as GroupStatusFilter);setPage(1);}}>
+       <option value="all">All statuses</option>
+       <option value="confirmed">Confirmed</option>
+       <option value="partially_checked_in">Partially checked in</option>
+       <option value="fully_checked_in">Fully checked in</option>
+       <option value="partially_checked_out">Partially checked out</option>
+       <option value="checked_out">Checked out</option>
+       <option value="cancelled">Cancelled</option>
+      </select></label>
+    </div>
+    <p className="desk-muted" role="status">{groups.isFetching||appliedSearch!==searchText.trim()
+     ?'Updating group list…'
+     :groups.data?groups.data.meta.total+' matching group reservations':'No verified group totals available'}
+     {pageAttention>0?' · '+pageAttention+' partially complete on this page':''}</p>
+    <QueryFeedback loading={groups.isPending} error={groups.error} onRetry={()=>void groups.refetch()}/>
+    {groups.data&&visibleGroups.length===0&&<div className="gb-empty">
+     <Layers3 size={25}/><strong>{appliedSearch||groupFilter!=='all'?'No matching group bookings':'No group bookings yet'}</strong>
+     <p>{appliedSearch||groupFilter!=='all'?'Change or clear filters to see other group reservations.':'Start a group booking to link multiple room reservations under one reference.'}</p>
+     {(appliedSearch||groupFilter!=='all')&&<button className="btn-inline" type="button" onClick={()=>{
+      setSearchText('');setAppliedSearch('');setGroupFilter('all');setPage(1);
+     }}>Clear filters</button>}
+    </div>}
+    {visibleGroups.length>0&&<div className="gb-table-scroll"><table className="gb-table">
+     <thead><tr><th>Group / Contact</th><th>Stay dates</th><th>Rooms</th>
+      <th>Group status</th><th>Progress</th><th>Actions</th></tr></thead>
+     <tbody>{visibleGroups.map(group=><tr key={group.id}>
+      <td><Link className="gb-group-name" to="/group-reservations"
+       search={{group:group.id,hotel:hotelId??undefined}}>{group.name}</Link>
+       <small>{group.reference}</small><small>{group.contactName??'Contact not recorded'}</small></td>
+      <td>{group.checkIn&&group.checkOut?
+       <><strong>{readableDate(group.checkIn)}</strong><small>to {readableDate(group.checkOut)}</small></>
+       :'Dates unavailable'}</td>
+      <td><strong>{group.roomCount} rooms</strong></td>
+      <td><span className={'gb-lifecycle-badge gb-lifecycle-'+group.status}>
+       {groupStatusLabel(group.status)}</span></td>
+      <td><span>{group.statusCounts.checkedIn} in house</span>
+       <small>{group.statusCounts.checkedOut} checked out · {group.statusCounts.cancelled} cancelled</small></td>
+      <td><div className="gb-list-actions">
+       <Link className="btn-inline" to="/group-reservations"
+        search={{group:group.id,hotel:hotelId??undefined}}>Manage <ArrowRight size={14}/></Link>
+       <Link to="/room-calendar" search={{date:group.checkIn??undefined,end:group.checkOut??undefined,
+         group:group.id,hotel:hotelId??undefined}}>Calendar</Link>
+      </div></td>
+     </tr>)}</tbody>
+    </table></div>}
+    {groups.data&&groups.data.meta.totalPages>1&&<div className="gb-list-pagination">
+     <span>Page {page} of {groups.data.meta.totalPages} · {groups.data.meta.total} groups</span>
+     <div><button type="button" className="btn-inline" disabled={page===1}
+      onClick={()=>setPage(v=>Math.max(1,v-1))}><ChevronLeft size={14}/> Previous</button>
+      <button type="button" className="btn-inline" disabled={page>=groups.data.meta.totalPages}
+       onClick={()=>setPage(v=>v+1)}>Next <ChevronRight size={14}/></button></div>
+    </div>}
+   </div>
+  </section>:null}
    <p className="gb-bottom-note"><CalendarDays size={14}/> Room numbers are assigned after a group booking is confirmed.</p>
   </div>
   {guestDialogRoom!==null&&canCreateGuest&&hotelId&&<QuickGuestDialog key={hotelId+'-'+guestDialogRoom}

@@ -5,7 +5,7 @@ import {useHotelAuth} from '../components/AuthProvider';
 import {Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {
- submitRoomInspection,reviewRoomInspection,
+ submitRoomInspection,
  useLiveReadiness,useLiveReadinessHistory,
 } from '../api/liveRoomReadiness';
 import type {InspectionInput} from '../api/liveRoomReadiness';
@@ -33,7 +33,6 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin&&!!hotelId});
  const nameOf=(id:string)=>auditActorName(id,staff.data?.data.find(member=>member.userId===id)?.name,user?.id,user?.name);
  const [form,setForm]=useState<InspectionInput>(empty);
- const [reviewNote,setReviewNote]=useState('');
  const [historyPage,setHistoryPage]=useState(1);
  const [busy,setBusy]=useState(false);
  const [message,setMessage]=useState('');
@@ -47,7 +46,7 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
  const activeBlockers=Object.entries(blockers??{}).filter(([,active])=>active).map(([key])=>blockerLabels[key]??key);
  const blocked=activeBlockers.length>0;
  const approvedCurrent=state.isSuccess&&state.data.advisoryReady;
- const needsNewInspection=!approvedCurrent&&latest?.status!=='submitted';
+ const needsNewInspection=!approvedCurrent&&true;
  const allChecks=Object.values(form).slice(0,3).every(Boolean);
  async function run(action:()=>Promise<unknown>){
   if(!hotelId||busy)return;
@@ -57,7 +56,7 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
    await action();
    if(readSession().hotelId!==at)return;
    setMessage('Change saved. The room status and inspection history are being updated.');
-   setForm(empty());setReviewNote('');
+   setForm(empty());
    void Promise.all([
     client.invalidateQueries({queryKey:['live','room-readiness',at,room.id]}),
     client.invalidateQueries({queryKey:['live','room-readiness-history',at,room.id]}),
@@ -71,12 +70,6 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
   }finally{setBusy(false);}
  }
  const submit=()=>void run(()=>submitRoomInspection(hotelId!,room.id,form));
- const review=(decision:'approve'|'reject')=>{
-  if(!latest)return;
-  void run(()=>reviewRoomInspection(hotelId!,room.id,latest.id,{
-   decision,expectedRevision:latest.revision,note:reviewNote,
-  }));
- };
  return <Panel title={'Room '+room.number+' · Inspection and readiness'}>
   <div className="desk-tools">
    <p>Room type: {room.roomTypeName} · Cleaning, physical inspection, and room availability are separate checks.</p>
@@ -87,15 +80,9 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
    <div className={'rr-inspection-status'+(state.data.advisoryReady?' approved':'')}>
     {state.data.advisoryReady?<ShieldCheck size={22}/>:<ShieldAlert size={22}/>}
     <div><strong>{state.data.advisoryReady?'Current inspection approved':'Not approved for readiness'}</strong>
-     <p>{state.data.advisoryReady?'No new inspection is required merely because another day has passed. Reinspect after checkout turnover, relevant room work, or a new blocker.':'This means there is no current approved inspection. It does not automatically mean the room is dirty.'}</p></div>
+     <p>{state.data.advisoryReady?'No new inspection is required merely because another day has passed. Reinspect after checkout turnover, relevant room work, or a new blocker.':'A current completed inspection is missing, or a new blocker needs attention. This does not necessarily mean the room is dirty.'}</p></div>
    </div>
-   <div className="rr-readiness-steps" aria-label="Room readiness process">
-    <div><strong>1. Clean</strong><small>Housekeeping records the work</small></div>
-    <ArrowRight size={15} aria-hidden="true"/>
-    <div><strong>2. Inspect</strong><small>Check cleanliness, safety and amenities</small></div>
-    <ArrowRight size={15} aria-hidden="true"/>
-    <div><strong>3. Approve</strong><small>Another authorized manager reviews</small></div>
-   </div>
+   <p className="rr-one-note">Cleaning is recorded separately. A completed room inspection checks safety, cleanliness and amenities; no manager approval is required.</p>
    <div className="rr-inspection-meta"><span><Clock3 size={15}/> Check-in inspection enforcement: <strong>{state.data.enforcedAtCheckIn?'Enabled':'Not enabled'}</strong></span>
     <span>Room inventory, identity, and payment require separate validation.</span></div>
    <section className="rr-blocker-section" aria-label="Current room readiness blockers">
@@ -104,13 +91,13 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
      :<p className="rr-blocker-clear"><CheckCircle2 size={16}/> No blockers reported in the current readiness response.</p>}
    </section>
    {latest?<div className="rr-latest-inspection">
-    <span>Latest inspection</span><strong>{latest.status==='submitted'?'Awaiting manager review':latest.status==='approved'?'Approved':'Rejected'}</strong>
+    <span>Latest inspection</span><strong>{latest.status==='submitted'?'Older inspection awaiting review (replace with a new inspection)':latest.status==='approved'?'Completed':'Rejected'}</strong>
     <small>Inspected by {nameOf(latest.inspectedBy)}{latest.reviewedBy?' · Reviewed by '+nameOf(latest.reviewedBy):''}</small>
    </div>:<p className="rr-latest-inspection">No inspection has been submitted for this room.</p>}
    {approvedCurrent&&<p role="status" className="rr-valid-approval"><CheckCircle2 size={17}/> Inspection is current. Another routine inspection is not needed unless new turnover, maintenance, or other work invalidates it.</p>}
    {admin&&needsNewInspection&&<section>
     <h4>{latest?'Reinspect this room':'Record the first room inspection'}</h4>
-    <p>Only submit after checking the physical room. Cleaning-task completion alone is not proof of inspection. A new inspection is usually needed after guest checkout, relevant repairs, or an expired/stale approval—not every calendar day.</p>
+    <p>Inspect the actual room before confirming the checklist. Active housekeeping, maintenance and inventory blockers must be resolved first.</p>
     {([
      ['cleaningVerified','Cleanliness physically checked'],
      ['safetyVerified','Safety items physically checked'],
@@ -124,24 +111,7 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
       disabled={busy} onChange={e=>setForm(old=>({...old,note:e.target.value}))}/>
     </label>
     <button type="button" className="btn-primary" disabled={busy||!allChecks||form.note.trim().length<5}
-     onClick={submit}>Submit inspection for supervisor review</button>
-   </section>}
-   {admin&&latest?.status==='submitted'&&<section>
-    <h4>Review submitted inspection</h4>
-    <p>A different administrator must approve it. Blockers and missing checks prevent approval.</p>
-    <p>Checklist: {Object.values(latest.checks).every(Boolean)?'All checks recorded':'Some checks failed'}</p>
-    <label className="wizard-label">Review note
-     <textarea className="wizard-input" rows={3} maxLength={2000}
-      disabled={busy} value={reviewNote} onChange={e=>setReviewNote(e.target.value)}/>
-    </label>
-    <div className="desk-tools">
-     <button type="button" className="btn-primary"
-      disabled={busy||latest.inspectedBy===user?.id||!!blocked
-       ||!Object.values(latest.checks).every(Boolean)||reviewNote.trim().length<5}
-      onClick={()=>review('approve')}>Approve inspection</button>
-     <button type="button" className="btn-inline" disabled={busy||reviewNote.trim().length<5}
-      onClick={()=>review('reject')}>Reject inspection</button>
-    </div>
+     onClick={submit}>Complete room inspection</button>
    </section>}
   </>}
   {error&&<p role="alert">{error}</p>}

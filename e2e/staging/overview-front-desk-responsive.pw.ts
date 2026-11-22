@@ -46,7 +46,7 @@ for(const viewport of [
    await expect(page.getByRole('heading',{name:'Front desk today'})).toBeVisible();
    await expect(page.getByRole('heading',{name:'Quick actions'})).toBeVisible();
    await expect(page.getByRole('heading',{name:'Registered room inventory'})).toBeVisible();
-   await expect(page.getByRole('link',{name:'New reservation'})).toHaveAttribute('href',/mode=new/);
+   await expect(page.getByRole('link',{name:'New booking'})).toHaveAttribute('href',/mode=new/);
    await noHorizontalOverflow(page);
    for(const [name,queue,pressed] of [
     ['View expected arrivals','arrivals','Arrivals'],

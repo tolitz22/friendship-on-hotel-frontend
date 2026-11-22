@@ -82,9 +82,9 @@ export function LiveHousekeeping(){
  const [typeFilter,setTypeFilter]=useState<HousekeepingType|''>('');
  const [textFilter,setTextFilter]=useState('');
  const [mineOnly,setMineOnly]=useState(false);
- const filter:TaskFilter={...(statusFilter?{status:statusFilter}:{}),...(typeFilter?{type:typeFilter}:{})};
+ const filter:TaskFilter={...(statusFilter?{status:statusFilter}:{}),...(typeFilter?{type:typeFilter}:{}),q:textFilter.trim()||undefined,mine:mineOnly?1:undefined};
  const tasks=useQuery({
-  queryKey:['live-housekeeping',hotelId,page,statusFilter,typeFilter],
+  queryKey:['live-housekeeping',hotelId,page,filter],
   enabled:!!hotelId,
   queryFn:async()=>parseLiveHousekeeping(await listHousekeepingTasks(page,20,filter),hotelId!),
   retry:false,
@@ -183,11 +183,8 @@ export function LiveHousekeeping(){
   }finally{setSaving(false);}
  }
  const data=tasks.data?.data??[];
- const matchText=textFilter.trim().toLocaleLowerCase();
- const filtered=data.filter(task=>(!mineOnly||task.assignedUserId===user?.id)&&(!matchText||[
-  task.roomNumber,task.type,task.status,task.assignedTo??'',task.id,
- ].some(value=>value.toLocaleLowerCase().includes(matchText))));
-  const overdueCount=data.filter(t=>t.status!=='done'&&t.dueAt&&t.dueAt.slice(0,10)<hotelDate).length;
+ const filtered=data;
+  const overdueCount=tasks.data?.meta.pastDueCount??'—';
  const hasFilters=!!statusFilter||!!typeFilter||!!textFilter.trim()||mineOnly;
  const resetFilters=()=>{setPage(1);setStatusFilter('');setTypeFilter('');setTextFilter('');setMineOnly(false);};
  const assignedName=(task:LiveHousekeepingTask)=>task.assignedUserId
@@ -210,7 +207,7 @@ export function LiveHousekeeping(){
     <Heading title="Housekeeping" description="Find assigned rooms, finish cleaning work, and hand off completed rooms for separate readiness checks."/></div>
    {admin&&<button type="button" className="btn-primary" onClick={openCreate}><Plus size={16}/> New cleaning task</button>}
   </div>
-  <div className="hk-guidance"><Info size={18}/><p><strong>Cleaning complete — new inspection required.</strong> Finishing checkout cleaning never marks the room ready. A new inspection and independent approval are required before room release.</p></div>
+  <div className="hk-guidance"><Info size={18}/><p><strong>Cleaning complete — new inspection required.</strong> Finishing checkout cleaning never marks the room ready. Complete a new physical inspection before releasing the room.</p></div>
   {role==='housekeeping'&&<section className="hk-manager-handoff"
    aria-label="Housekeeping assignments to you">
    <div className="hk-work-heading"><div><span className="rr-eyebrow">ASSIGNED TO YOU</span>
@@ -260,16 +257,16 @@ export function LiveHousekeeping(){
    <p className="desk-muted">Assignments are recorded in the housekeeping task audit trail.
     Automated delivery notifications are not yet configured. Finishing cleaning never approves readiness.</p>
   </section>}
-  <section className="hk-work-summary" aria-label="Housekeeping tasks on current page">
+  <section className="hk-work-summary" aria-label="Hotel-wide housekeeping tasks">
    <div className="hk-work-heading"><div><span className="rr-eyebrow">HOTEL-WIDE TASKS</span><h3>Cleaning workload</h3>
-    <p>To do, In progress and Completed show totals across this hotel, even when you change the queue filter. Past due is based on the current task page.</p></div>
+    <p>Totals cover all housekeeping tasks at this hotel.</p></div>
     <button type="button" className="rr-secondary-action" disabled={tasks.isFetching||statusTotals.isFetching} onClick={()=>void Promise.all([tasks.refetch(),statusTotals.refetch()])}><RefreshCcw size={16}/>{tasks.isFetching?'Refreshing…':'Refresh tasks'}</button>
    </div>
    <div className="hk-work-metrics">
     <div><Clock3 size={19}/><span>To do · hotel-wide</span><strong>{statusTotals.isSuccess?statusTotals.data.todo:'—'}</strong></div>
     <div><ClipboardCheck size={19}/><span>In progress · hotel-wide</span><strong>{statusTotals.isSuccess?statusTotals.data.in_progress:'—'}</strong></div>
     <div><CheckCircle2 size={19}/><span>Completed · hotel-wide</span><strong>{statusTotals.isSuccess?statusTotals.data.done:'—'}</strong></div>
-    <div className="hk-metric-alert"><AlertTriangle size={19}/><span>Past due · current page</span><strong>{tasks.isSuccess?overdueCount:'—'}</strong></div>
+    <div className="hk-metric-alert"><AlertTriangle size={19}/><span>Past due</span><strong>{tasks.isSuccess?overdueCount:'—'}</strong></div>
    </div>
    {statusTotals.isError&&<div className="hk-total-error" role="status">Hotel-wide task totals could not be loaded. <button type="button" className="btn-inline" onClick={()=>void statusTotals.refetch()}>Retry totals</button></div>}
   </section>
@@ -285,21 +282,20 @@ export function LiveHousekeeping(){
        onClick={()=>{setStatusFilter(value);setPage(1);}}>{label}</button>)}
     </div>
     <div className="hk-filter-controls">
-     <label className="hk-search-field"><Search size={17}/><input aria-label="Search tasks on this page" type="search" value={textFilter}
-      placeholder="Room number, staff, task…" onChange={e=>setTextFilter(e.target.value)}/></label>
+     <label className="hk-search-field"><Search size={17}/><input aria-label="Search tasks" type="search" maxLength={120} value={textFilter}
+      placeholder="Room number, staff, task…" onChange={e=>{setPage(1);setTextFilter(e.target.value);}}/></label>
      <label className="hk-type-filter">Task type <select aria-label="Filter task type" value={typeFilter}
       onChange={e=>{setTypeFilter(e.target.value as HousekeepingType|'');setPage(1);}}>
       <option value="">All types</option>
       {taskTypes.map(type=><option key={type} value={type}>{taskNames[type]}</option>)}
      </select></label>
-     {user&&<label className="hk-mine-filter"><input type="checkbox" checked={mineOnly} onChange={e=>setMineOnly(e.target.checked)}/> My tasks on this page</label>}
+     {user&&<label className="hk-mine-filter"><input type="checkbox" checked={mineOnly} onChange={e=>{setPage(1);setMineOnly(e.target.checked);}}/> My tasks</label>}
      {hasFilters&&<button type="button" className="hk-clear" onClick={resetFilters}><X size={15}/> Clear filters</button>}
     </div>
-    <p className="hk-filter-note"><Info size={14}/> Status and task type search the hotel's saved tasks. Text search and My tasks apply only to the current page.</p>
    </div>
    <QueryFeedback loading={tasks.isPending} error={tasks.error} onRetry={()=>void tasks.refetch()}
     empty={tasks.isSuccess&&filtered.length===0}
-    emptyMessage={hasFilters?'No tasks match these filters on this page. Clear filters or browse another page.':'No housekeeping tasks found. An administrator can create a new task.'}/>
+    emptyMessage={hasFilters?'No tasks match these filters.':'No housekeeping tasks found. An administrator can create a new task.'}/>
    {tasks.isSuccess&&filtered.length>0&&<div className="hk-cleaning-grid" aria-live="polite">
     {filtered.map(task=>{
      const pastDue=task.status!=='done'&&!!task.dueAt&&task.dueAt.slice(0,10)<hotelDate;
@@ -317,7 +313,7 @@ export function LiveHousekeeping(){
        </span>
       </div>
       {pastDue&&<p className="hk-cleaning-priority"><AlertTriangle size={15}/> Follow up on this overdue task.</p>}
-      {task.status==='done'&&<p className="hk-cleaning-finished"><CheckCircle2 size={15}/> Cleaning complete — new inspection required. An independent approval is still needed.</p>}
+      {task.status==='done'&&<p className="hk-cleaning-finished"><CheckCircle2 size={15}/> Cleaning complete — new inspection required.</p>}
       <Link to="/rooms" search={{room:task.roomNumber}} className="ops-room-link">Check room readiness <ArrowRight size={14}/></Link>
       <button type="button" className="hk-open-task" onClick={()=>openEdit(task)}>
        {editable?task.status==='todo'?'Start or update task':task.status==='in_progress'?'Update cleaning progress':'View completed task':'View task details'}
@@ -327,7 +323,7 @@ export function LiveHousekeeping(){
     })}
    </div>}
    {tasks.isSuccess&&tasks.data.meta.totalPages>1&&<div className="hk-queue-pagination">
-    <span>Page {tasks.data.meta.page} of {tasks.data.meta.totalPages} · {filtered.length} shown on this page</span>
+    <span>Page {tasks.data.meta.page} of {tasks.data.meta.totalPages} · {filtered.length} shown</span>
     <div><button type="button" className="btn-inline" disabled={page<=1} onClick={()=>setPage(x=>Math.max(1,x-1))}>Previous</button>
      <button type="button" className="btn-inline" disabled={page>=tasks.data.meta.totalPages} onClick={()=>setPage(x=>x+1)}>Next</button></div>
    </div>}
@@ -394,7 +390,7 @@ export function LiveHousekeeping(){
    </div>}
   </section></div>}
   <div className="demand-warning"><ShieldAlert size={18}/><div><strong>Room readiness is checked separately</strong>
-   <p>Marking checkout cleaning complete never makes a room ready. Request a new room inspection and independent approval; maintenance restrictions and reservation availability also remain enforced.</p>
+   <p>Marking checkout cleaning complete never makes a room ready. Request a new physical room inspection; maintenance restrictions and reservation availability also remain enforced.</p>
   </div></div>
  </>;
 }

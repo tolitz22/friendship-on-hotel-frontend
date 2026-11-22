@@ -78,7 +78,7 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
   {state.data&&<>
    <div className={'rr-inspection-status'+(state.data.advisoryReady?' approved':'')}>
     {state.data.advisoryReady?<ShieldCheck size={22}/>:<ShieldAlert size={22}/>}
-    <div><strong>{state.data.advisoryReady?'Current inspection approved':'Not approved for readiness'}</strong>
+    <div><strong>{state.data.advisoryReady?'Current physical inspection complete':'Physical inspection needed'}</strong>
      <p>{state.data.advisoryReady?'No new inspection is required merely because another day has passed. Reinspect after checkout turnover, relevant room work, or a new blocker.':'A current completed inspection is missing, or a new blocker needs attention. This does not necessarily mean the room is dirty.'}</p></div>
    </div>
    <p className="rr-one-note">Cleaning is recorded separately. A completed room inspection checks safety, cleanliness and amenities; no manager approval is required.</p>
@@ -90,7 +90,7 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
      :<p className="rr-blocker-clear"><CheckCircle2 size={16}/> No blockers reported in the current readiness response.</p>}
    </section>
    {latest?<div className="rr-latest-inspection">
-    <span>Latest inspection</span><strong>{latest.status==='submitted'?'Older inspection awaiting review (replace with a new inspection)':latest.status==='approved'?'Completed':'Rejected'}</strong>
+    <span>Latest inspection</span><strong>{latest.status==='submitted'?'Repeat physical inspection':latest.status==='approved'?'Completed':'Rejected'}</strong>
     <small>Inspected by {nameOf(latest.inspectedBy)}{latest.reviewedBy?' · Reviewed by '+nameOf(latest.reviewedBy):''}</small>
    </div>:<p className="rr-latest-inspection">No inspection has been submitted for this room.</p>}
    {approvedCurrent&&<p role="status" className="rr-valid-approval"><CheckCircle2 size={17}/> Inspection is current. Another routine inspection is not needed unless new turnover, maintenance, or other work invalidates it.</p>}

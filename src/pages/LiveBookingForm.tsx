@@ -1,3 +1,4 @@
+import {useLiveProperty} from '../api/liveCatalogQueries';
 import {useEffect,useRef,useState} from 'react';
 import {Link,useSearch} from '@tanstack/react-router';
 import type {FormEvent} from 'react';
@@ -18,8 +19,8 @@ import {useHotelAuth} from '../components/AuthProvider';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {addDays,hotelToday} from '../features/reservations/calendarDate';
 
-const initialSelection=(guestId='',requestedDay?:string,requestedOut?:string):BookingSelection=>{
- const checkIn=requestedDay&&requestedDay>=hotelToday()?requestedDay:addDays(hotelToday(),1);
+const initialSelection=(today:string,guestId='',requestedDay?:string,requestedOut?:string):BookingSelection=>{
+ const checkIn=requestedDay&&requestedDay>=today?requestedDay:today;
  const checkOut=requestedOut&&requestedOut>checkIn&&requestedOut<=addDays(checkIn,31)?requestedOut:addDays(checkIn,1);
  return {guestId,roomTypeId:'',ratePlanId:'',checkIn,checkOut};
 };
@@ -34,10 +35,12 @@ const displayMoney=(minor:number,currency:string)=>currency==='PHP'
  */
 export function LiveBookingForm(){
  const {user,hotelId}=useHotelAuth();
+ const property=useLiveProperty();
+ const today=hotelToday(new Date(),property.data?.data.timeZone??'Asia/Manila');
  const {guest:requestedGuest,room:requestedRoomId,roomNumber:requestedRoomNumber,checkIn:requestedDay,checkOut:requestedOut}=useSearch({from:'/reservations'});
  const admin=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const canBook=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&(h.role==='admin'||h.role==='front_desk'));
- const [selection,setSelection]=useState<BookingSelection>(()=>initialSelection(requestedGuest,requestedDay,requestedOut));
+ const [selection,setSelection]=useState<BookingSelection>(()=>initialSelection(today,requestedGuest,requestedDay,requestedOut));
  const [checked,setChecked]=useState<BookingSelection|null>(null);
  const [pending,setPending]=useState<BookingSubmission|null>(null);
  const [result,setResult]=useState<ConfirmedBooking|null>(null);
@@ -73,12 +76,12 @@ export function LiveBookingForm(){
  const quote=useLiveRoomQuote(checked,checked?.ratePlanId??'');
 
  useEffect(()=>{
-  setSelection(initialSelection(requestedGuest,requestedDay,requestedOut));setChecked(null);
+  setSelection(initialSelection(today,requestedGuest,requestedDay,requestedOut));setChecked(null);
   // Retain an uncertain booking request when switching away and back to its
   // hotel. Replaying the original key is safer than generating a duplicate.
   setPending(hotelId?pendingByHotel.current.get(hotelId)??null:null);
   setResult(null);setError(null);
- },[hotelId,requestedGuest,requestedDay,requestedOut,requestedRoomId]);
+ },[hotelId,requestedGuest,requestedDay,requestedOut,requestedRoomId,today]);
  useEffect(()=>{
   if(!suggestedRoom||pending||result||busy)return;
   setSelection(previous=>previous.roomTypeId===suggestedRoom.roomTypeId?previous:{
@@ -100,7 +103,7 @@ export function LiveBookingForm(){
   ??(createdGuest?.id===selection.guestId?createdGuest:undefined)
   ??(linkedGuest.isSuccess&&usingLinkedGuest?linkedGuest.data:undefined);
  const rate=activeRates.find(item=>item.id===selection.ratePlanId);
- const valid=!!guest&&!!rate&&validLiveStay(selection)&&selection.checkIn>=hotelToday();
+ const valid=!!guest&&!!rate&&validLiveStay(selection)&&selection.checkIn>=today;
  const samePreview=checked!==null&&checked.guestId===selection.guestId
   &&checked.roomTypeId===selection.roomTypeId&&checked.ratePlanId===selection.ratePlanId
   &&checked.checkIn===selection.checkIn&&checked.checkOut===selection.checkOut;
@@ -114,7 +117,8 @@ export function LiveBookingForm(){
   if(stage==='review')reviewHeadingRef.current?.scrollIntoView({behavior:'smooth',block:'start'});
   if(stage==='complete')completeHeadingRef.current?.scrollIntoView({behavior:'smooth',block:'start'});
  },[stage]);
- const nights=validLiveStay(selection)?Math.round((Date.parse(selection.checkOut+'T00:00:00Z')-Date.parse(selection.checkIn+'T00:00:00Z'))/86400000):0;
+ const stayLength=(Date.parse(selection.checkOut+'T00:00:00Z')-Date.parse(selection.checkIn+'T00:00:00Z'))/86400000;
+ const nights=stayLength>=1&&stayLength<=31?stayLength:0;
  const canReview=valid&&!locked;
  const estimate=rate&&nights>0?rate.nightlyMinor*nights:null;
 
@@ -174,11 +178,11 @@ export function LiveBookingForm(){
   if(busy)return;
   if(hotelId)pendingByHotel.current.delete(hotelId);
   setPending(null);setResult(null);setError(null);setChecked(null);
-  setSelection(initialSelection(requestedGuest,requestedDay,requestedOut));
+  setSelection(initialSelection(today,requestedGuest,requestedDay,requestedOut));
  };
- return <section className="reservation-booking-panel" aria-label="Create reservation">
+ return <section className="reservation-booking-panel" aria-label="Create booking">
   <div className="rb-top">
-   <div><span className="rb-eyebrow">FRONT DESK · NEW BOOKING</span><h3>New reservation</h3>
+   <div><span className="rb-eyebrow">FRONT DESK · NEW BOOKING</span><h3>New booking</h3>
     <p>Guest, dates, and rate. Review the details before saving.</p></div>
    <Link className="rb-calendar-link" to="/room-calendar"><CalendarDays size={16}/> Room calendar</Link>
   </div>
@@ -218,7 +222,7 @@ export function LiveBookingForm(){
          {nights>0&&<span className="rb-night-count">{nights} {nights===1?'night':'nights'}</span>}</div>
         <div className="rb-grid">
          <div><label htmlFor="book-checkin" className="rb-label">Check-in</label>
-          <input id="book-checkin" type="date" required min={hotelToday()} className="wizard-input"
+          <input id="book-checkin" type="date" required min={today} className="wizard-input"
            value={selection.checkIn} onChange={event=>{
             const incoming=event.target.value;
             if(locked)return;
@@ -227,8 +231,8 @@ export function LiveBookingForm(){
             setChecked(null);setError(null);
            }}/></div>
          <div><label htmlFor="book-checkout" className="rb-label">Check-out</label>
-          <input id="book-checkout" type="date" required min={addDays(selection.checkIn||hotelToday(),1)}
-           max={addDays(selection.checkIn||hotelToday(),31)} className="wizard-input"
+          <input id="book-checkout" type="date" required min={addDays(selection.checkIn||today,1)}
+           max={addDays(selection.checkIn||today,31)} className="wizard-input"
            value={selection.checkOut} onChange={event=>edit('checkOut',event.target.value)}/></div>
         </div>
        </div>
@@ -265,14 +269,14 @@ export function LiveBookingForm(){
      <h4>Stay summary</h4>
      <div className="rb-summary-row"><span>Guest</span><strong>{guest?guest.firstName+' '+guest.lastName:'Not selected'}</strong></div>
      <div className="rb-summary-row"><span>Dates</span><strong>{selection.checkIn} – {selection.checkOut}</strong></div>
-     <div className="rb-summary-row"><span>Duration</span><strong>{nights||'—'} {nights===1?'night':'nights'}</strong></div>
+     <div className="rb-summary-row"><span>Duration</span><strong>{nights?`${nights} ${nights===1?'night':'nights'}`:'—'}</strong></div>
      <div className="rb-summary-row"><span>Room</span><strong>{suggestedRoom&&suggestedRoom.roomTypeId===selection.roomTypeId?'Preferred '+suggestedRoom.number:types.data.data.find(item=>item.id===selection.roomTypeId)?.name??'Not selected'}</strong></div>
      <div className="rb-summary-total"><small>Estimated room subtotal</small><strong>{estimate!==null&&rate?displayMoney(estimate,rate.currency):'—'}</strong></div>
      <p>Based on the selected nightly rate. Taxes, fees and deposits are not included.</p>
     </aside>
    </div>}
    {checked&&samePreview&&!result&&<section className="rb-review" aria-label="Review and confirm reservation" aria-live="polite">
-    <div className="rb-review-heading"><div><span className="rb-eyebrow">STEP 2 OF 3</span><h4 ref={reviewHeadingRef} tabIndex={-1}>Review reservation</h4>
+    <div className="rb-review-heading"><div><span className="rb-eyebrow">STEP 2 OF 3</span><h4 ref={reviewHeadingRef} tabIndex={-1}>Review booking</h4>
      <p>Confirm the guest and stay before creating the booking.</p></div>
      <span className={'rb-availability '+(availability.isSuccess&&availability.data.data.canBook?'available':'')}>
       {availability.isPending?'Checking…':availability.isSuccess?(availability.data.data.canBook?'Available':'Unavailable'):'Not verified'}
@@ -287,7 +291,7 @@ export function LiveBookingForm(){
     {availability.isSuccess&&!availability.data.data.canBook&&<p className="rb-unavailable" role="alert">No rooms are available for every night of this stay. Change the dates or room type.</p>}
     <div className="rb-review-actions"><button type="button" className="btn-inline" disabled={locked} onClick={()=>setChecked(null)}><ArrowLeft size={15}/> Edit details</button>
      <button type="button" className="btn-primary rb-main-action" disabled={!ready} onClick={submit}>
-      {busy?'Creating reservation…':'Confirm reservation'} <ArrowRight size={16}/></button></div>
+      {busy?'Creating booking…':'Confirm booking'} <ArrowRight size={16}/></button></div>
     <p className="rb-review-footnote"><AlertTriangle size={14}/> Room assignment, identity checks and payments happen separately. The quote is provisional.</p>
    </section>}
    {error&&<div role="alert" className="auth-error rb-booking-error">
@@ -306,7 +310,7 @@ export function LiveBookingForm(){
     <p>Next, assign a physical room and complete the arrival process.</p>
     <div className="rb-complete-actions">
      <Link className="btn-primary" to="/reservations" search={{booking:result.id,...(suggestedRoom&&result.roomTypeId===suggestedRoom.roomTypeId?{room:suggestedRoom.id,roomNumber:suggestedRoom.number}:{})}}>Manage booking · Assign room <ArrowRight size={16}/></Link>
-     <button type="button" className="btn-inline" onClick={reset}>New reservation</button>
+     <button type="button" className="btn-inline" onClick={reset}>New booking</button>
     </div>
    </section>}
   </>}

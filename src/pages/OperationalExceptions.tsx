@@ -20,7 +20,7 @@ const types:Record<OperationalException['type'],{title:string;area:string;next:s
  in_house_without_room:{title:'Check an in-house room assignment',area:'Front desk',next:'Confirm where the registered guest is staying'},
  assigned_room_overlap:{title:'Investigate overlapping bookings',area:'Reservations',next:'Compare both reservations before editing room assignments'},
  payment_pending_review:{title:'Review payment evidence',area:'Billing',next:'Verify the payment using independent evidence'},
- room_inspection_review:{title:'Review a room inspection',area:'Room readiness',next:'A different manager must review the inspection'},
+ room_inspection_review:{title:'Repeat a room inspection',area:'Room readiness',next:'Complete a new physical room inspection'},
  occupancy_review:{title:'Review a room observation',area:'Occupancy checks',next:'Compare the physical observation with the recorded stay'},
  occupancy_investigation:{title:'Investigate an occupancy discrepancy',area:'Occupancy checks',next:'Assign or continue the documented investigation'},
  cashier_shift_review:{title:'Reconcile a cashier shift',area:'Cashier shifts',next:'Another manager must check the cash count and receipts'},

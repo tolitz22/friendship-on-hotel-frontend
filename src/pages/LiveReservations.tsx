@@ -93,7 +93,7 @@ export function LiveReservations(){
      preferredRoomNumber={routeSearch.roomNumber??null} deskAction={routeSearch.deskAction??null} onClose={closeBooking}/>}
    </section>
   </>:<>
-   {view==='new'&&<div className="reservation-workspace-bar" aria-label="New reservation navigation">
+   {view==='new'&&<div className="reservation-workspace-bar" aria-label="New booking navigation">
     <button type="button" className="btn-inline" onClick={()=>{
      setView('manage');void navigation({to:'/reservations',search:{}});
     }}><ArrowRight size={15} style={{transform:'rotate(180deg)'}}/> Back to bookings</button>

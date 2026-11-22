@@ -51,7 +51,7 @@ function ApprovalCard({item,hotelId}:{item:Approval;hotelId:string}){
  }
  return <article className={'stay-review-card'+(item.action==='early_check_in'?' stay-review-early':'')}>
   <div className="desk-tools"><strong>{item.action==='cancel_booking'?'Cancel reservation':item.action==='early_check_in'?'Early check-in · Manager review':item.action==='early_check_out'?'Early checkout · Manager review':'Change stay dates'} <small>#{item.id}</small></strong>
-   <span className="table-count">{item.status.toUpperCase()}</span></div>
+   <span className="table-count">{statusLabel(item.status)}</span></div>
   <p><Link to="/reservations" search={{booking:item.bookingId}}>Reservation #{item.bookingId}</Link>
    {' · '}Requested by {actor(item.requestedBy)} · {readableDateTime(item.createdAt)}</p>
   <p><strong>Reason:</strong> {item.reason}</p>
@@ -79,7 +79,8 @@ function ApprovalCard({item,hotelId}:{item:Approval;hotelId:string}){
      onClick={()=>void decide('reject')}>Reject request</button>
    </div>
   </>}
-  {item.status!=='pending'&&<p><CheckCircle2 size={16}/> Reviewed by {item.reviewedBy?actor(item.reviewedBy):'Manager name unavailable'} · {item.reviewNote||'No additional note'}</p>}
+  {item.status==='expired'&&<p>Open the booking to submit a fresh request if the guest still needs this exception.</p>}
+  {(item.status==='executed'||item.status==='rejected')&&<p><CheckCircle2 size={16}/> Reviewed by {item.reviewedBy?actor(item.reviewedBy):'Manager name unavailable'} · {item.reviewNote||'No additional note'}</p>}
   {error&&<p role="alert" className="auth-error"><AlertTriangle size={16}/>{error} Check booking history before retrying.</p>}
   <button className="btn-inline" type="button" aria-expanded={showHistory}
    onClick={()=>setShowHistory(v=>!v)}><History size={15}/> {showHistory?'Hide audit':'Show audit trail'}</button>
@@ -110,20 +111,20 @@ function ApprovalCard({item,hotelId}:{item:Approval;hotelId:string}){
 export function ManagerApprovals(){
  const {hotelId,user}=useHotelAuth();
  const manager=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
- const [filter,setFilter]=useState<'all'|ApprovalStatus>('pending');
+ const [filter,setFilter]=useState<'history'|ApprovalStatus>('pending');
  const [page,setPage]=useState(1);
- const approvals=useApprovalRequests({enabled:manager,page,status:filter==='all'?undefined:filter});
+ const approvals=useApprovalRequests({enabled:manager,page,status:filter});
  if(!manager)return <><Heading title="Manager approvals" description="Only authorized hotel managers can review staff exceptions."/>
   <Panel title="Restricted"><p role="status"><ShieldCheck size={18}/> Only authorized managers can access this page.</p></Panel></>;
  return <>
   <div className="ex-heading"><Heading title="Manager approvals" description="Independently review and execute narrow reservation exceptions with an audit trail."/>
    <button className="btn-inline" type="button" onClick={()=>void approvals.refetch()}><RefreshCw size={15}/> Refresh</button></div>
-  <Panel title="Approval inbox">
+  <Panel title={filter==='pending'?'Approval inbox':'Approval history'}>
    <div className="desk-tools">
     <label>Request status{' '}<select className="wizard-input" value={filter}
      onChange={e=>{setFilter(e.target.value as typeof filter);setPage(1);}}>
      <option value="pending">Pending</option><option value="executed">Executed</option>
-     <option value="rejected">Rejected</option><option value="all">All</option>
+     <option value="rejected">Rejected</option><option value="expired">Expired</option><option value="history">All history</option>
     </select></label>
     <span>Review may fail if the booking changed, funds were recorded, the requester was deactivated, or hotel inventory is no longer eligible.</span>
    </div>

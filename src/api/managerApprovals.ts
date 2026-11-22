@@ -7,7 +7,7 @@ const id=z.string().regex(/^[1-9]\d*$/);
 const approval=z.object({
  id,hotelId:id,bookingId:id,requestedBy:id,reviewedBy:id.nullable(),executedBy:id.nullable(),
  action:z.enum(['cancel_booking','amend_dates','early_check_in','early_check_out']),
- status:z.enum(['pending','rejected','executed']),
+ status:z.enum(['pending','rejected','executed','expired']),
  reason:z.string(),
  // Older Laravel deployments serialize an empty associative payload as [].
  // Accept ONLY the empty legacy representation; malformed nonempty arrays
@@ -39,7 +39,7 @@ export function parseApprovals(raw:unknown,hotelId:string,bookingId?:string){
   throw new Error('An approval record does not belong to the selected hotel or reservation.');
  return value;
 }
-export function useApprovalRequests(options:{enabled:boolean;bookingId?:string;status?:ApprovalStatus;page?:number}){
+export function useApprovalRequests(options:{enabled:boolean;bookingId?:string;status?:ApprovalStatus|'history';page?:number}){
  const {hotelId}=readSession();
  return useQuery({
   queryKey:['live','approvals',hotelId,options.bookingId,options.status,options.page??1],
@@ -50,6 +50,7 @@ export function useApprovalRequests(options:{enabled:boolean;bookingId?:string;s
    page:options.page??1,per_page:20,
   }),hotelId!,options.bookingId),
   retry:false,
+  refetchInterval:30000,
  });
 }
 export async function requestManagerApproval(

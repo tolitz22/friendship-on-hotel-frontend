@@ -1,9 +1,11 @@
+import {RoomOutOfOrderForm} from '../components/RoomOutOfOrderForm';
+import {hotelToday} from '../features/reservations/calendarDate';
 import {useEffect,useState,type FormEvent} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {Link,useSearch} from '@tanstack/react-router';
 import {ArrowRight,CheckCircle2,ClipboardList,Clock3,History,Info,Plus,RefreshCcw,Search,ShieldAlert,UserRound,Wrench,X} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
-import {useLiveRooms} from '../api/liveCatalogQueries';
+import {useLiveProperty,useLiveRooms} from '../api/liveCatalogQueries';
 import {createMaintenance,listMaintenance,maintenanceHistory,
  type LiveWorkOrder,type MaintenancePriority,type MaintenanceStatus,type MaintenanceFilters,
  parseLiveMaintenance,parseMaintenanceHistory,patchValidatedMaintenance,fetchMaintenanceOrder,
@@ -37,6 +39,8 @@ export function LiveMaintenance(){
  const {hotelId,user}=useHotelAuth();
  const role=user?.hotels.find(h=>h.id===hotelId)?.role;
  const admin=role==='admin';
+ const property=useLiveProperty();
+ const today=hotelToday(new Date(),property.data?.data.timeZone??'Asia/Manila');
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin});
  const queryClient=useQueryClient();
  const [page,setPage]=useState(1);
@@ -44,9 +48,9 @@ export function LiveMaintenance(){
  const [priorityFilter,setPriorityFilter]=useState<MaintenancePriority|''>('');
  const [search,setSearch]=useState('');
  const [mineOnly,setMineOnly]=useState(false);
- const filters:MaintenanceFilters={...(statusFilter?{status:statusFilter}:{}),...(priorityFilter?{priority:priorityFilter}:{})};
+ const filters:MaintenanceFilters={...(statusFilter?{status:statusFilter}:{}),...(priorityFilter?{priority:priorityFilter}:{}),q:search.trim()||undefined,mine:mineOnly?1:undefined};
  const orders=useQuery({
-  queryKey:['live-maintenance',hotelId,page,statusFilter,priorityFilter],
+  queryKey:['live-maintenance',hotelId,page,filters],
   enabled:!!hotelId,retry:false,
   queryFn:async()=>parseLiveMaintenance(await listMaintenance(page,20,filters),hotelId!),
  });
@@ -141,13 +145,10 @@ export function LiveMaintenance(){
   }finally{setSaving(false);}
  }
  const data=orders.isSuccess?orders.data.data:[];
- const term=search.trim().toLocaleLowerCase();
- const visible=data.filter(order=>(!mineOnly||order.assignedUserId===user?.id)&&(!term||[
-  order.id,order.roomNumber,order.title,order.description,order.assignedTo??'',
- ].some(value=>value.toLocaleLowerCase().includes(term))));
+ const visible=data;
  const canUpdate=(order:LiveWorkOrder)=>mayUpdateMaintenance(order,admin,role,user?.id??null);
  const maySave=admin||(!!selected&&canUpdate(selected));
- const hasFilters=!!statusFilter||!!priorityFilter||!!term||mineOnly;
+ const hasFilters=!!statusFilter||!!priorityFilter||!!search.trim()||mineOnly;
  const clearFilters=()=>{setPage(1);setStatusFilter('');setPriorityFilter('');setSearch('');setMineOnly(false);};
  const assignedName=(order:LiveWorkOrder)=>order.assignedUserId
   ?order.assignedUserId===user?.id?'You':admin?staff.data?.data.find(m=>m.userId===order.assignedUserId)?.name??'Assigned technician':'Assigned technician'
@@ -159,7 +160,7 @@ export function LiveMaintenance(){
    {admin&&<button type="button" className="btn-primary" onClick={openCreate}><Plus size={16}/> New work order</button>}
   </div>
   <div className="mnt-guidance"><Info size={18}/><p><strong>Room-impact notes do not automatically block bookings.</strong>
-   Reported room issues must be reviewed separately before staff rely on a room's availability or inspection approval.</p></div>
+   For serious defects, managers can mark the room out of order from its open work order.</p></div>
   <section className="mnt-work-summary" aria-label="Hotel-wide maintenance workload">
    <div className="mnt-work-heading">
     <div><span className="rr-eyebrow">HOTEL-WIDE WORK ORDERS</span><h3>Maintenance workload</h3>
@@ -180,7 +181,7 @@ export function LiveMaintenance(){
   <section className="mnt-queue-section" aria-labelledby="mnt-queue-title">
    <div className="mnt-queue-head"><div><h3 id="mnt-queue-title">Maintenance work queue</h3>
     <p>Review reported problems and open work orders to update them.</p></div>
-    <span>{orders.isSuccess?orders.data.meta.total:'—'} work orders match the selected status and priority</span>
+    <span>{orders.isSuccess?orders.data.meta.total:'—'} work orders match these filters</span>
    </div>
    <div className="mnt-queue-filters">
     <div className="mnt-queue-tabs" role="group" aria-label="Maintenance status">
@@ -190,22 +191,21 @@ export function LiveMaintenance(){
        {label}</button>)}
     </div>
     <div className="mnt-filter-controls">
-     <label className="mnt-search-field"><Search size={17}/><input type="search" aria-label="Search work orders on this page"
-      placeholder="Room, issue or technician…" value={search} onChange={event=>setSearch(event.target.value)}/></label>
+     <label className="mnt-search-field"><Search size={17}/><input type="search" maxLength={120} aria-label="Search work orders"
+      placeholder="Room, issue or technician…" value={search} onChange={event=>{setPage(1);setSearch(event.target.value);}}/></label>
      <label className="mnt-priority-field">Priority <select aria-label="Filter maintenance priority" value={priorityFilter}
       onChange={event=>{setPriorityFilter(event.target.value as MaintenancePriority|'');setPage(1);}}>
       <option value="">All priorities</option>
       {priorities.map(priority=><option value={priority} key={priority}>{priorityLabels[priority]}</option>)}
      </select></label>
      {user&&<label className="mnt-mine-filter"><input type="checkbox" checked={mineOnly}
-      onChange={event=>setMineOnly(event.target.checked)}/> My orders on this page</label>}
+      onChange={event=>{setPage(1);setMineOnly(event.target.checked);}}/> My orders</label>}
      {hasFilters&&<button type="button" className="mnt-clear-filters" onClick={clearFilters}><X size={15}/> Clear filters</button>}
     </div>
-    <p className="mnt-filter-help"><Info size={14}/> Status and priority search the hotel's saved work orders. Text search and My orders apply only to the current page.</p>
    </div>
    <QueryFeedback loading={orders.isPending} error={orders.error} onRetry={()=>void orders.refetch()}
     empty={orders.isSuccess&&visible.length===0}
-    emptyMessage={hasFilters?'No work orders match these filters on this page. Clear filters or browse another page.':'No work orders have been recorded. An administrator can create the first one.'}/>
+    emptyMessage={hasFilters?'No work orders match these filters.':'No work orders have been recorded. An administrator can create the first one.'}/>
    {orders.isSuccess&&visible.length>0&&<div className="mnt-work-grid">
     {visible.map(order=>{
      const editable=canUpdate(order);
@@ -222,6 +222,8 @@ export function LiveMaintenance(){
       </div>
       {order.affectsRoom&&<p className="mnt-impact-advisory"><ShieldAlert size={16}/>
        Room affected · check separate room restrictions before booking</p>}
+      {admin&&hotelId&&(order.status==='open'||order.status==='in_progress')&&
+       <RoomOutOfOrderForm key={hotelId+'-'+order.id} order={order} hotelId={hotelId} today={today}/>}
       {order.status==='resolved'&&<p className="mnt-completion-advisory"><CheckCircle2 size={15}/> Repair marked resolved; review before closing.</p>}
       <Link to="/rooms" search={{room:order.roomNumber}} className="ops-room-link">Check room readiness <ArrowRight size={14}/></Link>
       <button type="button" className="mnt-work-action" onClick={()=>openEdit(order)}>
@@ -230,7 +232,7 @@ export function LiveMaintenance(){
     })}
    </div>}
    {orders.isSuccess&&orders.data.meta.totalPages>1&&<div className="mnt-queue-pagination">
-    <span>Page {orders.data.meta.page} of {orders.data.meta.totalPages} · {visible.length} shown on this page</span>
+    <span>Page {orders.data.meta.page} of {orders.data.meta.totalPages} · {visible.length} shown</span>
     <div><button type="button" className="btn-inline" disabled={page<=1} onClick={()=>setPage(v=>Math.max(1,v-1))}>Previous</button>
      <button type="button" className="btn-inline" disabled={page>=orders.data.meta.totalPages} onClick={()=>setPage(v=>v+1)}>Next</button></div>
    </div>}

@@ -18,6 +18,7 @@ const schema=z.object({
   creditsMinor:z.number().int(),unbalancedJournalCount:z.number().int(),
   snapshotMatchesLedger:z.boolean(),
  }),
+ folioTaxAccountingEnabled:z.boolean().optional(),
  kpis:z.object({
   verifiedOccupiedRoomNights:nullableInt,recognizedRoomRevenueMinor:nullableInt,
   vatLiabilityMovementMinor:nullableInt,adrMinor:nullableInt,revparMinor:nullableInt,

@@ -25,7 +25,7 @@ export type MaintenanceList=CollectionResponse<LiveWorkOrder>&{
  meta:CollectionResponse<LiveWorkOrder>['meta']&{affectsRoomDoesNotBlockInventory:true};
 };
 export const listMaintenance=(page=1,perPage=50,filters:MaintenanceFilters={})=>getJson<MaintenanceList>(
- hotelPath('/maintenance-work-orders'),{page,per_page:perPage,status:filters.status,priority:filters.priority});
+ hotelPath('/maintenance-work-orders'),{page,per_page:perPage,status:filters.status,priority:filters.priority,q:filters.q,mine:filters.mine });
 export const createMaintenance=(body:CreateMaintenanceInput)=>requestJson<ItemResponse<LiveWorkOrder>>(
  hotelPath('/maintenance-work-orders'),{method:'POST',body});
 export const updateMaintenance=(id:string,body:UpdateMaintenanceInput)=>requestJson<ItemResponse<LiveWorkOrder>>(
@@ -38,7 +38,7 @@ export const maintenanceHistory=(id:string,page=1)=>getJson<CollectionResponse<M
 import {z} from 'zod';
 import {readSession} from './session';
 
-export type MaintenanceFilters={status?:MaintenanceStatus;priority?:MaintenancePriority};
+export type MaintenanceFilters={q?:string;mine?:number;status?:MaintenanceStatus;priority?:MaintenancePriority};
 const id=z.string().regex(/^[1-9]\d*$/);
 const workOrder=z.object({
  id,hotelId:id,roomId:id,roomNumber:z.string(),

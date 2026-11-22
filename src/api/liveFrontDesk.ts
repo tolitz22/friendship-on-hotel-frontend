@@ -25,6 +25,8 @@ const manifestSchema=z.object({
   page:z.number().int().positive(),
   perPage:z.number().int().positive(),
   total:z.number().int().nonnegative(),
+  queueTotal:z.number().int().nonnegative().optional(),
+  unassignedCount:z.number().int().nonnegative().optional(),
   totalPages:z.number().int().nonnegative(),
   determinesHousekeepingReadiness:z.literal(false),
  }),
@@ -40,14 +42,14 @@ export function parseManifest(payload:unknown,expectedDate:string,kind:ManifestK
  return parsed;
 }
 
-export function useLiveManifest(date:string,kind:ManifestKind,page:number,perPage=20){
+export function useLiveManifest(date:string,kind:ManifestKind,page:number,perPage=20,search?:string){
  const {hotelId}=readSession();
  return useQuery({
-  queryKey:['live','front-desk','manifest',hotelId,date,kind,page,perPage],
+  queryKey:['live','front-desk','manifest',hotelId,date,kind,page,perPage,search],
   enabled:!!hotelId&&/^\d{4}-\d{2}-\d{2}$/.test(date),
   queryFn:async()=>parseManifest(await getJson<unknown>(
    hotelPath('/front-desk/manifest'),
-   {date,kind,page,per_page:perPage}
+   {date,kind,page,per_page:perPage,q:search||undefined}
   ),date,kind),
   retry:false,
   staleTime:0,

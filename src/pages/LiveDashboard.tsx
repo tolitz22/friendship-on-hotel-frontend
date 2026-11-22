@@ -16,7 +16,7 @@ import {dateLabel} from '../lib/format';
 type Shortcut={to:WorkspacePath;title:string;hint:string;icon:typeof Hotel};
 const actions:Shortcut[]=[
  {to:'/front-desk',title:'Open front desk',hint:'Arrivals, departures and check-ins',icon:Hotel},
- {to:'/reservations',title:'New reservation',hint:'Create or manage a guest booking',icon:CalendarPlus},
+ {to:'/reservations',title:'New booking',hint:'Create or manage a guest booking',icon:CalendarPlus},
  {to:'/room-calendar',title:'Room calendar',hint:'See bookings by room and date',icon:CalendarDays},
  {to:'/housekeeping',title:'Housekeeping',hint:'Assigned cleaning and room inspections',icon:ClipboardCheck},
  {to:'/maintenance',title:'Maintenance',hint:'Work orders and reported issues',icon:Wrench},

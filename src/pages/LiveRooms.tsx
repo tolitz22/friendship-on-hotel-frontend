@@ -55,7 +55,7 @@ export function LiveRooms(){
    onEditRoom={admin?room=>setEditingRoom(room):undefined}/>}
   {canSeeStay?<details className="workflow-disclosure rack-readiness-queue" open={undefined}>
    <summary><ClipboardCheck size={17} aria-hidden="true"/> Readiness & arrivals · prioritized staff actions</summary>
-   <p className="desk-muted">Room availability, housekeeping completion and inspection approval are separate checks. The queue shows a snapshot, not guaranteed eligibility to check in.</p>
+   <p className="desk-muted">Room availability, housekeeping completion and physical inspection are separate checks. The queue shows a snapshot, not guaranteed eligibility to check in.</p>
    <ReadinessDashboardPanel onInspectRoom={setInspectionRoomNumber}/>
   </details>:<ReadinessDashboardPanel onInspectRoom={setInspectionRoomNumber}/>}
   {inspectionRoomNumber&&<div className="rack-drawer-overlay" role="presentation">

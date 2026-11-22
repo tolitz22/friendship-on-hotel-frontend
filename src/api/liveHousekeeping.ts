@@ -14,7 +14,7 @@ export interface HousekeepingEvent{
  before:Record<string,unknown>|null;after:Record<string,unknown>;note:string|null;createdAt:string;
 }
 export type HousekeepingList=CollectionResponse<LiveHousekeepingTask>&{
- meta:CollectionResponse<LiveHousekeepingTask>['meta']&{determinesRoomReadiness:false};
+ meta:CollectionResponse<LiveHousekeepingTask>['meta']&{determinesRoomReadiness:false;pastDueCount?:number};
 };
 export interface CreateHousekeepingInput{
  roomId:string;type:HousekeepingType;assignedTo:string|null;assignedUserId?:string|null;dueAt:string|null;note?:string|null;
@@ -24,7 +24,7 @@ export interface UpdateHousekeepingInput{
  assignedTo?:string|null;assignedUserId?:string|null;dueAt?:string|null;note?:string|null;
 }
 export const listHousekeepingTasks=(page=1,perPage=50,filter:TaskFilter={})=>getJson<HousekeepingList>(
- hotelPath('/housekeeping-tasks'),{page,per_page:perPage,status:filter.status,type:filter.type});
+ hotelPath('/housekeeping-tasks'),{page,per_page:perPage,status:filter.status,type:filter.type,q:filter.q,mine:filter.mine });
 export const createHousekeepingTask=(body:CreateHousekeepingInput)=>requestJson<ItemResponse<LiveHousekeepingTask>>(
  hotelPath('/housekeeping-tasks'),{method:'POST',body});
 export const updateHousekeepingTask=(id:string,body:UpdateHousekeepingInput)=>
@@ -53,7 +53,7 @@ const listSchema=z.object({
  meta:z.object({
   page:z.number().int().positive(),perPage:z.number().int().positive(),
   total:z.number().int().nonnegative(),totalPages:z.number().int().nonnegative(),
-  determinesRoomReadiness:z.literal(false),
+  determinesRoomReadiness:z.literal(false),pastDueCount:z.number().int().nonnegative().optional(),
  }),
 });
 const historySchema=z.object({
@@ -66,7 +66,7 @@ const historySchema=z.object({
   total:z.number().int().nonnegative(),totalPages:z.number().int().nonnegative(),
  }),
 });
-export type TaskFilter={status?:HousekeepingStatus;type?:HousekeepingType};
+export type TaskFilter={q?:string;mine?:number;status?:HousekeepingStatus;type?:HousekeepingType};
 
 export function parseLiveHousekeeping(value:unknown,hotelId:string){
  const result=listSchema.parse(value);

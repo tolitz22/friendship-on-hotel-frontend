@@ -15,7 +15,7 @@ import {readSession} from '../api/session';
 import {useHotelAuth} from '../components/AuthProvider';
 import {selectedRole} from '../features/workspaces/roleNavigation';
 import type {ManifestKind,ManifestEntry} from '../api/liveFrontDesk';
-import {recommendedDeskAction,pageAttentionCount} from '../features/front-desk/deskActions';
+import {recommendedDeskAction} from '../features/front-desk/deskActions';
 import {Heading,Panel,Status} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {addDays,hotelToday} from '../features/reservations/calendarDate';
@@ -43,9 +43,10 @@ export function LiveFrontDesk(){
  const {user}=useHotelAuth();
  const role=selectedRole(user?.hotels,hotelId);
  const canOperate=role==='admin'||role==='front_desk';
- const arrivals=useLiveManifest(date,'arrivals',pageByKind.arrivals);
- const departures=useLiveManifest(date,'departures',pageByKind.departures);
- const inHouse=useLiveManifest(date,'in_house',pageByKind.in_house);
+ const term=search.trim();
+ const arrivals=useLiveManifest(date,'arrivals',pageByKind.arrivals,20,kind==='arrivals'?term:undefined);
+ const departures=useLiveManifest(date,'departures',pageByKind.departures,20,kind==='departures'?term:undefined);
+ const inHouse=useLiveManifest(date,'in_house',pageByKind.in_house,20,kind==='in_house'?term:undefined);
  const queries={arrivals,departures,in_house:inHouse};
  const current=queries[kind];
  const rows=current.isSuccess?current.data.data:[];
@@ -66,11 +67,8 @@ export function LiveFrontDesk(){
   queryFn:async()=>parseLiveMaintenance(await listMaintenance(1,100),hotelId!),
   retry:false,
  });
- const term=search.trim().toLocaleLowerCase();
- const filtered=rows.filter(row=>!term||[
-  displayGuest(row),row.reference,row.roomNumber??'',row.id,
- ].some(value=>value.toLocaleLowerCase().includes(term)));
- const count=(name:ManifestKind)=>queries[name].isSuccess?queries[name].data.meta.total:'—';
+ const filtered=rows;
+ const count=(name:ManifestKind)=>queries[name].isSuccess?(queries[name].data.meta.queueTotal??queries[name].data.meta.total):'—';
  const page=current.data?.meta.page??pageByKind[kind];
  const pages=current.isSuccess?current.data.meta.totalPages:0;
  const loadingAny=arrivals.isFetching||departures.isFetching||inHouse.isFetching;
@@ -92,7 +90,7 @@ export function LiveFrontDesk(){
    <Heading title="Front desk" description="Your daily arrival, departure and room-assignment workspace."/>
    <div className="fdc-heading-actions">
     <button type="button" className="btn-inline" disabled={loadingAny} onClick={refresh}><RefreshCw size={15}/> {loadingAny?'Refreshing…':'Refresh'}</button>
-    {canOperate&&<Link to="/reservations" search={{mode:"new"}} className="btn-primary"><Plus size={16}/> New reservation</Link>}
+    {canOperate&&<Link to="/reservations" search={{mode:"new",checkIn:date}} className="btn-primary"><Plus size={16}/> New booking</Link>}
    </div>
   </div>
   <div className="fdc-date-strip">
@@ -112,10 +110,10 @@ export function LiveFrontDesk(){
    </button>
    <button type="button" className={'fdc-stat'+(kind==='in_house'?' active':'')} onClick={()=>{setKind('in_house');setSearch('');}} aria-pressed={kind==='in_house'}><Users size={20}/><span>In-house</span><strong>{count('in_house')}</strong><small>Registered stays</small>
    </button>
-   <button type="button" className="fdc-stat attention" onClick={()=>{setKind('arrivals');setSearch('');}}>
+   <button type="button" className="fdc-stat attention" onClick={()=>{setKind('arrivals');setPageByKind(prev=>({...prev,arrivals:1}));setSearch('');}}>
     <AlertTriangle size={20}/><span>Need room assignment</span>
-    <strong>{arrivals.isSuccess?pageAttentionCount(arrivals.data.data):'—'}</strong>
-    <small>Arrivals on loaded page only</small>
+    <strong>{arrivals.data?.meta.unassignedCount??'—'}</strong>
+    <small>All arrivals on the selected date</small>
    </button>
   </section>
   <section className="fdc-workspace" aria-label="Daily front desk work queue">
@@ -131,13 +129,13 @@ export function LiveFrontDesk(){
      </button>)}
     </div>
     <label className="search-box"><Search size={16}/><input value={search}
-     aria-label="Search current manifest page" placeholder="Guest, room or reference on this page"
-     onChange={event=>setSearch(event.target.value)}/></label>
-    {search.trim()&&<button type="button" className="btn-inline" onClick={()=>setSearch('')}>Clear search</button>}
+     aria-label="Search the selected manifest" placeholder="Guest, room or reference"
+     maxLength={120} onChange={event=>{setPageByKind(prev=>({...prev,[kind]:1}));setSearch(event.target.value);}}/></label>
+    {search.trim()&&<button type="button" className="btn-inline" onClick={()=>{setPageByKind(prev=>({...prev,[kind]:1}));setSearch('');}}>Clear search</button>}
    </div>
    <QueryFeedback loading={current.isPending} error={current.error} onRetry={()=>void current.refetch()}
     empty={current.isSuccess&&filtered.length===0}
-    emptyMessage={term?'No matches on this page. Clear search or browse another page.':'No reservations in this queue on the selected date.'}/>
+    emptyMessage={term?'No matches in this queue on the selected date.':'No reservations in this queue on the selected date.'}/>
    {isToday&&canOperate&&<div className="fdc-room-notice"><Info size={16}/>
     <p><strong>Current room checks:</strong> Active inventory restrictions and inspection/cleaning concerns are shown below when available.
      Maintenance work-order notes are informational and do not automatically block bookings. Always confirm availability at check-in.</p></div>}
@@ -189,7 +187,7 @@ export function LiveFrontDesk(){
     })}
    </div>}
    {current.isSuccess&&<div className="fdc-pagination">
-    <span>Page {page} of {Math.max(1,pages)} · {current.data.meta.total} total · Search covers this page</span>
+    <span>Page {page} of {Math.max(1,pages)} · {current.data.meta.total} total</span>
     <div>
      <button type="button" className="btn-inline" disabled={page<=1} onClick={()=>setPageByKind(prev=>({...prev,[kind]:page-1}))}>Previous</button>
      <button type="button" className="btn-inline" disabled={page>=pages} onClick={()=>setPageByKind(prev=>({...prev,[kind]:page+1}))}>Next</button>
@@ -197,7 +195,7 @@ export function LiveFrontDesk(){
    </div>}
   </section>
   <p className="fdc-safety-note"><AlertTriangle size={17}/>
-   Actions open the existing guarded reservation workflow for review and confirmation. This screen does not verify room cleanliness, cash collection or actual physical occupancy. The unassigned count covers only the loaded arrivals page.
+   Actions open the existing guarded reservation workflow for review and confirmation. This screen does not verify room cleanliness, cash collection or actual physical occupancy.
   </p>
  </>;
 }

@@ -476,7 +476,7 @@ function GroupDetails({id,selectedTab,originHotel}:{id:string;selectedTab?:'room
      {group.rooms.filter(room=>room.status==='confirmed'&&!!room.roomId).map(room=><li key={'ready-'+room.bookingId}>
       <div><strong>Verify readiness · Room {room.roomNumber??'number unavailable'}</strong>
        <span>{room.guestName??room.reference} · {room.reference}</span>
-       <p>Before check-in, verify actual housekeeping, inspection approval and the hotel's current enforcement policy. Assignment alone does not establish readiness; this is a verification task, not proof of a blocker.</p>
+       <p>Before check-in, verify actual housekeeping, completed physical inspection and the hotel's current enforcement policy. Assignment alone does not establish readiness; this is a verification task, not proof of a blocker.</p>
        <small>Responsible role: Housekeeping / authorized inspector</small></div>
       <Link className="btn-inline" to="/rooms" search={{room:room.roomNumber??undefined}}>Review room readiness <ArrowRight size={14}/></Link>
      </li>)}

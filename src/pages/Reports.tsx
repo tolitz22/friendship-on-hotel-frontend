@@ -1,3 +1,4 @@
+import {dataMode} from '../api';
 import type {ReactNode} from 'react';
 import {NightAuditReconciliationPanel} from '../components/NightAuditReconciliationPanel';
 import {useMemo,useState} from 'react';
@@ -28,6 +29,14 @@ function Metric({title,value,subtitle,icon}:{title:string;value:string;subtitle:
  return <div className="report-metric"><div><span>{title}</span>{icon}</div><strong>{value}</strong><small>{subtitle}</small></div>;
 }
 export function Reports(){
+ if(dataMode==='api')return <>
+  <Heading title="Reports" description="Review financial reconciliation and verified hotel metrics by business date."/>
+  <NightAuditReconciliationPanel/>
+ </>;
+ return <SampleReports/>;
+}
+
+function SampleReports(){
  const [from,setFrom]=useState(()=>addDays(initialToday(),-29));
  const [to,setTo]=useState(initialToday);
  const valid=isReportRange(from,to);
@@ -44,7 +53,7 @@ export function Reports(){
   const anchor=document.createElement('a');anchor.href=url;anchor.download='friendship-hotel-sample-report-'+from+'-to-'+to+'.csv';
   anchor.click();URL.revokeObjectURL(url);
  }
- return <><NightAuditReconciliationPanel/><DemoNotice/>
+ return <><DemoNotice/>
   <Heading title="Reports & analytics" description="Explore sample operational reports with clearly separated date-based metrics and current-state snapshots." action={<button className="btn-primary" disabled={!data||!valid} onClick={exportCsv}><Download size={16}/> Export sample CSV</button>}/>
   <section className="report-controls">
    <div className="report-date-inputs"><label>From<input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label><label>To<input type="date" value={to} onChange={e=>setTo(e.target.value)}/></label></div>

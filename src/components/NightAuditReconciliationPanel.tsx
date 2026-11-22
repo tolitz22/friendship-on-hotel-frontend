@@ -1,3 +1,4 @@
+import {Link} from '@tanstack/react-router';
 import {useState} from 'react';
 import {AlertTriangle,CheckCircle2,Download,RefreshCw} from 'lucide-react';
 import {useHotelAuth} from './AuthProvider';
@@ -49,7 +50,7 @@ export function NightAuditReconciliationPanel(){
   a.download='night-audit-reconciliation-'+data.businessDate+'.csv';a.click();
   URL.revokeObjectURL(url);
  }
- if(!admin)return null;
+ if(!admin)return <p role="status">Financial reconciliation is available to authorized hotel managers.</p>;
  return <section className="report-financial" aria-label="Live night-audit financial reconciliation">
   <header><h3>Live financial reconciliation</h3><span>Accounting records · read-only</span></header>
   <div className="desk-tools">
@@ -88,7 +89,9 @@ export function NightAuditReconciliationPanel(){
     <div className="night-audit-metric"><small>Flagged / pending shifts</small><strong>{data.cashier.flaggedCount} / {data.cashier.pendingCount}</strong></div>
     <div className="night-audit-metric"><small>Cash discrepancy</small><strong>{money(data.cashier.varianceMinor,data.currency)}</strong></div>
     <div className="night-audit-metric"><small>Counted reconciled cash</small><strong>{money(data.cashier.reconciledCountedCashMinor,data.currency)}</strong></div>
-    <div className="night-audit-metric"><small>Official ADR / RevPAR</small><strong>Awaiting stay-night proof</strong></div>
+    <div className="night-audit-metric"><small>Official ADR</small><strong>{data.kpis.adrMinor===null?'Unavailable':money(data.kpis.adrMinor,data.currency)}</strong></div>
+    <div className="night-audit-metric"><small>Official RevPAR</small><strong>{data.kpis.revparMinor===null?'Unavailable':money(data.kpis.revparMinor,data.currency)}</strong></div>
+    <div className="night-audit-metric"><small>Official overnight occupancy</small><strong>{data.kpis.occupancyPercent===null?'Unavailable':data.kpis.occupancyPercent.toFixed(2)+'%'}</strong></div>
    </div>
    {data.blockers.length>0&&<div className="night-audit-issues" role="status">
     <h4>Required investigations</h4>
@@ -98,8 +101,12 @@ export function NightAuditReconciliationPanel(){
     Occupancy is a verified point-in-time room inspection, not evidence of overnight room nights.
     Revenue and VAT are posted account movements for the selected business date; corrections may
     apply to earlier stays. Cashier totals are independently reviewed counts, not bank deposits.
-    Unverified official ADR, RevPAR and overnight occupancy are intentionally hidden.
+
    </p>
+   {data.folioTaxAccountingEnabled===false&&
+    <p className="report-hint">Folio-night accounting is disabled. Ask the finance administrator to review the property setup before enabling it.</p>}
+   {(data.kpis.adrMinor===null||data.kpis.revparMinor===null||data.kpis.occupancyPercent===null)&&
+    <p className="report-hint">Publishing requires verified occupied room nights and historical sellable room-night inventory, plus recognized room revenue attributed to stay dates for ADR and RevPAR. <Link to="/folio-night-accounting">Review folio-night accounting</Link>.</p>}
   </>}
  </section>;
 }

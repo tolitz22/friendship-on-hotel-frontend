@@ -4,15 +4,14 @@ import {useGuestStayHistory} from '../api/guestStayHistory';
 import {QueryFeedback} from './QueryFeedback';
 import {dateLabel,statusLabel} from '../lib/format';
 
-export function GuestStayHistory({guestId,name,onClose}:{guestId:string;name:string;onClose:()=>void}){
+export function GuestStayHistory({guestId,name}:{guestId:string;name:string}){
  const [page,setPage]=useState(1);
  useEffect(()=>setPage(1),[guestId]);
  const query=useGuestStayHistory(guestId,page);
  const rows=query.data?.data??[];
  return <section className="guest-history-panel" aria-label={'Stay history for '+name}>
   <div className="guest-history-header">
-   <div><h3>{name}</h3><p>Reservations in this hotel · newest stays first</p></div>
-   <button type="button" className="btn-inline" onClick={onClose}>Close history</button>
+   <div><h3>Booking history</h3><p>Reservations in this hotel · newest stays first</p></div>
   </div>
   <QueryFeedback loading={query.isPending} error={query.error}
    onRetry={()=>void query.refetch()} empty={query.isSuccess&&rows.length===0}

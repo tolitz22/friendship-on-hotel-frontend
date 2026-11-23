@@ -62,7 +62,7 @@ export function AppShell(){
  const [showAdvanced,setShowAdvanced]=useState(false);
  const [showMoreOperations,setShowMoreOperations]=useState(false);
  const pathname=useRouterState({select:s=>s.location.pathname});
- const current=all.find(item=>item.to===pathname)?.label??'Overview';
+ const current=pathname.startsWith('/guests/')?'Customer stays':all.find(item=>item.to===pathname)?.label??'Overview';
  const role=selectedRole(user?.hotels,hotelId);
  const workspace=navigationForRole(role);
  const admin=role==='admin';

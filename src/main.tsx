@@ -28,6 +28,7 @@ const LiveReservationPolicy=React.lazy(async()=>({default:(await import('./pages
 const LiveReservationSimulation=React.lazy(async()=>({default:(await import('./pages/LiveReservationSimulation')).LiveReservationSimulation}));
 import {dataMode} from './api';import {Reservations} from './pages/Reservations';
 import {GroupReservations} from './pages/GroupReservations';import {Rooms} from './pages/Rooms';
+import {GuestStays} from './pages/GuestStays';
 import {Guests} from './pages/Guests';
 import {Housekeeping} from './pages/Housekeeping';
 import {LiveHousekeeping} from './pages/LiveHousekeeping';
@@ -113,6 +114,7 @@ const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/reservation-policy',component:LiveReservationPolicy}),
  createRoute({getParentRoute:()=>root,path:'/reservation-simulation',component:LiveReservationSimulation}),
  createRoute({getParentRoute:()=>root,path:'/guests',component:Guests}),
+ createRoute({getParentRoute:()=>root,path:'/guests/$guestId/stays',component:GuestStays}),
  createRoute({getParentRoute:()=>root,path:'/billing',
   validateSearch:(value:Record<string,unknown>):{booking?:string;group?:string;hotel?:string;checkIn?:string;checkOut?:string}=>({
    booking:normalizeBillingBookingId(value.booking),

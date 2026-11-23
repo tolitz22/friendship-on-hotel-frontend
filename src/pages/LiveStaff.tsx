@@ -12,6 +12,33 @@ const roles:StaffRole[]=['front_desk','housekeeping','maintenance','admin'];
 const roleName:Record<StaffRole,string>={front_desk:'Front Desk',housekeeping:'Housekeeping',maintenance:'Maintenance',admin:'Manager'};
 type StaffChange={userId:string;name:string;previousRole:StaffRole;previousActive:boolean;role:StaffRole;isActive:boolean};
 type PermissionEdit={userId:string;name:string;role:StaffRole;original:string[];selected:string[]};
+const permissionNeeds:Record<string,string[]>={
+ 'booking.create':['guest.read','reservation.read'],
+ 'booking.assign_room':['reservation.read'],
+ 'booking.check_in':['reservation.read'],
+ 'booking.check_out':['reservation.read','finance.read'],
+ 'booking.special_request':['reservation.read'],
+ 'cashier.write':['cashier.read','finance.read'],
+ 'approval.request':['approval.read','reservation.read'],
+ 'keycard.request':['keycard.read'],
+};
+function updatePermissionSet(previous:string[],key:string,checked:boolean):string[]{
+ const next=new Set(previous);
+ if(checked){
+  const add=(item:string)=>{next.add(item);for(const need of permissionNeeds[item]??[])add(need);};
+  add(key);
+ }else{
+  next.delete(key);
+  let changed=true;
+  while(changed){
+   changed=false;
+   for(const [action,required] of Object.entries(permissionNeeds)){
+    if(next.has(action)&&required.some(need=>!next.has(need))){next.delete(action);changed=true;}
+   }
+  }
+ }
+ return [...next];
+}
 export function LiveStaff(){
  const {hotelId,user}=useHotelAuth();
  const admin=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
@@ -67,7 +94,7 @@ export function LiveStaff(){
  };
  const changePermission=(key:string,checked:boolean)=>
   setPermissionEdit(current=>current?{...current,
-   selected:checked?[...current.selected,key]:current.selected.filter(item=>item!==key)}:null);
+   selected:updatePermissionSet(current.selected,key,checked)}:null);
  async function savePermissions(){
   if(!permissionEdit||!admin||saving||!hotelId)return;
   const current=permissionEdit;
@@ -292,7 +319,7 @@ export function LiveStaff(){
       disabled={saving!==null} onClick={()=>setPermissionEdit(null)}><X size={18}/></button>
     </div>
     <p><strong>{permissionEdit.name}</strong> · {roleName[permissionEdit.role]}</p>
-    <p className="guest-info">Choose which of this role's actions this employee can perform. You cannot grant privileges outside their role, change Manager privileges, or bypass independent financial approvals.</p>
+    <p className="guest-info">Choose which of this role's actions this employee can perform. Related access requirements are updated together. Manager privileges and independent financial reviews cannot be delegated.</p>
     {roleProfiles.isPending&&<p role="status">Loading role permissions…</p>}
     {roleProfiles.isError&&<p role="alert">Role permissions unavailable. Close and refresh this page.</p>}
     {roleProfiles.data&&(()=>{

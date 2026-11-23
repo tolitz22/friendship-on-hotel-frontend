@@ -60,6 +60,18 @@ describe('Phase 49 hotel role workspaces',()=>{
   expect(canViewWorkspacePath(null,'/change-password')).toBe(true);
   expect(canViewWorkspacePath('admin','/unknown-page')).toBe(false);
  });
+ it('uses employee-specific effective permissions to hide sensitive pages',()=>{
+  const restricted=['reservation.read','booking.create','booking.check_in'];
+  expect(canViewWorkspacePath('front_desk','/reservations',restricted)).toBe(true);
+  expect(canViewWorkspacePath('front_desk','/guests',restricted)).toBe(false);
+  expect(canViewWorkspacePath('front_desk','/guests/12/stays',restricted)).toBe(false);
+  expect(canViewWorkspacePath('front_desk','/billing',restricted)).toBe(false);
+  expect(canViewWorkspacePath('front_desk','/cashier-shifts',restricted)).toBe(false);
+  expect(canViewWorkspacePath('front_desk','/room-calendar',restricted)).toBe(true);
+  expect(canViewWorkspacePath('housekeeping','/occupancy-verification',[])).toBe(false);
+  expect(canViewWorkspacePath('housekeeping','/housekeeping',[])).toBe(true);
+  expect(canViewWorkspacePath('admin','/staff',[])).toBe(true);
+ });
  it('does not infer privileges from an unsupported role',()=>{
   expect(selectedRole([{id:'1',name:'Hotel',role:'unknown'}],'1')).toBeNull();
   expect(navigationForRole(null).daily).toEqual(['/']);

@@ -44,6 +44,7 @@ export function LiveHousekeeping(){
  const openedLinkedTask=useRef<string|null>(null);
  const role=user?.hotels.find(h=>h.id===hotelId)?.role;
  const admin=role==='admin';
+ const canWork=admin||user?.hotels.find(h=>h.id===hotelId)?.permissions?.includes('housekeeping.assigned')!==false;
  const property=useLiveProperty();
  const hotelDate=hotelToday(new Date(),property.data?.data.timeZone??'Asia/Manila');
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin});
@@ -152,7 +153,7 @@ export function LiveHousekeeping(){
   setForm(current=>current?{...current,[key]:value}:current);
  async function save(e:FormEvent<HTMLFormElement>){
   e.preventDefault();
-  const assigned=!!selected&&role==='housekeeping'&&selected.assignedUserId===user?.id;
+  const assigned=!!selected&&role==='housekeeping'&&canWork&&selected.assignedUserId===user?.id;
   if(!(admin||assigned)||!form||saving)return;
   setSaving(true);setError('');setFieldErrors({});
   try{
@@ -192,7 +193,7 @@ export function LiveHousekeeping(){
    }else setError(caught instanceof Error?caught.message:'Unable to save housekeeping task.');
   }finally{setSaving(false);}
  }
- const mayInspect=!!selected&&(admin||(role==='housekeeping'&&selected.assignedUserId===user?.id));
+ const mayInspect=!!selected&&(admin||(role==='housekeeping'&&canWork&&selected.assignedUserId===user?.id));
  async function finishInspection(){
   if(!selected||selected.status!=='done'||!mayInspect||saving||!inspectionChecks.every(Boolean)
    ||inspectionNote.trim().length<5||!hotelId)return;
@@ -225,7 +226,7 @@ export function LiveHousekeeping(){
  const assignedName=(task:LiveHousekeepingTask)=>task.assignedUserId
   ?task.assignedUserId===user?.id?'You':admin?staff.data?.data.find(m=>m.userId===task.assignedUserId)?.name??'Assigned staff':'Assigned staff'
   :task.assignedTo??'Unassigned';
- const canUpdate=(task:LiveHousekeepingTask)=>admin||(role==='housekeeping'&&task.assignedUserId===user?.id);
+ const canUpdate=(task:LiveHousekeepingTask)=>admin||(role==='housekeeping'&&canWork&&task.assignedUserId===user?.id);
  const maySave=admin||(!!selected&&canUpdate(selected));
  return <>
   {linkedTaskId&&<section aria-label="Direct checkout cleaning task">

@@ -8,7 +8,7 @@ export interface HotelStaffMember{
 export const listHotelStaff=()=>getJson<{data:HotelStaffMember[]}>(hotelPath('/staff'));
 export const attachHotelStaff=(email:string,role:StaffRole)=>
  requestJson<{data:HotelStaffMember[]}>(hotelPath('/staff'),{method:'POST',body:{email,role}});
-export const updateHotelStaff=(userId:string,body:Partial<{role:StaffRole;isActive:boolean}>)=>
+export const updateHotelStaff=(userId:string,body:Partial<{role:StaffRole;isActive:boolean;expectedRole:StaffRole;expectedIsActive:boolean}>)=>
  requestJson<{data:HotelStaffMember[]}>(hotelPath('/staff/'+encodeURIComponent(userId)),{method:'PATCH',body});
 
 export interface StaffMembershipEvent{

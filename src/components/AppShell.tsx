@@ -7,6 +7,7 @@ import {dataMode} from '../api';
 import {useHotelAuth} from './AuthProvider';
 import {StaffSignIn} from './StaffSignIn';
 import {HotelChooser} from './HotelChooser';
+import {ChangePassword} from '../pages/StaffPassword';
 import {selectedRole,navigationForRole,canViewWorkspacePath} from '../features/workspaces/roleNavigation';
 
 const daily=[
@@ -72,6 +73,14 @@ export function AppShell(){
  if(dataMode==='api'&&pending&&!user)
   return <div className="auth-shell"><div className="auth-card"><p role="status">Checking your staff session…</p></div></div>;
  if(dataMode==='api'&&!user)return <StaffSignIn/>;
+ if(dataMode==='api'&&user?.mustChangePassword)return <div className="app-layout">
+  <main className="main-area">
+   <div className="page-content">
+    <div className="notice" role="alert"><strong>Initial password change required.</strong> Your hotel administrator created this account with a temporary password. Choose a private new password before accessing any hotel records.</div>
+    <ChangePassword/>
+   </div>
+  </main>
+ </div>;
  if(dataMode==='api'&&user&&!hotelId&&pathname==='/change-password')return <Outlet/>;
  if(dataMode==='api'&&!hotelId)return <HotelChooser/>;
 

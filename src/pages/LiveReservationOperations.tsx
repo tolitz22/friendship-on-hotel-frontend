@@ -211,7 +211,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
    <div className="desk-tools">
     {isInHouse&&canOperate&&hotelId&&record.assignedRoomId&&
      <StayExtensionModal key={hotelId+'-'+record.id} hotelId={hotelId} record={record} today={hotelDate}
-      openOnEntry={deskAction==='extend'} disabled={busy} onSaved={()=>void refresh(hotelId).catch(()=>{})}/>}
+      openOnEntry={deskAction==='extend'} disabled={busy} onSaved={()=>refresh(hotelId)}/>}
    <button type="button" className="stay-close-btn" onClick={onClose} disabled={busy}>
     <ArrowLeft size={16}/> All reservations
    </button>

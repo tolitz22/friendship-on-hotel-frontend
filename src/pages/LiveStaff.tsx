@@ -223,7 +223,7 @@ export function LiveStaff(){
    {([['team','Team'],['roles','Roles & permissions'],['invite','Invitations'],['audit','Access history']] as const)
     .map(([id,label])=><button key={id} type="button" aria-current={section===id?'page':undefined}
      aria-pressed={section===id} className={section===id?'active':''}
-     onClick={()=>{setSection(id);setError('');setNotice('');if(id==='audit')setHistoryOpen(true);}}>{label}</button>)}
+     onClick={()=>{setSection(id);setError('');setNotice('');setManualPassword('');setManualPasswordConfirm('');if(id==='audit')setHistoryOpen(true);}}>{label}</button>)}
   </nav>
   {error&&<p className="auth-error" role="alert">{error}</p>}
   {notice&&<p className="guest-info" role="status">{notice}</p>}

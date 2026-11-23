@@ -186,7 +186,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
   :isInHouse&&!allowedOperation(record,'check-out',hotelDate)
    ?'Scheduled checkout has not arrived. Use Request early checkout below for an authorized exception.'
   :isInHouse&&financialBlock?financialBlock
-  :!acknowledged?'Complete the verification checkbox to continue.'
+  :!acknowledged?'Confirm the guest’s identity to continue.'
   :null;
 
  return <div className="stay-detail-page">
@@ -223,9 +223,9 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
    {isConfirmed&&!roomAssigned?<div>
     <p>Assign a room before checking in this guest.</p>
     <button type="button" className="btn-inline" aria-haspopup="dialog" onClick={openRoomPicker}>Assign room</button>
-   </div>:readinessNeeded&&readiness.isSuccess&&!readiness.data.advisoryReady&&record.assignedRoomNumber?<div>
+   </div>:isConfirmed&&roomAssigned&&readiness.isSuccess&&!readiness.data.advisoryReady&&record.assignedRoomNumber?<div>
     <p>Room readiness needs attention before check-in.</p>
-    <Link to="/rooms" search={{room:record.assignedRoomNumber,inspect:true}} className="btn-inline">Inspect room</Link>
+    <Link to="/rooms" search={{room:record.assignedRoomNumber,inspect:true}} className="btn-inline">Open inspection</Link>
    </div>:isInHouse&&financialBlock?<div>
     <p>Checkout blocked. {financialBlock}</p>
     <Link to="/billing" search={{booking:record.id}} className="btn-inline">Resolve in Billing</Link>
@@ -264,21 +264,49 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
        aria-haspopup="dialog" onClick={openRoomPicker}>
        Select room <ArrowRight size={15}/></button>}
      </div>}
-     {isConfirmed&&<>
-      <QueryFeedback loading={readinessPolicy.isPending} error={readinessPolicy.error}
-       onRetry={()=>void readinessPolicy.refetch()}/>
-      {readinessNeeded&&roomAssigned&&<div className="stay-requirement">
+     {isConfirmed&&roomAssigned&&<section aria-label="Assigned room inspection and housekeeping status">
+      <div className="stay-requirement">
        <span className={readiness.isSuccess&&readiness.data.advisoryReady?'stay-requirement-mark done':'stay-requirement-mark'}>
-        {readiness.isSuccess&&readiness.data.advisoryReady?<CheckCircle2 size={17}/>:<ShieldCheck size={17}/>}
-       </span>
-       <div><strong>Housekeeping readiness {readiness.isSuccess&&readiness.data.advisoryReady?'approved':'required'}</strong>
-        <small>Hotel policy requires current approved room readiness.</small></div>
-       <button type="button" className="stay-text-button" onClick={()=>void readiness.refetch()}>
-        <RefreshCw size={14}/> Refresh</button>
-      </div>}
-      {readinessNeeded&&roomAssigned&&<QueryFeedback loading={readiness.isPending} error={readiness.error}
-       onRetry={()=>void readiness.refetch()}/>}
-     </>}
+        {readiness.isSuccess&&readiness.data.advisoryReady?<CheckCircle2 size={17}/>:<AlertTriangle size={17}/>}</span>
+       <div><strong>Room readiness: {readiness.isPending?'Checking…':readiness.isError?'Cannot verify':readiness.data?.advisoryReady?'Ready':'Attention required'}</strong>
+        <small>Room {record.assignedRoomNumber??record.assignedRoomId} · separate from assignment and guest identity</small></div>
+       <button type="button" className="stay-text-button" disabled={readiness.isFetching}
+        onClick={()=>void readiness.refetch()}><RefreshCw size={14}/> Refresh</button>
+      </div>
+      <QueryFeedback loading={readiness.isPending} error={readiness.error} onRetry={()=>void readiness.refetch()}/>
+      {readiness.isSuccess&&<>
+       <div className="stay-requirement">
+        <span className={readiness.data.inspection?.status==='approved'&&!readiness.data.blockers.newTurnoverSinceInspection&&!readiness.data.blockers.newRoomWorkSinceInspection?'stay-requirement-mark done':'stay-requirement-mark'}><ShieldCheck size={17}/></span>
+        <div><strong>Inspection: {readiness.data.inspection===null?'Not recorded':readiness.data.inspection.status==='approved'&&(readiness.data.blockers.newTurnoverSinceInspection||readiness.data.blockers.newRoomWorkSinceInspection)?'Reinspection required':readiness.data.inspection.status==='approved'?'Current':readiness.data.inspection.status==='submitted'?'Submitted · awaiting review':'Rejected'}</strong>
+         <small>Physical condition, safety and amenities</small></div>
+        <Link to="/rooms" search={{room:record.assignedRoomNumber??undefined,inspect:true}} className="stay-text-button">Open inspection <ArrowRight size={14}/></Link>
+       </div>
+       <div className="stay-requirement">
+        <span className={readiness.data.blockers.unfinishedHousekeeping||readiness.data.blockers.latestTurnoverIncomplete?'stay-requirement-mark':'stay-requirement-mark done'}><CheckCircle2 size={17}/></span>
+        <div><strong>Housekeeping: {readiness.data.blockers.unfinishedHousekeeping||readiness.data.blockers.latestTurnoverIncomplete?'Outstanding':'No active cleaning blockers'}</strong>
+         <small>Housekeeping completion is separate from the room inspection.</small></div>
+        <Link to="/housekeeping" search={{}} className="stay-text-button">Open housekeeping task <ArrowRight size={14}/></Link>
+       </div>
+       {Object.values(readiness.data.blockers).some(Boolean)&&<p className="stay-blocked-hint" role="status">
+        Other readiness checks: {[
+         readiness.data.blockers.activeInventoryBlockToday&&'Inventory restriction',
+         readiness.data.blockers.activeRoomImpactMaintenance&&'Maintenance restriction',
+         readiness.data.blockers.latestTurnoverIncomplete&&'Checkout cleaning incomplete',
+         readiness.data.blockers.newTurnoverSinceInspection&&'Reinspection after checkout',
+         readiness.data.blockers.unfinishedHousekeeping&&'Unfinished housekeeping',
+         readiness.data.blockers.newRoomWorkSinceInspection&&'Reinspection after room work',
+        ].filter(Boolean).join(' · ')}
+       </p>}
+      </>}
+      <QueryFeedback loading={readinessPolicy.isPending} error={readinessPolicy.error} onRetry={()=>void readinessPolicy.refetch()}/>
+      {readinessPolicy.isSuccess&&<p className="stay-security-note" role="status">
+       Check-in inspection enforcement: <strong>{readinessPolicy.data.enforceAtCheckIn?'Enabled':'Not enabled'}</strong>.
+       {readinessPolicy.data.enforceAtCheckIn
+        ?' Current room readiness is required to check in.'
+        :' Room readiness is advisory under the current property policy; review unresolved room checks.'}
+      </p>}
+     </section>}
+     {isConfirmed&&!roomAssigned&&<p className="stay-security-note">Assign a room to view inspection and housekeeping status.</p>}
      {isInHouse&&<div className="stay-operation-impact" aria-label="Checkout confirmation details">
       <strong>Before checking out this guest{record.assignedRoomNumber?' from Room '+record.assignedRoomNumber:''}:</strong>
       <ul>
@@ -297,7 +325,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
       <input type="checkbox" checked={acknowledged} disabled={busy}
        onChange={e=>setAcknowledged(e.target.checked)}/>
       <span>{isConfirmed
-       ?'I have verified the guest’s identity, assigned room, and housekeeping readiness.'
+       ?'I have verified the guest’s identity against their identification.'
        :'I have verified departure timing and reviewed any payment or balance follow-up.'}</span>
      </label>}
      {!earlyDepartureWindow&&<div className="stay-action-footer">

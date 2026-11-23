@@ -32,6 +32,7 @@ const payment=z.object({
 });
 const paymentHandoff=z.object({
  paymentId:id,recordedBy:id.nullable(),recordedByName:z.string().nullable(),
+ paymentReviewedByName:z.string().nullish(),evidenceReviewedByName:z.string().nullish(),
  verificationPreparedByName:z.string().nullable(),
  cashShiftId:id.nullable(),cashierId:id.nullable(),cashShiftStatus:z.enum([
   'open','submitted','reconciled','flagged','unlinked','not_applicable',
@@ -155,6 +156,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   :/^\d+$/.test(text)&&Number.isSafeInteger(Number(text))&&Number(text)>0?Number(text):null;
  const allocationMinor=minorInput(amount);
  const refundMinor=minorInput(refundAmount);
+ const staffByPayment=new Map(data?.cashShiftContexts.map(entry=>[entry.paymentId,entry]));
  const recordedActive=data?.payments.filter(p=>p.status==='pending_review'||p.status==='staff_confirmed')??[];
  const recordedTotal=recordedActive.reduce((sum,p)=>sum+p.amountMinor,0);
  const confirmedPendingVerification=data?.payments.filter(p=>p.status==='staff_confirmed'
@@ -607,12 +609,21 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
     </>}
     <h4>Payments and their review status</h4>
     <div className="table-scroll"><table className="settlement-table">
-     <thead><tr><th>Method / reference</th><th>Status</th><th>Amount</th></tr></thead>
-     <tbody>{data.payments.map(p=><tr key={p.id}>
-      <td>{p.method} · {p.reference}</td>
-      <td>{p.status} · {p.verificationStatus??'not reviewed'}</td>
-      <td>{money(p.amountMinor,data.currency)}</td>
-     </tr>)}{data.payments.length===0&&<tr><td colSpan={3}>No payment evidence recorded.</td></tr>}</tbody>
+     <thead><tr><th>Method / reference</th><th>Status</th><th>Staff</th><th>Amount</th></tr></thead>
+     <tbody>{data.payments.map(payment=>{
+      const staff=staffByPayment.get(payment.id);
+      return <tr key={payment.id}>
+       <td>{payment.method} · {payment.reference}</td>
+       <td>{payment.status} · {payment.verificationStatus??'not reviewed'}</td>
+       <td>
+        <span>Recorded by {staff?.recordedByName??'—'}</span>
+        {staff?.paymentReviewedByName&&<small className="cell-note">Payment reviewed by {staff.paymentReviewedByName}</small>}
+        {staff?.evidenceReviewedByName&&<small className="cell-note">Evidence reviewed by {staff.evidenceReviewedByName}</small>}
+        {staff?.cashierName&&<small className="cell-note">Cashier in charge · {staff.cashierName}</small>}
+       </td>
+       <td>{money(payment.amountMinor,data.currency)}</td>
+      </tr>;
+     })}{data.payments.length===0&&<tr><td colSpan={4}>No payment evidence recorded.</td></tr>}</tbody>
     </table></div>
     {data.allocations.length>0&&<>
      <h4>Guest / company / group payment attribution</h4>

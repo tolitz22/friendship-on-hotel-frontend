@@ -151,27 +151,27 @@ export function AppShell(){
    {dataMode==='api'&&<div className="workflow-shortcuts" aria-label="Related actions">
     <span>RELATED</span>
     {pathname==='/group-reservations'?<>
-     {(role==='admin'||role==='front_desk')&&<Link to="/reservations">Bookings <ArrowRight size={13}/></Link>}
-     <Link to="/room-calendar">Room calendar <ArrowRight size={13}/></Link>
-     {(role==='admin'||role==='front_desk')&&<Link to="/front-desk">Front desk <ArrowRight size={13}/></Link>}
+     {(role==='admin'||role==='front_desk')&&{canViewWorkspacePath(role,'/reservations')&&<Link to="/reservations">Bookings <ArrowRight size={13}/></Link>}}
+     {canViewWorkspacePath(role,'/room-calendar')&&<Link to="/room-calendar">Room calendar <ArrowRight size={13}/></Link>}
+     {(role==='admin'||role==='front_desk')&&{canViewWorkspacePath(role,'/front-desk')&&<Link to="/front-desk">Front desk <ArrowRight size={13}/></Link>}}
     </>:pathname==='/room-calendar'?<>
-     <Link to="/group-reservations">Group Bookings <ArrowRight size={13}/></Link>
-     <Link to="/reservations">Bookings <ArrowRight size={13}/></Link>
-     <Link to="/rooms">Room readiness <ArrowRight size={13}/></Link>
+     {canViewWorkspacePath(role,'/group-reservations')&&<Link to="/group-reservations">Group Bookings <ArrowRight size={13}/></Link>}
+     {canViewWorkspacePath(role,'/reservations')&&<Link to="/reservations">Bookings <ArrowRight size={13}/></Link>}
+     {canViewWorkspacePath(role,'/rooms')&&<Link to="/rooms">Room readiness <ArrowRight size={13}/></Link>}
     </>:pathname==='/billing'?<>
-     <Link to="/group-reservations">Group Bookings <ArrowRight size={13}/></Link>
-     <Link to="/reservations">Bookings <ArrowRight size={13}/></Link>
-     {(role==='admin'||role==='front_desk')&&<Link to="/cashier-shifts">Cashier shifts <ArrowRight size={13}/></Link>}
+     {canViewWorkspacePath(role,'/group-reservations')&&<Link to="/group-reservations">Group Bookings <ArrowRight size={13}/></Link>}
+     {canViewWorkspacePath(role,'/reservations')&&<Link to="/reservations">Bookings <ArrowRight size={13}/></Link>}
+     {(role==='admin'||role==='front_desk')&&{canViewWorkspacePath(role,'/cashier-shifts')&&<Link to="/cashier-shifts">Cashier shifts <ArrowRight size={13}/></Link>}}
     </>:pathname==='/housekeeping'?<>
-     <Link to="/rooms">Room readiness <ArrowRight size={13}/></Link>
-     {admin&&<Link to="/operational-exceptions">Exceptions & audit <ArrowRight size={13}/></Link>}
+     {canViewWorkspacePath(role,'/rooms')&&<Link to="/rooms">Room readiness <ArrowRight size={13}/></Link>}
+     {admin&&{canViewWorkspacePath(role,'/operational-exceptions')&&<Link to="/operational-exceptions">Exceptions & audit <ArrowRight size={13}/></Link>}}
     </>:<>
-     {(role==='admin'||role==='front_desk')&&<Link to="/front-desk">Front desk <ArrowRight size={13}/></Link>}
-     {(role==='admin'||role==='front_desk')&&<Link to="/reservations">Bookings <ArrowRight size={13}/></Link>}
-     {(role==='admin'||role==='front_desk')&&<Link to="/group-reservations">Group Bookings <ArrowRight size={13}/></Link>}
-     {(role==='admin'||role==='front_desk')&&<Link to="/room-calendar">Room calendar <ArrowRight size={13}/></Link>}
-     {role==='housekeeping'&&<Link to="/housekeeping">Cleaning tasks <ArrowRight size={13}/></Link>}
-     {role==='maintenance'&&<Link to="/maintenance">Work orders <ArrowRight size={13}/></Link>}
+     {(role==='admin'||role==='front_desk')&&{canViewWorkspacePath(role,'/front-desk')&&<Link to="/front-desk">Front desk <ArrowRight size={13}/></Link>}}
+     {(role==='admin'||role==='front_desk')&&{canViewWorkspacePath(role,'/reservations')&&<Link to="/reservations">Bookings <ArrowRight size={13}/></Link>}}
+     {(role==='admin'||role==='front_desk')&&{canViewWorkspacePath(role,'/group-reservations')&&<Link to="/group-reservations">Group Bookings <ArrowRight size={13}/></Link>}}
+     {(role==='admin'||role==='front_desk')&&{canViewWorkspacePath(role,'/room-calendar')&&<Link to="/room-calendar">Room calendar <ArrowRight size={13}/></Link>}}
+     {role==='housekeeping'&&{canViewWorkspacePath(role,'/housekeeping')&&<Link to="/housekeeping">Cleaning tasks <ArrowRight size={13}/></Link>}}
+     {role==='maintenance'&&{canViewWorkspacePath(role,'/maintenance')&&<Link to="/maintenance">Work orders <ArrowRight size={13}/></Link>}}
     </>}
    </div>}
    <div className="page-content">

@@ -18,7 +18,7 @@ import {Heading} from '../components/ui';
  * Room creation and catalogue edits are contextual admin actions, not a second tab.
  */
 export function LiveRooms(){
- const {room:linkedRoomNumber}=useSearch({from:'/rooms'});
+ const {room:linkedRoomNumber,inspect}=useSearch({from:'/rooms'});
  const {user,hotelId}=useHotelAuth();
  const role=user?.hotels.find(h=>h.id===hotelId)?.role;
  const admin=role==='admin';
@@ -31,8 +31,9 @@ export function LiveRooms(){
  const roomTypes=useLiveRoomTypes();
  const queryClient=useQueryClient();
  useEffect(()=>{
-  setShowCreate(false);setEditingRoom(null);setInspectionRoomNumber(null);
+  setShowCreate(false);setEditingRoom(null);
  },[hotelId]);
+ useEffect(()=>setInspectionRoomNumber(inspect?linkedRoomNumber??null:null),[hotelId,inspect,linkedRoomNumber]);
  const refreshRack=()=>{
   void Promise.all([
    queryClient.invalidateQueries({queryKey:['live','room-rack',hotelId]}),
@@ -51,7 +52,7 @@ export function LiveRooms(){
    </div>
   </div>
   {canSeeStay&&hotelId&&<RoomRackDashboard key={hotelId} hotelId={hotelId}
-   focusRoomNumber={linkedRoomNumber}
+   focusRoomNumber={inspect?undefined:linkedRoomNumber}
    onEditRoom={admin?room=>setEditingRoom(room):undefined}/>}
   {canSeeStay?<details className="workflow-disclosure rack-readiness-queue" open={undefined}>
    <summary><ClipboardCheck size={17} aria-hidden="true"/> Readiness & arrivals · prioritized staff actions</summary>

@@ -313,8 +313,11 @@ export function LiveHousekeeping(){
        </span>
       </div>
       {pastDue&&<p className="hk-cleaning-priority"><AlertTriangle size={15}/> Follow up on this overdue task.</p>}
-      {task.status==='done'&&<p className="hk-cleaning-finished"><CheckCircle2 size={15}/> Cleaning complete — new inspection required.</p>}
-      <Link to="/rooms" search={{room:task.roomNumber}} className="ops-room-link">Check room readiness <ArrowRight size={14}/></Link>
+      {task.type==='checkout_clean'&&<p className="hk-cleaning-finished">
+       {task.status==='done'?<>Cleaning complete → Inspect room → Ready after inspection and other room checks</>
+        :<>Cleaning due → Inspection → Ready after room checks</>}
+      </p>}
+      <Link to="/rooms" search={{room:task.roomNumber,inspect:task.type==='checkout_clean'&&task.status==='done'||undefined}} className="ops-room-link">{task.type==='checkout_clean'&&task.status==='done'?'Open inspection and readiness':'Check room readiness'} <ArrowRight size={14}/></Link>
       <button type="button" className="hk-open-task" onClick={()=>openEdit(task)}>
        {editable?task.status==='todo'?'Start or update task':task.status==='in_progress'?'Update cleaning progress':'View completed task':'View task details'}
        <ArrowRight size={16}/>

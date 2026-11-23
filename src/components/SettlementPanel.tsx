@@ -13,7 +13,7 @@ import {GuestIncidentalChargeForm} from './GuestIncidentalChargeForm';
 import {BillingActions} from './BillingActions';
 import {parseBillingAmount} from '../api/billing';
 import {isGuestBillSettled} from '../features/billing/reviewedPaymentSettlement';
-import {readableDate,readableDateTime} from '../lib/format';
+import {readableDate,readableDateTime,statusLabel} from '../lib/format';
 import './settlement-print.css';
 
 const id=z.string().regex(/^[1-9]\d*$/);
@@ -91,6 +91,31 @@ function KeyValue({label,value}:{label:string;value:string}){
  return <div className="settlement-metric"><small>{label}</small><strong>{value}</strong></div>;
 }
 
+export function useSettlementStatement(hotelId:string|null,bookingId:string,enabled=true){
+ return useQuery({
+  queryKey:['live','settlement-statement',hotelId,bookingId],
+  enabled:enabled&&!!hotelId&&/^[1-9]\d*$/.test(bookingId),
+  queryFn:async():Promise<Statement>=>{
+   const result=z.object({data:statement}).parse(
+    await getJson<unknown>(hotelPath('/bookings/'+bookingId+'/settlement-statement'))).data;
+   if(result.hotelId!==hotelId||result.bookingId!==bookingId)
+    throw new Error('Unexpected reservation or hotel in settlement statement.');
+   return result;
+  },
+  retry:false,
+ });
+}
+
+export function financialCheckoutBlock(data:Statement):string|null{
+ if(data.simplifiedCashierModeEnabled){
+  return data.routineCashCheckoutEligible?null:data.routineCashCheckoutReason||'Review the guest bill and linked cash receipt.';
+ }
+ if(!data.settlementWorkflowEnabled)return null;
+ if(!data.signed)return 'A manager must sign the financial statement.';
+ if(!data.signedSnapshotIntegrity||!data.canSignOff)return 'The signed statement needs financial investigation.';
+ return null;
+}
+
 export function SettlementPanel({bookingId}:{bookingId:string}){
  const {hotelId,user}=useHotelAuth();
  const client=useQueryClient();
@@ -119,7 +144,6 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState('');
  const [success,setSuccess]=useState('');
- const valid=!!hotelId&&/^[1-9]\d*$/.test(bookingId);
  const endpoint='/bookings/'+bookingId;
  useEffect(()=>{
   setActiveDialog(null);setReviewStage('confirmation');setSelected('');setReference('');setReviewNote('');setPayerKind('guest');
@@ -128,18 +152,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   setRefundPayment('');setRefundAmount('');setRefundReason('');
   setRefundKey(crypto.randomUUID());setRefundEvidence('');setRefundNote('');
  },[hotelId,bookingId]);
- const query=useQuery({
-  queryKey:['live','settlement-statement',hotelId,bookingId],
-  enabled:valid,
-  queryFn:async():Promise<Statement>=>{
-   const result=z.object({data:statement}).parse(
-    await getJson<unknown>(hotelPath(endpoint+'/settlement-statement'))).data;
-   if(result.hotelId!==hotelId||result.bookingId!==bookingId)
-    throw new Error('Unexpected reservation or hotel in settlement statement.');
-   return result;
-  },
-  retry:false,
- });
+ const query=useSettlementStatement(hotelId,bookingId);
  const data=query.data;
  busyRef.current=busy;
  useEffect(()=>{
@@ -224,6 +237,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   &&recordedCashShiftStatuses.every(status=>status==='reconciled');
  const cashAuditValid=data?.routineCashCheckoutAudit?.integrityValid!==false;
  const guestBillSettled=!!data&&isGuestBillSettled(data);
+ const checkoutBlock=data?financialCheckoutBlock(data):null;
  const paymentStatus=data?.signed
   ?data.signedSnapshotIntegrity?'Financial approval complete':'Account requires investigation'
   :routineCashCheckedOut?!cashAuditValid?'Guest checked out — audit investigation needed'
@@ -362,7 +376,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
   setPayerRef('');setPayerKind('guest');setEntryId('');setAck(false);
   setError('');setSuccess('');
  }
- if(!valid)return null;
+ if(!hotelId||!/^[1-9]\d*$/.test(bookingId))return null;
  return <section className="settlement-page">
   <div className="billing-compact-toolbar">
    <span>Guest account</span>
@@ -380,12 +394,17 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        simplifiedCash?'Cash on file':'Settlement not final'}</span>
     </div>
    </div>
+   {data.status==='checked_in'&&<div className="stay-operation-impact">
+    <strong>{checkoutBlock?'Checkout blocked':'Billing checks clear for checkout'}</strong>
+    {checkoutBlock&&<p>{checkoutBlock}</p>}
+    <Link to="/reservations" search={{booking:bookingId,deskAction:'check-out'}}>Review checkout <ArrowRight size={14}/></Link>
+   </div>}
    <section className="frontdesk-payment-hub" aria-label="Front desk payment and checkout">
     <div className="frontdesk-payment-amounts">
      <div><small>Guest bill · recorded charges</small>
       <strong>{money(data.netRecordedChargesMinor,data.currency)}</strong></div>
-     <div><small>Payment recorded</small>
-      <strong>{money(recordedTotal,data.currency)}</strong>
+     <div><small>{guestBillSettled?'Guest balance':'Payment recorded'}</small>
+      <strong>{money(guestBillSettled?0:recordedTotal,data.currency)}</strong>
       <span>{hasExistingMoney?'Already on file — do not collect again without checking':'No recorded payment yet'}</span></div>
     </div>
    {!data.signed&&['confirmed','checked_in'].includes(data.status)&&
@@ -614,7 +633,8 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       const staff=staffByPayment.get(payment.id);
       return <tr key={payment.id}>
        <td>{payment.method} · {payment.reference}</td>
-       <td>{payment.status} · {payment.verificationStatus??'not reviewed'}</td>
+       <td>{payment.status==='staff_confirmed'?'Payment reviewed':payment.status==='pending_review'?'Awaiting payment review':statusLabel(payment.status)}
+        {payment.verificationStatus&&<small className="cell-note">Evidence {statusLabel(payment.verificationStatus).toLowerCase()}</small>}</td>
        <td>
         <span>Recorded by {staff?.recordedByName??'—'}</span>
         {staff?.paymentReviewedByName&&<small className="cell-note">Payment reviewed by {staff.paymentReviewedByName}</small>}

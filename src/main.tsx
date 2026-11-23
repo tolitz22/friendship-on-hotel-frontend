@@ -66,7 +66,8 @@ const groupReservations=createRoute({getParentRoute:()=>root,path:'/group-reserv
   hotel:typeof value.hotel==='string'&&/^[1-9][0-9]*$/.test(value.hotel)?value.hotel:undefined,
  }),component:GroupReservations});
 const rooms=createRoute({getParentRoute:()=>root,path:'/rooms',
- validateSearch:(value:Record<string,unknown>):{room?:string}=>({
+ validateSearch:(value:Record<string,unknown>):{room?:string;inspect?:boolean}=>({
+  inspect:value.inspect===true?true:undefined,
   room:typeof value.room==='string'&&value.room.trim().length<=50
    ?value.room.trim()||undefined:undefined,
  }),

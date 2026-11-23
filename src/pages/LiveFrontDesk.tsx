@@ -154,6 +154,7 @@ export function LiveFrontDesk(){
      const needsAssignment=kind==='arrivals'&&!row.assignedRoomId;
      const status=row.assignedRoomId?statusByRoom.get(row.assignedRoomId):undefined;
      const signal=status?roomOperationalSignal(status):null;
+     const shouldInspect=kind==='arrivals'&&!!status&&signal?.tone==='attention'&&['Inspection needed','Readiness not verified'].includes(signal.title);
      const relatedNotes=maintenanceNotes.isSuccess&&row.assignedRoomId
       ?maintenanceNotes.data.data.filter(note=>note.roomId===row.assignedRoomId):[];
      const advisoryCount=informationalMaintenanceCount(relatedNotes);
@@ -175,7 +176,7 @@ export function LiveFrontDesk(){
          <span><strong>{signal.title}</strong><small>{signal.action}</small></span>
         </div>:<span className="fdc-check-unavailable">{roomStatus.isPending?'Checking room status…':'Room status not available · verify before check-in'}</span>}
         {advisoryCount>0&&<span className="fdc-maint-note"><Info size={13}/>{advisoryCount} open room-impact work order{advisoryCount===1?'':'s'} (note only)</span>}
-        <Link to="/rooms" search={{room:row.roomNumber??''}} className="ops-room-link">Review room details <ArrowRight size={13}/></Link>
+        <Link to="/rooms" search={{room:row.roomNumber??'',inspect:shouldInspect||undefined}} className="ops-room-link">{shouldInspect?'Inspect room':'Review room details'} <ArrowRight size={13}/></Link>
         {maintenanceNotes.isError&&<span className="fdc-check-unavailable">Repair notes could not be checked.</span>}
         {maintenanceNotes.isSuccess&&!noteCoverageComplete&&<span className="fdc-check-unavailable">Repair notes may be incomplete; see Maintenance.</span>}
         </div>}
@@ -186,7 +187,7 @@ export function LiveFrontDesk(){
       <div className="fdc-guest-actions">
        <Link to="/reservations" search={{booking:row.id,...(!canOperate||action.kind==='view'?{}:{deskAction:action.kind})}} className="fdc-action-link">
         {!canOperate?<ClipboardCheck size={16}/>:action.kind==='assign'?<BedDouble size={16}/>:action.kind==='check-in'?<LogIn size={16}/>:action.kind==='check-out'?<LogOut size={16}/>:<ClipboardCheck size={16}/>} 
-        {canOperate&&kind==='overdue'?'Complete checkout':canOperate?action.label:'View reservation'} <ArrowRight size={15}/>
+        {canOperate&&kind==='overdue'?'Review checkout':canOperate?action.label:'View reservation'} <ArrowRight size={15}/>
        </Link>
        <span>{canOperate&&kind==='overdue'?'Confirm the guest has left before checking out.':canOperate?action.hint:'Read-only staff review. Contact a manager for changes.'}</span>
        {canOperate&&row.status==='checked_in'&&row.assignedRoomId&&

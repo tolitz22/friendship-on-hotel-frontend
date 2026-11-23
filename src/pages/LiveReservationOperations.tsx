@@ -11,6 +11,7 @@ import {
 import type {Operation} from '../api/liveReservationOperations';
 import {readSession} from '../api/session';
 import {ApiError} from '../api/http';
+import {financialCheckoutBlock,useSettlementStatement} from '../components/SettlementPanel';
 import {StayExtensionModal} from '../components/StayExtensionModal';
 import {useReadinessPolicy} from '../api/readinessEnforcementPolicy';
 import {useLiveReadiness} from '../api/liveRoomReadiness';
@@ -73,7 +74,9 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  );
  const canCheckIn=canOperate&&allowedOperation(record,'check-in',hotelDate)
   &&readyForEnforcedCheckin&&acknowledged&&!busy;
- const canCheckOut=canOperate&&allowedOperation(record,'check-out',hotelDate)&&acknowledged&&!busy;
+ const checkoutStatement=useSettlementStatement(hotelId,record.id,canOperate&&record.lifecycleState==='checked_in');
+ const financialBlock=checkoutStatement.isSuccess?financialCheckoutBlock(checkoutStatement.data):null;
+ const canCheckOut=!financialBlock&&canOperate&&allowedOperation(record,'check-out',hotelDate)&&acknowledged&&!busy;
 
  useEffect(()=>{
   setRoomPage(1);setHistoryPage(1);setRoomId('');setAcknowledged(false);
@@ -159,7 +162,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const isFinished=record.lifecycleState==='checked_out'||record.lifecycleState==='cancelled';
  const roomAssigned=!!record.assignedRoomId;
  const allowStayAction=canOperate&&(isConfirmed||isInHouse);
- const actionLabel=isConfirmed?'Check in guest':isInHouse?'Check out guest':'View stay history';
+ const actionLabel=isConfirmed?'Check in guest':isInHouse?'Complete checkout':'View stay history';
  const readinessNeeded=isConfirmed&&readinessPolicy.data?.enforceAtCheckIn===true;
  const canProceed=isConfirmed?canCheckIn:canCheckOut;
  const blockedReason=!roomAssigned&&isConfirmed?'Assign a room before check-in.'
@@ -172,6 +175,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
    ?'Check-in is not available for this stay date.'
   :isInHouse&&!allowedOperation(record,'check-out',hotelDate)
    ?'Scheduled checkout has not arrived. Use Request early checkout below for an authorized exception.'
+  :isInHouse&&financialBlock?financialBlock
   :!acknowledged?'Complete the verification checkbox to continue.'
   :null;
 
@@ -203,6 +207,26 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
   {deskAction&&<p className="stay-entry-note" role="status">
    Opened from the front desk queue. Review the details before confirming a change.
   </p>}
+
+  {allowStayAction&&<section className="stay-operation-impact" aria-label="Next action">
+   <strong>Next action</strong>
+   {isConfirmed&&!roomAssigned?<div>
+    <p>Assign a room before checking in this guest.</p>
+    <button type="button" className="btn-inline" onClick={()=>{setShowRoomPicker(true);assignmentRef.current?.scrollIntoView({block:'start'});}}>Assign room</button>
+   </div>:readinessNeeded&&readiness.isSuccess&&!readiness.data.advisoryReady&&record.assignedRoomNumber?<div>
+    <p>Room readiness needs attention before check-in.</p>
+    <Link to="/rooms" search={{room:record.assignedRoomNumber,inspect:true}} className="btn-inline">Inspect room</Link>
+   </div>:isInHouse&&financialBlock?<div>
+    <p>Checkout blocked. {financialBlock}</p>
+    <Link to="/billing" search={{booking:record.id}} className="btn-inline">Resolve in Billing</Link>
+   </div>:<div>
+    <p>{isConfirmed?'Review the check-in requirements.':earlyDepartureWindow?'Review options for an early departure.':
+     checkoutStatement.isSuccess?'Billing checks clear. Confirm the guest’s departure.':'Review the checkout requirements.'}</p>
+    <button type="button" className="btn-inline" onClick={()=>lifecycleRef.current?.scrollIntoView({block:'start'})}>
+     {isConfirmed?'Review check-in':'Review checkout'}
+    </button>
+   </div>}
+  </section>}
 
   <div className="stay-detail-grid">
    <main className="stay-primary-column">

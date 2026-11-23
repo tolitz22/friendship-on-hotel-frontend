@@ -79,7 +79,7 @@ export function StayExtensionModal({hotelId,record,today,openOnEntry=false,disab
      onChange={event=>{setDate(event.target.value);setQuote(null);setError('');setMessage('');}}/>
    </label>
    {canConfirm&&<p role="status">{quote.nights} added {quote.nights===1?'night':'nights'} at {currency.format(quote.nightlyMinor/100)} per night.
-    {' '}<strong>{currency.format(quote.subtotalMinor/100)} room subtotal.</strong></p>}
+    {' '}<strong>{currency.format(quote.subtotalMinor/100)} added to the guest bill on confirmation.</strong></p>}
    <button type="submit" className="btn-primary" disabled={busy||date<minimum}>
     {busy?'Working…':canConfirm?'Confirm extension':'Check availability and rate'}
    </button>

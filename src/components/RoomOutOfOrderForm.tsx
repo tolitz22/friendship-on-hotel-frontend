@@ -4,12 +4,16 @@ import {Link} from '@tanstack/react-router';
 import {requestJson} from '../api/http';
 import {hotelPath,readSession} from '../api/session';
 import type {LiveWorkOrder} from '../api/liveMaintenance';
+import {useLiveRoomBlocks} from '../api/liveReservationOperations';
+import {readableDate} from '../lib/format';
 import {addDays} from '../features/reservations/calendarDate';
 
 export function RoomOutOfOrderForm({order,hotelId,today}:{
  order:LiveWorkOrder;hotelId:string;today:string;
 }){
  const client=useQueryClient();
+ const blocks=useLiveRoomBlocks(order.roomId,true);
+ const activeBlocks=blocks.data?.data.filter(block=>block.active&&block.checkIn<=today&&block.checkOut>today)??[];
  const [from,setFrom]=useState(today);
  const [until,setUntil]=useState(()=>addDays(today,1));
  const [reason,setReason]=useState(()=>('WO-'+order.id+' · '+order.title).slice(0,300));
@@ -35,6 +39,12 @@ export function RoomOutOfOrderForm({order,hotelId,today}:{
   }finally{setBusy(false);}
  }
 
+ if(blocks.isPending)return <p role="status">Checking room blocks…</p>;
+ if(blocks.isError)return <button type="button" className="btn-inline" onClick={()=>void blocks.refetch()}>Retry room block check</button>;
+ if(activeBlocks.length)return <div>
+  {activeBlocks.map(block=><p key={block.id}>Out of order through {readableDate(addDays(block.checkOut,-1))}</p>)}
+  <Link className="btn-inline" to="/room-calendar" search={{date:today,room:order.roomNumber}}>View room block</Link>
+ </div>;
  return <details>
   <summary>Mark room out of order</summary>
   <form onSubmit={event=>void blockRoom(event)}>

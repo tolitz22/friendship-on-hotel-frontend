@@ -261,7 +261,12 @@ export function LiveBookingForm(){
        <button className="btn-primary rb-main-action" type="submit" disabled={!canReview}>
         <ShieldCheck size={17}/> Check availability <ArrowRight size={16}/>
        </button>
-       <small>Final inventory checks happen again when you confirm.</small>
+       <small>{locked?'Finish the current booking request.'
+        :!guest?'Select a guest.'
+        :!selection.roomTypeId?'Choose a room type.'
+        :!rate?'Choose an available nightly rate.'
+        :!valid?'Choose valid stay dates, starting today or later.'
+        :'Final inventory checks happen again when you confirm.'}</small>
       </div>
      </form>
     </div>

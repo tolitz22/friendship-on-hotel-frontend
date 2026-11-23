@@ -1,6 +1,6 @@
 import {initializeSpaCsrf,isCookieAuth,requestJson} from './http';
 
-export interface StaffHotel{id:string;name:string;role:string;}
+export interface StaffHotel{id:string;name:string;role:string;permissions?:string[];}
 export interface StaffProfile{id:string;name:string;email:string;hotels:StaffHotel[];}
 export interface AuthLoginResponse{data:{token:string;tokenType:'Bearer';user:{id:string;name:string;email:string}};}
 export interface StaffProfileResponse{data:StaffProfile;}

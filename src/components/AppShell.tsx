@@ -64,6 +64,7 @@ export function AppShell(){
  const pathname=useRouterState({select:s=>s.location.pathname});
  const current=pathname.startsWith('/guests/')?'Customer stays':all.find(item=>item.to===pathname)?.label??'Overview';
  const role=selectedRole(user?.hotels,hotelId);
+ const effectivePermissions=user?.hotels.find(h=>h.id===hotelId)?.permissions;
  const workspace=navigationForRole(role);
  const admin=role==='admin';
  useEffect(()=>{setOpen(false);},[pathname,hotelId]);
@@ -77,9 +78,10 @@ export function AppShell(){
  const renderNav=(items:readonly NavItem[],section:'daily'|'management'|'advanced')=>items
   .filter(item=>dataMode==='api'||!['/change-password','/staff'].includes(item.to))
   .filter(item=>dataMode!=='api'||(
+   canViewWorkspacePath(role,item.to,effectivePermissions)&&(
    section==='daily'?workspace.daily.includes(item.to):
    section==='management'?workspace.management.includes(item.to):
-   workspace.advanced.includes(item.to)))
+   workspace.advanced.includes(item.to))))
   .map(({to,label,icon:Icon})=><Link key={to} to={to} activeOptions={{exact:true}}
    aria-current={pathname===to?'page':undefined}
    className={'nav-link'+(pathname===to?' active':'')}>
@@ -151,31 +153,31 @@ export function AppShell(){
    {dataMode==='api'&&<div className="workflow-shortcuts" aria-label="Related actions">
     <span>RELATED</span>
     {pathname==='/group-reservations'?<>
-     {(role==='admin'||role==='front_desk')&&canViewWorkspacePath(role,'/reservations')&&<Link to="/reservations">Bookings <ArrowRight size={13}/></Link>}
-     {canViewWorkspacePath(role,'/room-calendar')&&<Link to="/room-calendar">Room calendar <ArrowRight size={13}/></Link>}
-     {(role==='admin'||role==='front_desk')&&canViewWorkspacePath(role,'/front-desk')&&<Link to="/front-desk">Front desk <ArrowRight size={13}/></Link>}
+     {(role==='admin'||role==='front_desk')&&canViewWorkspacePath(role,'/reservations',effectivePermissions)&&<Link to="/reservations">Bookings <ArrowRight size={13}/></Link>}
+     {canViewWorkspacePath(role,'/room-calendar',effectivePermissions)&&<Link to="/room-calendar">Room calendar <ArrowRight size={13}/></Link>}
+     {(role==='admin'||role==='front_desk')&&canViewWorkspacePath(role,'/front-desk',effectivePermissions)&&<Link to="/front-desk">Front desk <ArrowRight size={13}/></Link>}
     </>:pathname==='/room-calendar'?<>
-     {canViewWorkspacePath(role,'/group-reservations')&&<Link to="/group-reservations">Group Bookings <ArrowRight size={13}/></Link>}
-     {canViewWorkspacePath(role,'/reservations')&&<Link to="/reservations">Bookings <ArrowRight size={13}/></Link>}
-     {canViewWorkspacePath(role,'/rooms')&&<Link to="/rooms">Room readiness <ArrowRight size={13}/></Link>}
+     {canViewWorkspacePath(role,'/group-reservations',effectivePermissions)&&<Link to="/group-reservations">Group Bookings <ArrowRight size={13}/></Link>}
+     {canViewWorkspacePath(role,'/reservations',effectivePermissions)&&<Link to="/reservations">Bookings <ArrowRight size={13}/></Link>}
+     {canViewWorkspacePath(role,'/rooms',effectivePermissions)&&<Link to="/rooms">Room readiness <ArrowRight size={13}/></Link>}
     </>:pathname==='/billing'?<>
-     {canViewWorkspacePath(role,'/group-reservations')&&<Link to="/group-reservations">Group Bookings <ArrowRight size={13}/></Link>}
-     {canViewWorkspacePath(role,'/reservations')&&<Link to="/reservations">Bookings <ArrowRight size={13}/></Link>}
-     {(role==='admin'||role==='front_desk')&&canViewWorkspacePath(role,'/cashier-shifts')&&<Link to="/cashier-shifts">Cashier shifts <ArrowRight size={13}/></Link>}
+     {canViewWorkspacePath(role,'/group-reservations',effectivePermissions)&&<Link to="/group-reservations">Group Bookings <ArrowRight size={13}/></Link>}
+     {canViewWorkspacePath(role,'/reservations',effectivePermissions)&&<Link to="/reservations">Bookings <ArrowRight size={13}/></Link>}
+     {(role==='admin'||role==='front_desk')&&canViewWorkspacePath(role,'/cashier-shifts',effectivePermissions)&&<Link to="/cashier-shifts">Cashier shifts <ArrowRight size={13}/></Link>}
     </>:pathname==='/housekeeping'?<>
-     {canViewWorkspacePath(role,'/rooms')&&<Link to="/rooms">Room readiness <ArrowRight size={13}/></Link>}
-     {admin&&canViewWorkspacePath(role,'/operational-exceptions')&&<Link to="/operational-exceptions">Exceptions & audit <ArrowRight size={13}/></Link>}
+     {canViewWorkspacePath(role,'/rooms',effectivePermissions)&&<Link to="/rooms">Room readiness <ArrowRight size={13}/></Link>}
+     {admin&&canViewWorkspacePath(role,'/operational-exceptions',effectivePermissions)&&<Link to="/operational-exceptions">Exceptions & audit <ArrowRight size={13}/></Link>}
     </>:<>
-     {(role==='admin'||role==='front_desk')&&canViewWorkspacePath(role,'/front-desk')&&<Link to="/front-desk">Front desk <ArrowRight size={13}/></Link>}
-     {(role==='admin'||role==='front_desk')&&canViewWorkspacePath(role,'/reservations')&&<Link to="/reservations">Bookings <ArrowRight size={13}/></Link>}
-     {(role==='admin'||role==='front_desk')&&canViewWorkspacePath(role,'/group-reservations')&&<Link to="/group-reservations">Group Bookings <ArrowRight size={13}/></Link>}
-     {(role==='admin'||role==='front_desk')&&canViewWorkspacePath(role,'/room-calendar')&&<Link to="/room-calendar">Room calendar <ArrowRight size={13}/></Link>}
-     {role==='housekeeping'&&canViewWorkspacePath(role,'/housekeeping')&&<Link to="/housekeeping">Cleaning tasks <ArrowRight size={13}/></Link>}
-     {role==='maintenance'&&canViewWorkspacePath(role,'/maintenance')&&<Link to="/maintenance">Work orders <ArrowRight size={13}/></Link>}
+     {(role==='admin'||role==='front_desk')&&canViewWorkspacePath(role,'/front-desk',effectivePermissions)&&<Link to="/front-desk">Front desk <ArrowRight size={13}/></Link>}
+     {(role==='admin'||role==='front_desk')&&canViewWorkspacePath(role,'/reservations',effectivePermissions)&&<Link to="/reservations">Bookings <ArrowRight size={13}/></Link>}
+     {(role==='admin'||role==='front_desk')&&canViewWorkspacePath(role,'/group-reservations',effectivePermissions)&&<Link to="/group-reservations">Group Bookings <ArrowRight size={13}/></Link>}
+     {(role==='admin'||role==='front_desk')&&canViewWorkspacePath(role,'/room-calendar',effectivePermissions)&&<Link to="/room-calendar">Room calendar <ArrowRight size={13}/></Link>}
+     {role==='housekeeping'&&canViewWorkspacePath(role,'/housekeeping',effectivePermissions)&&<Link to="/housekeeping">Cleaning tasks <ArrowRight size={13}/></Link>}
+     {role==='maintenance'&&canViewWorkspacePath(role,'/maintenance',effectivePermissions)&&<Link to="/maintenance">Work orders <ArrowRight size={13}/></Link>}
     </>}
    </div>}
    <div className="page-content">
-    {dataMode==='api'&&!canViewWorkspacePath(role,pathname)
+    {dataMode==='api'&&!canViewWorkspacePath(role,pathname,effectivePermissions)
      ?<section className="panel" role="alert" aria-label="Page access denied">
        <h2>Page not available for your role</h2>
        <p>Your {workspace.label.toLowerCase()} account cannot open this page. Ask a hotel manager if your duties require access.</p>

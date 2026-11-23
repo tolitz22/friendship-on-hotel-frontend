@@ -40,10 +40,10 @@ export function StayExtensionModal({hotelId,record,today,openOnEntry=false,disab
   requestInProgress.current=true;setBusy(true);setError('');setMessage('');
   try{
    const result=await requestJson<{data:ExtensionQuote}>(hotelPath('/bookings/'+record.id+'/extend-stay'),{
-    method:'POST',body:JSON.stringify({
+    method:'POST',body:{
      expectedCheckOut:record.checkOut,checkOut:date,
      ...(save?{expectedNightlyMinor:quote!.nightlyMinor}:{}),
-    }),
+    },
    });
    if(readSession().hotelId!==hotelId)return;
    if(result.data.saved){

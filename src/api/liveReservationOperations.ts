@@ -185,7 +185,7 @@ export async function transitionLiveStay(hotelId:string,record:LiveRecord,operat
  checkHotel(hotelId);
  const response=await requestJson<unknown>(
   hotelPath('/bookings/'+encodeURIComponent(record.id)+'/'+operation),
-  {method:'POST',...(confirmedDepartureAt?{body:JSON.stringify({confirmedDepartureAt})}:{})}
+  {method:'POST',...(confirmedDepartureAt?{body:{confirmedDepartureAt}}:{})}
  );
  return parseTransition(response,record,operation);
 }

@@ -235,7 +235,7 @@ function DepartureFollowUp({bookingId,savedNote,onSaved}:{
    setBusy(true);setFeedback('');
    try{
     await requestJson(hotelPath('/bookings/'+encodeURIComponent(bookingId)+'/departure-follow-up'),{
-     method:'POST',body:JSON.stringify({note:note.trim()}),
+     method:'POST',body:{note:note.trim()},
     });
     setNote('');setFeedback('Follow-up saved.');onSaved();
    }catch(cause){

@@ -39,7 +39,8 @@ export function LiveBookingForm(){
  const today=hotelToday(new Date(),property.data?.data.timeZone??'Asia/Manila');
  const {guest:requestedGuest,room:requestedRoomId,roomNumber:requestedRoomNumber,checkIn:requestedDay,checkOut:requestedOut}=useSearch({from:'/reservations'});
  const admin=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
- const canBook=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&(h.role==='admin'||h.role==='front_desk'));
+ const canBook=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&(h.role==='admin'||h.role==='front_desk')
+  &&(h.role==='admin'||h.permissions?.includes('booking.create')!==false));
  const [selection,setSelection]=useState<BookingSelection>(()=>initialSelection(today,requestedGuest,requestedDay,requestedOut));
  const [checked,setChecked]=useState<BookingSelection|null>(null);
  const [pending,setPending]=useState<BookingSubmission|null>(null);

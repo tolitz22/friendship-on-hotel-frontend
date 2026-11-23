@@ -274,8 +274,21 @@ export function LiveStaff(){
     <p className="guest-info">{roleProfiles.data.data.note}</p>
    </>}
   </Panel>}
-  {section==='invite'&&<>
-  <Panel title="Create staff account manually">
+  {addOpen&&<div className="guest-modal-backdrop" role="presentation">
+   <section className="guest-modal staff-add-dialog" role="dialog" aria-modal="true" aria-labelledby="staff-add-title">
+    <div className="staff-dialog-title">
+     <div><h3 id="staff-add-title">Add employee</h3><p>Choose how this person will sign in.</p></div>
+     <button type="button" className="icon-btn" aria-label="Close add employee" onClick={closeAdd} disabled={saving!==null}><X size={19}/></button>
+    </div>
+    <div className="staff-method-selector" aria-label="Account creation method">
+     <button type="button" className={addMethod==='manual'?'active':''} aria-pressed={addMethod==='manual'}
+      disabled={saving!==null} onClick={()=>setAddMethod('manual')}>Create login</button>
+     <button type="button" className={addMethod==='email'?'active':''} aria-pressed={addMethod==='email'}
+      disabled={saving!==null} onClick={()=>{setManualPassword('');setManualPasswordConfirm('');setAddMethod('email');}}>Email invite</button>
+     <button type="button" className={addMethod==='existing'?'active':''} aria-pressed={addMethod==='existing'}
+      disabled={saving!==null} onClick={()=>{setManualPassword('');setManualPasswordConfirm('');setAddMethod('existing');}}>Existing login</button>
+    </div>
+    {addMethod==='manual'&&  <Panel title="Create account">
    <p className="guest-info">Create an employee account immediately and choose an initial password. They must replace that password at first sign-in before accessing hotel data. Use the invitation option below if you prefer employees to set their own password from the start.</p>
    <form className="staff-add-form" onSubmit={e=>void createManualAccount(e)}>
     <label>Full name<input required minLength={2} maxLength={120} autoComplete="off"
@@ -303,8 +316,8 @@ export function LiveStaff(){
      <Plus size={16}/>{saving==='create-account'?'Creating account…':'Create staff account'}
     </button>
    </form>
-  </Panel>
-  <Panel title="Invite a new employee">
+  </Panel>}
+    {addMethod==='email'&&  <Panel title="Invite by email">
    <form className="staff-add-form" onSubmit={e=>void sendInvitation(e)}>
     <label>Full name<input required minLength={2} maxLength={120} value={inviteName} onChange={e=>setInviteName(e.target.value)}/></label>
     <label>Email<input required type="email" maxLength={255} value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)}/></label>
@@ -320,21 +333,8 @@ export function LiveStaff(){
     <button className="btn-primary" disabled={saving!==null||(inviteRole==='admin'&&!inviteManagerAcknowledged)} type="submit"><Mail size={16}/> Send invitation</button>
    </form>
    <p className="guest-info">New accounts only. The recipient must use the emailed link within 48 hours. The role is granted only after acceptance.</p>
-  </Panel>
-  <Panel title="Sent invitations" action={<button type="button" className="btn-inline" onClick={()=>void invitations.refetch()}><RefreshCcw size={15}/> Refresh</button>}>
-   <QueryFeedback loading={invitations.isPending} error={invitations.error} empty={invitations.data?.data.length===0}/>
-   {invitations.data&&<div className="table-scroll"><table><thead><tr><th>Recipient</th><th>Role</th><th>Status</th><th></th></tr></thead><tbody>
-    {invitations.data.data.map(item=>{
-     const pending=!item.acceptedAt&&!item.revokedAt&&new Date(item.expiresAt).getTime()>Date.now();
-     const status=item.acceptedAt?'Accepted':item.revokedAt?'Revoked':pending?'Pending':'Expired';
-     return <tr key={item.id}><td><strong>{item.name}</strong><div className="guest-info">{item.email}</div></td>
-      <td>{item.role.replaceAll('_',' ')}</td><td>{status}</td>
-      <td>{pending&&<button type="button" className="btn-inline" disabled={saving!==null} onClick={()=>void revokeInvitation(item.id)}>Revoke</button>}</td>
-     </tr>;
-    })}
-   </tbody></table></div>}
-  </Panel>
-  <Panel title="Attach an existing account">
+  </Panel>}
+    {addMethod==='existing'&&  <Panel title="Link existing account">
    <form className="staff-add-form" onSubmit={e=>void attach(e)}>
     <label>Email address<input type="email" required maxLength={255} value={email} onChange={e=>setEmail(e.target.value)} placeholder="staff@example.com"/></label>
     <label>Hotel role<select value={role} onChange={e=>{setRole(e.target.value as StaffRole);setAttachManagerAcknowledged(false);}}>
@@ -349,8 +349,22 @@ export function LiveStaff(){
     <button type="submit" className="btn-primary" disabled={saving!==null||(role==='admin'&&!attachManagerAcknowledged)}><Plus size={16}/> Add staff</button>
    </form>
    <p className="guest-info">Users can belong to multiple hotels. A new membership does not grant permission to another property's data.</p>
-  </Panel>
-  </>}
+  </Panel>}
+   </section>
+  </div>}
+  {section==='invite'&&  <Panel title="Sent invitations" action={<button type="button" className="btn-inline" onClick={()=>void invitations.refetch()}><RefreshCcw size={15}/> Refresh</button>}>
+   <QueryFeedback loading={invitations.isPending} error={invitations.error} empty={invitations.data?.data.length===0}/>
+   {invitations.data&&<div className="table-scroll"><table><thead><tr><th>Recipient</th><th>Role</th><th>Status</th><th></th></tr></thead><tbody>
+    {invitations.data.data.map(item=>{
+     const pending=!item.acceptedAt&&!item.revokedAt&&new Date(item.expiresAt).getTime()>Date.now();
+     const status=item.acceptedAt?'Accepted':item.revokedAt?'Revoked':pending?'Pending':'Expired';
+     return <tr key={item.id}><td><strong>{item.name}</strong><div className="guest-info">{item.email}</div></td>
+      <td>{item.role.replaceAll('_',' ')}</td><td>{status}</td>
+      <td>{pending&&<button type="button" className="btn-inline" disabled={saving!==null} onClick={()=>void revokeInvitation(item.id)}>Revoke</button>}</td>
+     </tr>;
+    })}
+   </tbody></table></div>}
+  </Panel>}
   {section==='team'&&<Panel title="Current staff members">
    <div className="staff-add-form">
     <label>Search staff <input type="search" value={staffSearch} placeholder="Search name or email"

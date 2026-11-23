@@ -417,7 +417,7 @@ export function LiveRoomCalendar(){
         {extendsOutsideVisible&&<p className="help-copy">Part of this stay is outside the displayed calendar. Final availability must be checked when booking.</p>}
        </div>}
        {canStartBooking&&<div className="lrc-modal-tip">
-        <CalendarDays size={18}/><div><strong>Start a reservation for this date</strong>
+        <CalendarDays size={18}/><div><strong>Start a booking for this date</strong>
          <p>We'll carry this room and check-in date to the booking form. You'll choose a guest and rate before confirming.</p>
         </div>
        </div>}
@@ -429,8 +429,8 @@ export function LiveRoomCalendar(){
        <button type="button" className="btn-inline" onClick={()=>setSelected(null)}>Close</button>
        {canStartBooking
         ?<Link to="/reservations" search={{room:selected.room.id,roomNumber:selected.room.number,checkIn:selected.day,checkOut:departure}}
-           className="btn-primary" onClick={()=>setSelected(null)}>Create reservation <ArrowUpRight size={16}/></Link>
-        :<Link to="/reservations" className="btn-primary" onClick={()=>setSelected(null)}>View reservations <ArrowUpRight size={16}/></Link>}
+           className="btn-primary" onClick={()=>setSelected(null)}>New booking <ArrowUpRight size={16}/></Link>
+        :<Link to="/reservations" className="btn-primary" onClick={()=>setSelected(null)}>View bookings <ArrowUpRight size={16}/></Link>}
       </footer>
      </section>
     </div>,document.body)}

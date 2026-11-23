@@ -242,7 +242,7 @@ export function LiveHousekeeping(){
     <Heading title="Housekeeping" description="Clean and inspect rooms in one task, then release rooms when all readiness checks pass."/></div>
    {admin&&<button type="button" className="btn-primary" onClick={openCreate}><Plus size={16}/> New cleaning task</button>}
   </div>
-  <div className="hk-guidance"><Info size={18}/><p><strong>Cleaning complete — new inspection required.</strong> Finishing checkout cleaning never marks the room ready. Complete a new physical inspection before releasing the room.</p></div>
+  <div className="hk-guidance"><Info size={18}/><p><strong>One task, two stages.</strong> Finish cleaning, then complete the final inspection in that same housekeeping task. Room readiness is confirmed only after all operational checks pass.</p></div>
   {role==='housekeeping'&&<section className="hk-manager-handoff"
    aria-label="Housekeeping assignments to you">
    <div className="hk-work-heading"><div><span className="rr-eyebrow">ASSIGNED TO YOU</span>
@@ -300,19 +300,19 @@ export function LiveHousekeeping(){
    <div className="hk-work-metrics">
     <div><Clock3 size={19}/><span>To do · hotel-wide</span><strong>{statusTotals.isSuccess?statusTotals.data.todo:'—'}</strong></div>
     <div><ClipboardCheck size={19}/><span>In progress · hotel-wide</span><strong>{statusTotals.isSuccess?statusTotals.data.in_progress:'—'}</strong></div>
-    <div><CheckCircle2 size={19}/><span>Completed · hotel-wide</span><strong>{statusTotals.isSuccess?statusTotals.data.done:'—'}</strong></div>
+    <div><CheckCircle2 size={19}/><span>Cleaning completed · hotel-wide</span><strong>{statusTotals.isSuccess?statusTotals.data.done:'—'}</strong></div>
     <div className="hk-metric-alert"><AlertTriangle size={19}/><span>Past due</span><strong>{tasks.isSuccess?overdueCount:'—'}</strong></div>
    </div>
    {statusTotals.isError&&<div className="hk-total-error" role="status">Hotel-wide task totals could not be loaded. <button type="button" className="btn-inline" onClick={()=>void statusTotals.refetch()}>Retry totals</button></div>}
   </section>
   <section className="hk-queue-section" aria-labelledby="hk-queue-title">
    <div className="hk-queue-head">
-    <div><h3 id="hk-queue-title">Cleaning task queue</h3><p>Search, filter, and open tasks to update progress.</p></div>
+    <div><h3 id="hk-queue-title">Housekeeping task queue</h3><p>Search, filter, and open tasks to update progress.</p></div>
     <span>{tasks.isSuccess?tasks.data.meta.total:'—'} tasks matching selected status and type</span>
    </div>
    <div className="hk-queue-filters">
     <div className="hk-queue-tabs" role="group" aria-label="Task status">
-     {([['','All tasks'],['todo','To do'],['in_progress','In progress'],['done','Completed']] as const).map(([value,label])=>
+     {([['','All tasks'],['todo','To do'],['in_progress','In progress'],['done','Cleaning completed']] as const).map(([value,label])=>
       <button key={value} type="button" aria-pressed={statusFilter===value} className={statusFilter===value?'active':''}
        onClick={()=>{setStatusFilter(value);setPage(1);}}>{label}</button>)}
     </div>

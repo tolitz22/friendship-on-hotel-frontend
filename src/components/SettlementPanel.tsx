@@ -116,7 +116,7 @@ export function financialCheckoutBlock(data:Statement):string|null{
  return null;
 }
 
-export function SettlementPanel({bookingId}:{bookingId:string}){
+export function SettlementPanel({bookingId,requestedAction}:{bookingId:string;requestedAction?:'signoff'}){
  const {hotelId,user}=useHotelAuth();
  const client=useQueryClient();
  const manager=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
@@ -154,6 +154,10 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  },[hotelId,bookingId]);
  const query=useSettlementStatement(hotelId,bookingId);
  const data=query.data;
+ useEffect(()=>{
+  if(requestedAction==='signoff'&&manager&&data?.settlementWorkflowEnabled&&!data.signed)
+   setActiveDialog('signoff');
+ },[requestedAction,manager,data?.settlementWorkflowEnabled,data?.signed,bookingId]);
  busyRef.current=busy;
  useEffect(()=>{
   if(data?.signed&&activeDialog&&['review','refunds','signoff'].includes(activeDialog)){
@@ -394,11 +398,19 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
        simplifiedCash?'Cash on file':'Settlement not final'}</span>
     </div>
    </div>
-   {data.status==='checked_in'&&<div className="stay-operation-impact">
-    <strong>{checkoutBlock?'Checkout blocked':'Billing checks clear for checkout'}</strong>
+   {data.status==='checked_in'&&<div className="stay-operation-impact" aria-label="Checkout financial requirements">
+    <strong>{checkoutBlock?'Checkout blocked — financial action required':'Billing checks clear for checkout'}</strong>
+    {guestBillSettled&&<p><strong>{money(0,data.currency)} due</strong> · Reviewed payments cover the bill. Do not collect again.</p>}
     {checkoutBlock&&<p>{checkoutBlock}</p>}
-    <Link to="/reservations" search={{booking:bookingId,deskAction:'check-out'}}>Review checkout <ArrowRight size={14}/></Link>
-   </div>}
+    {checkoutBlock&&data.settlementWorkflowEnabled&&!data.signed
+     ?manager
+      ?<button type="button" className="btn-inline" disabled={busy}
+        onClick={()=>openDialog('signoff')}><ClipboardCheck size={15}/> Review and sign statement</button>
+      :<p role="status"><ShieldCheck size={15}/> An authorized hotel manager or owner must review and sign the financial statement. Ask the manager to open this folio.</p>
+     :checkoutBlock
+      ?<p role="status">An authorized manager must investigate the remaining checkout blocker before proceeding.</p>
+      :<Link to="/reservations" search={{booking:bookingId,deskAction:'check-out'}}>Review checkout <ArrowRight size={14}/></Link>}
+   </div>
    <section className="frontdesk-payment-hub" aria-label="Front desk payment and checkout">
     <div className="frontdesk-payment-amounts">
      <div><small>Guest bill · recorded charges</small>

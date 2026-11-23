@@ -25,6 +25,19 @@ export function selectedRole(hotels:StaffHotel[]|undefined,hotelId:string|null):
 export function navigationForRole(role:HotelRole|null):{daily:WorkspacePath[];management:WorkspacePath[];advanced:WorkspacePath[];label:string}{
  return role?roleNav[role]:{daily:['/' as WorkspacePath],management:['/change-password' as WorkspacePath],advanced:[],label:'Staff'};
 }
+/**
+ * Page-level guard shared with the visible navigation. Nested guest stays
+ * inherit the guests page permission. Unknown workspace paths fail closed.
+ * API authorization still protects data and mutations independently.
+ */
+export function canViewWorkspacePath(role:HotelRole|null,pathname:string):boolean{
+ if(pathname==='/change-password')return true;
+ const path=pathname.replace(/\/+$/,'')||'/';
+ const normalized=/^\/guests\/[^/]+\/stays$/.test(path)?'/guests':path;
+ const workspace=navigationForRole(role);
+ return [...workspace.daily,...workspace.management,...workspace.advanced]
+  .some(allowed=>allowed===normalized);
+}
 /** This controls presentation only. Laravel authorization remains authoritative. */
 export function canDisplayAction(role:HotelRole|null,action:'new_reservation'|'assign_room'|'manage_staff'|'update_assigned_housekeeping'){
  if(action==='update_assigned_housekeeping')return role==='housekeeping'||role==='admin';

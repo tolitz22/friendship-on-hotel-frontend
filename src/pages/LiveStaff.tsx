@@ -1,7 +1,7 @@
 import {useEffect,useState,type FormEvent} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {Plus,ShieldCheck,History,Mail,RefreshCcw,ShieldAlert,X} from 'lucide-react';
-import {attachHotelStaff,getHotelStaffHistory,listHotelStaff,updateHotelStaff,inviteNewStaff,listStaffInvitations,revokeStaffInvitation,type StaffRole,getHotelRolePermissions} from '../api/liveStaff';
+import {attachHotelStaff,getHotelStaffHistory,listHotelStaff,updateHotelStaff,inviteNewStaff,listStaffInvitations,revokeStaffInvitation,type StaffRole,getHotelRolePermissions,createHotelStaffAccount} from '../api/liveStaff';
 import {ApiError} from '../api/http';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
@@ -46,6 +46,13 @@ export function LiveStaff(){
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin});
  const roleProfiles=useQuery({queryKey:['hotel-staff-role-profiles',hotelId],queryFn:getHotelRolePermissions,enabled:admin,retry:false});
  const invitations=useQuery({queryKey:['staff-invitations',hotelId],queryFn:listStaffInvitations,enabled:admin});
+ const [manualName,setManualName]=useState('');
+ const [manualEmail,setManualEmail]=useState('');
+ const [manualRole,setManualRole]=useState<StaffRole>('front_desk');
+ const [manualPassword,setManualPassword]=useState('');
+ const [manualPasswordConfirm,setManualPasswordConfirm]=useState('');
+ const [manualManagerAcknowledged,setManualManagerAcknowledged]=useState(false);
+ const [showManualPassword,setShowManualPassword]=useState(false);
  const [inviteName,setInviteName]=useState('');
  const [inviteEmail,setInviteEmail]=useState('');
  const [inviteRole,setInviteRole]=useState<StaffRole>('housekeeping');
@@ -68,6 +75,8 @@ export function LiveStaff(){
  const profileGroups=Array.from(new Set(roleProfiles.data?.data.capabilities.map(item=>item.group)??[]));
  useEffect(()=>{
   setEmail('');setInviteEmail('');setInviteName('');setError('');setNotice('');
+  setManualName('');setManualEmail('');setManualRole('front_desk');
+  setManualPassword('');setManualPasswordConfirm('');setManualManagerAcknowledged(false);setShowManualPassword(false);
   setHistoryOpen(false);setSection('team');setStaffSearch('');setStaffFilter('all');setProposed(null);setPermissionEdit(null);
   setInviteManagerAcknowledged(false);setAttachManagerAcknowledged(false);
  },[hotelId]);
@@ -155,6 +164,36 @@ export function LiveStaff(){
    setError(e instanceof Error?e.message:'Unable to update staff access.');
   }finally{setSaving(null);}
  }
+ async function createManualAccount(e:FormEvent<HTMLFormElement>){
+  e.preventDefault();
+  if(!admin||saving||(manualRole==='admin'&&!manualManagerAcknowledged))return;
+  if(manualPassword!==manualPasswordConfirm){
+   setError('Initial password and confirmation do not match.');return;
+  }
+  if(manualPassword.length<12||!/[a-z]/.test(manualPassword)||!/[A-Z]/.test(manualPassword)||!/[0-9]/.test(manualPassword)){
+   setError('Use at least 12 characters with uppercase, lowercase and a number.');return;
+  }
+  const property=hotelId;
+  setSaving('create-account');setError('');setNotice('');
+  try{
+   const created=await createHotelStaffAccount(manualName.trim(),manualEmail.trim().toLowerCase(),
+    manualRole,manualPassword,manualPasswordConfirm);
+   // Never retain the administrator-known password after the request.
+   setManualPassword('');setManualPasswordConfirm('');
+   if(property!==hotelId)return;
+   await Promise.all([
+    client.invalidateQueries({queryKey:['hotel-staff',property]}),
+    client.invalidateQueries({queryKey:['hotel-staff-history',property]}),
+    client.invalidateQueries({queryKey:['hotel-staff-role-profiles',property]}),
+   ]);
+   setManualName('');setManualEmail('');setManualRole('front_desk');
+   setManualManagerAcknowledged(false);
+   setNotice(created.message);
+  }catch(cause){
+   setManualPassword('');setManualPasswordConfirm('');
+   if(property===hotelId)setError(cause instanceof Error?cause.message:'Unable to create staff account.');
+  }finally{setSaving(null);}
+ }
  async function sendInvitation(e:FormEvent<HTMLFormElement>){
   e.preventDefault();if(!admin||saving||(inviteRole==='admin'&&!inviteManagerAcknowledged))return;
   setSaving('invite');setError('');setNotice('');
@@ -190,7 +229,7 @@ export function LiveStaff(){
   {notice&&<p className="guest-info" role="status">{notice}</p>}
   {section==='roles'&&<Panel title="Roles & permissions" action={<button type="button" className="btn-inline"
    disabled={roleProfiles.isFetching} onClick={()=>void roleProfiles.refetch()}><RefreshCcw size={15}/> Refresh permissions</button>}>
-   <p className="guest-info">Explore default access by role. Change employee roles on the Team tab. Individual permissions are not editable; sensitive actions remain protected by Laravel.</p>
+   <p className="guest-info">Explore default access by role. Change employee roles on the Team tab. Individual staff permissions can be customized from the Team tab; sensitive Manager actions remain protected by Laravel.</p>
    <QueryFeedback loading={roleProfiles.isPending} error={roleProfiles.error}
     onRetry={()=>void roleProfiles.refetch()}/>
    {roleProfiles.data&&<>
@@ -218,7 +257,37 @@ export function LiveStaff(){
     <p className="guest-info">{roleProfiles.data.data.note}</p>
    </>}
   </Panel>}
-  {section==='invite'&&<><Panel title="Invite a new employee">
+  {section==='invite'&&<>
+  <Panel title="Create staff account manually">
+   <p className="guest-info">Create an employee account immediately and choose an initial password. They must replace that password at first sign-in before accessing hotel data. Use the invitation option below if you prefer employees to set their own password from the start.</p>
+   <form className="staff-add-form" onSubmit={e=>void createManualAccount(e)}>
+    <label>Full name<input required minLength={2} maxLength={120} autoComplete="off"
+     disabled={saving!==null} value={manualName} onChange={e=>setManualName(e.target.value)}/></label>
+    <label>Email address<input required type="email" maxLength={255} autoComplete="off"
+     disabled={saving!==null} value={manualEmail} onChange={e=>setManualEmail(e.target.value)}/></label>
+    <label>Hotel role<select value={manualRole} disabled={saving!==null}
+     onChange={e=>{setManualRole(e.target.value as StaffRole);setManualManagerAcknowledged(false);}}>
+     {roles.map(r=><option key={r} value={r}>{roleName[r]}</option>)}
+    </select></label>
+    <label>Initial password<input required type={showManualPassword?'text':'password'} minLength={12}
+     maxLength={128} autoComplete="new-password" disabled={saving!==null}
+     value={manualPassword} onChange={e=>setManualPassword(e.target.value)}/></label>
+    <label>Confirm initial password<input required type={showManualPassword?'text':'password'} minLength={12}
+     maxLength={128} autoComplete="new-password" disabled={saving!==null}
+     value={manualPasswordConfirm} onChange={e=>setManualPasswordConfirm(e.target.value)}/></label>
+    <label className="guest-info"><input type="checkbox" checked={showManualPassword}
+     onChange={e=>setShowManualPassword(e.target.checked)}/> Show passwords</label>
+    <p className="guest-info">At least 12 characters, uppercase and lowercase letters, and a number. Passwords are not shown in staff records or audit history.</p>
+    {manualRole==='admin'&&<label className="guest-info"><input type="checkbox"
+     checked={manualManagerAcknowledged} onChange={e=>setManualManagerAcknowledged(e.target.checked)}/>
+     I understand this account has Manager access to sensitive hotel operations.</label>}
+    <button type="submit" className="btn-primary"
+     disabled={saving!==null||(manualRole==='admin'&&!manualManagerAcknowledged)}>
+     <Plus size={16}/>{saving==='create-account'?'Creating account…':'Create staff account'}
+    </button>
+   </form>
+  </Panel>
+  <Panel title="Invite a new employee">
    <form className="staff-add-form" onSubmit={e=>void sendInvitation(e)}>
     <label>Full name<input required minLength={2} maxLength={120} value={inviteName} onChange={e=>setInviteName(e.target.value)}/></label>
     <label>Email<input required type="email" maxLength={255} value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)}/></label>

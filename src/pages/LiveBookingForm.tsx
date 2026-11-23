@@ -303,11 +303,17 @@ export function LiveBookingForm(){
     {error instanceof ApiError&&error.status===409?'Availability changed. Review your stay and try again. '+error.message:
      error instanceof ApiError&&error.status===403?'Your account cannot create bookings for this hotel.':error.message}
    </div>}
-   {pending&&!result&&<div className="rb-pending" role="status"><AlertTriangle size={20}/><div>
+   {pending&&!result&&busy&&<div className="rb-pending" role="status" aria-live="polite">
+    <RefreshCw size={20} aria-hidden="true"/><div>
+     <strong>Creating booking…</strong>
+     <p>Saving the booking and confirming its reference. Please don't submit another request.</p>
+    </div>
+   </div>}
+   {pending&&!result&&!busy&&<div className="rb-pending" role="alert"><AlertTriangle size={20}/><div>
     <strong>Booking confirmation needs verification</strong>
-    <p>This booking may already have been saved. Retry the existing request rather than starting a new booking.</p>
-    <button type="button" className="btn-primary" disabled={busy} onClick={retry}><RefreshCw size={15}/>{busy?'Checking…':'Retry safely'}</button>
-    <button type="button" className="btn-inline" disabled={busy} onClick={reset}>Discard only after checking records</button>
+    <p>The original request has not returned a confirmed booking. It may already have been saved. Retry the same request rather than creating a duplicate.</p>
+    <button type="button" className="btn-primary" onClick={retry}><RefreshCw size={15}/> Retry safely</button>
+    <button type="button" className="btn-inline" onClick={reset}>Discard only after checking records</button>
    </div></div>}
    {result&&<section className="rb-complete" role="status">
     <CheckCircle2 size={36}/><span className="rb-eyebrow">BOOKING CREATED</span>

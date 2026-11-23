@@ -37,6 +37,8 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const {hotelId,user}=useHotelAuth();
  const canOperate=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&(h.role==='admin'||h.role==='front_desk'));
  const manager=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
+ const canDo=(permission:string)=>!!user?.hotels.some(h=>h.id===hotelId
+  &&(h.role==='admin'||h.permissions?.includes(permission)===true||h.role==='front_desk'&&!h.permissions));
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:manager});
  const [roomPage,setRoomPage]=useState(1);
  const [showRoomPicker,setShowRoomPicker]=useState(false);
@@ -52,14 +54,14 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const roomDialog=useRef<HTMLDialogElement>(null);
  const lifecycleRef=useRef<HTMLElement>(null);
  const client=useQueryClient();
- const roomChoices=useLiveRoomChoices(record,roomPage,canOperate&&showRoomPicker);
+ const roomChoices=useLiveRoomChoices(record,roomPage,canDo('booking.assign_room')&&showRoomPicker);
  const history=useLiveReservationHistory(record,historyPage);
  const readinessPolicy=useReadinessPolicy();
  const readiness=useLiveReadiness(record.assignedRoomId);
  const turnover=useBookingTurnover(record.id,record.lifecycleState==='checked_out');
  const earlyCheckoutEvent=history.data?.data.find(event=>event.eventType==='early_check_out');
  const selectedRoom=roomChoices.data?.data.find(r=>r.id===roomId);
- const canAssign=canOperate&&record.lifecycleState==='confirmed'
+ const canAssign=canDo('booking.assign_room')&&record.lifecycleState==='confirmed'
   &&!!selectedRoom&&selectedRoom.status==='available'
   &&roomId!==record.assignedRoomId&&!busy;
  const choiceStatus=selectedRoom?.reason==='maintenance_block'
@@ -73,14 +75,14 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const readyForEnforcedCheckin=readinessPolicy.isSuccess&&(
   !readinessPolicy.data.enforceAtCheckIn || (readiness.isSuccess&&readiness.data.advisoryReady)
  );
- const canCheckIn=canOperate&&allowedOperation(record,'check-in',hotelDate)
+ const canCheckIn=canDo('booking.check_in')&&allowedOperation(record,'check-in',hotelDate)
   &&readyForEnforcedCheckin&&acknowledged&&!busy;
- const checkoutStatement=useSettlementStatement(hotelId,record.id,canOperate&&record.lifecycleState==='checked_in');
+ const checkoutStatement=useSettlementStatement(hotelId,record.id,canDo('finance.read')&&record.lifecycleState==='checked_in');
  const financialBlock=checkoutStatement.isSuccess?financialCheckoutBlock(checkoutStatement.data):null;
  const guestBillSettled=checkoutStatement.isSuccess&&isGuestBillSettled(checkoutStatement.data);
  const needsStatementSignature=checkoutStatement.isSuccess&&checkoutStatement.data.settlementWorkflowEnabled
   &&!checkoutStatement.data.signed&&!checkoutStatement.data.simplifiedCashierModeEnabled;
- const canCheckOut=!financialBlock&&canOperate&&allowedOperation(record,'check-out',hotelDate)&&acknowledged&&!busy;
+ const canCheckOut=!financialBlock&&canDo('booking.check_out')&&allowedOperation(record,'check-out',hotelDate)&&acknowledged&&!busy;
 
  useEffect(()=>{
   setRoomPage(1);setHistoryPage(1);setRoomId('');setAcknowledged(false);

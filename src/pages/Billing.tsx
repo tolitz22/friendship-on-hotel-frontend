@@ -166,7 +166,12 @@ function DemoBilling(){
     <th>Reservation</th><th>Guest</th><th>Charges</th><th>Payments</th><th>Balance</th><th>Status</th>
    </tr></thead><tbody>{q.data.data.map(f=><tr key={f.id}>
     <td>{f.reservationReference}</td><td>{f.guestName}</td><td>{currency(f.totalCharges)}</td>
-    <td>{currency(f.totalPayments)}</td><td>{currency(f.balance)}</td>
+    <td>{currency(f.totalPayments)}
+     {f.samplePayment&&<details><summary>{f.samplePayment.method} · payment staff</summary>
+      <span className="cell-note">Recorded by {f.samplePayment.recordedBy}</span>
+      <span className="cell-note">Reviewed by {f.samplePayment.reviewedBy}</span>
+     </details>}
+    </td><td>{currency(f.balance)}</td>
     <td><Status value={statusLabel(f.status)}/></td>
    </tr>)}</tbody></table></div>}
   </Panel>

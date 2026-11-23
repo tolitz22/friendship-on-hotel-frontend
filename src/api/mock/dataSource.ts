@@ -1,5 +1,5 @@
 import type {CalendarParams,CollectionResponse,HotelDataSource,ListParams} from '../types';
-import {dashboard,folios,guests,housekeeping,reservations,rooms} from './fixtures';
+import {dashboard,demoDay,demoToday,folios,guests,housekeeping,reservations,rooms} from './fixtures';
 import {maintenanceOrders,technicians} from './maintenanceFixtures';
 import {aggregateReports,isReportRange} from '../../features/reports/reportMath';
 import {sampleHotelSettings} from './settingsFixtures';
@@ -27,7 +27,7 @@ export const mockDataSource:HotelDataSource={
   if(!isReportRange(from,to))throw new Error('Choose a valid report date range');
   return {data:aggregateReports({reservations,rooms,housekeeping,folios,maintenance:maintenanceOrders},from,to),
    meta:{hotelId:'hotel-demo-001',from,to,currency:'PHP' as const,isIllustrative:true,
-    roomSnapshotAsOf:'2026-11-17',folioScope:'all_sample_records' as const}};
+    roomSnapshotAsOf:demoToday,folioScope:'all_sample_records' as const}};
  },
  async getMaintenanceBoard(){
   await wait();
@@ -70,7 +70,7 @@ export const mockDataSource:HotelDataSource={
    from:r.checkIn,to:r.checkOut,reservationId:r.id,reference:r.reference,guestName:r.primaryGuestName,status:r.status
   }));
   const maintenance=rooms.filter(r=>r.maintenanceStatus==='out_of_order').map(r=>({
-   id:'maintenance-'+r.id,kind:'maintenance' as const,roomId:r.id,from:'2026-11-16',to:'2026-11-25',
+   id:'maintenance-'+r.id,kind:'maintenance' as const,roomId:r.id,from:demoDay(-1),to:demoDay(8),
    reason:'Example scheduled repairs'
   })).filter(b=>b.from<to&&b.to>from);
   return {data:{rooms,blocks:[...blocks,...maintenance],unassignedReservations:active.filter(r=>!r.assignedRoomId)},meta:{hotelId:'hotel-demo-001',from,to}};

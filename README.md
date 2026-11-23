@@ -69,7 +69,7 @@ Select **Preview new booking** on the Reservations page while `VITE_DATA_SOURCE=
 
 ## Front Desk preview
 
-Open Front Desk to explore the current operational date, then switch between arrivals, departures and in-house guests. In `VITE_DATA_SOURCE=mock` mode, sample queue rows can open simulated check-in/check-out staff checklists. The completion action only shows a success preview—it **never changes** reservations, occupancy, folios or payments. Use November 17, 2026 for sample arrival/departure records. See [Front Desk contract](docs/FRONT_DESK.md).
+Open Front Desk to explore the current operational date, then switch between arrivals, departures and in-house guests. In `VITE_DATA_SOURCE=mock` mode, sample queue rows can open simulated check-in/check-out staff checklists. The completion action only shows a success preview—it **never changes** reservations, occupancy, folios or payments. Select Today for fictional arrival, departure and in-house examples. Demo dates follow the hotel clock. In Billing, open the payment staff details for FOH-1003 to show a fully paid bill with fictional staff names. See [Front Desk contract](docs/FRONT_DESK.md).
 
 ## Housekeeping mock milestone
 

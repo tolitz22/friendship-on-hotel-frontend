@@ -16,7 +16,7 @@ export interface Room { id:Id; hotelId:Id; number:string; floor:number; roomType
 export interface Guest {id:Id; hotelId:Id; firstName:string; lastName:string; email:string|null; phone:string|null; nationality:string|null; createdAt:ISODateTime;}
 export interface Reservation {id:Id; reference:string; hotelId:Id; primaryGuestId:Id; primaryGuestName:string; roomTypeId:Id; roomTypeName:string; assignedRoomId:Id|null; assignedRoomNumber:string|null; checkIn:ISODate; checkOut:ISODate; status:ReservationStatus; adults:number; children:number; total:Money; createdAt:ISODateTime;}
 export interface HousekeepingTask {id:Id; hotelId:Id; roomId:Id; roomNumber:string; type:'checkout_clean'|'stayover'|'inspection'; status:TaskStatus; assignedTo:string|null; dueAt:ISODateTime|null;}
-export interface Folio {id:Id; hotelId:Id; reservationId:Id; reservationReference:string; guestName:string; status:FolioStatus; balance:Money; totalCharges:Money; totalPayments:Money;}
+export interface Folio {id:Id; hotelId:Id; reservationId:Id; reservationReference:string; guestName:string; status:FolioStatus; balance:Money; totalCharges:Money; totalPayments:Money; samplePayment?:{method:string;recordedBy:string;reviewedBy:string};}
 export interface DashboardSummary {hotelId:Id; asOf:ISODate; totalRooms:number; occupiedRooms:number; vacantRooms:number; dirtyRooms:number; arrivalsToday:number; departuresToday:number; reservationsToday:number;}
 export type ListParams = {search?:string;page?:number;perPage?:number};
 export type CalendarParams = {from:ISODate;to:ISODate};

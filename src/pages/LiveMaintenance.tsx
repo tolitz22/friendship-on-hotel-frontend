@@ -39,6 +39,7 @@ export function LiveMaintenance(){
  const {hotelId,user}=useHotelAuth();
  const role=user?.hotels.find(h=>h.id===hotelId)?.role;
  const admin=role==='admin';
+ const canWork=admin||user?.hotels.find(h=>h.id===hotelId)?.permissions?.includes('maintenance.assigned')!==false;
  const property=useLiveProperty();
  const today=hotelToday(new Date(),property.data?.data.timeZone??'Asia/Manila');
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin});
@@ -107,7 +108,7 @@ export function LiveMaintenance(){
   setDraft(current=>current?{...current,[field]:value}:current);
  async function submit(e:FormEvent<HTMLFormElement>){
   e.preventDefault();
-  const assigned=!!selected&&role==='maintenance'&&selected.assignedUserId===user?.id;
+  const assigned=!!selected&&role==='maintenance'&&canWork&&selected.assignedUserId===user?.id;
   if(!(admin||assigned)||!draft||saving)return;
   setSaving(true);setError('');setFieldErrors({});
   try{
@@ -146,7 +147,7 @@ export function LiveMaintenance(){
  }
  const data=orders.isSuccess?orders.data.data:[];
  const visible=data;
- const canUpdate=(order:LiveWorkOrder)=>mayUpdateMaintenance(order,admin,role,user?.id??null);
+ const canUpdate=(order:LiveWorkOrder)=>canWork&&mayUpdateMaintenance(order,admin,role,user?.id??null);
  const maySave=admin||(!!selected&&canUpdate(selected));
  const hasFilters=!!statusFilter||!!priorityFilter||!!search.trim()||mineOnly;
  const clearFilters=()=>{setPage(1);setStatusFilter('');setPriorityFilter('');setSearch('');setMineOnly(false);};

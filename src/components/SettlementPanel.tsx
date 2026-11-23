@@ -411,7 +411,7 @@ export function SettlementPanel({bookingId,requestedAction}:{bookingId:string;re
      :checkoutBlock
       ?<p role="status">An authorized manager must investigate the remaining checkout blocker before proceeding.</p>
       :<Link to="/reservations" search={{booking:bookingId,deskAction:'check-out'}}>Review checkout <ArrowRight size={14}/></Link>}
-   </div>
+   </div>}
    <section className="frontdesk-payment-hub" aria-label="Front desk payment and checkout">
     <div className="frontdesk-payment-amounts">
      <div><small>Guest bill · recorded charges</small>

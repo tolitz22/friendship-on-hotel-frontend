@@ -33,7 +33,7 @@ export function useBillingFolios(page:number,search:string){
     page,per_page:20,search:search||undefined,
    }));
    return result;
-  },retry:false,
+  },retry:false,staleTime:0,refetchOnMount:'always',
  });
 }
 export function formatBillingMoney(minor:number,code:string){

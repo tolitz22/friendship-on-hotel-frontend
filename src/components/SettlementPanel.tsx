@@ -12,6 +12,7 @@ import {RecordGuestPayment} from './RecordGuestPayment';
 import {GuestIncidentalChargeForm} from './GuestIncidentalChargeForm';
 import {BillingActions} from './BillingActions';
 import {parseBillingAmount} from '../api/billing';
+import {isGuestBillSettled} from '../features/billing/reviewedPaymentSettlement';
 import {readableDate,readableDateTime} from '../lib/format';
 import './settlement-print.css';
 
@@ -220,11 +221,13 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
  const allCashShiftsReconciled=routineCashCheckedOut&&recordedCashShiftStatuses.length>0
   &&recordedCashShiftStatuses.every(status=>status==='reconciled');
  const cashAuditValid=data?.routineCashCheckoutAudit?.integrityValid!==false;
+ const guestBillSettled=!!data&&isGuestBillSettled(data);
  const paymentStatus=data?.signed
   ?data.signedSnapshotIntegrity?'Financial approval complete':'Account requires investigation'
   :routineCashCheckedOut?!cashAuditValid?'Guest checked out — audit investigation needed'
     :allCashShiftsReconciled?'Guest checked out — cash reconciled'
     :'Guest checked out — cash reconciliation pending'
+  :guestBillSettled?'Guest bill settled'
   :!hasExistingMoney?'No payment recorded'
   :routineCashReady?'Cash payment accepted — ready for checkout'
   :routineCashException?'Cash payment recorded — review needed'
@@ -370,8 +373,8 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
     <div className="billing-account-overview-head">
      <div><span className="rr-eyebrow">ACCOUNT SUMMARY</span>
       <h3>{data.reservationReference}</h3><p>{readableDate(data.checkIn)} to {readableDate(data.checkOut)} · Guest account</p></div>
-     <span className={'billing-account-tag '+(data.signed?'complete':'pending')}>
-      {data.signed?'Settlement signed':routineCashReady?'Cash paid · checkout ready':
+     <span className={'billing-account-tag '+(data.signed?data.signedSnapshotIntegrity?'complete':'pending':guestBillSettled?'complete':'pending')}>
+      {data.signed?data.signedSnapshotIntegrity?'Settlement signed':'Investigate settlement':guestBillSettled?'Settled · payment reviewed':routineCashReady?'Cash paid · checkout ready':
        simplifiedCash?'Cash on file':'Settlement not final'}</span>
     </div>
    </div>
@@ -397,13 +400,16 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       <span className="checkout-guide-status">{data.signed
        ?data.signedSnapshotIntegrity?'Approved':'Investigate'
        :routineCashReady?'Ready for checkout'
+       :guestBillSettled?'Settled'
        :hasExistingMoney?'Payment on file':'Payment needed'}</span>
      </div>
      <p>{data.signed
       ?data.signedSnapshotIntegrity
        ?'The financial account has been signed. Check the separate operational checkout requirements.'
        :'The signed statement failed its integrity check. Stop checkout and request investigation.'
-      :operationalDescription}</p>
+      :guestBillSettled&&!routineCashReady&&!routineCashCheckedOut
+       ?'Reviewed payments cover the recorded guest charges. No further guest payment is due.'
+       :operationalDescription}</p>
      {!data.signed&&<div className="frontdesk-payment-primary">
       {canCollectExtra&&hasExistingMoney
        ?<button type="button" className="btn-primary" disabled={busy}
@@ -558,14 +564,15 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
       <h3>Guest account statement</h3>
       <p>Booking {data.reservationReference} · Folio #{data.folioId} · {data.currency}</p>
      </div>
-     <strong className="settlement-status">{data.signed?'SIGNED ACCOUNT':'PROVISIONAL · NOT SETTLED'}</strong>
+     <strong className="settlement-status">{data.signed?'SIGNED ACCOUNT':guestBillSettled?'GUEST BILL SETTLED':'GUEST BILL OPEN'}</strong>
     </div>
     <div className="settlement-metrics">
      <KeyValue label="Arrival" value={readableDate(data.checkIn)}/>
      <KeyValue label="Departure" value={readableDate(data.checkOut)}/>
      <KeyValue label="Recorded charges" value={money(data.netRecordedChargesMinor,data.currency)}/>
      <KeyValue label="Verified payments applied" value={money(data.verifiedAllocatedMinor,data.currency)}/>
-     <KeyValue label="Recorded difference (not final)" value={money(data.remainingMinor,data.currency)}/>
+     {guestBillSettled&&<KeyValue label="Guest balance after payment review" value={money(0,data.currency)}/>}
+     <KeyValue label="Difference after verified allocations" value={money(data.remainingMinor,data.currency)}/>
      <KeyValue label="Verified deposits not yet applied" value={money(data.unallocatedVerifiedDepositsMinor,data.currency)}/>
     </div>
     <h4>What was charged</h4>
@@ -631,7 +638,7 @@ export function SettlementPanel({bookingId}:{bookingId:string}){
     </>}
     <div className="settlement-signature">
      <p>{data.signed?'Signed settlement: '+readableDateTime(data.signedAt)+' · Manager #'+data.signedBy:
-      'This statement is not yet an approved settlement.'}</p>
+      guestBillSettled?'Reviewed payments cover the guest bill. Financial sign-off is pending.':'Financial sign-off is pending.'}</p>
      {data.signed&&<p><small>Signed financial snapshot SHA-256: {data.signedSnapshotSha256}</small></p>}
      <small>This is an internal PMS guest-account statement, NOT a BIR tax invoice, bank receipt,
       payment gateway confirmation, or proof that a refund has been disbursed.

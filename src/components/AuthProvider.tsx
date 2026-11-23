@@ -56,6 +56,26 @@ export function AuthProvider({children}:{children:ReactNode}){
   return ()=>{cancelled=true;};
  },[cookieMode]);
 
+ // Refresh role and individual permission changes while a staff member is
+ // signed in. Backend authorization is immediate; this keeps navigation in sync.
+ useEffect(()=>{
+  if(dataMode!=='api'||!user)return;
+  let disposed=false;
+  const refresh=async()=>{
+   try{
+    const profile=(await fetchStaffProfile()).data;
+    if(disposed||profile.id!==user.id)return;
+    setUser(profile);
+    if(hotelId&&!profile.hotels.some(h=>h.id===hotelId)){
+     setSessionHotel(null);setHotelId(null);queryClient.clear();
+    }
+   }catch{/* A transient refresh failure must not silently log out staff. */}
+  };
+  const onFocus=()=>{void refresh();};
+  window.addEventListener('focus',onFocus);
+  const interval=window.setInterval(()=>{if(document.visibilityState==='visible')void refresh();},60000);
+  return ()=>{disposed=true;window.removeEventListener('focus',onFocus);window.clearInterval(interval);};
+ },[user?.id,hotelId,queryClient]);
  const signIn=async(email:string,password:string)=>{
   setPending(true);
   clearSession();setUser(null);setHotelId(null);queryClient.clear();

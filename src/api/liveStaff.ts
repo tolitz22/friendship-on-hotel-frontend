@@ -4,11 +4,12 @@ import {hotelPath} from './session';
 export type StaffRole='admin'|'front_desk'|'housekeeping'|'maintenance';
 export interface HotelStaffMember{
  userId:string;name:string;email:string;role:StaffRole;isActive:boolean;accountActive:boolean;
+ permissions:string[];customPermissions:boolean;
 }
 export const listHotelStaff=()=>getJson<{data:HotelStaffMember[]}>(hotelPath('/staff'));
 export const attachHotelStaff=(email:string,role:StaffRole)=>
  requestJson<{data:HotelStaffMember[]}>(hotelPath('/staff'),{method:'POST',body:{email,role}});
-export const updateHotelStaff=(userId:string,body:Partial<{role:StaffRole;isActive:boolean;expectedRole:StaffRole;expectedIsActive:boolean}>)=>
+export const updateHotelStaff=(userId:string,body:Partial<{role:StaffRole;isActive:boolean;expectedRole:StaffRole;expectedIsActive:boolean;permissions:string[];expectedPermissions:string[]}>)=>
  requestJson<{data:HotelStaffMember[]}>(hotelPath('/staff/'+encodeURIComponent(userId)),{method:'PATCH',body});
 
 export interface StaffMembershipEvent{
@@ -38,6 +39,6 @@ export interface RolePermissionProfile{
 export interface HotelRolePermissions{
  roles:RolePermissionProfile[];
  capabilities:{key:string;label:string;group:string}[];
- note:string;editable:false;
+ note:string;editable:boolean;editScope?:string;
 }
 export const getHotelRolePermissions=()=>getJson<{data:HotelRolePermissions}>(hotelPath('/staff/permissions'));

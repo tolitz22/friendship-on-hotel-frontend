@@ -67,7 +67,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
   :selectedRoom?.reason==='reservation_conflict'
   ?'Already assigned to another reservation during this stay.'
   :selectedRoom?.current?'This is already the assigned room.'
-  :selectedRoom?'No listed conflicts. Laravel will check again on save.'
+  :selectedRoom?'No listed conflicts. We’ll check availability again when you assign the room.'
   :'Select an available room to proceed.';
  const hotelDate=hotelToday();
  const readyForEnforcedCheckin=readinessPolicy.isSuccess&&(
@@ -433,7 +433,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
       </div>
       {lastOperation==='assign'&&error&&<p role="alert" className="stay-feedback-error">
        <AlertTriangle size={16}/>{error}</p>}
-      <p className="stay-security-note">Availability is not held by this preview. Laravel checks all overlapping bookings and maintenance blocks again when saving.</p>
+      <p className="stay-security-note">This preview does not hold the room. We’ll check availability again when you assign the room.</p>
      </dialog>}
     </section>}
 

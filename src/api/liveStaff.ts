@@ -34,7 +34,7 @@ export const revokeStaffInvitation=(id:string)=>
  requestJson<{message:string}>(hotelPath('/staff/invitations/'+encodeURIComponent(id)+'/revoke'),{method:'PATCH'});
 
 export interface RolePermissionProfile{
- key:StaffRole;label:string;description:string;permissions:string[];activeStaff:number;
+ key:StaffRole;label:string;description:string;permissions:string[];editablePermissions:string[];activeStaff:number;
 }
 export interface HotelRolePermissions{
  roles:RolePermissionProfile[];

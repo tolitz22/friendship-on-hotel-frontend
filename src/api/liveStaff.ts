@@ -31,3 +31,13 @@ export const inviteNewStaff=(email:string,name:string,role:StaffRole)=>
   hotelPath('/staff/invitations'),{method:'POST',body:{email,name,role}});
 export const revokeStaffInvitation=(id:string)=>
  requestJson<{message:string}>(hotelPath('/staff/invitations/'+encodeURIComponent(id)+'/revoke'),{method:'PATCH'});
+
+export interface RolePermissionProfile{
+ key:StaffRole;label:string;description:string;permissions:string[];activeStaff:number;
+}
+export interface HotelRolePermissions{
+ roles:RolePermissionProfile[];
+ capabilities:{key:string;label:string;group:string}[];
+ note:string;editable:false;
+}
+export const getHotelRolePermissions=()=>getJson<{data:HotelRolePermissions}>(hotelPath('/staff/permissions'));

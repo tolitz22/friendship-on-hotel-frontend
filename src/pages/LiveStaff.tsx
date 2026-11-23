@@ -71,7 +71,7 @@ export function LiveStaff(){
  async function savePermissions(){
   if(!permissionEdit||!admin||saving||!hotelId)return;
   const current=permissionEdit;
-  const template=roleProfiles.data?.data.roles.find(item=>item.key===current.role)?.permissions??[];
+  const template=roleProfiles.data?.data.roles.find(item=>item.key===current.role)?.editablePermissions??[];
   const selected=template.filter(key=>current.selected.includes(key));
   setSaving('permissions-'+current.userId);setError('');
   try{
@@ -296,7 +296,7 @@ export function LiveStaff(){
     {roleProfiles.isPending&&<p role="status">Loading role permissions…</p>}
     {roleProfiles.isError&&<p role="alert">Role permissions unavailable. Close and refresh this page.</p>}
     {roleProfiles.data&&(()=>{
-     const allowed=roleProfiles.data.data.roles.find(item=>item.key===permissionEdit.role)?.permissions??[];
+     const allowed=roleProfiles.data.data.roles.find(item=>item.key===permissionEdit.role)?.editablePermissions??[];
      const labels=new Map(roleProfiles.data.data.capabilities.map(item=>[item.key,item]));
      const groups=Array.from(new Set(allowed.map(key=>labels.get(key)?.group??'Other operational access')));
      return <div className="table-scroll">
@@ -314,7 +314,7 @@ export function LiveStaff(){
     <div className="guest-modal-actions">
      <button type="button" className="btn-inline" disabled={saving!==null}
       onClick={()=>setPermissionEdit(current=>{
-       const template=roleProfiles.data?.data.roles.find(item=>item.key===current?.role)?.permissions;
+       const template=roleProfiles.data?.data.roles.find(item=>item.key===current?.role)?.editablePermissions;
        return current&&template?{...current,selected:[...template]}:current;
       })}>Restore role defaults</button>
      <button type="button" className="btn-inline" disabled={saving!==null}

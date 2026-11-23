@@ -36,6 +36,7 @@ function LiveBilling(){
  const clear=()=>void navigate({to:'/billing',search:originGroup&&(!originHotel||originHotel===hotelId)
   ?{group:originGroup,hotel:originHotel,checkIn:groupCheckIn,checkOut:groupCheckOut}:{}});
  const loadingSearch=debounced!==search.trim();
+ const foliosReady=folios.isSuccess&&!folios.isFetching;
  const directId=/^[1-9]\d*$/.test(search.trim())?search.trim():null;
  if(originHotel&&originHotel!==hotelId)return <Panel title="Select the original property">
   <p role="alert">This billing link is for a different hotel. Select the original hotel before opening the guest folio.</p>
@@ -73,10 +74,10 @@ function LiveBilling(){
      Open booking #{directId} <ArrowRight size={16}/></button>}
     {search&&!directId&&<button type="button" className="btn-inline" onClick={()=>{setSearch('');setDebounced('');setPage(1);}}>
      <X size={15}/> Clear</button>}
-    <span className="billing-count" role="status">{loadingSearch?'Searching…':folios.isSuccess
+    <span className="billing-count" role="status">{loadingSearch?'Searching…':folios.isFetching?'Refreshing current prices…':foliosReady
      ?folios.data.meta.total+' guest accounts found':folios.isError?'Account list unavailable':'Loading accounts…'}</span>
    </div>
-   {folios.isPending&&!loadingSearch&&<QueryFeedback loading error={null}/>}
+   {(folios.isPending||folios.isFetching)&&!loadingSearch&&<QueryFeedback loading error={null}/>}
    {folios.isError&&!loadingSearch&&<div className="billing-recovery" role="alert">
     <div className="billing-recovery-head"><AlertTriangle size={20}/>
      <div><strong>Guest account list is unavailable</strong>
@@ -97,12 +98,12 @@ function LiveBilling(){
     </div>}
     {fallback.isError&&<p>Reservation search is also unavailable. Try again or contact the hotel administrator.</p>}
    </div>}
-   {folios.isSuccess&&!loadingSearch&&folios.data.data.length===0&&
+   {foliosReady&&!loadingSearch&&folios.data.data.length===0&&
     <div className="billing-quiet-empty"><Search size={23}/><strong>No matching guest accounts</strong>
      <p>{debounced?'Try a different name or reference.':'There are no priced guest folios recorded yet.'}</p>
      <Link to="/reservations">View reservations <ArrowRight size={15}/></Link>
     </div>}
-   {folios.isSuccess&&!loadingSearch&&folios.data.data.length>0&&<>
+   {foliosReady&&!loadingSearch&&folios.data.data.length>0&&<>
     <div className="billing-list-labels"><span>Guest & stay</span><span>Recorded charges</span><span>Staff-reviewed payments</span><span>Difference (not final)</span><span>Action</span></div>
     <div className="billing-folio-list">
      {folios.data.data.map(folio=>{

@@ -30,13 +30,23 @@ export function navigationForRole(role:HotelRole|null):{daily:WorkspacePath[];ma
  * inherit the guests page permission. Unknown workspace paths fail closed.
  * API authorization still protects data and mutations independently.
  */
-export function canViewWorkspacePath(role:HotelRole|null,pathname:string):boolean{
+export function canViewWorkspacePath(role:HotelRole|null,pathname:string,permissions?:readonly string[]):boolean{
  if(pathname==='/change-password')return true;
  const path=pathname.replace(/\/+$/,'')||'/';
  const normalized=/^\/guests\/[^/]+\/stays$/.test(path)?'/guests':path;
  const workspace=navigationForRole(role);
- return [...workspace.daily,...workspace.management,...workspace.advanced]
-  .some(allowed=>allowed===normalized);
+ if(![...workspace.daily,...workspace.management,...workspace.advanced].some(allowed=>allowed===normalized))
+  return false;
+ if(role==='admin'||!permissions)return true;
+ const requirement:Partial<Record<WorkspacePath,string>>={
+  '/front-desk':'reservation.read','/reservations':'reservation.read',
+  '/group-reservations':'reservation.read','/room-calendar':'reservation.read',
+  '/guests':'guest.read','/billing':'finance.read',
+  '/cashier-shifts':'cashier.read','/occupancy-verification':'occupancy.read',
+ };
+ const required=requirement[normalized as WorkspacePath]
+  ??(role==='front_desk'&&normalized==='/rooms'?'reservation.read':undefined);
+ return !required||permissions.includes(required);
 }
 /** This controls presentation only. Laravel authorization remains authoritative. */
 export function canDisplayAction(role:HotelRole|null,action:'new_reservation'|'assign_room'|'manage_staff'|'update_assigned_housekeeping'){

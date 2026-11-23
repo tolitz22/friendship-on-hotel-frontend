@@ -11,7 +11,7 @@ const row=z.object({
  netRecordedChargesMinor:z.number().int(),
  staffConfirmedPaymentsMinor:z.number().int(),
  pendingReviewPaymentsMinor:z.number().int(),
- signed:z.boolean().nullable(),provisionalOnly:z.literal(true),
+ guestBillSettled:z.boolean().nullish(),signed:z.boolean().nullable(),provisionalOnly:z.literal(true),
 });
 const list=z.object({
  data:z.array(row),

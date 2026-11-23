@@ -107,6 +107,10 @@ function LiveBilling(){
     <div className="billing-folio-list">
      {folios.data.data.map(folio=>{
       const difference=folio.netRecordedChargesMinor-folio.staffConfirmedPaymentsMinor;
+      const settlementLabel=folio.signed?'Signed account'
+       :folio.guestBillSettled?'Settled · payment reviewed'
+       :folio.pendingReviewPaymentsMinor>0?'Under review'
+       :folio.guestBillSettled==null?'Settlement status unavailable':'Open guest bill';
       return <article className="billing-folio-row" key={folio.folioId}>
        <div className="billing-folio-identity"><span className="billing-folio-icon"><FileText size={18}/></span>
         <div><strong>{folio.guestName?.trim()||'Guest name unavailable'}</strong>
@@ -118,9 +122,9 @@ function LiveBilling(){
        <div className="billing-folio-amount"><small>Reviewed payments</small>
         <strong>{formatBillingMoney(folio.staffConfirmedPaymentsMinor,folio.currency)}</strong>
         {folio.pendingReviewPaymentsMinor>0&&<span className="billing-pending">Payment evidence awaiting review</span>}</div>
-       <div className="billing-folio-amount billing-folio-difference"><small>Difference · not final</small>
+       <div className="billing-folio-amount billing-folio-difference"><small>{folio.guestBillSettled?'Guest balance':'Difference · not final'}</small>
         <strong>{formatBillingMoney(difference,folio.currency)}</strong>
-        <span className="billing-provisional">{folio.signed===null?'Settlement status unavailable':folio.signed?'Signed account':'Under review'}</span>
+        <span className="billing-provisional">{settlementLabel}</span>
        </div>
        <Link to="/billing" search={{booking:folio.bookingId}} className="billing-open-link"
         aria-label={'Open folio for booking '+folio.reference}>View bill <ArrowRight size={15}/></Link>

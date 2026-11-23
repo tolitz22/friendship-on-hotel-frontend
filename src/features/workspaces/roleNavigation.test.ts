@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {canDisplayAction,navigationForRole,selectedRole} from './roleNavigation';
+import {canDisplayAction,canViewWorkspacePath,navigationForRole,selectedRole} from './roleNavigation';
 
 const hotels=[
  {id:'1',name:'Manager Property',role:'admin'},
@@ -46,6 +46,19 @@ describe('Phase 49 hotel role workspaces',()=>{
   expect(canDisplayAction('maintenance','manage_staff')).toBe(false);
   expect(canDisplayAction('housekeeping','update_assigned_housekeeping')).toBe(true);
   expect(canDisplayAction('admin','assign_room')).toBe(true);
+ });
+ it('blocks direct URLs for pages outside the selected hotel role',()=>{
+  expect(canViewWorkspacePath('housekeeping','/housekeeping')).toBe(true);
+  expect(canViewWorkspacePath('housekeeping','/billing')).toBe(false);
+  expect(canViewWorkspacePath('maintenance','/staff')).toBe(false);
+  expect(canViewWorkspacePath('front_desk','/staff')).toBe(false);
+  expect(canViewWorkspacePath('front_desk','/billing')).toBe(true);
+  expect(canViewWorkspacePath('front_desk','/guests/42/stays')).toBe(true);
+  expect(canViewWorkspacePath('housekeeping','/guests/42/stays')).toBe(false);
+  expect(canViewWorkspacePath('admin','/staff')).toBe(true);
+  expect(canViewWorkspacePath(null,'/staff')).toBe(false);
+  expect(canViewWorkspacePath(null,'/change-password')).toBe(true);
+  expect(canViewWorkspacePath('admin','/unknown-page')).toBe(false);
  });
  it('does not infer privileges from an unsupported role',()=>{
   expect(selectedRole([{id:'1',name:'Hotel',role:'unknown'}],'1')).toBeNull();

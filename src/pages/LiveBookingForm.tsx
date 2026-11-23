@@ -154,13 +154,18 @@ export function LiveBookingForm(){
     client.invalidateQueries({queryKey:['live','readiness-dashboard',submission.hotelId]}),
    ]).catch(()=>{});
   }catch(cause){
+   // An explicit client validation/permission rejection means this attempt did
+   // not create a booking. Only uncertain outcomes retain a retryable key.
+   const definitelyRejected=cause instanceof ApiError&&[400,401,403,404,422].includes(cause.status);
+   if(definitelyRejected)pendingByHotel.current.delete(submission.hotelId);
    // A late response from the previous property must not label the current
    // hotel's new booking form as failed.
    if(readSession().hotelId===submission.hotelId){
+    if(definitelyRejected){setPending(null);setChecked(null);}
     setError(cause instanceof Error?cause:new Error('The booking result could not be confirmed.'));
    }
-   // Keep the same pending idempotency key for retries within this property.
-   // If the property changes, reconcile the old submission in its own hotel.
+   // Network failures, timeouts, server errors and conflicts keep the same
+   // idempotency key for safe reconciliation; never silently start another booking.
   }finally{inFlight.current=false;setBusy(false);}
  }
  const submit=()=>{

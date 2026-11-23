@@ -1,3 +1,4 @@
+import {StayExtensionModal} from '../components/StayExtensionModal';
 import {useEffect,useMemo,useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {useQueryClient} from '@tanstack/react-query';
@@ -40,6 +41,7 @@ export function LiveFrontDesk(){
   arrivals:1,departures:1,in_house:1,overdue:1,
  });
  const [search,setSearch]=useState('');
+ const [extension,setExtension]=useState<{hotelId:string;record:ManifestEntry}|null>(null);
  const client=useQueryClient();
  const {hotelId}=readSession();
  const {user}=useHotelAuth();
@@ -78,6 +80,7 @@ export function LiveFrontDesk(){
  const changeDate=(next:string)=>{
   setDate(next);setPageByKind({arrivals:1,departures:1,in_house:1,overdue:1});setSearch('');
  };
+ useEffect(()=>{setExtension(null);},[hotelId]);
  useEffect(()=>{changeDate(hotelDate);setKind(initialQueue??'arrivals');},[hotelId,hotelDate,initialQueue]);
  const refresh=()=>void Promise.all([
   client.invalidateQueries({queryKey:['live','front-desk','manifest',hotelId]}),
@@ -186,8 +189,9 @@ export function LiveFrontDesk(){
         {canOperate&&kind==='overdue'?'Complete checkout':canOperate?action.label:'View reservation'} <ArrowRight size={15}/>
        </Link>
        <span>{canOperate&&kind==='overdue'?'Confirm the guest has left before checking out.':canOperate?action.hint:'Read-only staff review. Contact a manager for changes.'}</span>
-       {canOperate&&row.status==='checked_in'&&row.assignedRoomId&&<Link to="/reservations"
-        search={{booking:row.id,deskAction:'extend'}} className="btn-inline">Extend stay <ArrowRight size={15}/></Link>}
+       {canOperate&&row.status==='checked_in'&&row.assignedRoomId&&
+        <button type="button" className="btn-inline" aria-haspopup="dialog"
+         onClick={()=>setExtension({hotelId,record:row})}>Extend stay <ArrowRight size={15}/></button>}
        {kind==='overdue'&&<>
         {row.departureFollowUp&&<p><strong>Shift handoff</strong><br/>{row.departureFollowUp}</p>}
         {canOperate&&<DepartureFollowUp key={hotelId+'-'+row.id} bookingId={row.id}
@@ -205,6 +209,11 @@ export function LiveFrontDesk(){
     </div>
    </div>}
   </section>
+  {extension?.hotelId===hotelId&&<StayExtensionModal key={hotelId+'-'+extension.record.id}
+   hotelId={hotelId} record={extension.record} today={hotelDate} openOnEntry hideTrigger
+   onDismiss={()=>setExtension(null)} onSaved={()=>{
+    void client.invalidateQueries({queryKey:['live'],refetchType:'active'});
+   }}/>}
   <p className="fdc-safety-note"><AlertTriangle size={17}/>
    Actions open the existing guarded reservation workflow for review and confirmation. This screen does not verify room cleanliness, cash collection or actual physical occupancy.
   </p>

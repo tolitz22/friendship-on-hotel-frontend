@@ -102,7 +102,7 @@ export function useSettlementStatement(hotelId:string|null,bookingId:string,enab
     throw new Error('Unexpected reservation or hotel in settlement statement.');
    return result;
   },
-  retry:false,
+  retry:false,staleTime:0,refetchOnMount:'always',
  });
 }
 
@@ -153,7 +153,8 @@ export function SettlementPanel({bookingId,requestedAction}:{bookingId:string;re
   setRefundKey(crypto.randomUUID());setRefundEvidence('');setRefundNote('');
  },[hotelId,bookingId]);
  const query=useSettlementStatement(hotelId,bookingId);
- const data=query.data;
+ // Do not show cached dates or prices while fresh folio data is loading.
+ const data=query.isFetching?undefined:query.data;
  useEffect(()=>{
   if(requestedAction==='signoff'&&manager&&data?.settlementWorkflowEnabled&&!data.signed)
    setActiveDialog('signoff');
@@ -387,7 +388,7 @@ export function SettlementPanel({bookingId,requestedAction}:{bookingId:string;re
    <button type="button" className="btn-inline" disabled={busy||query.isFetching}
     onClick={()=>void query.refetch()}><RefreshCw size={15}/> Refresh</button>
   </div>
-  <QueryFeedback loading={query.isPending} error={query.error} onRetry={()=>void query.refetch()}/>
+  <QueryFeedback loading={query.isPending||query.isFetching} error={query.error} onRetry={()=>void query.refetch()}/>
   {data&&<>
    <div className="billing-account-overview billing-account-compact" aria-label="Guest account overview">
     <div className="billing-account-overview-head">

@@ -48,7 +48,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const [error,setError]=useState('');
  const [lastOperation,setLastOperation]=useState<'assign'|Operation|null>(null);
  const inFlight=useRef(false);
- const assignmentRef=useRef<HTMLElement>(null);
+ const roomDialog=useRef<HTMLDialogElement>(null);
  const lifecycleRef=useRef<HTMLElement>(null);
  const client=useQueryClient();
  const roomChoices=useLiveRoomChoices(record,roomPage,canOperate&&showRoomPicker);
@@ -80,9 +80,9 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
 
  useEffect(()=>{
   setRoomPage(1);setHistoryPage(1);setRoomId('');setAcknowledged(false);
-  setShowRoomPicker(!record.assignedRoomId||deskAction==='assign');
+  setShowRoomPicker(false);
   setSuccess('');setError('');
- },[hotelId,record.id,record.lifecycleState,record.assignedRoomId]);
+ },[hotelId,record.id,record.lifecycleState]);
  useEffect(()=>{
   if(!preferredRoomId||!preferredRoomNumber||!roomChoices.data||roomId)return;
   const verified=roomChoices.data.data.find(item=>item.id===preferredRoomId
@@ -93,14 +93,22 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
   // A front desk shortcut highlights the relevant guarded operation;
   // never execute an assignment or lifecycle transition on navigation.
   if(!deskAction||deskAction==='extend')return;
-  const eligible=deskAction==='assign'
-   ?record.lifecycleState==='confirmed'&&!record.assignedRoomId
-   :deskAction==='check-in'?record.lifecycleState==='confirmed'
+  if(deskAction==='assign'){
+   if(canOperate&&record.lifecycleState==='confirmed'&&!record.assignedRoomId)setShowRoomPicker(true);
+   return;
+  }
+  const eligible=deskAction==='check-in'?record.lifecycleState==='confirmed'
    :record.lifecycleState==='checked_in';
   if(!eligible)return;
-  const section=deskAction==='assign'?assignmentRef.current:lifecycleRef.current;
-  section?.scrollIntoView({behavior:'smooth',block:'start'});
- },[deskAction,record.id,record.lifecycleState,record.assignedRoomId]);
+  lifecycleRef.current?.scrollIntoView({behavior:'smooth',block:'start'});
+ },[deskAction,hotelId,canOperate,record.id,record.lifecycleState,record.assignedRoomId]);
+ useEffect(()=>{
+  const dialog=roomDialog.current;
+  if(showRoomPicker&&dialog&&!dialog.open)dialog.showModal();
+ },[showRoomPicker]);
+ function openRoomPicker(){
+  setRoomPage(1);setRoomId('');setError('');setShowRoomPicker(true);
+ }
  async function refresh(hotel:string){
   await Promise.all([
    client.invalidateQueries({queryKey:['live','reservation-records',hotel]}),
@@ -134,7 +142,9 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
    if(action==='assign'){
     const data=await assignLiveRoom(targetHotel,record,roomId);
     if(readSession().hotelId!==targetHotel)return;
-    setSuccess(data.unchanged?'Room assignment was already recorded.':'Room assignment saved by Laravel.');
+    setSuccess(data.unchanged?'Room assignment was already recorded.':'Room assigned successfully.');
+    roomDialog.current?.close();
+    setShowRoomPicker(false);
    }else{
     const data=await transitionLiveStay(targetHotel,record,action,action==='check-out'?confirmedDepartureAt:undefined);
     if(readSession().hotelId!==targetHotel)return;
@@ -212,7 +222,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
    <strong>Next action</strong>
    {isConfirmed&&!roomAssigned?<div>
     <p>Assign a room before checking in this guest.</p>
-    <button type="button" className="btn-inline" onClick={()=>{setShowRoomPicker(true);assignmentRef.current?.scrollIntoView({block:'start'});}}>Assign room</button>
+    <button type="button" className="btn-inline" aria-haspopup="dialog" onClick={openRoomPicker}>Assign room</button>
    </div>:readinessNeeded&&readiness.isSuccess&&!readiness.data.advisoryReady&&record.assignedRoomNumber?<div>
     <p>Room readiness needs attention before check-in.</p>
     <Link to="/rooms" search={{room:record.assignedRoomNumber,inspect:true}} className="btn-inline">Inspect room</Link>
@@ -251,7 +261,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
         ?'Room '+(record.assignedRoomNumber??'#'+record.assignedRoomId)+' · '+(record.roomTypeName??'Booked category')
         :'Choose a compatible available room before the guest can check in.'}</small></div>
       {!roomAssigned&&<button type="button" className="stay-text-button"
-       onClick={()=>{setShowRoomPicker(true);assignmentRef.current?.scrollIntoView({behavior:'smooth',block:'start'});}}>
+       aria-haspopup="dialog" onClick={openRoomPicker}>
        Select room <ArrowRight size={15}/></button>}
      </div>}
      {isConfirmed&&<>
@@ -318,17 +328,15 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
      Your hotel role cannot check in or check out this guest. Ask authorized front-desk staff or an administrator.
     </p>}
 
-    {canOperate&&isConfirmed&&<section ref={assignmentRef} className="stay-room-section" aria-label="Room assignment">
+    {canOperate&&isConfirmed&&<section className="stay-room-section" aria-label="Room assignment">
      <div className="stay-section-heading">
       <div>
        <p className="stay-overline">ROOM ASSIGNMENT</p>
        <h3>{roomAssigned?'Assigned room':'Choose a room'}</h3>
        <p>{roomAssigned?'You can change rooms before check-in.':'Select an available room of the booked category.'}</p>
       </div>
-      {roomAssigned&&<button type="button" className="btn-inline" disabled={busy}
-       onClick={()=>{setShowRoomPicker(v=>!v);setRoomId('');}}>
-       {showRoomPicker?'Cancel change':'Change room'}
-      </button>}
+      <button type="button" className="btn-inline" disabled={busy} aria-haspopup="dialog"
+       onClick={openRoomPicker}>{roomAssigned?'Change room':'Select room'}</button>
      </div>
      {roomAssigned&&<div className="stay-current-room">
       <BedDouble size={20}/>
@@ -336,7 +344,17 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
        <small>{record.roomTypeName??'Booked room category'} · Assigned to this stay</small></div>
       <CheckCircle2 size={18} className="stay-room-confirmed"/>
      </div>}
-     {showRoomPicker&&<>
+     {lastOperation==='assign'&&success&&<p role="status" className="stay-feedback-success">
+      <CheckCircle2 size={17}/>{success}</p>}
+     {showRoomPicker&&<dialog ref={roomDialog} className="billing-action-modal"
+      style={{margin:'auto',width:'min(670px, calc(100% - 32px))',color:'var(--text)'}}
+      aria-labelledby="stay-room-picker-title" onClose={()=>setShowRoomPicker(false)}
+      onCancel={event=>{if(inFlight.current)event.preventDefault();}}>
+      <header className="billing-action-modal-header">
+       <div><h3 id="stay-room-picker-title">{roomAssigned?'Change room':'Select room'}</h3>
+        <p>{record.reference} · {dateLabel(record.checkIn)} – {dateLabel(record.checkOut)}</p></div>
+       <button className="btn-inline" type="button" disabled={busy} onClick={()=>roomDialog.current?.close()}>Close</button>
+      </header>
       {preferredRoomId&&<p className="stay-entry-note">
        Calendar selection: Room {preferredRoomNumber??preferredRoomId}. Choose it below if currently available.
       </p>}
@@ -378,10 +396,8 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
       </div>
       {lastOperation==='assign'&&error&&<p role="alert" className="stay-feedback-error">
        <AlertTriangle size={16}/>{error}</p>}
-      {lastOperation==='assign'&&success&&<p role="status" className="stay-feedback-success">
-       <CheckCircle2 size={17}/>{success}</p>}
       <p className="stay-security-note">Availability is not held by this preview. Laravel checks all overlapping bookings and maintenance blocks again when saving.</p>
-     </>}
+     </dialog>}
     </section>}
 
     {isFinished&&<section className="stay-completed-card">

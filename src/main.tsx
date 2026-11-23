@@ -87,8 +87,8 @@ const roomCalendar=createRoute({getParentRoute:()=>root,path:'/room-calendar',
  }),component:LiveRoomCalendar});
 const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/front-desk',
-  validateSearch:(value:Record<string,unknown>):{queue?:'arrivals'|'departures'|'in_house'}=>({
-   queue:value.queue==='arrivals'||value.queue==='departures'||value.queue==='in_house'?value.queue:undefined,
+  validateSearch:(value:Record<string,unknown>):{queue?:'arrivals'|'departures'|'in_house'|'overdue'}=>({
+   queue:value.queue==='arrivals'||value.queue==='departures'||value.queue==='in_house'||value.queue==='overdue'?value.queue:undefined,
   }),
   component:FrontDesk}),
  createRoute({getParentRoute:()=>root,path:'/operational-exceptions',component:OperationalExceptions}),

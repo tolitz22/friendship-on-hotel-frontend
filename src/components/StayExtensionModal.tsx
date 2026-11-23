@@ -1,4 +1,5 @@
 import {useEffect,useId,useRef,useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 import {ArrowRight,X} from 'lucide-react';
 import {requestJson} from '../api/http';
 import type {LiveRecord} from '../api/liveReservations';
@@ -12,8 +13,9 @@ type ExtensionQuote = {
 
 export function StayExtensionModal({hotelId,record,today,openOnEntry=false,disabled=false,hideTrigger=false,onDismiss,onSaved}:{
  hotelId:string;record:Pick<LiveRecord,'id'|'reference'|'checkOut'>;today:string;
- openOnEntry?:boolean;disabled?:boolean;hideTrigger?:boolean;onDismiss?:()=>void;onSaved:()=>void;
+ openOnEntry?:boolean;disabled?:boolean;hideTrigger?:boolean;onDismiss?:()=>void;onSaved:()=>void|Promise<void>;
 }){
+ const client=useQueryClient();
  const titleId=useId();
  const dialog=useRef<HTMLDialogElement>(null);
  const trigger=useRef<HTMLButtonElement>(null);
@@ -48,7 +50,20 @@ export function StayExtensionModal({hotelId,record,today,openOnEntry=false,disab
    if(readSession().hotelId!==hotelId)return;
    if(result.data.saved){
     setQuote(null);setMessage('Stay extended. New departure: '+dateLabel(result.data.checkOut)+'. The added nights are on the guest bill.');
-    onSaved();
+    // Extension changes stay dates, nightly charges and the financial statement.
+    // Clear every billing view before it can show a stale quote.
+    await Promise.all([
+     client.invalidateQueries({queryKey:['live','billing-folios',hotelId]}),
+     client.invalidateQueries({queryKey:['live','settlement-statement',hotelId,record.id]}),
+     client.invalidateQueries({queryKey:['live','folio-ledger',hotelId]}),
+    ]).catch(()=>{});
+    await Promise.resolve(onSaved()).catch(()=>{});
+    if(readSession().hotelId===hotelId){
+     await Promise.all([
+      client.refetchQueries({queryKey:['live','billing-folios',hotelId],type:'active'}),
+      client.refetchQueries({queryKey:['live','settlement-statement',hotelId,record.id],type:'active'}),
+     ]).catch(()=>{});
+    }
    }else{
     quoteDeparture.current=record.checkOut;setQuote(result.data);
    }

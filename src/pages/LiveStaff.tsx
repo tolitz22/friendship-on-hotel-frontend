@@ -1,6 +1,6 @@
 import {useEffect,useState,type FormEvent} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
-import {Plus,ShieldCheck,History,Mail,RefreshCcw} from 'lucide-react';
+import {Plus,ShieldCheck,History,Mail,RefreshCcw,ShieldAlert,X} from 'lucide-react';
 import {attachHotelStaff,getHotelStaffHistory,listHotelStaff,updateHotelStaff,inviteNewStaff,listStaffInvitations,revokeStaffInvitation,type StaffRole,getHotelRolePermissions} from '../api/liveStaff';
 import {ApiError} from '../api/http';
 import {useHotelAuth} from '../components/AuthProvider';
@@ -9,6 +9,8 @@ import {QueryFeedback} from '../components/QueryFeedback';
 import {ReadableAuditEvent} from '../components/ReadableAuditEvent';
 
 const roles:StaffRole[]=['front_desk','housekeeping','maintenance','admin'];
+const roleName:Record<StaffRole,string>={front_desk:'Front Desk',housekeeping:'Housekeeping',maintenance:'Maintenance',admin:'Manager'};
+type StaffChange={userId:string;name:string;previousRole:StaffRole;previousActive:boolean;role:StaffRole;isActive:boolean};
 export function LiveStaff(){
  const {hotelId,user}=useHotelAuth();
  const admin=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
@@ -26,10 +28,32 @@ export function LiveStaff(){
  const [error,setError]=useState('');
  const [notice,setNotice]=useState('');
  const [historyOpen,setHistoryOpen]=useState(false);
+ const [section,setSection]=useState<'team'|'roles'|'invite'|'audit'>('team');
+ const [staffSearch,setStaffSearch]=useState('');
+ const [staffFilter,setStaffFilter]=useState<'all'|'active'|'inactive'>('all');
+ const [proposed,setProposed]=useState<StaffChange|null>(null);
  const history=useQuery({queryKey:['hotel-staff-history',hotelId],queryFn:getHotelStaffHistory,enabled:admin&&historyOpen});
  const profile=roleProfiles.data?.data.roles.find(item=>item.key===viewRole);
  const profileGroups=Array.from(new Set(roleProfiles.data?.data.capabilities.map(item=>item.group)??[]));
- useEffect(()=>{setEmail('');setInviteEmail('');setInviteName('');setError('');setNotice('');setHistoryOpen(false);},[hotelId]);
+ useEffect(()=>{
+  setEmail('');setInviteEmail('');setInviteName('');setError('');setNotice('');
+  setHistoryOpen(false);setSection('team');setStaffSearch('');setStaffFilter('all');setProposed(null);
+ },[hotelId]);
+ const visibleStaff=(staff.data?.data??[]).filter(member=>{
+  const term=staffSearch.trim().toLowerCase();
+  return (!term||member.name.toLowerCase().includes(term)||member.email.toLowerCase().includes(term))
+   &&(staffFilter==='all'||(staffFilter==='active'?member.isActive&&member.accountActive:!member.isActive||!member.accountActive));
+ });
+ const activeStaff=(staff.data?.data??[]).filter(member=>member.isActive&&member.accountActive).length;
+ const pendingInvites=(invitations.data?.data??[]).filter(item=>
+  !item.acceptedAt&&!item.revokedAt&&new Date(item.expiresAt).getTime()>Date.now()).length;
+ const proposeChange=(member:{userId:string;name:string;role:StaffRole;isActive:boolean},patch:Partial<{role:StaffRole;isActive:boolean}>)=>{
+  if(saving||member.userId===user?.id)return;
+  const next={userId:member.userId,name:member.name,previousRole:member.role,previousActive:member.isActive,
+   role:patch.role??member.role,isActive:patch.isActive??member.isActive};
+  if(next.role!==member.role||next.isActive!==member.isActive)setProposed(next);
+ };
+
  async function attach(e:FormEvent<HTMLFormElement>){
   e.preventDefault();if(!admin||saving)return;
   setSaving('attach');setError('');setNotice('');
@@ -37,20 +61,34 @@ export function LiveStaff(){
    await attachHotelStaff(email.trim(),role);
    await client.invalidateQueries({queryKey:['hotel-staff',hotelId]});
    await client.invalidateQueries({queryKey:['hotel-staff-history',hotelId]});
+   await client.invalidateQueries({queryKey:['hotel-staff-role-profiles',hotelId]});
    setEmail('');setNotice('Existing account added to the selected hotel.');
   }catch(e){setError(e instanceof ApiError?e.message:e instanceof Error?e.message:'Unable to add staff.');}
   finally{setSaving(null);}
  }
- async function change(userId:string,patch:Partial<{role:StaffRole;isActive:boolean}>){
-  if(!admin||saving)return;
-  setSaving(userId);setError('');setNotice('');
+ async function confirmChange(){
+  if(!admin||saving||!proposed)return;
+  const change=proposed;
+  setSaving(change.userId);setError('');setNotice('');
   try{
-   await updateHotelStaff(userId,patch);
-   await client.invalidateQueries({queryKey:['hotel-staff',hotelId]});
-   await client.invalidateQueries({queryKey:['hotel-staff-history',hotelId]});
-   setNotice('Membership updated. Affected staff should sign in again to refresh their displayed role.');
-  }catch(e){setError(e instanceof ApiError?e.message:e instanceof Error?e.message:'Unable to update staff.');}
-  finally{setSaving(null);}
+   await updateHotelStaff(change.userId,{
+    role:change.role,isActive:change.isActive,
+    expectedRole:change.previousRole,expectedIsActive:change.previousActive,
+   });
+   setProposed(null);
+   await Promise.all([
+    client.invalidateQueries({queryKey:['hotel-staff',hotelId]}),
+    client.invalidateQueries({queryKey:['hotel-staff-history',hotelId]}),
+    client.invalidateQueries({queryKey:['hotel-staff-role-profiles',hotelId]}),
+   ]);
+   setNotice('Access updated for '+change.name+'. Permissions are enforced immediately. Staff may need to sign in again to refresh the visible workspace.');
+  }catch(e){
+   if(e instanceof ApiError&&e.status===409){
+    setProposed(null);
+    void client.invalidateQueries({queryKey:['hotel-staff',hotelId]});
+   }
+   setError(e instanceof Error?e.message:'Unable to update staff access.');
+  }finally{setSaving(null);}
  }
  async function sendInvitation(e:FormEvent<HTMLFormElement>){
   e.preventDefault();if(!admin||saving)return;
@@ -75,9 +113,17 @@ export function LiveStaff(){
  }
  if(!admin)return <><Heading title="Hotel staff" description="Administrator access required"/><p className="notice">Only active hotel administrators can manage staff memberships.</p></>;
  return <>
-  <div className="notice"><strong>Staff onboarding</strong> · Invite new employees by email so they choose their own password. For someone with an existing account, use the separate membership form below.</div>
-  <Heading title="Hotel staff" description="Manage property memberships and operational roles without sharing administrator credentials"/>
-  <Panel title="Roles & permissions" action={<button type="button" className="btn-inline"
+  <Heading title="Staff & access" description="Manage team membership, review role access, and invite employees to this property."/>
+  <div className="notice"><strong>{activeStaff} active staff</strong> · {pendingInvites} pending invitations · Access changes affect only this hotel.</div>
+  <nav className="hk-queue-tabs" aria-label="Staff management sections">
+   {([['team','Team'],['roles','Roles & permissions'],['invite','Invitations'],['audit','Access history']] as const)
+    .map(([id,label])=><button key={id} type="button" aria-current={section===id?'page':undefined}
+     aria-pressed={section===id} className={section===id?'active':''}
+     onClick={()=>{setSection(id);setError('');setNotice('');if(id==='audit')setHistoryOpen(true);}}>{label}</button>)}
+  </nav>
+  {error&&<p className="auth-error" role="alert">{error}</p>}
+  {notice&&<p className="guest-info" role="status">{notice}</p>}
+  {section==='roles'&&<Panel title="Roles & permissions" action={<button type="button" className="btn-inline"
    disabled={roleProfiles.isFetching} onClick={()=>void roleProfiles.refetch()}><RefreshCcw size={15}/> Refresh permissions</button>}>
    <p className="guest-info">Choose a role to see the hotel's default access. Assign roles below. Individual permission toggles are not enabled; sensitive actions remain protected by Laravel.</p>
    <QueryFeedback loading={roleProfiles.isPending} error={roleProfiles.error}
@@ -106,8 +152,8 @@ export function LiveStaff(){
     </div>}
     <p className="guest-info">{roleProfiles.data.data.note}</p>
    </>}
-  </Panel>
-  <Panel title="Invite a new employee">
+  </Panel>}
+  {section==='invite'&&<><Panel title="Invite a new employee">
    <form className="staff-add-form" onSubmit={e=>void sendInvitation(e)}>
     <label>Full name<input required minLength={2} maxLength={120} value={inviteName} onChange={e=>setInviteName(e.target.value)}/></label>
     <label>Email<input required type="email" maxLength={255} value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)}/></label>
@@ -141,25 +187,36 @@ export function LiveStaff(){
    </form>
    <p className="guest-info">Users can belong to multiple hotels. A new membership does not grant permission to another property's data.</p>
   </Panel>
-  {error&&<p className="auth-error" role="alert">{error}</p>}
-  {notice&&<p className="guest-info" role="status">{notice}</p>}
-  <Panel title="Current staff members">
+  </>}
+  {section==='team'&&<Panel title="Current staff members">
+   <div className="staff-add-form">
+    <label>Search staff <input type="search" value={staffSearch} placeholder="Search name or email"
+     onChange={event=>setStaffSearch(event.target.value)}/></label>
+    <label>Status <select value={staffFilter}
+     onChange={event=>setStaffFilter(event.target.value as 'all'|'active'|'inactive')}>
+      <option value="all">All staff</option><option value="active">Active</option>
+      <option value="inactive">Inactive</option>
+     </select></label>
+    <button type="button" className="btn-inline" disabled={staff.isFetching}
+     onClick={()=>void staff.refetch()}><RefreshCcw size={15}/> Refresh</button>
+   </div>
    <QueryFeedback loading={staff.isPending} error={staff.error} empty={staff.data?.data.length===0}/>
    {staff.data&&<div className="table-scroll"><table><thead><tr><th>Staff</th><th>Role</th><th>Membership</th></tr></thead><tbody>
-    {staff.data.data.map(member=><tr key={member.userId}>
+    {visibleStaff.map(member=><tr key={member.userId}>
      <td><strong>{member.name}</strong><div className="guest-info">{member.email}</div></td>
      <td><select aria-label={'Role for '+member.name} disabled={saving!==null||member.userId===user?.id}
-       value={member.role} onChange={e=>void change(member.userId,{role:e.target.value as StaffRole})}>
+       value={member.role} onChange={e=>proposeChange(member,{role:e.target.value as StaffRole})}>
        {roles.map(r=><option key={r} value={r}>{r.replaceAll('_',' ')}</option>)}
       </select></td>
      <td><button className="btn-inline" type="button" disabled={saving!==null||member.userId===user?.id}
-      onClick={()=>void change(member.userId,{isActive:!member.isActive})}>
-      <ShieldCheck size={15}/>{member.isActive?'Deactivate':'Activate'}
-     </button>{!member.accountActive&&<span className="guest-info">Account inactive</span>}</td>
+      onClick={()=>proposeChange(member,{isActive:!member.isActive})}>
+      <ShieldCheck size={15}/>{member.isActive?'Deactivate':'Reactivate'}
+     </button>{!member.accountActive&&<span className="guest-info">Account inactive</span>}{member.userId===user?.id&&<span className="guest-info">Your account · manager access protected</span>}</td>
     </tr>)}
    </tbody></table></div>}
-  </Panel>
-  <Panel title="Membership audit history" action={<button type="button" className="btn-inline" onClick={()=>setHistoryOpen(v=>!v)}><History size={16}/>{historyOpen?'Hide':'View'} history</button>}>
+   {staff.isSuccess&&visibleStaff.length===0&&<p className="guest-info" role="status">No staff match these filters.</p>}
+  </Panel>}
+  {section==='audit'&&<Panel title="Membership audit history" action={<button type="button" className="btn-inline" onClick={()=>setHistoryOpen(v=>!v)}><History size={16}/>{historyOpen?'Hide':'View'} history</button>}>
    {historyOpen&&<><QueryFeedback loading={history.isPending} error={history.error} empty={history.data?.data.length===0}/>
     {history.data?.data.map(event=><div key={event.id} className="staff-audit-entry">
      <p className="staff-audit-target"><strong>Employee affected:</strong> {event.targetName??staff.data?.data.find(member=>member.userId===event.targetUserId)?.name??'Employee name unavailable'}</p>
@@ -171,6 +228,33 @@ export function LiveStaff(){
       currentUserId={user?.id} currentUserName={user?.name}/>
     </div>)}
    </>}
-  </Panel>
+  </Panel>}
+  {proposed&&<div className="guest-modal-backdrop" role="presentation">
+   <section className="guest-modal" role="dialog" aria-modal="true" aria-labelledby="staff-change-title">
+    <div className="catalog-modal-heading">
+     <h3 id="staff-change-title">Confirm staff access change</h3>
+     <button type="button" className="icon-btn" aria-label="Cancel access change"
+      disabled={saving!==null} onClick={()=>setProposed(null)}><X size={18}/></button>
+    </div>
+    <p><strong>{proposed.name}</strong> · This change affects the selected hotel only.</p>
+    <p><strong>Current:</strong> {roleName[proposed.previousRole]} · {proposed.previousActive?'Active':'Inactive'}</p>
+    <p><strong>New:</strong> {roleName[proposed.role]} · {proposed.isActive?'Active':'Inactive'}</p>
+    {proposed.role==='admin'&&proposed.previousRole!=='admin'&&<p role="alert" className="notice">
+     <ShieldAlert size={16}/> Manager access includes staff administration and sensitive hotel operations. Grant only to trusted managers.
+    </p>}
+    {!proposed.isActive&&proposed.previousActive&&<p role="alert" className="notice">
+     Deactivation immediately blocks this person's hotel API access. Reassign their open tasks first.
+    </p>}
+    {proposed.role!==proposed.previousRole&&<p className="guest-info">
+     {roleProfiles.data?.data.roles.find(item=>item.key===proposed.role)?.description??'Check Roles & permissions for details.'}
+    </p>}
+    <div className="guest-modal-actions">
+     <button type="button" className="btn-inline" disabled={saving!==null}
+      onClick={()=>setProposed(null)}>Cancel</button>
+     <button type="button" className="btn-primary" disabled={saving!==null}
+      onClick={()=>void confirmChange()}>{saving?'Saving access…':'Confirm change'}</button>
+    </div>
+   </section>
+  </div>}
  </>;
 }

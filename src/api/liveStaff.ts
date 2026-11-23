@@ -7,6 +7,10 @@ export interface HotelStaffMember{
  permissions:string[];customPermissions:boolean;
 }
 export const listHotelStaff=()=>getJson<{data:HotelStaffMember[]}>(hotelPath('/staff'));
+export const createHotelStaffAccount=(name:string,email:string,role:StaffRole,password:string,passwordConfirmation:string)=>
+ requestJson<{message:string;data:HotelStaffMember[]}>(hotelPath('/staff/create-account'),{
+  method:'POST',body:{name,email,role,password,password_confirmation:passwordConfirmation},
+ });
 export const attachHotelStaff=(email:string,role:StaffRole)=>
  requestJson<{data:HotelStaffMember[]}>(hotelPath('/staff'),{method:'POST',body:{email,role}});
 export const updateHotelStaff=(userId:string,body:Partial<{role:StaffRole;isActive:boolean;expectedRole:StaffRole;expectedIsActive:boolean;permissions:string[];expectedPermissions:string[]}>)=>

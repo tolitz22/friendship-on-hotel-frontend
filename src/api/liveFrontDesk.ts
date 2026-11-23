@@ -3,7 +3,7 @@ import {z} from 'zod';
 import {getJson} from './http';
 import {hotelPath,readSession} from './session';
 
-export const manifestKinds=['arrivals','departures','in_house'] as const;
+export const manifestKinds=['arrivals','departures','in_house','overdue'] as const;
 export type ManifestKind=typeof manifestKinds[number];
 
 const manifestEntrySchema=z.object({
@@ -15,6 +15,7 @@ const manifestEntrySchema=z.object({
  roomNumber:z.string().nullable(),
  checkIn:z.iso.date(),
  checkOut:z.iso.date(),
+ departureFollowUp:z.string().nullish(),
  status:z.enum(['confirmed','checked_in']),
 });
 const manifestSchema=z.object({

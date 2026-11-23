@@ -11,7 +11,8 @@ import {useRoomInventoryStatus} from '../api/roomInventoryStatus';
 import {roomOperationalSignal,informationalMaintenanceCount} from '../features/rooms/roomOperationalSignals';
 import {listMaintenance,parseLiveMaintenance} from '../api/liveMaintenance';
 import {useLiveProperty} from '../api/liveCatalogQueries';
-import {readSession} from '../api/session';
+import {requestJson} from '../api/http';
+import {hotelPath,readSession} from '../api/session';
 import {useHotelAuth} from '../components/AuthProvider';
 import {selectedRole} from '../features/workspaces/roleNavigation';
 import type {ManifestKind,ManifestEntry} from '../api/liveFrontDesk';
@@ -24,6 +25,7 @@ import {dateLabel,statusLabel} from '../lib/format';
 const queues:{kind:ManifestKind;title:string}[]=[
  {kind:'arrivals',title:'Arrivals'},
  {kind:'departures',title:'Departures'},
+ {kind:'overdue',title:'Overdue checkouts'},
  {kind:'in_house',title:'In-house'},
 ];
 const displayGuest=(record:ManifestEntry)=>record.guestName?.trim()||'Guest name unavailable';
@@ -35,7 +37,7 @@ export function LiveFrontDesk(){
  const [date,setDate]=useState(hotelToday);
  const [kind,setKind]=useState<ManifestKind>(initialQueue??'arrivals');
  const [pageByKind,setPageByKind]=useState<Record<ManifestKind,number>>({
-  arrivals:1,departures:1,in_house:1,
+  arrivals:1,departures:1,in_house:1,overdue:1,
  });
  const [search,setSearch]=useState('');
  const client=useQueryClient();
@@ -47,7 +49,8 @@ export function LiveFrontDesk(){
  const arrivals=useLiveManifest(date,'arrivals',pageByKind.arrivals,20,kind==='arrivals'?term:undefined);
  const departures=useLiveManifest(date,'departures',pageByKind.departures,20,kind==='departures'?term:undefined);
  const inHouse=useLiveManifest(date,'in_house',pageByKind.in_house,20,kind==='in_house'?term:undefined);
- const queries={arrivals,departures,in_house:inHouse};
+ const overdue=useLiveManifest(hotelDate,'overdue',pageByKind.overdue,20,kind==='overdue'?term:undefined);
+ const queries={arrivals,departures,in_house:inHouse,overdue};
  const current=queries[kind];
  const rows=current.isSuccess?current.data.data:[];
  // Room-readiness evidence describes the property's CURRENT date only.
@@ -71,9 +74,9 @@ export function LiveFrontDesk(){
  const count=(name:ManifestKind)=>queries[name].isSuccess?(queries[name].data.meta.queueTotal??queries[name].data.meta.total):'—';
  const page=current.data?.meta.page??pageByKind[kind];
  const pages=current.isSuccess?current.data.meta.totalPages:0;
- const loadingAny=arrivals.isFetching||departures.isFetching||inHouse.isFetching;
+ const loadingAny=arrivals.isFetching||departures.isFetching||inHouse.isFetching||overdue.isFetching;
  const changeDate=(next:string)=>{
-  setDate(next);setPageByKind({arrivals:1,departures:1,in_house:1});setSearch('');
+  setDate(next);setPageByKind({arrivals:1,departures:1,in_house:1,overdue:1});setSearch('');
  };
  useEffect(()=>{changeDate(hotelDate);setKind(initialQueue??'arrivals');},[hotelId,hotelDate,initialQueue]);
  const refresh=()=>void Promise.all([
@@ -118,7 +121,8 @@ export function LiveFrontDesk(){
   </section>
   <section className="fdc-workspace" aria-label="Daily front desk work queue">
    <div className="fdc-workspace-heading">
-    <div><h3>Reservations for {dateLabel(date)}</h3><p>Choose a queue, find a guest, then take the next action.</p></div>
+    <div><h3>{kind==='overdue'?'Overdue checkouts':'Reservations for '+dateLabel(date)}</h3>
+     <p>{kind==='overdue'?'Still checked in after noon on the scheduled departure date, or due on an earlier date. This queue follows the hotel clock.':'Choose a queue, find a guest, then take the next action.'}</p></div>
     <Link to="/room-calendar" className="fdc-secondary-link"><BedDouble size={16}/> Room calendar <ArrowRight size={14}/></Link>
    </div>
    <div className="fdc-controls">
@@ -135,11 +139,11 @@ export function LiveFrontDesk(){
    </div>
    <QueryFeedback loading={current.isPending} error={current.error} onRetry={()=>void current.refetch()}
     empty={current.isSuccess&&filtered.length===0}
-    emptyMessage={term?'No matches in this queue on the selected date.':'No reservations in this queue on the selected date.'}/>
-   {isToday&&canOperate&&<div className="fdc-room-notice"><Info size={16}/>
+    emptyMessage={kind==='overdue'?(term?'No matching overdue checkouts.':'No overdue checkouts to follow up.') :term?'No matches in this queue on the selected date.':'No reservations in this queue on the selected date.'}/>
+   {kind!=='overdue'&&isToday&&canOperate&&<div className="fdc-room-notice"><Info size={16}/>
     <p><strong>Current room checks:</strong> Active inventory restrictions and inspection/cleaning concerns are shown below when available.
      Maintenance work-order notes are informational and do not automatically block bookings. Always confirm availability at check-in.</p></div>}
-   {!isToday&&<div className="fdc-room-notice"><Info size={16}/>
+   {kind!=='overdue'&&!isToday&&<div className="fdc-room-notice"><Info size={16}/>
     <p>Room conditions are checked on the hotel’s current date. This future or past schedule does not guarantee a room’s cleaning, inspection, or maintenance status.</p></div>}
    {current.isSuccess&&filtered.length>0&&<div className="fdc-queue" aria-live="polite">
     {filtered.map(row=>{
@@ -162,7 +166,7 @@ export function LiveFrontDesk(){
        <small>Room</small>
        <strong>{row.roomNumber??'Not assigned'}</strong>
        {needsAssignment&&<span className="fdc-issue"><AlertTriangle size={13}/> Assignment needed</span>}
-       {canOperate&&isToday&&row.assignedRoomId&&<div className="fdc-room-signals" aria-label={'Current room checks for '+(row.roomNumber??'assigned room')}>
+       {kind!=='overdue'&&canOperate&&isToday&&row.assignedRoomId&&<div className="fdc-room-signals" aria-label={'Current room checks for '+(row.roomNumber??'assigned room')}>
         {signal?<div className={'fdc-room-signal fdc-signal-'+signal.tone}>
          {signal.tone==='blocked'?<ShieldAlert size={14}/>:signal.tone==='approved'?<ClipboardCheck size={14}/>:<Info size={14}/>}
          <span><strong>{signal.title}</strong><small>{signal.action}</small></span>
@@ -174,14 +178,19 @@ export function LiveFrontDesk(){
         </div>}
       </div>
       <div className="fdc-guest-status">
-       <small>Status</small><Status value={statusLabel(row.status)}/>
+       <small>Status</small>{kind==='overdue'?<span className="fdc-issue"><AlertTriangle size={13}/> Checkout overdue</span>:<Status value={statusLabel(row.status)}/>}
       </div>
       <div className="fdc-guest-actions">
        <Link to="/reservations" search={{booking:row.id,...(!canOperate||action.kind==='view'?{}:{deskAction:action.kind})}} className="fdc-action-link">
         {!canOperate?<ClipboardCheck size={16}/>:action.kind==='assign'?<BedDouble size={16}/>:action.kind==='check-in'?<LogIn size={16}/>:action.kind==='check-out'?<LogOut size={16}/>:<ClipboardCheck size={16}/>} 
-        {canOperate?action.label:'View reservation'} <ArrowRight size={15}/>
+        {canOperate&&kind==='overdue'?'Complete checkout':canOperate?action.label:'View reservation'} <ArrowRight size={15}/>
        </Link>
-       <span>{canOperate?action.hint:'Read-only staff review. Contact a manager for changes.'}</span>
+       <span>{canOperate&&kind==='overdue'?'Confirm the guest has left before checking out.':canOperate?action.hint:'Read-only staff review. Contact a manager for changes.'}</span>
+       {kind==='overdue'&&<>
+        {row.departureFollowUp&&<p><strong>Shift handoff</strong><br/>{row.departureFollowUp}</p>}
+        {canOperate&&<DepartureFollowUp key={hotelId+'-'+row.id} bookingId={row.id}
+         savedNote={row.departureFollowUp} onSaved={refresh}/>}
+       </>}
       </div>
      </article>;
     })}
@@ -198,4 +207,35 @@ export function LiveFrontDesk(){
    Actions open the existing guarded reservation workflow for review and confirmation. This screen does not verify room cleanliness, cash collection or actual physical occupancy.
   </p>
  </>;
+}
+
+function DepartureFollowUp({bookingId,savedNote,onSaved}:{
+ bookingId:string;savedNote?:string|null;onSaved:()=>void;
+}){
+ const [note,setNote]=useState('');
+ const [busy,setBusy]=useState(false);
+ const [feedback,setFeedback]=useState('');
+ return <details>
+  <summary>{savedNote?'Update follow-up':'Flag for follow-up'}</summary>
+  <p>Still staying? Record the requested dates for the next shift and have a manager confirm inventory and pricing before changing the booking.</p>
+  <form onSubmit={async event=>{
+   event.preventDefault();
+   if(busy||!note.trim())return;
+   setBusy(true);setFeedback('');
+   try{
+    await requestJson(hotelPath('/bookings/'+encodeURIComponent(bookingId)+'/departure-follow-up'),{
+     method:'POST',body:JSON.stringify({note:note.trim()}),
+    });
+    setNote('');setFeedback('Follow-up saved.');onSaved();
+   }catch(cause){
+    setFeedback(cause instanceof Error?cause.message:'Unable to save the follow-up.');
+   }finally{setBusy(false);}
+  }}>
+   <label>Next shift note<textarea className="wizard-input" required maxLength={500}
+    value={note} onChange={event=>setNote(event.target.value)}
+    placeholder="Guest contact, departure check, or extension request"/></label>
+   <button type="submit" className="btn-inline" disabled={busy||!note.trim()}>{busy?'Saving…':'Save follow-up'}</button>
+   {feedback&&<p role="status">{feedback}</p>}
+  </form>
+ </details>;
 }

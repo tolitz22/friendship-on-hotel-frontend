@@ -30,6 +30,7 @@ const historySchema=z.object({
   id,reservationId:id,eventType:z.string(),
   oldState:z.string().nullable(),newState:z.string().nullable(),
   actorId:id,actorName:z.string().nullable().optional(),createdAt:z.string(),
+  note:z.string().nullish(),confirmedDepartureAt:z.string().nullish(),
  })),
  meta:z.object({
   page:z.number().int().positive(),perPage:z.number().int().positive(),
@@ -180,11 +181,11 @@ export async function assignLiveRoom(hotelId:string,record:LiveRecord,roomId:str
  );
  return parseAssignment(response,record,roomId);
 }
-export async function transitionLiveStay(hotelId:string,record:LiveRecord,operation:Operation){
+export async function transitionLiveStay(hotelId:string,record:LiveRecord,operation:Operation,confirmedDepartureAt?:string){
  checkHotel(hotelId);
  const response=await requestJson<unknown>(
   hotelPath('/bookings/'+encodeURIComponent(record.id)+'/'+operation),
-  {method:'POST'}
+  {method:'POST',...(confirmedDepartureAt?{body:JSON.stringify({confirmedDepartureAt})}:{})}
  );
  return parseTransition(response,record,operation);
 }

@@ -39,6 +39,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const [showRoomPicker,setShowRoomPicker]=useState(false);
  const [historyPage,setHistoryPage]=useState(1);
  const [roomId,setRoomId]=useState('');
+ const [confirmedDepartureAt,setConfirmedDepartureAt]=useState('');
  const [acknowledged,setAcknowledged]=useState(false);
  const [busy,setBusy]=useState(false);
  const [success,setSuccess]=useState('');
@@ -127,7 +128,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
     if(readSession().hotelId!==targetHotel)return;
     setSuccess(data.unchanged?'Room assignment was already recorded.':'Room assignment saved by Laravel.');
    }else{
-    const data=await transitionLiveStay(targetHotel,record,action);
+    const data=await transitionLiveStay(targetHotel,record,action,action==='check-out'?confirmedDepartureAt:undefined);
     if(readSession().hotelId!==targetHotel)return;
     setSuccess(data.status==='checked_in'?'Check-in recorded in Laravel.':'Checkout recorded. Laravel creates a checkout-clean housekeeping task.');
    }
@@ -243,6 +244,11 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
        <li>Room readiness still requires a current inspection and separate cleaning records.</li>
       </ul>
      </div>}
+     {isInHouse&&!earlyDepartureWindow&&<label className="night-audit-date">
+      Confirmed departure time (optional, hotel local)
+      <input className="wizard-input" type="datetime-local" value={confirmedDepartureAt}
+       disabled={busy} onChange={event=>setConfirmedDepartureAt(event.target.value)}/>
+     </label>}
      {!earlyDepartureWindow&&<label className="stay-confirm-check">
       <input type="checkbox" checked={acknowledged} disabled={busy}
        onChange={e=>setAcknowledged(e.target.checked)}/>
@@ -430,6 +436,8 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
        <p className="readable-audit-context">{auditActorName(item.actorId,
         item.actorName??staff.data?.data.find(m=>m.userId===item.actorId)?.name,user?.id,user?.name)}
         {' · '}{readableDateTime(item.createdAt)}</p>
+       {item.confirmedDepartureAt&&<p>Confirmed departure: {item.confirmedDepartureAt} (hotel local)</p>}
+       {item.note&&<p>{item.note}</p>}
        {item.oldState!==item.newState&&<div className="readable-audit-changes">
         <div><span>Reservation status</span><strong>{item.oldState?statusLabel(item.oldState):'Not recorded'}
          {' → '}{item.newState?statusLabel(item.newState):'Not recorded'}</strong></div>

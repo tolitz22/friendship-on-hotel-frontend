@@ -55,6 +55,14 @@ describe('live front desk manifest contract',()=>{
   },date,'arrivals')).toThrow();
  });
 
+ it('preserves the shift handoff on an overdue checked-in stay',()=>{
+  const parsed=parseManifest({
+   data:[{...response.data[0],checkOut:date,status:'checked_in',departureFollowUp:'Awaiting guest confirmation'}],
+   meta:{...response.meta,kind:'overdue'},
+  },date,'overdue');
+  expect(parsed.data[0].departureFollowUp).toBe('Awaiting guest confirmation');
+ });
+
  it('supports a paginated empty in-house manifest',()=>{
   const parsed=parseManifest({
    data:[],meta:{

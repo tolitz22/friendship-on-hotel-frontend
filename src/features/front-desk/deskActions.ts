@@ -10,7 +10,7 @@ export function recommendedDeskAction(kind:ManifestKind,entry:ManifestEntry):Des
   return {kind:'check-in',label:'Review check-in',
    hint:'Verify identity, readiness and arrival eligibility before confirming'};
  }
- if(kind==='departures'&&entry.status==='checked_in')return {
+ if((kind==='departures'||kind==='overdue')&&entry.status==='checked_in')return {
   kind:'check-out',label:'Review checkout',
   hint:'Review departure date and financial follow-up before confirming',
  };

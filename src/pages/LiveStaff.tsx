@@ -378,24 +378,25 @@ export function LiveStaff(){
      onClick={()=>void staff.refetch()}><RefreshCcw size={15}/> Refresh</button>
    </div>
    <QueryFeedback loading={staff.isPending} error={staff.error} empty={staff.data?.data.length===0}/>
-   {staff.data&&<div className="table-scroll"><table><thead><tr><th>Staff</th><th>Role</th><th>Membership</th><th>Permissions</th></tr></thead><tbody>
-    {visibleStaff.map(member=><tr key={member.userId}>
-     <td><strong>{member.name}</strong><div className="guest-info">{member.email}</div></td>
-     <td><select aria-label={'Role for '+member.name} disabled={saving!==null||member.userId===user?.id}
-       value={member.role} onChange={e=>proposeChange(member,{role:e.target.value as StaffRole})}>
-       {roles.map(r=><option key={r} value={r}>{roleName[r]}</option>)}
-      </select></td>
-     <td><button className="btn-inline" type="button" disabled={saving!==null||member.userId===user?.id}
-      onClick={()=>proposeChange(member,{isActive:!member.isActive})}>
-      <ShieldCheck size={15}/>{member.isActive?'Deactivate':'Reactivate'}
-     </button>{!member.accountActive&&<span className="guest-info">Account inactive</span>}{member.userId===user?.id&&<span className="guest-info">Your account · manager access protected</span>}</td>
-      <td>{member.role==='admin'?<span className="guest-info">Manager privileges fixed</span>
-       :<button type="button" className="btn-inline" disabled={saving!==null||member.userId===user?.id}
-         onClick={()=>beginPermissionEdit(member)}>
-        <ShieldCheck size={15}/> Edit permissions{member.customPermissions?' · Customized':''}
-       </button>}</td>
-    </tr>)}
-   </tbody></table></div>}
+   {staff.data&&<div className="table-scroll staff-list-scroll"><table className="staff-directory-table">
+    <thead><tr><th>Employee</th><th>Role</th><th>Status</th><th><span className="staff-sr-only">Manage access</span></th></tr></thead>
+    <tbody>{visibleStaff.map(member=><tr key={member.userId}>
+     <td><div className="staff-person">
+      <span className="staff-initials" aria-hidden="true">{member.name.trim().slice(0,1).toUpperCase()}</span>
+      <span><strong>{member.name}</strong><small>{member.email}</small>
+       {member.userId===user?.id&&<small>Your account</small>}</span>
+     </div></td>
+     <td><span className="staff-role-pill">{roleName[member.role]}</span>
+      {member.customPermissions&&<small className="staff-custom-note">Custom access</small>}</td>
+     <td><span className={'staff-status-pill '+(member.isActive&&member.accountActive?'is-active':'is-inactive')}>
+      {member.isActive&&member.accountActive?'Active':!member.accountActive?'Account inactive':'Access disabled'}
+     </span></td>
+     <td><button type="button" className="staff-manage-button" disabled={saving!==null}
+       aria-label={'Manage '+member.name} onClick={()=>{setError('');setNotice('');setSelectedStaffId(member.userId);}}>
+       <UserRoundCog size={16}/> Manage <ChevronRight size={15}/>
+     </button></td>
+    </tr>)}</tbody>
+   </table></div>}
    {staff.isSuccess&&visibleStaff.length===0&&<p className="guest-info" role="status">No staff match these filters.</p>}
   </Panel>}
   {section==='audit'&&<Panel title="Membership audit history" action={<button type="button" className="btn-inline" onClick={()=>setHistoryOpen(v=>!v)}><History size={16}/>{historyOpen?'Hide':'View'} history</button>}>
@@ -411,6 +412,54 @@ export function LiveStaff(){
     </div>)}
    </>}
   </Panel>}
+  {selectedStaff&&<div className="guest-modal-backdrop" role="presentation">
+   <section className="guest-modal staff-manage-dialog" role="dialog" aria-modal="true" aria-labelledby="staff-manage-title">
+    <div className="staff-dialog-title">
+     <div><h3 id="staff-manage-title">{selectedStaff.name}</h3><p>{selectedStaff.email}</p></div>
+     <button className="icon-btn" type="button" aria-label="Close staff details"
+      onClick={()=>setSelectedStaffId(null)}><X size={18}/></button>
+    </div>
+    <div className="staff-member-summary">
+     <span className={'staff-status-pill '+(selectedStaff.isActive&&selectedStaff.accountActive?'is-active':'is-inactive')}>
+      {selectedStaff.isActive&&selectedStaff.accountActive?'Active':!selectedStaff.accountActive?'Account inactive':'Access disabled'}
+     </span>
+     <span className="staff-role-pill">{roleName[selectedStaff.role]}</span>
+     {selectedStaff.customPermissions&&<span className="staff-custom-note">Custom permissions</span>}
+    </div>
+    <div className="staff-manage-section">
+     <h4>Role</h4><p>Choose the type of work this employee performs.</p>
+     <label>Assigned role
+      <select value={selectedStaff.role} aria-label={'Role for '+selectedStaff.name}
+       disabled={saving!==null||selectedStaff.userId===user?.id}
+       onChange={event=>proposeChange(selectedStaff,{role:event.target.value as StaffRole})}>
+       {roles.map(r=><option key={r} value={r}>{roleName[r]}</option>)}
+      </select>
+     </label>
+     <small>{roleProfiles.data?.data.roles.find(r=>r.key===selectedStaff.role)?.description}</small>
+    </div>
+    <div className="staff-manage-section">
+     <h4>Individual permissions</h4>
+     <p>{selectedStaff.role==='admin'
+       ?'Manager access is controlled by the role and cannot be customized here.'
+       :'Customize which actions this employee can perform within their assigned role.'}</p>
+     <button type="button" className="btn-inline" disabled={saving!==null||selectedStaff.role==='admin'||selectedStaff.userId===user?.id}
+      onClick={()=>beginPermissionEdit(selectedStaff)}>
+      <ShieldCheck size={16}/> {selectedStaff.customPermissions?'Review custom permissions':'Edit permissions'}
+     </button>
+    </div>
+    <div className="staff-manage-section staff-access-section">
+     <h4>Account access</h4>
+     <p>{selectedStaff.isActive?'Deactivating blocks access to this hotel immediately without deleting employee history.':'Reactivating restores the employee’s role permissions in this hotel.'}</p>
+     <button type="button" className="btn-inline" disabled={saving!==null||selectedStaff.userId===user?.id}
+      onClick={()=>proposeChange(selectedStaff,{isActive:!selectedStaff.isActive})}>
+      {selectedStaff.isActive?'Deactivate hotel access':'Reactivate hotel access'}
+     </button>
+     {selectedStaff.userId===user?.id&&<small>For safety, you cannot remove your own administrator access.</small>}
+    </div>
+    <div className="guest-modal-actions"><button type="button" className="btn-inline"
+      onClick={()=>setSelectedStaffId(null)}>Close</button></div>
+   </section>
+  </div>}
   {permissionEdit&&<div className="guest-modal-backdrop" role="presentation">
    <section className="guest-modal" role="dialog" aria-modal="true" aria-labelledby="staff-permissions-title">
     <div className="catalog-modal-heading">

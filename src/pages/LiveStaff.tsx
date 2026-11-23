@@ -93,6 +93,11 @@ export function LiveStaff(){
  const selectedStaff=(staff.data?.data??[]).find(member=>member.userId===selectedStaffId)??null;
  const closeAdd=()=>{if(saving)return;setAddOpen(false);setManualPassword('');setManualPasswordConfirm('');setManualManagerAcknowledged(false);setShowManualPassword(false);};
  const openAdd=()=>{setError('');setNotice('');setAddMethod('manual');setAddOpen(true);};
+ const switchAddMethod=(method:'manual'|'email'|'existing')=>{
+  if(saving)return;
+  setError('');setManualPassword('');setManualPasswordConfirm('');setShowManualPassword(false);
+  setAddMethod(method);
+ };
  const pendingInvites=(invitations.data?.data??[]).filter(item=>
   !item.acceptedAt&&!item.revokedAt&&new Date(item.expiresAt).getTime()>Date.now()).length;
  const proposeChange=(member:{userId:string;name:string;role:StaffRole;isActive:boolean},patch:Partial<{role:StaffRole;isActive:boolean}>)=>{
@@ -242,7 +247,7 @@ export function LiveStaff(){
      aria-pressed={section===id} className={section===id?'active':''}
      onClick={()=>{setSection(id);setError('');setNotice('');if(id==='audit')setHistoryOpen(true);}}>{label}</button>)}
   </nav>
-  {error&&<p className="auth-error" role="alert">{error}</p>}
+  {error&&!addOpen&&<p className="auth-error" role="alert">{error}</p>}
   {notice&&<p className="guest-info" role="status">{notice}</p>}
   {section==='roles'&&<Panel title="Roles & permissions" action={<button type="button" className="btn-inline"
    disabled={roleProfiles.isFetching} onClick={()=>void roleProfiles.refetch()}><RefreshCcw size={15}/> Refresh permissions</button>}>
@@ -282,13 +287,14 @@ export function LiveStaff(){
     </div>
     <div className="staff-method-selector" aria-label="Account creation method">
      <button type="button" className={addMethod==='manual'?'active':''} aria-pressed={addMethod==='manual'}
-      disabled={saving!==null} onClick={()=>setAddMethod('manual')}>Create login</button>
+      disabled={saving!==null} onClick={()=>switchAddMethod('manual')}>Create login</button>
      <button type="button" className={addMethod==='email'?'active':''} aria-pressed={addMethod==='email'}
-      disabled={saving!==null} onClick={()=>{setManualPassword('');setManualPasswordConfirm('');setAddMethod('email');}}>Email invite</button>
+      disabled={saving!==null} onClick={()=>switchAddMethod('email')}>Email invite</button>
      <button type="button" className={addMethod==='existing'?'active':''} aria-pressed={addMethod==='existing'}
-      disabled={saving!==null} onClick={()=>{setManualPassword('');setManualPasswordConfirm('');setAddMethod('existing');}}>Existing login</button>
+      disabled={saving!==null} onClick={()=>switchAddMethod('existing')}>Existing login</button>
     </div>
-    {addMethod==='manual'&&  <Panel title="Create account">
+    {error&&<div className="auth-error" role="alert">{error}</div>}
+    {addMethod==='manual'&&<Panel title="Create account">
    <p className="guest-info">Create an employee account immediately and choose an initial password. They must replace that password at first sign-in before accessing hotel data. Use the invitation option below if you prefer employees to set their own password from the start.</p>
    <form className="staff-add-form" onSubmit={e=>void createManualAccount(e)}>
     <label>Full name<input required minLength={2} maxLength={120} autoComplete="off"
@@ -317,7 +323,7 @@ export function LiveStaff(){
     </button>
    </form>
   </Panel>}
-    {addMethod==='email'&&  <Panel title="Invite by email">
+    {addMethod==='email'&&<Panel title="Invite by email">
    <form className="staff-add-form" onSubmit={e=>void sendInvitation(e)}>
     <label>Full name<input required minLength={2} maxLength={120} value={inviteName} onChange={e=>setInviteName(e.target.value)}/></label>
     <label>Email<input required type="email" maxLength={255} value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)}/></label>
@@ -334,7 +340,7 @@ export function LiveStaff(){
    </form>
    <p className="guest-info">New accounts only. The recipient must use the emailed link within 48 hours. The role is granted only after acceptance.</p>
   </Panel>}
-    {addMethod==='existing'&&  <Panel title="Link existing account">
+    {addMethod==='existing'&&<Panel title="Link existing account">
    <form className="staff-add-form" onSubmit={e=>void attach(e)}>
     <label>Email address<input type="email" required maxLength={255} value={email} onChange={e=>setEmail(e.target.value)} placeholder="staff@example.com"/></label>
     <label>Hotel role<select value={role} onChange={e=>{setRole(e.target.value as StaffRole);setAttachManagerAcknowledged(false);}}>
@@ -352,7 +358,7 @@ export function LiveStaff(){
   </Panel>}
    </section>
   </div>}
-  {section==='invite'&&  <Panel title="Sent invitations" action={<button type="button" className="btn-inline" onClick={()=>void invitations.refetch()}><RefreshCcw size={15}/> Refresh</button>}>
+  {section==='invite'&&<Panel title="Sent invitations" action={<button type="button" className="btn-inline" onClick={()=>void invitations.refetch()}><RefreshCcw size={15}/> Refresh</button>}>
    <QueryFeedback loading={invitations.isPending} error={invitations.error} empty={invitations.data?.data.length===0}/>
    {invitations.data&&<div className="table-scroll"><table><thead><tr><th>Recipient</th><th>Role</th><th>Status</th><th></th></tr></thead><tbody>
     {invitations.data.data.map(item=>{

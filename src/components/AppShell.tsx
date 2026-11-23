@@ -7,7 +7,7 @@ import {dataMode} from '../api';
 import {useHotelAuth} from './AuthProvider';
 import {StaffSignIn} from './StaffSignIn';
 import {HotelChooser} from './HotelChooser';
-import {selectedRole,navigationForRole} from '../features/workspaces/roleNavigation';
+import {selectedRole,navigationForRole,canViewWorkspacePath} from '../features/workspaces/roleNavigation';
 
 const daily=[
  {to:'/' as const,label:'Overview',icon:LayoutDashboard},
@@ -174,7 +174,15 @@ export function AppShell(){
      {role==='maintenance'&&<Link to="/maintenance">Work orders <ArrowRight size={13}/></Link>}
     </>}
    </div>}
-   <div className="page-content"><Suspense fallback={<div role="status" className="workspace-loading">Loading hotel workspace…</div>}><Outlet/></Suspense></div>
+   <div className="page-content">
+    {dataMode==='api'&&!canViewWorkspacePath(role,pathname)
+     ?<section className="panel" role="alert" aria-label="Page access denied">
+       <h2>Page not available for your role</h2>
+       <p>Your {workspace.label.toLowerCase()} account cannot open this page. Ask a hotel manager if your duties require access.</p>
+       <Link className="btn-primary" to="/">Return to your workspace <ArrowRight size={15}/></Link>
+      </section>
+     :<Suspense fallback={<div role="status" className="workspace-loading">Loading hotel workspace…</div>}><Outlet/></Suspense>}
+   </div>
   </main>
  </div>;
 }

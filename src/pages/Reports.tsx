@@ -1,9 +1,12 @@
+import {Link} from '@tanstack/react-router';
 import {dataMode} from '../api';
 import type {ReactNode} from 'react';
 import {NightAuditReconciliationPanel} from '../components/NightAuditReconciliationPanel';
 import {useMemo,useState} from 'react';
 import {Activity,BedDouble,CalendarDays,ClipboardCheck,Download,Wallet,Wrench} from 'lucide-react';
 import {useReports} from '../api/queries';
+import {useLiveManifest, type ManifestKind} from '../api/liveFrontDesk';
+import {useHotelAuth} from '../components/AuthProvider';
 import {DemoNotice,Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {addDays,hotelToday} from '../features/reservations/calendarDate';
@@ -29,11 +32,61 @@ function Metric({title,value,subtitle,icon}:{title:string;value:string;subtitle:
  return <div className="report-metric"><div><span>{title}</span>{icon}</div><strong>{value}</strong><small>{subtitle}</small></div>;
 }
 export function Reports(){
- if(dataMode==='api')return <>
-  <Heading title="Reports" description="Review financial reconciliation and verified hotel metrics by business date."/>
-  <NightAuditReconciliationPanel/>
+ return dataMode==='api'?<LiveReports/>:<SampleReports/>;
+}
+
+function LiveReports(){
+ const {hotelId,user}=useHotelAuth();
+ const [view,setView]=useState<'finance'|'operations'>('finance');
+ const admin=user?.hotels.some(hotel=>hotel.id===hotelId&&hotel.role==='admin');
+
+ return <>
+  <Heading title="Reports" description="Review daily hotel operations and financial reconciliation."/>
+  {admin&&<section className="report-controls" aria-label="Report views">
+   <div className="view-switch" role="group" aria-label="Report view">
+    <button type="button" className={view==='finance'?'selected':undefined} aria-pressed={view==='finance'} onClick={()=>setView('finance')}>Financial reconciliation</button>
+    <button type="button" className={view==='operations'?'selected':undefined} aria-pressed={view==='operations'} onClick={()=>setView('operations')}>Front desk activity</button>
+   </div>
+   <Link className="btn-inline" to="/occupancy-coverage">Occupancy report</Link>
+  </section>}
+  {admin&&view==='operations'?<FrontDeskActivityReport key={hotelId}/>:<NightAuditReconciliationPanel/>}
  </>;
- return <SampleReports/>;
+}
+
+const frontDeskMetrics=[
+ {kind:'arrivals',title:'Expected arrivals',description:'Confirmed arrivals for the selected date.'},
+ {kind:'departures',title:'Due departures',description:'Checked-in stays due to depart on the selected date.'},
+ {kind:'in_house',title:'In-house bookings',description:'Registered checked-in stays on the selected date.'},
+] satisfies {kind:ManifestKind;title:string;description:string}[];
+
+function FrontDeskActivityReport(){
+ const [date,setDate]=useState(initialToday);
+ return <Panel title="Front desk activity">
+  <div className="report-controls">
+   <div className="report-date-inputs">
+    <label>Activity date<input type="date" value={date} onChange={event=>setDate(event.target.value)}/></label>
+   </div>
+   <button type="button" className="btn-inline" onClick={()=>setDate(initialToday())}>Today</button>
+   <Link className="btn-inline" to="/front-desk">Open Front Desk</Link>
+  </div>
+  <p className="report-hint">Counts reflect current booking records for the selected date. Use the Occupancy report for physical room checks.</p>
+  {isReportRange(date,date)?<div className="report-financial-grid">
+   {frontDeskMetrics.map(metric=><FrontDeskReportMetric key={metric.kind} date={date} {...metric}/>)}
+  </div>:<p role="alert">Choose a valid activity date.</p>}
+ </Panel>;
+}
+
+function FrontDeskReportMetric({date,kind,title,description}:{
+ date:string;kind:ManifestKind;title:string;description:string;
+}){
+ const query=useLiveManifest(date,kind,1,1);
+ const count=query.data?.meta.queueTotal??query.data?.meta.total;
+ return <div>
+  <span>{title}</span>
+  <QueryFeedback loading={query.isPending} error={query.error} onRetry={()=>void query.refetch()}/>
+  {!query.error&&count!==undefined&&<strong>{count}</strong>}
+  <p className="report-hint">{description}</p>
+ </div>;
 }
 
 function SampleReports(){

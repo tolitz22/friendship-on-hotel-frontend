@@ -1,7 +1,7 @@
 import {useEffect,useState,type FormEvent} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {Plus,ShieldCheck,History,Mail,RefreshCcw} from 'lucide-react';
-import {attachHotelStaff,getHotelStaffHistory,listHotelStaff,updateHotelStaff,inviteNewStaff,listStaffInvitations,revokeStaffInvitation,type StaffRole} from '../api/liveStaff';
+import {attachHotelStaff,getHotelStaffHistory,listHotelStaff,updateHotelStaff,inviteNewStaff,listStaffInvitations,revokeStaffInvitation,type StaffRole,getHotelRolePermissions} from '../api/liveStaff';
 import {ApiError} from '../api/http';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
@@ -14,17 +14,21 @@ export function LiveStaff(){
  const admin=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const client=useQueryClient();
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin});
+ const roleProfiles=useQuery({queryKey:['hotel-staff-role-profiles',hotelId],queryFn:getHotelRolePermissions,enabled:admin,retry:false});
  const invitations=useQuery({queryKey:['staff-invitations',hotelId],queryFn:listStaffInvitations,enabled:admin});
  const [inviteName,setInviteName]=useState('');
  const [inviteEmail,setInviteEmail]=useState('');
  const [inviteRole,setInviteRole]=useState<StaffRole>('housekeeping');
  const [email,setEmail]=useState('');
  const [role,setRole]=useState<StaffRole>('housekeeping');
+ const [viewRole,setViewRole]=useState<StaffRole>('front_desk');
  const [saving,setSaving]=useState<string|null>(null);
  const [error,setError]=useState('');
  const [notice,setNotice]=useState('');
  const [historyOpen,setHistoryOpen]=useState(false);
  const history=useQuery({queryKey:['hotel-staff-history',hotelId],queryFn:getHotelStaffHistory,enabled:admin&&historyOpen});
+ const profile=roleProfiles.data?.data.roles.find(item=>item.key===viewRole);
+ const profileGroups=Array.from(new Set(roleProfiles.data?.data.capabilities.map(item=>item.group)??[]));
  useEffect(()=>{setEmail('');setInviteEmail('');setInviteName('');setError('');setNotice('');setHistoryOpen(false);},[hotelId]);
  async function attach(e:FormEvent<HTMLFormElement>){
   e.preventDefault();if(!admin||saving)return;
@@ -73,6 +77,36 @@ export function LiveStaff(){
  return <>
   <div className="notice"><strong>Staff onboarding</strong> · Invite new employees by email so they choose their own password. For someone with an existing account, use the separate membership form below.</div>
   <Heading title="Hotel staff" description="Manage property memberships and operational roles without sharing administrator credentials"/>
+  <Panel title="Roles & permissions" action={<button type="button" className="btn-inline"
+   disabled={roleProfiles.isFetching} onClick={()=>void roleProfiles.refetch()}><RefreshCcw size={15}/> Refresh permissions</button>}>
+   <p className="guest-info">Choose a role to see the hotel's default access. Assign roles below. Individual permission toggles are not enabled; sensitive actions remain protected by Laravel.</p>
+   <QueryFeedback loading={roleProfiles.isPending} error={roleProfiles.error}
+    onRetry={()=>void roleProfiles.refetch()}/>
+   {roleProfiles.data&&<>
+    <div className="staff-add-form">
+     <label>View role
+      <select aria-label="View role permissions" value={viewRole} onChange={event=>setViewRole(event.target.value as StaffRole)}>
+       {roleProfiles.data.data.roles.map(item=><option key={item.key} value={item.key}>
+        {item.label} · {item.activeStaff} active {item.activeStaff===1?'employee':'employees'}</option>)}
+      </select>
+     </label>
+    </div>
+    {profile&&<div aria-live="polite">
+     <p><strong>{profile.label}</strong> · {profile.description}</p>
+     <div className="table-scroll"><table>
+      <thead><tr><th>Area</th><th>Action</th><th>{profile.label} access</th></tr></thead>
+      <tbody>
+       {profileGroups.flatMap(group=>(roleProfiles.data?.data.capabilities??[])
+        .filter(item=>item.group===group).map(item=><tr key={item.key}>
+         <td>{group}</td><td>{item.label}</td>
+         <td>{profile.permissions.includes(item.key)?'Allowed':'Not allowed'}</td>
+        </tr>))}
+      </tbody>
+     </table></div>
+    </div>}
+    <p className="guest-info">{roleProfiles.data.data.note}</p>
+   </>}
+  </Panel>
   <Panel title="Invite a new employee">
    <form className="staff-add-form" onSubmit={e=>void sendInvitation(e)}>
     <label>Full name<input required minLength={2} maxLength={120} value={inviteName} onChange={e=>setInviteName(e.target.value)}/></label>

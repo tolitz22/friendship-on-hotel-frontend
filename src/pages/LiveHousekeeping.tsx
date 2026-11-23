@@ -8,7 +8,7 @@ import {useLiveRooms,useLiveProperty} from '../api/liveCatalogQueries';
 import {hotelToday} from '../features/reservations/calendarDate';
 import {readableDate} from '../lib/format';
 import {
- createHousekeepingTask,getHousekeepingHistory,listHousekeepingTasks,updateHousekeepingTask,
+ createHousekeepingTask,getHousekeepingHistory,listHousekeepingTasks,updateHousekeepingTask,completeHousekeepingInspection,
  type LiveHousekeepingTask,type HousekeepingStatus,type HousekeepingType,type TaskFilter,
  parseLiveHousekeeping,parseUpdatedHousekeeping,useDirectHousekeepingTask,
 } from '../api/liveHousekeeping';
@@ -20,8 +20,9 @@ import {listMaintenance} from '../api/liveMaintenance';
 import {Heading} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {ReadableAuditEvent} from '../components/ReadableAuditEvent';
+import {useLiveReadiness} from '../api/liveRoomReadiness';
 
-const taskTypes:HousekeepingType[]=['checkout_clean','stayover','inspection'];
+const taskTypes:HousekeepingType[]=['checkout_clean','stayover'];
 const taskNames:Record<HousekeepingType,string>={checkout_clean:'Checkout cleaning',stayover:'Stayover service',inspection:'Housekeeping inspection'};
 const statusNames:Record<HousekeepingStatus,string>={todo:'To do',in_progress:'In progress',done:'Completed'};
 const transitions:Record<HousekeepingStatus,HousekeepingStatus[]>={
@@ -109,6 +110,10 @@ export function LiveHousekeeping(){
  const [selected,setSelected]=useState<LiveHousekeepingTask|null>(null);
  const [form,setForm]=useState<FormState|null>(null);
  const [saving,setSaving]=useState(false);
+ const [inspectionChecks,setInspectionChecks]=useState([false,false,false]);
+ const [inspectionNote,setInspectionNote]=useState('');
+ const [inspectionMessage,setInspectionMessage]=useState('');
+ const readiness=useLiveReadiness(selected?.roomId??null);
  const [error,setError]=useState('');
  const [fieldErrors,setFieldErrors]=useState<Record<string,string[]>>({});
  const [historyOpen,setHistoryOpen]=useState(false);
@@ -135,9 +140,11 @@ export function LiveHousekeeping(){
  },[linkedTaskId,directTask.data,hotelId]);
  const openCreate=()=>{setSelected(null);setForm(empty());setError('');setFieldErrors({});setHistoryOpen(false);setHistoryPage(1);};
  const openEdit=(task:LiveHousekeepingTask)=>{
+  setInspectionChecks([false,false,false]);setInspectionNote('');setInspectionMessage('');
   setSelected(task);setForm(fromTask(task));setError('');setFieldErrors({});setHistoryOpen(false);setHistoryPage(1);
  };
  const close=()=>{
+  setInspectionChecks([false,false,false]);setInspectionNote('');setInspectionMessage('');
   setSelected(null);setForm(null);setError('');setHistoryOpen(false);
   if(linkedTaskId)void navigate({to:'/housekeeping',search:{task:undefined}});
  };
@@ -182,6 +189,31 @@ export function LiveHousekeeping(){
    }else setError(caught instanceof Error?caught.message:'Unable to save housekeeping task.');
   }finally{setSaving(false);}
  }
+ const mayInspect=!!selected&&(admin||(role==='housekeeping'&&selected.assignedUserId===user?.id));
+ async function finishInspection(){
+  if(!selected||selected.status!=='done'||!mayInspect||saving||!inspectionChecks.every(Boolean)
+   ||inspectionNote.trim().length<5||!hotelId)return;
+  setSaving(true);setError('');setInspectionMessage('');
+  try{
+   const updated=parseUpdatedHousekeeping(await completeHousekeepingInspection(
+    selected.id,selected.revision,inspectionNote.trim()),hotelId,selected.id);
+   if(readSession().hotelId!==hotelId)return;
+   setSelected(updated);setForm(fromTask(updated));
+   setInspectionMessage('Final inspection completed. Room readiness has been recalculated.');
+   setInspectionChecks([false,false,false]);setInspectionNote('');
+   void Promise.all([
+    client.invalidateQueries({queryKey:['live','room-readiness',hotelId,selected.roomId]}),
+    client.invalidateQueries({queryKey:['live','readiness-dashboard',hotelId]}),
+    client.invalidateQueries({queryKey:['live','housekeeping-direct-task',hotelId]}),
+    client.invalidateQueries({queryKey:['live-housekeeping',hotelId]}),
+    client.invalidateQueries({queryKey:['housekeeping-history',hotelId]}),
+    client.invalidateQueries({queryKey:['live','front-desk','manifest',hotelId]}),
+   ]).catch(()=>{});
+  }catch(cause){
+   if(readSession().hotelId===hotelId)
+    setError(cause instanceof Error?cause.message:'Unable to complete final inspection.');
+  }finally{setSaving(false);}
+ }
  const data=tasks.data?.data??[];
  const filtered=data;
   const overdueCount=tasks.data?.meta.pastDueCount??'—';
@@ -204,7 +236,7 @@ export function LiveHousekeeping(){
   </section>}
   <div className="hk-page-intro">
    <div><span className="rr-eyebrow">DAILY OPERATIONS · HOUSEKEEPING</span>
-    <Heading title="Housekeeping" description="Find assigned rooms, finish cleaning work, and hand off completed rooms for separate readiness checks."/></div>
+    <Heading title="Housekeeping" description="Clean and inspect rooms in one task, then release rooms when all readiness checks pass."/></div>
    {admin&&<button type="button" className="btn-primary" onClick={openCreate}><Plus size={16}/> New cleaning task</button>}
   </div>
   <div className="hk-guidance"><Info size={18}/><p><strong>Cleaning complete — new inspection required.</strong> Finishing checkout cleaning never marks the room ready. Complete a new physical inspection before releasing the room.</p></div>
@@ -314,8 +346,8 @@ export function LiveHousekeeping(){
       </div>
       {pastDue&&<p className="hk-cleaning-priority"><AlertTriangle size={15}/> Follow up on this overdue task.</p>}
       {task.type==='checkout_clean'&&<p className="hk-cleaning-finished">
-       {task.status==='done'?<>Cleaning complete → Inspect room → Ready after inspection and other room checks</>
-        :<>Cleaning due → Inspection → Ready after room checks</>}
+       {task.status==='done'?<>Cleaning complete → Final inspection in this task → Ready when clear</>
+        :<>Cleaning → Final inspection → Ready when clear</>}
       </p>}
       <Link to="/rooms" search={{room:task.roomNumber,inspect:task.type==='checkout_clean'&&task.status==='done'||undefined}} className="ops-room-link">{task.type==='checkout_clean'&&task.status==='done'?'Open inspection and readiness':'Check room readiness'} <ArrowRight size={14}/></Link>
       <button type="button" className="hk-open-task" onClick={()=>openEdit(task)}>
@@ -334,7 +366,7 @@ export function LiveHousekeeping(){
   {form&&<div className="guest-modal-backdrop" role="presentation"><section className="guest-modal" role="dialog" aria-modal="true" aria-labelledby="hk-dialog-title">
    <div className="catalog-modal-heading"><h3 id="hk-dialog-title">{selected?'Housekeeping task HK-'+selected.id:'Create housekeeping task'}</h3>
     <button type="button" className="icon-btn" aria-label="Close" disabled={saving} onClick={close}><X size={19}/></button></div>
-   <div className="hk-dialog-guide"><Info size={17}/><p><strong>Cleaning record only.</strong> Saving this task updates work progress; it does not approve the room for guests. A separate readiness check may still be required.</p></div>
+   <div className="hk-dialog-guide"><Info size={17}/><p><strong>One task, two stages.</strong> Save cleaning progress, then finish the final inspection below. Maintenance and inventory checks still apply.</p></div>
    {selected&&<>
     <QueryFeedback loading={maintenance.isPending} error={maintenance.error}/>
     {maintenance.isSuccess&&<>
@@ -375,6 +407,35 @@ export function LiveHousekeeping(){
    <div className="guest-modal-actions"><button type="button" className="btn-inline" disabled={saving} onClick={close}>Close</button>
     {maySave&&<button type="submit" className="btn-primary" disabled={saving}>{saving?'Saving…':selected?'Save task updates':'Create task'}</button>}</div>
    </form>
+   {selected&&selected.type==='checkout_clean'&&<section className="hk-final-inspection" aria-label="Final inspection in housekeeping task">
+    <h4>Step 2 · Final room inspection</h4>
+    {selected.status!=='done'
+     ?<p>Step 1: Finish cleaning and save the task before inspecting Room {selected.roomNumber}.</p>
+     :<>
+      <QueryFeedback loading={readiness.isPending} error={readiness.error}
+       onRetry={()=>void readiness.refetch()}/>
+      {readiness.isSuccess&&readiness.data.advisoryReady
+       ?<p role="status" className="stay-feedback-success"><CheckCircle2 size={16}/> Inspection completed — room checks clear. No manager approval needed.</p>
+       :<>
+        <p>Inspect the physical room. Active housekeeping, maintenance or inventory blockers will still prevent readiness.</p>
+        {['Room and bathroom clean; fresh linens in place','Safety, lights and fixtures checked','Amenities and supplies checked'].map((label,i)=>
+         <label key={label} className="stay-confirm-check">
+          <input type="checkbox" disabled={!mayInspect||saving} checked={inspectionChecks[i]}
+           onChange={event=>setInspectionChecks(old=>old.map((value,j)=>j===i?event.target.checked:value))}/>
+          <span>{label}</span>
+         </label>)}
+        <label>Inspection notes (required)
+         <textarea value={inspectionNote} disabled={!mayInspect||saving} maxLength={2000} rows={2}
+          onChange={event=>setInspectionNote(event.target.value)} placeholder="Describe the final inspection"/>
+        </label>
+        {mayInspect&&<button type="button" className="btn-primary"
+         disabled={saving||!inspectionChecks.every(Boolean)||inspectionNote.trim().length<5}
+         onClick={()=>void finishInspection()}>{saving?'Recording inspection…':'Complete final inspection'}</button>}
+        {!mayInspect&&<p>Only assigned housekeeping staff or an authorized manager can inspect.</p>}
+       </>}
+     </>}
+    {inspectionMessage&&<p role="status" className="stay-feedback-success">{inspectionMessage}</p>}
+   </section>}
    {selected&&<div className="catalog-audit-section">
     <button type="button" className="btn-inline" onClick={()=>setHistoryOpen(v=>!v)}><History size={16}/>{historyOpen?'Hide':'View'} task history</button>
     {historyOpen&&<><QueryFeedback loading={history.isPending} error={history.error}/>
@@ -393,7 +454,7 @@ export function LiveHousekeeping(){
    </div>}
   </section></div>}
   <div className="demand-warning"><ShieldAlert size={18}/><div><strong>Room readiness is checked separately</strong>
-   <p>Marking checkout cleaning complete never makes a room ready. Request a new physical room inspection; maintenance restrictions and reservation availability also remain enforced.</p>
+   <p>Cleaning and inspection are stages of the same task. Cleaning alone never releases a room; maintenance, inventory and reservation checks still apply.</p>
   </div></div>
  </>;
 }

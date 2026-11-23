@@ -1,4 +1,4 @@
-import {useQuery} from '@tanstack/react-query';
+import {queryOptions,useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 import {getJson} from './http';
 import {hotelPath} from './session';
@@ -36,8 +36,8 @@ const schema=z.object({
  financialJournalReconciled:z.boolean(),reportScope:z.string(),
 });
 export type NightAuditReconciliation=z.infer<typeof schema>;
-export function useNightAuditReconciliation(hotelId:string|null,date:string,enabled:boolean){
- return useQuery({
+export function nightAuditReconciliationOptions(hotelId:string|null,date:string,enabled:boolean){
+ return queryOptions({
   queryKey:['live','night-audit-reconciliation',hotelId,date],
   enabled:enabled&&!!hotelId&&/^\d{4}-\d{2}-\d{2}$/.test(date),
   retry:false,
@@ -50,4 +50,8 @@ export function useNightAuditReconciliation(hotelId:string|null,date:string,enab
    return data;
   },
  });
+}
+
+export function useNightAuditReconciliation(hotelId:string|null,date:string,enabled:boolean){
+ return useQuery(nightAuditReconciliationOptions(hotelId,date,enabled));
 }

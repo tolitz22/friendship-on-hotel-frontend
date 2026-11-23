@@ -1,3 +1,5 @@
+import {useQueries,useQuery} from '@tanstack/react-query';
+import {z} from 'zod';
 import {Link} from '@tanstack/react-router';
 import {dataMode} from '../api';
 import type {ReactNode} from 'react';
@@ -6,10 +8,13 @@ import {useMemo,useState} from 'react';
 import {Activity,BedDouble,CalendarDays,ClipboardCheck,Download,Wallet,Wrench} from 'lucide-react';
 import {useReports} from '../api/queries';
 import {useLiveManifest, type ManifestKind} from '../api/liveFrontDesk';
+import {nightAuditReconciliationOptions} from '../api/nightAuditReconciliation';
+import {getJson} from '../api/http';
+import {hotelPath} from '../api/session';
 import {useHotelAuth} from '../components/AuthProvider';
 import {DemoNotice,Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
-import {addDays,hotelToday} from '../features/reservations/calendarDate';
+import {addDays,dayHeading,hotelToday} from '../features/reservations/calendarDate';
 import {isReportRange} from '../features/reports/reportMath';
 import {currency,dateLabel,statusLabel} from '../lib/format';
 import type {ReportMetrics} from '../api/types';
@@ -35,22 +40,114 @@ export function Reports(){
  return dataMode==='api'?<LiveReports/>:<SampleReports/>;
 }
 
+const reportViews=[
+ ['finance','Financial reconciliation'],['operations','Front desk activity'],
+ ['monthly','Monthly Performance'],['forecast','Next 14 Days'],
+] as const;
+
 function LiveReports(){
  const {hotelId,user}=useHotelAuth();
- const [view,setView]=useState<'finance'|'operations'>('finance');
+ const [view,setView]=useState<(typeof reportViews)[number][0]>('finance');
  const admin=user?.hotels.some(hotel=>hotel.id===hotelId&&hotel.role==='admin');
 
  return <>
   <Heading title="Reports" description="Review daily hotel operations and financial reconciliation."/>
   {admin&&<section className="report-controls" aria-label="Report views">
    <div className="view-switch" role="group" aria-label="Report view">
-    <button type="button" className={view==='finance'?'selected':undefined} aria-pressed={view==='finance'} onClick={()=>setView('finance')}>Financial reconciliation</button>
-    <button type="button" className={view==='operations'?'selected':undefined} aria-pressed={view==='operations'} onClick={()=>setView('operations')}>Front desk activity</button>
+    {reportViews.map(([id,label])=><button key={id} type="button"
+      className={view===id?'selected':undefined} aria-pressed={view===id}
+      onClick={()=>setView(id)}>{label}</button>)}
    </div>
    <Link className="btn-inline" to="/occupancy-coverage">Occupancy report</Link>
   </section>}
-  {admin&&view==='operations'?<FrontDeskActivityReport key={hotelId}/>:<NightAuditReconciliationPanel/>}
+  {(!admin||view==='finance')&&<NightAuditReconciliationPanel/>}
+  {admin&&view==='operations'&&<FrontDeskActivityReport key={hotelId}/>}
+  {admin&&hotelId&&view==='monthly'&&<MonthlyPerformance key={hotelId} hotelId={hotelId}/>}
+  {admin&&hotelId&&view==='forecast'&&<BookingForecast key={hotelId} hotelId={hotelId}/>}
  </>;
+}
+
+function MonthlyPerformance({hotelId}:{hotelId:string}){
+ const yesterday=addDays(hotelToday(),-1);
+ const [month,setMonth]=useState(()=>yesterday.slice(0,7));
+ const dates=/^\d{4}-(0[1-9]|1[0-2])$/.test(month)
+  ?Array.from({length:31},(_,index)=>addDays(month+'-01',index))
+   .filter(date=>date.startsWith(month+'-')&&date<=yesterday)
+  :[];
+ const reports=useQueries({queries:dates.map(date=>({
+  ...nightAuditReconciliationOptions(hotelId,date,true),staleTime:60_000,
+ }))});
+ const unavailable='Unavailable';
+ const money=(amount:number|null|undefined,code:string)=>amount==null
+  ?unavailable:new Intl.NumberFormat('en-PH',{style:'currency',currency:code}).format(amount/100);
+ return <Panel title="Monthly Performance">
+  <div className="report-controls">
+   <div className="report-date-inputs">
+    <label>Month<input type="month" value={month} max={yesterday.slice(0,7)}
+     onChange={event=>setMonth(event.target.value)}/></label>
+   </div>
+   <button type="button" className="btn-inline" disabled={!dates.length||reports.some(report=>report.isFetching)}
+     onClick={()=>reports.forEach(report=>void report.refetch())}>Refresh</button>
+  </div>
+  <p className="report-hint">Room revenue is the posted movement for each business date. Corrections can relate to earlier stays. Official occupancy, ADR and RevPAR appear when the underlying room-night figures are verified.</p>
+  {!dates.length?<p role="status">Choose a month with completed dates.</p>:<div className="table-scroll">
+   <table>
+    <thead><tr><th scope="col">Business date</th><th scope="col">Occupancy</th><th scope="col">Room revenue</th><th scope="col">ADR</th><th scope="col">RevPAR</th><th scope="col">Financial close</th></tr></thead>
+    <tbody>{dates.map((date,index)=>{
+     const report=reports[index]!;
+     if(report.isPending||report.isError)return <tr key={date}><th scope="row">{dayHeading(date)}</th>
+      <td colSpan={5}>{report.isError?'Could not load this date':'Loading…'}</td></tr>;
+     const {kpis,currency:code,financialClose}=report.data;
+     return <tr key={date}><th scope="row">{dayHeading(date)}</th>
+      <td>{kpis.occupancyPercent===null?unavailable:kpis.occupancyPercent.toFixed(2)+'%'}</td>
+      <td>{money(kpis.recognizedRoomRevenueMinor,code)}</td><td>{money(kpis.adrMinor,code)}</td>
+      <td>{money(kpis.revparMinor,code)}</td><td>{statusLabel(financialClose.status)}</td>
+     </tr>;
+    })}</tbody>
+   </table>
+  </div>}
+ </Panel>;
+}
+
+const count=z.number().int().nonnegative();
+const forecastSchema=z.object({data:z.object({
+ hotelId:z.string(),
+ nights:z.array(z.object({date:z.iso.date(),sellable:count,reserved:count,blocked:count,
+  groupHeld:count,remaining:count,arrivals:count,departures:count,overcommitted:z.boolean()})).length(14),
+})});
+
+function BookingForecast({hotelId}:{hotelId:string}){
+ const today=hotelToday();
+ const forecast=useQuery({
+  queryKey:['live','booking-forecast',hotelId,today],
+  retry:false,
+  queryFn:async()=>{
+   const {data}=forecastSchema.parse(await getJson<unknown>(hotelPath('/reports/booking-forecast')));
+   if(data.hotelId!==hotelId||data.nights.some((night,index)=>night.date!==addDays(data.nights[0]!.date,index)))
+    throw new Error('The booking forecast does not match the property or date range.');
+   return data;
+  },
+ });
+ return <Panel title="Next 14 Days">
+  <div className="report-controls">
+   <button type="button" className="btn-inline" disabled={forecast.isFetching}
+    onClick={()=>void forecast.refetch()}>Refresh</button>
+   <Link className="btn-inline" to="/room-calendar">Open Room Calendar</Link>
+  </div>
+  <p className="report-hint">Booked occupancy uses reservations divided by sellable rooms. Rooms left account for active maintenance blocks and group holds. Departures are scheduled, and housekeeping readiness is checked separately.</p>
+  <QueryFeedback loading={forecast.isPending} error={forecast.error} onRetry={()=>void forecast.refetch()}/>
+  {forecast.data&&!forecast.isError&&<div className="table-scroll">
+   <table>
+    <thead><tr><th scope="col">Date</th><th scope="col">Booked / sellable</th><th scope="col">Booked occupancy</th><th scope="col">Arrivals</th><th scope="col">Departures</th><th scope="col">Blocked</th><th scope="col">Group holds</th><th scope="col">Rooms left</th></tr></thead>
+    <tbody>{forecast.data.nights.map(night=><tr key={night.date}>
+     <th scope="row">{dayHeading(night.date)}</th><td>{night.reserved} / {night.sellable}</td>
+     <td>{night.sellable?(night.reserved/night.sellable*100).toFixed(1)+'%':'Unavailable'}</td>
+     <td>{night.arrivals}</td><td>{night.departures}</td><td>{night.blocked}</td><td>{night.groupHeld}</td>
+     <td><strong>{night.remaining}</strong>{night.overcommitted&&<span className="cell-note">Room type overcommitted</span>}</td>
+    </tr>)}</tbody>
+   </table>
+  </div>}
+ </Panel>;
 }
 
 const frontDeskMetrics=[

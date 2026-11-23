@@ -10,7 +10,8 @@ import {
 } from '../api/liveReservationOperations';
 import type {Operation} from '../api/liveReservationOperations';
 import {readSession} from '../api/session';
-import {ApiError} from '../api/http';
+import {ApiError,requestJson} from '../api/http';
+import {hotelPath} from '../api/session';
 import {useReadinessPolicy} from '../api/readinessEnforcementPolicy';
 import {useLiveReadiness} from '../api/liveRoomReadiness';
 import {useBookingTurnover} from '../api/liveBookingTurnover';
@@ -21,7 +22,7 @@ import {EarlyCheckOutRequest} from '../components/EarlyCheckOutRequest';
 import {ReservationSpecialRequests} from '../components/ReservationSpecialRequests';
 import {Status} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
-import {hotelToday} from '../features/reservations/calendarDate';
+import {addDays,hotelToday} from '../features/reservations/calendarDate';
 import {dateLabel,statusLabel,readableDateTime,readableDate} from '../lib/format';
 import {auditActorName} from '../components/ReadableAuditEvent';
 import {listHotelStaff} from '../api/liveStaff';
@@ -29,7 +30,7 @@ import {useQuery} from '@tanstack/react-query';
 
 export function LiveReservationOperations({record,onClose,preferredRoomId,preferredRoomNumber,deskAction}:{
  record:LiveRecord;onClose:()=>void;preferredRoomId?:string|null;preferredRoomNumber?:string|null;
- deskAction?:'assign'|'check-in'|'check-out'|null;
+ deskAction?:'assign'|'check-in'|'check-out'|'extend'|null;
 }){
  const {hotelId,user}=useHotelAuth();
  const canOperate=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&(h.role==='admin'||h.role==='front_desk'));
@@ -112,6 +113,10 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
    client.invalidateQueries({queryKey:['live','readiness-policy',hotel]}),
    client.invalidateQueries({queryKey:['live','readiness-dashboard',hotel]}),
    client.invalidateQueries({queryKey:['live','reservation-history',hotel,record.id]}),
+   client.invalidateQueries({queryKey:['live','billing-folios',hotel]}),
+   client.invalidateQueries({queryKey:['live','folio-ledger',hotel,record.id]}),
+   client.invalidateQueries({queryKey:['live','settlement-statement',hotel,record.id]}),
+   client.invalidateQueries({queryKey:['live','booking-forecast',hotel]}),
   ]);
  }
  async function perform(action:'assign'|Operation,event?:FormEvent){
@@ -265,6 +270,9 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
        ?'Normal check-in opens '+dateLabel(record.checkIn)+'.'
        :blockedReason}</span>}
      </div>}
+     {isInHouse&&canOperate&&hotelId&&record.assignedRoomId&&
+      <StayExtension key={hotelId+'-'+record.id} hotelId={hotelId} record={record} today={hotelDate}
+       openOnEntry={deskAction==='extend'} onSaved={()=>void refresh(hotelId).catch(()=>{})}/>}
      {isConfirmed&&record.checkIn>hotelDate&&
       <EarlyCheckInRequest key={record.id+'-'+hotelId} record={record} today={hotelDate}/>}
      {earlyDepartureWindow&&
@@ -457,4 +465,62 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
    </details>
   </section>
  </div>;
+}
+
+type ExtensionQuote = {
+ checkOut:string;nights:number;nightlyMinor:number;subtotalMinor:number;currency:string;saved:boolean;
+};
+
+function StayExtension({hotelId,record,today,openOnEntry,onSaved}:{
+ hotelId:string;record:LiveRecord;today:string;openOnEntry:boolean;onSaved:()=>void;
+}){
+ const minimum=addDays(record.checkOut>today?record.checkOut:today,1);
+ const [date,setDate]=useState(minimum);
+ const [quote,setQuote]=useState<ExtensionQuote|null>(null);
+ const [message,setMessage]=useState('');
+ const [error,setError]=useState('');
+ const [busy,setBusy]=useState(false);
+ const requestInProgress=useRef(false);
+ const quoteDeparture=useRef('');
+ async function submit(save:boolean){
+  if(requestInProgress.current||date<minimum||readSession().hotelId!==hotelId)return;
+  if(save&&(!quote||quoteDeparture.current!==record.checkOut))return;
+  requestInProgress.current=true;setBusy(true);setError('');setMessage('');
+  try{
+   const result=await requestJson<{data:ExtensionQuote}>(hotelPath('/bookings/'+record.id+'/extend-stay'),{
+    method:'POST',body:JSON.stringify({
+     expectedCheckOut:record.checkOut,checkOut:date,
+     ...(save?{expectedNightlyMinor:quote!.nightlyMinor}:{}),
+    }),
+   });
+   if(readSession().hotelId!==hotelId)return;
+   if(result.data.saved){
+    setQuote(null);setMessage('Stay extended. New departure: '+dateLabel(result.data.checkOut)+'. The added nights are on the guest bill.');
+    onSaved();
+   }else{
+    quoteDeparture.current=record.checkOut;setQuote(result.data);
+   }
+  }catch(cause){
+   setQuote(null);setError(cause instanceof Error?cause.message:'Could not extend this stay.');
+  }finally{requestInProgress.current=false;setBusy(false);}
+ }
+ const canConfirm=!!quote&&quoteDeparture.current===record.checkOut;
+ const currency=new Intl.NumberFormat('en-PH',{style:'currency',currency:quote?.currency??'PHP'});
+ return <details open={openOnEntry||undefined} className="stay-operation-impact">
+  <summary><strong>Extend stay</strong></summary>
+  <p>Check the guest’s current room and review charges for the added nights before confirming.</p>
+  <form onSubmit={event=>{event.preventDefault();void submit(canConfirm);}}>
+   <label className="night-audit-date">New departure date
+    <input className="wizard-input" type="date" required min={minimum} value={date} disabled={busy}
+     onChange={event=>{setDate(event.target.value);setQuote(null);setError('');setMessage('');}}/>
+   </label>
+   {canConfirm&&<p role="status">{quote.nights} added {quote.nights===1?'night':'nights'} at {currency.format(quote.nightlyMinor/100)} per night.
+    {' '}<strong>{currency.format(quote.subtotalMinor/100)} room subtotal.</strong></p>}
+   <button type="submit" className="btn-primary" disabled={busy||date<minimum}>
+    {busy?'Working…':canConfirm?'Confirm extension':'Check availability and rate'}
+   </button>
+   {error&&<p role="alert" className="stay-feedback-error">{error}</p>}
+   {message&&<p role="status" className="stay-feedback-success">{message}</p>}
+  </form>
+ </details>;
 }

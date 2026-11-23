@@ -44,7 +44,7 @@ function Home(){const {user,hotelId}=useHotelAuth();
 }
 const index=createRoute({getParentRoute:()=>root,path:'/',component:dataMode==='api'?Home:Dashboard});
 const reservations=createRoute({getParentRoute:()=>root,path:'/reservations',
- validateSearch:(value:Record<string,unknown>):{booking?:string;mode?:'new';guest?:string;room?:string;roomNumber?:string;checkIn?:string;checkOut?:string;deskAction?:'assign'|'check-in'|'check-out';group?:string;hotel?:string}=>({
+ validateSearch:(value:Record<string,unknown>):{booking?:string;mode?:'new';guest?:string;room?:string;roomNumber?:string;checkIn?:string;checkOut?:string;deskAction?:'assign'|'check-in'|'check-out'|'extend';group?:string;hotel?:string}=>({
   booking:(()=>{const raw=typeof value.booking==='string'?value.booking.trim():String(typeof value.booking==='number'?value.booking:'');
    const normalized=raw.replace(/^\"([1-9][0-9]*)\"$/,'$1');
    return /^[1-9][0-9]*$/.test(normalized)?normalized:undefined;
@@ -53,7 +53,7 @@ const reservations=createRoute({getParentRoute:()=>root,path:'/reservations',
   guest:typeof value.guest==='string'&&/^[1-9][0-9]*$/.test(value.guest)?value.guest:undefined,
   room:typeof value.room==='string'&&/^[1-9][0-9]*$/.test(value.room)?value.room:undefined,
   roomNumber:typeof value.roomNumber==='string'&&value.roomNumber.length<=32?value.roomNumber:undefined,
-  deskAction:value.deskAction==='assign'||value.deskAction==='check-in'||value.deskAction==='check-out'?value.deskAction:undefined,
+  deskAction:value.deskAction==='assign'||value.deskAction==='check-in'||value.deskAction==='check-out'||value.deskAction==='extend'?value.deskAction:undefined,
   group:typeof value.group==='string'&&/^[1-9][0-9]*$/.test(value.group)?value.group:undefined,
   hotel:typeof value.hotel==='string'&&/^[1-9][0-9]*$/.test(value.hotel)?value.hotel:undefined,
   checkIn:typeof value.checkIn==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.checkIn)&&!Number.isNaN(Date.parse(value.checkIn+'T00:00:00Z'))&&new Date(value.checkIn+'T00:00:00Z').toISOString().slice(0,10)===value.checkIn?value.checkIn:undefined,

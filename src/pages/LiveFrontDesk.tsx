@@ -186,6 +186,8 @@ export function LiveFrontDesk(){
         {canOperate&&kind==='overdue'?'Complete checkout':canOperate?action.label:'View reservation'} <ArrowRight size={15}/>
        </Link>
        <span>{canOperate&&kind==='overdue'?'Confirm the guest has left before checking out.':canOperate?action.hint:'Read-only staff review. Contact a manager for changes.'}</span>
+       {canOperate&&row.status==='checked_in'&&row.assignedRoomId&&<Link to="/reservations"
+        search={{booking:row.id,deskAction:'extend'}} className="btn-inline">Extend stay <ArrowRight size={15}/></Link>}
        {kind==='overdue'&&<>
         {row.departureFollowUp&&<p><strong>Shift handoff</strong><br/>{row.departureFollowUp}</p>}
         {canOperate&&<DepartureFollowUp key={hotelId+'-'+row.id} bookingId={row.id}
@@ -217,7 +219,7 @@ function DepartureFollowUp({bookingId,savedNote,onSaved}:{
  const [feedback,setFeedback]=useState('');
  return <details>
   <summary>{savedNote?'Update follow-up':'Flag for follow-up'}</summary>
-  <p>Still staying? Record the requested dates for the next shift and have a manager confirm inventory and pricing before changing the booking.</p>
+  <p>Leave the next shift a note if the guest’s departure still needs confirmation.</p>
   <form onSubmit={async event=>{
    event.preventDefault();
    if(busy||!note.trim())return;

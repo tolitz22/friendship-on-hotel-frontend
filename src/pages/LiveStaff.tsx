@@ -11,6 +11,7 @@ import {ReadableAuditEvent} from '../components/ReadableAuditEvent';
 const roles:StaffRole[]=['front_desk','housekeeping','maintenance','admin'];
 const roleName:Record<StaffRole,string>={front_desk:'Front Desk',housekeeping:'Housekeeping',maintenance:'Maintenance',admin:'Manager'};
 type StaffChange={userId:string;name:string;previousRole:StaffRole;previousActive:boolean;role:StaffRole;isActive:boolean};
+type PermissionEdit={userId:string;name:string;role:StaffRole;original:string[];selected:string[]};
 export function LiveStaff(){
  const {hotelId,user}=useHotelAuth();
  const admin=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
@@ -34,12 +35,13 @@ export function LiveStaff(){
  const [staffSearch,setStaffSearch]=useState('');
  const [staffFilter,setStaffFilter]=useState<'all'|'active'|'inactive'>('all');
  const [proposed,setProposed]=useState<StaffChange|null>(null);
+ const [permissionEdit,setPermissionEdit]=useState<PermissionEdit|null>(null);
  const history=useQuery({queryKey:['hotel-staff-history',hotelId],queryFn:getHotelStaffHistory,enabled:admin&&historyOpen});
  const profile=roleProfiles.data?.data.roles.find(item=>item.key===viewRole);
  const profileGroups=Array.from(new Set(roleProfiles.data?.data.capabilities.map(item=>item.group)??[]));
  useEffect(()=>{
   setEmail('');setInviteEmail('');setInviteName('');setError('');setNotice('');
-  setHistoryOpen(false);setSection('team');setStaffSearch('');setStaffFilter('all');setProposed(null);
+  setHistoryOpen(false);setSection('team');setStaffSearch('');setStaffFilter('all');setProposed(null);setPermissionEdit(null);
   setInviteManagerAcknowledged(false);setAttachManagerAcknowledged(false);
  },[hotelId]);
  const visibleStaff=(staff.data?.data??[]).filter(member=>{
@@ -57,6 +59,39 @@ export function LiveStaff(){
   if(next.role!==member.role||next.isActive!==member.isActive)setProposed(next);
  };
 
+ const beginPermissionEdit=(member:{userId:string;name:string;role:StaffRole;permissions:string[]})=>{
+  if(member.role==='admin'||member.userId===user?.id||saving)return;
+  setError('');setNotice('');
+  setPermissionEdit({userId:member.userId,name:member.name,role:member.role,
+   original:[...member.permissions],selected:[...member.permissions]});
+ };
+ const changePermission=(key:string,checked:boolean)=>
+  setPermissionEdit(current=>current?{...current,
+   selected:checked?[...current.selected,key]:current.selected.filter(item=>item!==key)}:null);
+ async function savePermissions(){
+  if(!permissionEdit||!admin||saving||!hotelId)return;
+  const current=permissionEdit;
+  const template=roleProfiles.data?.data.roles.find(item=>item.key===current.role)?.permissions??[];
+  const selected=template.filter(key=>current.selected.includes(key));
+  setSaving('permissions-'+current.userId);setError('');
+  try{
+   await updateHotelStaff(current.userId,{
+    permissions:selected,expectedRole:current.role,expectedPermissions:current.original,
+   });
+   setPermissionEdit(null);
+   await Promise.all([
+    client.invalidateQueries({queryKey:['hotel-staff',hotelId]}),
+    client.invalidateQueries({queryKey:['hotel-staff-history',hotelId]}),
+   ]);
+   setNotice('Permissions saved for '+current.name+'. Backend access changes apply immediately.');
+  }catch(cause){
+   if(cause instanceof ApiError&&cause.status===409){
+    setPermissionEdit(null);
+    void client.invalidateQueries({queryKey:['hotel-staff',hotelId]});
+   }
+   setError(cause instanceof Error?cause.message:'Could not save employee permissions.');
+  }finally{setSaving(null);}
+ }
  async function attach(e:FormEvent<HTMLFormElement>){
   e.preventDefault();if(!admin||saving||(role==='admin'&&!attachManagerAcknowledged))return;
   setSaving('attach');setError('');setNotice('');
@@ -216,7 +251,7 @@ export function LiveStaff(){
      onClick={()=>void staff.refetch()}><RefreshCcw size={15}/> Refresh</button>
    </div>
    <QueryFeedback loading={staff.isPending} error={staff.error} empty={staff.data?.data.length===0}/>
-   {staff.data&&<div className="table-scroll"><table><thead><tr><th>Staff</th><th>Role</th><th>Membership</th></tr></thead><tbody>
+   {staff.data&&<div className="table-scroll"><table><thead><tr><th>Staff</th><th>Role</th><th>Membership</th><th>Permissions</th></tr></thead><tbody>
     {visibleStaff.map(member=><tr key={member.userId}>
      <td><strong>{member.name}</strong><div className="guest-info">{member.email}</div></td>
      <td><select aria-label={'Role for '+member.name} disabled={saving!==null||member.userId===user?.id}
@@ -227,6 +262,11 @@ export function LiveStaff(){
       onClick={()=>proposeChange(member,{isActive:!member.isActive})}>
       <ShieldCheck size={15}/>{member.isActive?'Deactivate':'Reactivate'}
      </button>{!member.accountActive&&<span className="guest-info">Account inactive</span>}{member.userId===user?.id&&<span className="guest-info">Your account · manager access protected</span>}</td>
+      <td>{member.role==='admin'?<span className="guest-info">Manager privileges fixed</span>
+       :<button type="button" className="btn-inline" disabled={saving!==null||member.userId===user?.id}
+         onClick={()=>beginPermissionEdit(member)}>
+        <ShieldCheck size={15}/> Edit permissions{member.customPermissions?' · Customized':''}
+       </button>}</td>
     </tr>)}
    </tbody></table></div>}
    {staff.isSuccess&&visibleStaff.length===0&&<p className="guest-info" role="status">No staff match these filters.</p>}
@@ -244,6 +284,48 @@ export function LiveStaff(){
     </div>)}
    </>}
   </Panel>}
+  {permissionEdit&&<div className="guest-modal-backdrop" role="presentation">
+   <section className="guest-modal" role="dialog" aria-modal="true" aria-labelledby="staff-permissions-title">
+    <div className="catalog-modal-heading">
+     <h3 id="staff-permissions-title">Edit employee permissions</h3>
+     <button type="button" className="icon-btn" aria-label="Close permission editor"
+      disabled={saving!==null} onClick={()=>setPermissionEdit(null)}><X size={18}/></button>
+    </div>
+    <p><strong>{permissionEdit.name}</strong> · {roleName[permissionEdit.role]}</p>
+    <p className="guest-info">Choose which of this role's actions this employee can perform. You cannot grant privileges outside their role, change Manager privileges, or bypass independent financial approvals.</p>
+    {roleProfiles.isPending&&<p role="status">Loading role permissions…</p>}
+    {roleProfiles.isError&&<p role="alert">Role permissions unavailable. Close and refresh this page.</p>}
+    {roleProfiles.data&&(()=>{
+     const allowed=roleProfiles.data.data.roles.find(item=>item.key===permissionEdit.role)?.permissions??[];
+     const labels=new Map(roleProfiles.data.data.capabilities.map(item=>[item.key,item]));
+     const groups=Array.from(new Set(allowed.map(key=>labels.get(key)?.group??'Other operational access')));
+     return <div className="table-scroll">
+      {groups.map(group=><fieldset key={group} disabled={saving!==null}>
+       <legend><strong>{group}</strong></legend>
+       {allowed.filter(key=>(labels.get(key)?.group??'Other operational access')===group).map(key=>
+        <label key={key} className="guest-info" style={{display:'flex',gap:8,alignItems:'center',margin:'8px 0'}}>
+         <input type="checkbox" checked={permissionEdit.selected.includes(key)}
+          onChange={event=>changePermission(key,event.target.checked)}/>
+         <span>{labels.get(key)?.label??key}</span>
+        </label>)}
+      </fieldset>)}
+     </div>;
+    })()}
+    <div className="guest-modal-actions">
+     <button type="button" className="btn-inline" disabled={saving!==null}
+      onClick={()=>setPermissionEdit(current=>{
+       const template=roleProfiles.data?.data.roles.find(item=>item.key===current?.role)?.permissions;
+       return current&&template?{...current,selected:[...template]}:current;
+      })}>Restore role defaults</button>
+     <button type="button" className="btn-inline" disabled={saving!==null}
+      onClick={()=>setPermissionEdit(null)}>Cancel</button>
+     <button type="button" className="btn-primary" disabled={saving!==null||!roleProfiles.isSuccess
+      ||permissionEdit.selected.length===permissionEdit.original.length
+       &&permissionEdit.original.every(key=>permissionEdit.selected.includes(key))}
+      onClick={()=>void savePermissions()}>{saving?'Saving…':'Save permissions'}</button>
+    </div>
+   </section>
+  </div>}
   {proposed&&<div className="guest-modal-backdrop" role="presentation">
    <section className="guest-modal" role="dialog" aria-modal="true" aria-labelledby="staff-change-title">
     <div className="catalog-modal-heading">

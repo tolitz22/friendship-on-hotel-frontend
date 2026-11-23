@@ -230,7 +230,7 @@ test('room calendar multi-night booking and inline synthetic guest registration'
  await expect(details).toBeVisible();
  await details.locator('#room-departure').fill(departure);
  await expect(details.getByText('2 night(s)')).toBeVisible();
- await details.getByRole('link',{name:'Create reservation'}).click();
+ await details.getByRole('link',{name:'New booking'}).click();
  await expect(page.locator('#book-checkin')).toHaveValue(arrival);
  await expect(page.locator('#book-checkout')).toHaveValue(departure);
  await expect(page.locator('#book-roomtype')).toHaveValue(env('PMS_STAGING_TEST_ROOM_TYPE_ID'));

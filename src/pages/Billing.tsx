@@ -15,7 +15,7 @@ import {SettlementPanel} from '../components/SettlementPanel';
 import {currency,statusLabel,readableDate} from '../lib/format';
 
 function LiveBilling(){
- const {booking:requestedBooking,group:originGroup,hotel:originHotel,
+ const {booking:requestedBooking,action:requestedAction,group:originGroup,hotel:originHotel,
   checkIn:groupCheckIn,checkOut:groupCheckOut}=useSearch({from:'/billing'});
  const navigate=useNavigate();
  const {hotelId,user}=useHotelAuth();
@@ -147,7 +147,7 @@ function LiveBilling(){
     <Link to="/cashier-shifts" search={{booking:selectedId,hotel:hotelId??undefined}}
      className="btn-inline">Cashier shifts <ArrowRight size={14}/></Link>
    </div>
-   <SettlementPanel key={hotelId+'-'+selectedId} bookingId={selectedId}/>
+   <SettlementPanel key={hotelId+'-'+selectedId} bookingId={selectedId} requestedAction={requestedAction}/>
   </section>:null}
  </div>;
 }

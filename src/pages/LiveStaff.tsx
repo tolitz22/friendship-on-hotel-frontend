@@ -1,6 +1,6 @@
 import {useEffect,useState,type FormEvent} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
-import {Plus,ShieldCheck,History,Mail,RefreshCcw,ShieldAlert,X} from 'lucide-react';
+import {Plus,ShieldCheck,History,Mail,RefreshCcw,ShieldAlert,X,ChevronRight,UserPlus,UserRoundCog} from 'lucide-react';
 import {attachHotelStaff,getHotelStaffHistory,listHotelStaff,updateHotelStaff,inviteNewStaff,listStaffInvitations,revokeStaffInvitation,type StaffRole,getHotelRolePermissions,createHotelStaffAccount} from '../api/liveStaff';
 import {ApiError} from '../api/http';
 import {useHotelAuth} from '../components/AuthProvider';
@@ -66,6 +66,9 @@ export function LiveStaff(){
  const [notice,setNotice]=useState('');
  const [historyOpen,setHistoryOpen]=useState(false);
  const [section,setSection]=useState<'team'|'roles'|'invite'|'audit'>('team');
+ const [addOpen,setAddOpen]=useState(false);
+ const [addMethod,setAddMethod]=useState<'manual'|'email'|'existing'>('manual');
+ const [selectedStaffId,setSelectedStaffId]=useState<string|null>(null);
  const [staffSearch,setStaffSearch]=useState('');
  const [staffFilter,setStaffFilter]=useState<'all'|'active'|'inactive'>('all');
  const [proposed,setProposed]=useState<StaffChange|null>(null);
@@ -78,6 +81,7 @@ export function LiveStaff(){
   setManualName('');setManualEmail('');setManualRole('front_desk');
   setManualPassword('');setManualPasswordConfirm('');setManualManagerAcknowledged(false);setShowManualPassword(false);
   setHistoryOpen(false);setSection('team');setStaffSearch('');setStaffFilter('all');setProposed(null);setPermissionEdit(null);
+  setAddOpen(false);setAddMethod('manual');setSelectedStaffId(null);
   setInviteManagerAcknowledged(false);setAttachManagerAcknowledged(false);
  },[hotelId]);
  const visibleStaff=(staff.data?.data??[]).filter(member=>{
@@ -86,18 +90,22 @@ export function LiveStaff(){
    &&(staffFilter==='all'||(staffFilter==='active'?member.isActive&&member.accountActive:!member.isActive||!member.accountActive));
  });
  const activeStaff=(staff.data?.data??[]).filter(member=>member.isActive&&member.accountActive).length;
+ const selectedStaff=(staff.data?.data??[]).find(member=>member.userId===selectedStaffId)??null;
+ const closeAdd=()=>{if(saving)return;setAddOpen(false);setManualPassword('');setManualPasswordConfirm('');setManualManagerAcknowledged(false);setShowManualPassword(false);};
+ const openAdd=()=>{setError('');setNotice('');setAddMethod('manual');setAddOpen(true);};
  const pendingInvites=(invitations.data?.data??[]).filter(item=>
   !item.acceptedAt&&!item.revokedAt&&new Date(item.expiresAt).getTime()>Date.now()).length;
  const proposeChange=(member:{userId:string;name:string;role:StaffRole;isActive:boolean},patch:Partial<{role:StaffRole;isActive:boolean}>)=>{
   if(saving||member.userId===user?.id)return;
   const next={userId:member.userId,name:member.name,previousRole:member.role,previousActive:member.isActive,
    role:patch.role??member.role,isActive:patch.isActive??member.isActive};
-  if(next.role!==member.role||next.isActive!==member.isActive)setProposed(next);
+  if(next.role!==member.role||next.isActive!==member.isActive){setSelectedStaffId(null);setProposed(next);}
  };
 
  const beginPermissionEdit=(member:{userId:string;name:string;role:StaffRole;permissions:string[]})=>{
   if(member.role==='admin'||member.userId===user?.id||saving)return;
   setError('');setNotice('');
+  setSelectedStaffId(null);
   setPermissionEdit({userId:member.userId,name:member.name,role:member.role,
    original:[...member.permissions],selected:[...member.permissions]});
  };
@@ -136,7 +144,7 @@ export function LiveStaff(){
    await client.invalidateQueries({queryKey:['hotel-staff',hotelId]});
    await client.invalidateQueries({queryKey:['hotel-staff-history',hotelId]});
    await client.invalidateQueries({queryKey:['hotel-staff-role-profiles',hotelId]});
-   setEmail('');setAttachManagerAcknowledged(false);setNotice('Existing account added to the selected hotel.');
+   setEmail('');setAttachManagerAcknowledged(false);setAddOpen(false);setSection('team');setNotice('Existing account added to the selected hotel.');
   }catch(e){setError(e instanceof ApiError?e.message:e instanceof Error?e.message:'Unable to add staff.');}
   finally{setSaving(null);}
  }
@@ -188,7 +196,7 @@ export function LiveStaff(){
    ]);
    setManualName('');setManualEmail('');setManualRole('front_desk');
    setManualManagerAcknowledged(false);
-   setNotice(created.message);
+   setAddOpen(false);setSection('team');setNotice(created.message);
   }catch(cause){
    setManualPassword('');setManualPasswordConfirm('');
    if(property===hotelId)setError(cause instanceof Error?cause.message:'Unable to create staff account.');
@@ -201,7 +209,7 @@ export function LiveStaff(){
    await inviteNewStaff(inviteEmail.trim(),inviteName.trim(),inviteRole);
    await client.invalidateQueries({queryKey:['staff-invitations',hotelId]});
    setInviteEmail('');setInviteName('');setInviteManagerAcknowledged(false);
-   setNotice('Invitation sent. The link expires after 48 hours.');
+   setAddOpen(false);setSection('invite');setNotice('Invitation sent. The link expires after 48 hours.');
   }catch(e){setError(e instanceof Error?e.message:'Unable to send invitation.');}
   finally{setSaving(null);}
  }
@@ -217,13 +225,22 @@ export function LiveStaff(){
  }
  if(!admin)return <><Heading title="Hotel staff" description="Administrator access required"/><p className="notice">Only active hotel administrators can manage staff memberships.</p></>;
  return <>
-  <Heading title="Staff & access" description="Manage team membership, review role access, and invite employees to this property."/>
-  <div className="notice"><strong>{activeStaff} active staff</strong> · {pendingInvites} pending invitations · Access changes affect only this hotel.</div>
-  <nav className="hk-queue-tabs" aria-label="Staff management sections">
-   {([['team','Team'],['roles','Roles & permissions'],['invite','Invitations'],['audit','Access history']] as const)
+  <div className="staff-page-heading">
+   <Heading title="Staff & access" description="Manage employees, roles and permissions."/>
+   <button type="button" className="btn-primary" onClick={openAdd}><UserPlus size={17}/> Add employee</button>
+  </div>
+  <div className="staff-overview" aria-label="Staff overview">
+   <div><strong>{staff.isPending?'—':staff.data?.data.length??0}</strong><span>Total staff</span></div>
+   <div><strong>{staff.isPending?'—':activeStaff}</strong><span>Active staff</span></div>
+   <button type="button" onClick={()=>setSection('invite')}>
+    <strong>{invitations.isPending?'—':pendingInvites}</strong><span>Pending invitations <ChevronRight size={13}/></span>
+   </button>
+  </div>
+  <nav className="staff-page-tabs" aria-label="Staff management sections">
+   {([['team','Employees'],['roles','Role guide'],['invite','Invitations'],['audit','Activity']] as const)
     .map(([id,label])=><button key={id} type="button" aria-current={section===id?'page':undefined}
      aria-pressed={section===id} className={section===id?'active':''}
-     onClick={()=>{setSection(id);setError('');setNotice('');setManualPassword('');setManualPasswordConfirm('');if(id==='audit')setHistoryOpen(true);}}>{label}</button>)}
+     onClick={()=>{setSection(id);setError('');setNotice('');if(id==='audit')setHistoryOpen(true);}}>{label}</button>)}
   </nav>
   {error&&<p className="auth-error" role="alert">{error}</p>}
   {notice&&<p className="guest-info" role="status">{notice}</p>}

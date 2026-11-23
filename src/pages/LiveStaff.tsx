@@ -21,8 +21,10 @@ export function LiveStaff(){
  const [inviteName,setInviteName]=useState('');
  const [inviteEmail,setInviteEmail]=useState('');
  const [inviteRole,setInviteRole]=useState<StaffRole>('housekeeping');
+ const [inviteManagerAcknowledged,setInviteManagerAcknowledged]=useState(false);
  const [email,setEmail]=useState('');
  const [role,setRole]=useState<StaffRole>('housekeeping');
+ const [attachManagerAcknowledged,setAttachManagerAcknowledged]=useState(false);
  const [viewRole,setViewRole]=useState<StaffRole>('front_desk');
  const [saving,setSaving]=useState<string|null>(null);
  const [error,setError]=useState('');
@@ -38,6 +40,7 @@ export function LiveStaff(){
  useEffect(()=>{
   setEmail('');setInviteEmail('');setInviteName('');setError('');setNotice('');
   setHistoryOpen(false);setSection('team');setStaffSearch('');setStaffFilter('all');setProposed(null);
+  setInviteManagerAcknowledged(false);setAttachManagerAcknowledged(false);
  },[hotelId]);
  const visibleStaff=(staff.data?.data??[]).filter(member=>{
   const term=staffSearch.trim().toLowerCase();
@@ -55,14 +58,14 @@ export function LiveStaff(){
  };
 
  async function attach(e:FormEvent<HTMLFormElement>){
-  e.preventDefault();if(!admin||saving)return;
+  e.preventDefault();if(!admin||saving||(role==='admin'&&!attachManagerAcknowledged))return;
   setSaving('attach');setError('');setNotice('');
   try{
    await attachHotelStaff(email.trim(),role);
    await client.invalidateQueries({queryKey:['hotel-staff',hotelId]});
    await client.invalidateQueries({queryKey:['hotel-staff-history',hotelId]});
    await client.invalidateQueries({queryKey:['hotel-staff-role-profiles',hotelId]});
-   setEmail('');setNotice('Existing account added to the selected hotel.');
+   setEmail('');setAttachManagerAcknowledged(false);setNotice('Existing account added to the selected hotel.');
   }catch(e){setError(e instanceof ApiError?e.message:e instanceof Error?e.message:'Unable to add staff.');}
   finally{setSaving(null);}
  }
@@ -91,12 +94,12 @@ export function LiveStaff(){
   }finally{setSaving(null);}
  }
  async function sendInvitation(e:FormEvent<HTMLFormElement>){
-  e.preventDefault();if(!admin||saving)return;
+  e.preventDefault();if(!admin||saving||(inviteRole==='admin'&&!inviteManagerAcknowledged))return;
   setSaving('invite');setError('');setNotice('');
   try{
    await inviteNewStaff(inviteEmail.trim(),inviteName.trim(),inviteRole);
    await client.invalidateQueries({queryKey:['staff-invitations',hotelId]});
-   setInviteEmail('');setInviteName('');
+   setInviteEmail('');setInviteName('');setInviteManagerAcknowledged(false);
    setNotice('Invitation sent. The link expires after 48 hours.');
   }catch(e){setError(e instanceof Error?e.message:'Unable to send invitation.');}
   finally{setSaving(null);}
@@ -125,7 +128,7 @@ export function LiveStaff(){
   {notice&&<p className="guest-info" role="status">{notice}</p>}
   {section==='roles'&&<Panel title="Roles & permissions" action={<button type="button" className="btn-inline"
    disabled={roleProfiles.isFetching} onClick={()=>void roleProfiles.refetch()}><RefreshCcw size={15}/> Refresh permissions</button>}>
-   <p className="guest-info">Choose a role to see the hotel's default access. Assign roles below. Individual permission toggles are not enabled; sensitive actions remain protected by Laravel.</p>
+   <p className="guest-info">Explore default access by role. Change employee roles on the Team tab. Individual permissions are not editable; sensitive actions remain protected by Laravel.</p>
    <QueryFeedback loading={roleProfiles.isPending} error={roleProfiles.error}
     onRetry={()=>void roleProfiles.refetch()}/>
    {roleProfiles.data&&<>
@@ -157,10 +160,16 @@ export function LiveStaff(){
    <form className="staff-add-form" onSubmit={e=>void sendInvitation(e)}>
     <label>Full name<input required minLength={2} maxLength={120} value={inviteName} onChange={e=>setInviteName(e.target.value)}/></label>
     <label>Email<input required type="email" maxLength={255} value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)}/></label>
-    <label>Hotel role<select value={inviteRole} onChange={e=>setInviteRole(e.target.value as StaffRole)}>
-     {roles.map(r=><option value={r} key={r}>{r.replaceAll('_',' ')}</option>)}
+    <label>Hotel role<select value={inviteRole} onChange={e=>{setInviteRole(e.target.value as StaffRole);setInviteManagerAcknowledged(false);}}>
+     {roles.map(r=><option value={r} key={r}>{roleName[r]}</option>)}
     </select></label>
-    <button className="btn-primary" disabled={saving!==null} type="submit"><Mail size={16}/> Send invitation</button>
+    {inviteRole==='admin'&&<label className="guest-info">
+     <input type="checkbox" checked={inviteManagerAcknowledged}
+      onChange={event=>setInviteManagerAcknowledged(event.target.checked)}/>
+     I understand this grants full manager access after the invitation is accepted.
+    </label>}
+    <p className="guest-info">{roleProfiles.data?.data.roles.find(item=>item.key===inviteRole)?.description}</p>
+    <button className="btn-primary" disabled={saving!==null||(inviteRole==='admin'&&!inviteManagerAcknowledged)} type="submit"><Mail size={16}/> Send invitation</button>
    </form>
    <p className="guest-info">New accounts only. The recipient must use the emailed link within 48 hours. The role is granted only after acceptance.</p>
   </Panel>
@@ -180,10 +189,16 @@ export function LiveStaff(){
   <Panel title="Attach an existing account">
    <form className="staff-add-form" onSubmit={e=>void attach(e)}>
     <label>Email address<input type="email" required maxLength={255} value={email} onChange={e=>setEmail(e.target.value)} placeholder="staff@example.com"/></label>
-    <label>Hotel role<select value={role} onChange={e=>setRole(e.target.value as StaffRole)}>
-     {roles.map(r=><option key={r} value={r}>{r.replaceAll('_',' ')}</option>)}
+    <label>Hotel role<select value={role} onChange={e=>{setRole(e.target.value as StaffRole);setAttachManagerAcknowledged(false);}}>
+     {roles.map(r=><option key={r} value={r}>{roleName[r]}</option>)}
     </select></label>
-    <button type="submit" className="btn-primary" disabled={saving!==null}><Plus size={16}/> Add staff</button>
+    {role==='admin'&&<label className="guest-info">
+     <input type="checkbox" checked={attachManagerAcknowledged}
+      onChange={event=>setAttachManagerAcknowledged(event.target.checked)}/>
+     I understand this immediately grants full manager access in this hotel.
+    </label>}
+    <p className="guest-info">{roleProfiles.data?.data.roles.find(item=>item.key===role)?.description}</p>
+    <button type="submit" className="btn-primary" disabled={saving!==null||(role==='admin'&&!attachManagerAcknowledged)}><Plus size={16}/> Add staff</button>
    </form>
    <p className="guest-info">Users can belong to multiple hotels. A new membership does not grant permission to another property's data.</p>
   </Panel>
@@ -206,7 +221,7 @@ export function LiveStaff(){
      <td><strong>{member.name}</strong><div className="guest-info">{member.email}</div></td>
      <td><select aria-label={'Role for '+member.name} disabled={saving!==null||member.userId===user?.id}
        value={member.role} onChange={e=>proposeChange(member,{role:e.target.value as StaffRole})}>
-       {roles.map(r=><option key={r} value={r}>{r.replaceAll('_',' ')}</option>)}
+       {roles.map(r=><option key={r} value={r}>{roleName[r]}</option>)}
       </select></td>
      <td><button className="btn-inline" type="button" disabled={saving!==null||member.userId===user?.id}
       onClick={()=>proposeChange(member,{isActive:!member.isActive})}>

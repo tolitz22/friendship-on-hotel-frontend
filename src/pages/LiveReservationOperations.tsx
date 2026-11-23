@@ -229,7 +229,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
     <button type="button" className="btn-inline" aria-haspopup="dialog" onClick={openRoomPicker}>Assign room</button>
    </div>:isConfirmed&&roomAssigned&&readiness.isSuccess&&!readiness.data.advisoryReady&&record.assignedRoomNumber?<div>
     <p>Room readiness needs attention before check-in.</p>
-    <Link to="/rooms" search={{room:record.assignedRoomNumber,inspect:true}} className="btn-inline">Open inspection</Link>
+    <Link to="/housekeeping" search={{}} className="btn-inline">Open housekeeping task</Link>
    </div>:isInHouse&&financialBlock?<div>
     <p>Checkout blocked. {financialBlock}</p>
     {guestBillSettled&&<p><strong>₱0 due</strong> · Guest bill settled. Do not collect another payment.</p>}
@@ -288,7 +288,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
         <span className={readiness.data.inspection?.status==='approved'&&!readiness.data.blockers.newTurnoverSinceInspection&&!readiness.data.blockers.newRoomWorkSinceInspection?'stay-requirement-mark done':'stay-requirement-mark'}><ShieldCheck size={17}/></span>
         <div><strong>Inspection: {readiness.data.inspection===null?'Not recorded':readiness.data.inspection.status==='approved'&&(readiness.data.blockers.newTurnoverSinceInspection||readiness.data.blockers.newRoomWorkSinceInspection)?'Reinspection required':readiness.data.inspection.status==='approved'?'Current':readiness.data.inspection.status==='submitted'?'Submitted · awaiting review':'Rejected'}</strong>
          <small>Physical condition, safety and amenities</small></div>
-        <Link to="/rooms" search={{room:record.assignedRoomNumber??undefined,inspect:true}} className="stay-text-button">Open inspection <ArrowRight size={14}/></Link>
+        <Link to="/housekeeping" search={{}} className="stay-text-button">Open housekeeping task <ArrowRight size={14}/></Link>
        </div>
        <div className="stay-requirement">
         <span className={readiness.data.blockers.unfinishedHousekeeping||readiness.data.blockers.latestTurnoverIncomplete?'stay-requirement-mark':'stay-requirement-mark done'}><CheckCircle2 size={17}/></span>

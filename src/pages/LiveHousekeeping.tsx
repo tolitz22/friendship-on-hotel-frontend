@@ -24,7 +24,7 @@ import {useLiveReadiness} from '../api/liveRoomReadiness';
 
 const taskTypes:HousekeepingType[]=['checkout_clean','stayover'];
 const taskNames:Record<HousekeepingType,string>={checkout_clean:'Checkout cleaning',stayover:'Stayover service',inspection:'Housekeeping inspection'};
-const statusNames:Record<HousekeepingStatus,string>={todo:'To do',in_progress:'In progress',done:'Completed'};
+const statusNames:Record<HousekeepingStatus,string>={todo:'To do',in_progress:'In progress',done:'Cleaning completed'};
 const transitions:Record<HousekeepingStatus,HousekeepingStatus[]>={
  todo:['in_progress','done'],in_progress:['done'],done:[],
 };
@@ -156,17 +156,20 @@ export function LiveHousekeeping(){
   if(!(admin||assigned)||!form||saving)return;
   setSaving(true);setError('');setFieldErrors({});
   try{
-   if(selected)parseUpdatedHousekeeping(await updateHousekeepingTask(selected.id,admin?{
+   const updated=selected?parseUpdatedHousekeeping(await updateHousekeepingTask(selected.id,admin?{
     expectedRevision:selected.revision,status:form.status,
     assignedTo:form.assignedTo.trim()||null,assignedUserId:form.assignedUserId||null,
     dueAt:formatDue(form.dueAt),note:form.note.trim()||null,
-   }:{expectedRevision:selected.revision,status:form.status,note:form.note.trim()||null}),hotelId!,selected.id);
-   else await createHousekeepingTask({
+   }:{expectedRevision:selected.revision,status:form.status,note:form.note.trim()||null}),hotelId!,selected.id):null;
+   if(!selected)await createHousekeepingTask({
     roomId:form.roomId,type:form.type,assignedTo:form.assignedTo.trim()||null,
     assignedUserId:form.assignedUserId||null,dueAt:formatDue(form.dueAt),note:form.note.trim()||null,
    });
    if(readSession().hotelId!==hotelId)return;
-   setPage(1);close();
+   setPage(1);
+   if(updated&&updated.type==='checkout_clean'&&updated.status==='done'){
+    setSelected(updated);setForm(fromTask(updated));
+   }else close();
    // Failed cache refresh must not make an already committed update look failed.
    void Promise.all([
     client.invalidateQueries({queryKey:['live-housekeeping',hotelId]}),

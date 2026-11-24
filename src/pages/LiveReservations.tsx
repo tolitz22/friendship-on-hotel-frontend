@@ -8,9 +8,9 @@ import {LiveBookingsWorkspace} from './LiveBookingsWorkspace';
 import {AlertTriangle,CalendarDays,ArrowRight} from 'lucide-react';
 import {
  useLiveAvailability,useLiveRatePlans,useLiveReservationRecords,useLiveRoomQuote,
- useLiveRoomTypes,useLiveReservationDetail,validLiveStay,
+ useLiveRoomTypes,useLiveReservationDetail,validLiveStay,defaultBookingDates,
 } from '../api/liveReservations';
-import type {LiveStay} from '../api/liveReservations';
+import type {LiveStay,BookingDateOptions} from '../api/liveReservations';
 import {readSession} from '../api/session';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
@@ -39,6 +39,7 @@ export function LiveReservations(){
   ?{group:routeSearch.group,hotel:routeSearch.hotel,checkIn:routeSearch.checkIn,
     checkOut:routeSearch.checkOut}: {}});
  const [page,setPage]=useState(1);
+ const [dates,setDates]=useState<BookingDateOptions>(defaultBookingDates);
  const [view,setView]=useState<'manage'|'new'>('manage');
  const [filter,setFilter]=useState<import('../api/liveReservations').ReservationListFilter>('all');
  const [search,setSearch]=useState('');
@@ -48,13 +49,13 @@ export function LiveReservations(){
   return ()=>window.clearTimeout(timer);
  },[search]);
  useEffect(()=>{
-  setPage(1);setFilter('all');setSearch('');setAppliedSearch('');
+  setPage(1);setFilter('all');setSearch('');setAppliedSearch('');setDates(defaultBookingDates);
   setView(routeSearch.mode==='new'||!!routeSearch.guest||!!routeSearch.room?'new':'manage');
  },[hotelId,routeSearch.mode,routeSearch.guest,routeSearch.room]);
  const [inputs,setInputs]=useState<LiveStay>(initialStay);
  const [rateId,setRateId]=useState('');
  const [requested,setRequested]=useState<{stay:LiveStay;rateId:string}|null>(null);
- const records=useLiveReservationRecords(page,appliedSearch,filter);
+ const records=useLiveReservationRecords(page,appliedSearch,filter,dates);
  const types=useLiveRoomTypes();
  const rates=useLiveRatePlans();
  const availability=useLiveAvailability(requested?.stay??null);
@@ -69,7 +70,7 @@ export function LiveReservations(){
  const filtered=records.isSuccess?rows:[];
  const pagination=records.isSuccess?records.data.meta:undefined;
  const searching=search.trim()!==appliedSearch;
- const clearFilters=()=>{setSearch('');setAppliedSearch('');setFilter('all');setPage(1);};
+ const clearFilters=()=>{setSearch('');setAppliedSearch('');setFilter('all');setPage(1);setDates(defaultBookingDates);};
  const previewOutdated=requested!==null&&(requested.rateId!==rateId||
   requested.stay.roomTypeId!==inputs.roomTypeId||
   requested.stay.checkIn!==inputs.checkIn||
@@ -103,7 +104,7 @@ export function LiveReservations(){
     <LiveBookingsWorkspace rows={filtered} pagination={pagination}
      isPending={records.isPending} isError={records.isError} error={records.error}
      isFetching={records.isFetching} searching={searching} search={search}
-     filter={filter} page={page} canOperate={canOperate}
+     filter={filter} dates={dates} onDates={value=>{setDates(value);setPage(1);}} page={page} canOperate={canOperate}
      onSearch={setSearch} onFilter={value=>{setFilter(value);setPage(1);}}
      onPage={setPage} onClear={clearFilters} onRefresh={()=>void records.refetch()}
      onOpen={openBooking}

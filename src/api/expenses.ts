@@ -54,3 +54,14 @@ export async function updateExpensePolicy(hotel:string,routineLimitMinor:number,
  const result=z.object({data:policy}).parse(await requestJson<unknown>(scoped(hotel,'/expenses/policy'),{method:'PUT',body:{routineLimitMinor,reason}})).data;
  verifyHotel(hotel);return result;
 }
+
+const expenseExceptions=z.object({
+ hotelId:id,pendingCorrectionCount:amount,pendingReturnCount:amount,flaggedReturnCount:amount,unresolvedClearingCount:amount,
+ items:z.array(z.object({kind:z.enum(['pending_correction','pending_return','flagged_return','unresolved_clearing']),id,expenseId:id,description:z.string(),businessDate:z.iso.date(),amountMinor:z.number().int().nullable()})),
+});
+export type ExpenseExceptions=z.infer<typeof expenseExceptions>;
+export function useExpenseExceptions(hotel:string){
+ return useQuery({queryKey:['live','expense-exceptions',hotel],enabled:!!hotel,retry:false,
+ queryFn:async()=>{const result=z.object({data:expenseExceptions}).parse(await getJson<unknown>(scoped(hotel,'/expenses/exceptions'))).data;
+ verifyHotel(hotel);if(result.hotelId!==hotel)throw new Error('Expense exceptions belong to a different hotel.');return result;}});
+}

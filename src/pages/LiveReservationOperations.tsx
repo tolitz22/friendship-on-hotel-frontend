@@ -80,8 +80,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const checkoutStatement=useSettlementStatement(hotelId,record.id,canDo('finance.read')&&record.lifecycleState==='checked_in');
  const financialBlock=checkoutStatement.isSuccess?financialCheckoutBlock(checkoutStatement.data):null;
  const guestBillSettled=checkoutStatement.isSuccess&&isGuestBillSettled(checkoutStatement.data);
- const needsStatementSignature=checkoutStatement.isSuccess&&checkoutStatement.data.settlementWorkflowEnabled
-  &&!checkoutStatement.data.signed&&!checkoutStatement.data.simplifiedCashierModeEnabled;
+
  const canCheckOut=!financialBlock&&canDo('booking.check_out')&&allowedOperation(record,'check-out',hotelDate)&&acknowledged&&!busy;
 
  useEffect(()=>{
@@ -235,11 +234,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
    </div>:isInHouse&&financialBlock?<div>
     <p>Checkout blocked. {financialBlock}</p>
     {guestBillSettled&&<p><strong>₱0 due</strong> · Guest bill settled. Do not collect another payment.</p>}
-    {needsStatementSignature
-     ?manager
-      ?<Link to="/billing" search={{booking:record.id,action:'signoff'}} className="btn-inline">Review and sign statement <ArrowRight size={14}/></Link>
-      :<p role="status">An authorized hotel manager or owner must review and sign the statement in Billing. Ask the manager to complete sign-off; no further collection is needed when the bill is settled.</p>
-     :<Link to="/billing" search={{booking:record.id}} className="btn-inline">Resolve in Billing <ArrowRight size={14}/></Link>}
+    <Link to="/billing" search={{booking:record.id}} className="btn-inline">Resolve in Billing <ArrowRight size={14}/></Link>
    </div>:<div>
     <p>{isConfirmed?'Review the check-in requirements.':earlyDepartureWindow?'Review options for an early departure.':
      checkoutStatement.isSuccess?'Billing checks clear. Confirm the guest’s departure.':'Review the checkout requirements.'}</p>

@@ -3,7 +3,7 @@ import {Link} from '@tanstack/react-router';
 import {
  ArrowRight,BedDouble,Building2,CalendarDays,CalendarPlus,CheckCircle2,
  ClipboardCheck,Clock3,Hotel,Layers3,RefreshCw,ShieldAlert,
- UserRound,Wallet,Wrench,LogIn,LogOut,Users,ChevronRight,
+ UserRound,Wallet,Wrench,LogIn,LogOut,Users,ChevronRight,AlertTriangle,
 } from 'lucide-react';
 import {useLiveCatalogSummary,useLiveProperty} from '../api/liveCatalogQueries';
 import {useLiveManifest} from '../api/liveFrontDesk';
@@ -31,19 +31,28 @@ function DeskSummary({date}:{date:string}){
  const arrivals=useLiveManifest(date,'arrivals',1,5);
  const departures=useLiveManifest(date,'departures',1,5);
  const inHouse=useLiveManifest(date,'in_house',1,5);
- const ready=arrivals.isSuccess&&departures.isSuccess&&inHouse.isSuccess;
- const failed=arrivals.error??departures.error??inHouse.error;
- const refresh=()=>{void arrivals.refetch();void departures.refetch();void inHouse.refetch();};
+ const overdue=useLiveManifest(date,'overdue',1,5);
+ const ready=arrivals.isSuccess&&departures.isSuccess&&inHouse.isSuccess&&overdue.isSuccess;
+ const failed=arrivals.error??departures.error??inHouse.error??overdue.error;
+ const refresh=()=>{void arrivals.refetch();void departures.refetch();void inHouse.refetch();void overdue.refetch();};
  const queueCount=(query:typeof arrivals)=>query.isSuccess?query.data.meta.total:query.isPending?'Loading…':'Unavailable';
  return <section className="ov-section" aria-labelledby="ov-desk-title">
   <div className="ov-section-heading">
    <div><span className="ov-kicker">LIVE OPERATIONS</span><h3 id="ov-desk-title">Front desk today</h3>
     <p>Reservation queues for {dateLabel(date)} · hotel-local date</p></div>
    <button type="button" className="ov-icon-button" onClick={refresh}
-    disabled={arrivals.isFetching||departures.isFetching||inHouse.isFetching}
+    disabled={arrivals.isFetching||departures.isFetching||inHouse.isFetching||overdue.isFetching}
     aria-label="Refresh front desk queues" title="Refresh queues"><RefreshCw size={16}/></button>
   </div>
   {failed&&<QueryFeedback loading={false} error={failed} onRetry={refresh}/>}
+  {overdue.isSuccess&&(overdue.data.meta.queueTotal??overdue.data.meta.total)>0&&
+   <Link to="/front-desk" search={{queue:'overdue'}} className="ov-overdue-priority"
+    aria-label={'Review '+(overdue.data.meta.queueTotal??overdue.data.meta.total)+' overdue checkouts'}>
+    <span className="ov-overdue-priority-icon"><AlertTriangle size={22}/></span>
+    <span><strong>{overdue.data.meta.queueTotal??overdue.data.meta.total} overdue checkout{(overdue.data.meta.queueTotal??overdue.data.meta.total)===1?'':'s'}</strong>
+     <small>Requires follow-up · confirm guest departure or extend stay</small></span>
+    <span className="ov-overdue-priority-action">Review now <ArrowRight size={15}/></span>
+   </Link>}
   <div className="ov-queue-grid">
    <Link to="/front-desk" search={{queue:'arrivals'}} className="ov-queue-card" aria-label="View expected arrivals">
     <span className="ov-queue-icon"><LogIn size={19}/></span><span>Expected arrivals</span>
@@ -52,6 +61,11 @@ function DeskSummary({date}:{date:string}){
    <Link to="/front-desk" search={{queue:'departures'}} className="ov-queue-card" aria-label="View due departures">
     <span className="ov-queue-icon"><LogOut size={19}/></span><span>Due departures</span>
     <strong>{queueCount(departures)}</strong><small>In-house stays due today</small><ArrowRight size={16} className="ov-queue-arrow"/>
+   </Link>
+   <Link to="/front-desk" search={{queue:'overdue'}} className={'ov-queue-card ov-queue-overdue'+(overdue.isSuccess&&(overdue.data.meta.queueTotal??overdue.data.meta.total)>0?' has-overdue':'')}
+    aria-label="View overdue checkouts">
+    <span className="ov-queue-icon"><AlertTriangle size={19}/></span><span>Overdue checkouts</span>
+    <strong>{queueCount(overdue)}</strong><small>Past the hotel departure cutoff</small><ArrowRight size={16} className="ov-queue-arrow"/>
    </Link>
    <Link to="/front-desk" search={{queue:'in_house'}} className="ov-queue-card" aria-label="View in-house reservations">
     <span className="ov-queue-icon"><Users size={19}/></span><span>In-house reservations</span>

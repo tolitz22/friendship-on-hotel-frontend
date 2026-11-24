@@ -1,7 +1,9 @@
 import {useEffect,useRef,useState} from 'react';
 import type {KeyboardEvent} from 'react';
 import {Link,useNavigate,useSearch} from '@tanstack/react-router';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQueryClient,useQueries} from '@tanstack/react-query';
+import {dynamicBookingEnabled,parseDynamicQuote} from '../api/dynamicBookingQuote';
+import {requestJson,ApiError} from '../api/http';
 import {CalendarDays,Plus,ArrowRight,RefreshCw,Trash2,Search,Layers3,Clock3,ChevronLeft,ChevronRight,UserPlus,BedDouble,CheckCircle2,AlertTriangle,LogIn,LogOut,Filter,X,History} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Panel} from '../components/ui';
@@ -15,13 +17,16 @@ import {createGroupBooking,useGroupBooking,useGroupBookings} from '../api/groupR
 import {deriveGroupStatus,groupStatusLabel} from '../api/groupReservations';
 import type {GroupBooking,GroupBookingInput,GroupStatusFilter,GroupAssignmentFilter} from '../api/groupReservations';
 import {hotelToday,addDays} from '../features/reservations/calendarDate';
-import {readSession} from '../api/session';
+import {readSession,hotelPath} from '../api/session';
 import {useGroupAllotments,createGroupAllotment,releaseGroupAllotment} from '../api/groupAllotments';
 import type {GroupAllotment,GroupHoldInput} from '../api/groupAllotments';
 import {useGroupFinancialSummary,allocateVerifiedGroupPayment} from '../api/groupFinance';
 import {readableDate,readableDateTime,statusLabel} from '../lib/format';
 
-type Room={guestId:string;roomTypeId:string;ratePlanId:string};
+type Room={guestId:string;roomTypeId:string;ratePlanId:string;codeKind?:'none'|'corporate'|'promotion';code?:string};
+const roomCodes=(room:Room)=>room.codeKind==='corporate'?{corporateCode:room.code?.trim().toUpperCase()??''}:room.codeKind==='promotion'?{promoCode:room.code?.trim().toUpperCase()??''}:{};
+const validRoomCode=(room:Room)=>!room.codeKind||room.codeKind==='none'||/^[A-Z0-9_-]{1,40}$/.test(room.code?.trim().toUpperCase()??'');
+function groupPolicyLabel(kind:string,value:number,currency:string){return kind==='none'?'None':kind==='fixed'?money(value,currency)+' (up to subtotal)':kind==='percent'?(value/100)+'%':kind==='first_night'?'First night':'Full room subtotal';}
 const blank=():Room=>({guestId:'',roomTypeId:'',ratePlanId:''});
 const money=(minor:number,currency:string)=>new Intl.NumberFormat('en-PH',{
  style:'currency',currency,
@@ -660,6 +665,18 @@ export function GroupReservations(){
  const [checkIn,setCheckIn]=useState(start);
  const [checkOut,setCheckOut]=useState(()=>addDays(start(),1));
  const [rooms,setRooms]=useState<Room[]>([blank(),blank()]);
+ const [acceptedQuotes,setAcceptedQuotes]=useState('');
+ const [quoteRevision,setQuoteRevision]=useState(0);
+ useEffect(()=>{setAcceptedQuotes('');if(formStep===3)setQuoteRevision(v=>v+1);},[formStep,hotelId,rooms,checkIn,checkOut]);
+ const quotes=useQueries({queries:rooms.map((room,index)=>({
+  queryKey:['live','group-dynamic-quote',hotelId,index,room,checkIn,checkOut,quoteRevision],
+  enabled:dynamicBookingEnabled&&view==='new'&&formStep===3&&!!hotelId&&!!room.ratePlanId&&validLiveStay({...room,checkIn,checkOut})&&validRoomCode(room),
+  queryFn:async()=>parseDynamicQuote(await requestJson(hotelPath('/dynamic-room-quote'),{method:'POST',body:{roomTypeId:Number(room.roomTypeId),ratePlanId:Number(room.ratePlanId),checkIn,checkOut,...roomCodes(room)}}),hotelId!,{...room,checkIn,checkOut},roomCodes(room)),
+  retry:false,staleTime:0,refetchOnWindowFocus:false,refetchOnReconnect:false,
+ }))});
+ const allQuotesReady=quotes.every(q=>q.isSuccess&&!q.isFetching&&!!q.data);
+ const quoteSignature=allQuotesReady?quotes.map(q=>q.data!.quoteToken).join(':'):'';
+ const quoteTotals=allQuotesReady?quotes.reduce<Record<string,number>>((totals,q)=>{const data=q.data!;totals[data.currency]=(totals[data.currency]??0)+data.roomSubtotalMinor;return totals;},{}):{};
  const [guestDialogRoom,setGuestDialogRoom]=useState<number|null>(null);
  const [createdGuests,setCreatedGuests]=useState<Record<string,Guest>>({});
  const [pending,setPending]=useState<{hotelId:string;payload:GroupBookingInput}|null>(null);
@@ -678,13 +695,13 @@ export function GroupReservations(){
   roomTypeId:rooms[0].roomTypeId||'1',checkIn,checkOut
  })&&checkIn>=hotelToday()&&(!selectedAllotment||(
   checkIn===selectedAllotment.checkIn&&checkOut===selectedAllotment.checkOut));
- const roomEntriesValid=rooms.length>=2&&rooms.every(room=>
+ const roomEntriesValid=rooms.length>=2&&rooms.every(room=>(!dynamicBookingEnabled||validRoomCode(room))&&
   Number(room.guestId)>0&&Number(room.roomTypeId)>0&&Number(room.ratePlanId)>0&&
   rates.data?.data.some(rate=>rate.active&&rate.id===room.ratePlanId&&
    rate.roomTypeId===room.roomTypeId));
  const datesValid=validLiveStay({roomTypeId:rooms[0].roomTypeId||'1',checkIn,checkOut})
   &&checkIn>=hotelToday();
- const ready=canBook&&name.trim().length>=2&&datesValid&&rooms.length>=2&&
+ const ready=(!dynamicBookingEnabled||(allQuotesReady&&!!quoteSignature&&acceptedQuotes===quoteSignature))&&canBook&&name.trim().length>=2&&datesValid&&rooms.length>=2&&
   rooms.every(room=>Number(room.guestId)>0&&Number(room.roomTypeId)>0
    &&Number(room.ratePlanId)>0
    &&rates.data?.data.some(rate=>rate.active&&rate.id===room.ratePlanId&&rate.roomTypeId===room.roomTypeId))
@@ -708,8 +725,10 @@ export function GroupReservations(){
    void client.invalidateQueries({queryKey:['live','availability',submittedHotel]});
    void client.invalidateQueries({queryKey:['live','room-calendar',submittedHotel]});
   }catch(err){
-   if(readSession().hotelId===submittedHotel)
+   if(readSession().hotelId===submittedHotel){
+    if(err instanceof ApiError&&[400,401,403,404,422].includes(err.status)){setPending(null);setAcceptedQuotes('');setQuoteRevision(v=>v+1);}
     setError(err instanceof Error?err.message:'Unable to confirm the group booking.');
+   }
   }finally{sending.current=false;setBusy(false);}
  };
  const confirm=()=>{
@@ -719,8 +738,9 @@ export function GroupReservations(){
    ...(selectedAllotment?{allotmentId:Number(selectedAllotment.id)}:{}),
    ...(contact.trim()?{contactName:contact.trim()}:{}),
    checkIn,checkOut,
-   rooms:rooms.map(room=>({guestId:Number(room.guestId),
-    roomTypeId:Number(room.roomTypeId),ratePlanId:Number(room.ratePlanId)})),
+   rooms:rooms.map((room,index)=>({guestId:Number(room.guestId),
+    roomTypeId:Number(room.roomTypeId),ratePlanId:Number(room.ratePlanId),
+    ...(dynamicBookingEnabled?{dynamicQuoteToken:quotes[index].data!.quoteToken,...roomCodes(room)}:{})})),
   };
   setPending({hotelId,payload});
   void send(payload,hotelId);
@@ -862,10 +882,19 @@ export function GroupReservations(){
        <GroupReviewGuest guestId={room.guestId} createdGuest={createdGuests[room.guestId]}/>
        <span>{types.data?.data.find(type=>type.id===room.roomTypeId)?.name??'Room type'} ·
         {rates.data?.data.find(rate=>rate.id===room.ratePlanId)?.name??'Rate not selected'}</span>
+       {dynamicBookingEnabled&&<>
+        <QueryFeedback loading={quotes[index].isPending} error={quotes[index].error} onRetry={()=>{setAcceptedQuotes('');void quotes[index].refetch();}}/>
+        {quotes[index].data&&<><strong>{money(quotes[index].data!.roomSubtotalMinor,quotes[index].data!.currency)}</strong>
+         <details><summary>Nightly rates and policy terms</summary>{quotes[index].data!.nightlyRates.map(night=><p key={night.date}>{readableDate(night.date)} · {night.source.replaceAll('_',' ')} · {money(night.amountMinor,quotes[index].data!.currency)}</p>)}
+          {quotes[index].data!.policyTerms?<p>Policy version {quotes[index].data!.policyTerms!.version} · Deposit: {groupPolicyLabel(quotes[index].data!.policyTerms!.depositKind,quotes[index].data!.policyTerms!.depositValue,quotes[index].data!.currency)} · Free cancellation: {Math.max(1,quotes[index].data!.policyTerms!.freeCancelDays)} day(s) before arrival · Late cancellation: {groupPolicyLabel(quotes[index].data!.policyTerms!.lateCancelKind,quotes[index].data!.policyTerms!.lateCancelValue,quotes[index].data!.currency)} · No-show: {groupPolicyLabel(quotes[index].data!.policyTerms!.noShowKind,quotes[index].data!.policyTerms!.noShowValue,quotes[index].data!.currency)}</p>:<p>No rate-specific policy configured.</p>}
+         </details></>}
+       </>}
       </div>)}
      </div>
-     <p><strong>Estimated room subtotal: {estimate===null?'Mixed currencies — review individual rates':money(estimate,'PHP')}</strong></p>
-     <p className="desk-muted">Estimated room charges only. Taxes, service fees, discounts, deposits, and payments are separate. Inventory is verified again when you confirm.</p>
+     {dynamicBookingEnabled?<><h4>Reviewed group room subtotal</h4>{allQuotesReady?Object.entries(quoteTotals).map(([currency,total])=><p key={currency}><strong>{money(total,currency)}</strong></p>):<p>Review all room quotes before confirming.</p>}
+      <label className="stay-confirm-check"><input type="checkbox" disabled={locked||!allQuotesReady} checked={!!quoteSignature&&acceptedQuotes===quoteSignature} onChange={e=>setAcceptedQuotes(e.target.checked?quoteSignature:'')}/> I reviewed every room’s rates and booking terms.</label>
+     </>:<p><strong>Estimated room subtotal: {estimate===null?'Mixed currencies — review individual rates':money(estimate,'PHP')}</strong></p>}
+     <p className="desk-muted">{dynamicBookingEnabled?'Room charges only. Taxes and fees are excluded. Deposit and penalty terms are not automatically charged. Inventory and every reviewed quote are revalidated on confirmation.':'Estimated room charges only. Taxes, service fees, discounts, deposits, and payments are separate. Inventory is verified again when you confirm.'}</p>
      {error&&<p role="alert" className="wizard-error">{error}</p>}
      {pending?<button className="btn-primary" type="button" disabled={busy}
        onClick={()=>void send(pending.payload,pending.hotelId)}>

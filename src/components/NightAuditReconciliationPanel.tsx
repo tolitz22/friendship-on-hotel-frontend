@@ -43,6 +43,12 @@ export function NightAuditReconciliationPanel({selectedDate}:{selectedDate?:stri
    ['Cashier shifts flagged',data.cashier.flaggedCount],
    ['Cashier variance (minor units)',data.cashier.varianceMinor],
    ...(data.expenses?[
+    ['Approved employee expenses (minor units)',data.expenses.employeeClaimExpenseMinor??null],
+    ['Employee reimbursements (minor units)',data.expenses.employeeReimbursementMinor??null],
+    ['Employee drawer reimbursements (minor units)',data.expenses.employeeDrawerReimbursementMinor??null],
+    ['Employee bank reimbursements (minor units)',data.expenses.employeeBankReimbursementMinor??null],
+    ['Employee payable balance (minor units)',data.expenses.employeeLiability?.outstandingMinor??null],
+    ['Employee payable ledger difference (minor units)',data.expenses.employeeLiability?.differenceMinor??null],
     ['Supplier invoices recognized (minor units)',data.expenses.supplierInvoiceExpenseMinor??null],
     ['Supplier payments (minor units)',data.expenses.supplierPaymentMinor??null],
     ['Supplier drawer payments (minor units)',data.expenses.supplierDrawerPaymentMinor??null],
@@ -117,6 +123,11 @@ export function NightAuditReconciliationPanel({selectedDate}:{selectedDate?:stri
       <div className="night-audit-metric"><small>Paid from hotel bank</small><strong>{money(data.expenses.supplierBankPaymentMinor??null,data.currency)}</strong></div>
      </div><p className="desk-muted">Supplier invoices are included in operating expenses. Payments settle existing liabilities and are not counted as additional expenses.</p>
     </>}
+    {data.expenses.employeeLiability&&<><h4>Employee expenses and liabilities</h4>
+    <div className="night-audit-metrics">
+    {([['Approved employee expenses',data.expenses.employeeClaimExpenseMinor],['Reimbursements paid',data.expenses.employeeReimbursementMinor],['Paid from drawer',data.expenses.employeeDrawerReimbursementMinor],['Paid from hotel bank',data.expenses.employeeBankReimbursementMinor],['Outstanding employee payable',data.expenses.employeeLiability.outstandingMinor],['Employee payable ledger',data.expenses.employeeLiability.ledgerBalanceMinor],['Ledger difference',data.expenses.employeeLiability.differenceMinor]] as const).map(([label,value])=><div className="night-audit-metric" key={label}><small>{label}</small><strong>{money(value??null,data.currency)}</strong></div>)}
+    </div><p className={data.expenses.employeeLiability.reconciled?'night-audit-clean':'night-audit-warning'}>{data.expenses.employeeLiability.reconciled?'Employee payable ledger matches the subledger.':'Employee payable discrepancies require investigation.'}</p>
+    <details><summary>Outstanding by employee</summary><div className="table-scroll"><table><thead><tr><th>Employee</th><th>Claims</th><th>Outstanding</th></tr></thead><tbody>{data.expenses.employeeLiability.employees.map(e=><tr key={e.employeeId}><td>{e.employeeName}</td><td>{e.claimCount}</td><td>{money(e.outstandingMinor,data.currency)}</td></tr>)}</tbody></table></div></details></>}
     {!!data.expenses.clearingBalanceMinor&&<p className="notice">Net clearing balance requires investigation. A zero net balance alone does not establish that every voucher has been resolved.</p>}
     {data.expenses.breakdown?.available&&<>
      <h4>Expenses by original department</h4>
@@ -128,7 +139,7 @@ export function NightAuditReconciliationPanel({selectedDate}:{selectedDate?:stri
      <details><summary>Inspect voucher movements ({data.expenses.breakdown.movementCount})</summary>
       {data.expenses.breakdown.movementCount>data.expenses.breakdown.voucherMovements.length&&<p className="desk-muted">Showing the first {data.expenses.breakdown.voucherMovements.length} movements. Department totals include all attributed movements.</p>}
       <div className="table-scroll"><table><thead><tr><th>Voucher</th><th>Movement</th><th>Original date</th><th>Net amount</th></tr></thead><tbody>
-       {data.expenses.breakdown.voucherMovements.map(v=><tr key={v.kind+':'+v.journalId}><td>{v.kind==='supplier_bill'?<>Supplier invoice #{v.expenseId} · {v.description}</>:<Link to="/expenses" search={{expense:v.expenseId,date:v.originalBusinessDate,hotel:data.hotelId}}>#{v.expenseId} · {v.description}</Link>}</td><td>{v.kind==='supplier_bill'?'Supplier invoice':v.kind==='expense'?'Original expense':v.kind==='adjustment'?'Accounting adjustment':'Supplier refund'}</td><td>{v.originalBusinessDate}</td><td>{money(v.netMinor,data.currency)}</td></tr>)}
+       {data.expenses.breakdown.voucherMovements.map(v=><tr key={v.kind+':'+v.journalId}><td>{v.kind==='employee_claim'?<>Employee claim #{v.expenseId} · {v.description}</>:v.kind==='supplier_bill'?<>Supplier invoice #{v.expenseId} · {v.description}</>:<Link to="/expenses" search={{expense:v.expenseId,date:v.originalBusinessDate,hotel:data.hotelId}}>#{v.expenseId} · {v.description}</Link>}</td><td>{v.kind==='employee_claim'?'Employee claim':v.kind==='supplier_bill'?'Supplier invoice':v.kind==='expense'?'Original expense':v.kind==='adjustment'?'Accounting adjustment':'Supplier refund'}</td><td>{v.originalBusinessDate}</td><td>{money(v.netMinor,data.currency)}</td></tr>)}
       </tbody></table></div>
      </details>
     </>}

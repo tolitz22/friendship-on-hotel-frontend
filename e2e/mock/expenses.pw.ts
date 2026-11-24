@@ -68,6 +68,7 @@ test('manager can inspect and review a voucher and update the future payout limi
    if(route.request().method()==='PUT')limit=route.request().postDataJSON().routineLimitMinor;
    return route.fulfill({json:{data:{configured:true,routineLimitMinor:limit}}});
   }
+  if(path.endsWith('/expenses/7/history'))return route.fulfill({json:{data:{hotelId:'1',expenseId:'7',correctionsEnabled:false,originalAmountMinor:35000,netRecordedExpenseMinor:35000,effectiveDepartment:'rooms',effectiveCategory:'cleaning_supplies',clearingBalanceMinor:0,cashReturnedMinor:0,unapprovedCashReturnCount:0,corrections:[],cashReturns:[]}}});
   if(path.endsWith('/expenses/7/review')){approved=true;return route.fulfill({json:{data:{expenseId:'7',reviewStatus:'approved',replayed:false}}});}
   const row={...voucher,reviewStatus:approved?'approved':'pending'};
   if(path.endsWith('/expenses/7'))return route.fulfill({json:{data:{...row,review:approved?{reviewedBy:'1',reviewedByName:'Demo manager',decision:'approve',note:'Invoice checked',createdAt:'2026-11-24T05:00:00Z'}:null}}});
@@ -80,8 +81,8 @@ test('manager can inspect and review a voucher and update the future payout limi
  const review=page.getByRole('dialog',{name:'Review expense'});
  await review.getByLabel('Review note').fill('Invoice checked');
  await review.getByRole('button',{name:'Approve expense'}).click();
- await expect(review).toHaveCount(0);
  await expect(page.getByText('Expense review recorded.')).toBeVisible();
+ await expect(review).toBeHidden();
  await expect(page.getByText(/Demo manager · Approve/)).toBeVisible();
  await page.getByRole('button',{name:'Expense policy',exact:true}).click();
  const policy=page.getByRole('dialog',{name:'Expense policy'});

@@ -33,6 +33,8 @@ const schema=z.object({
   scope:z.string(),
  }),
  expenses:z.object({
+  supplierInvoiceExpenseMinor:z.number().int().optional(),supplierPaymentMinor:z.number().int().optional(),
+  supplierDrawerPaymentMinor:z.number().int().optional(),supplierBankPaymentMinor:z.number().int().optional(),
   grossExpenseMinor:z.number().int().optional(),accountingAdjustmentMinor:z.number().int().optional(),
   supplierRefundMinor:z.number().int().optional(),clearingCashReturnMinor:z.number().int().optional(),
   physicalCashReturnMinor:z.number().int().optional(),clearingBalanceMinor:z.number().int().optional(),
@@ -41,7 +43,7 @@ const schema=z.object({
   scope:z.string(),closedLedgerVerified:z.boolean(),
   breakdown:z.object({available:z.boolean(),attributedNetMinor:nullableInt,unattributedNetMinor:nullableInt,movementCount:z.number().int().nonnegative(),
    departments:z.array(z.object({department:z.string(),grossMinor:z.number().int(),adjustmentMinor:z.number().int(),refundMinor:z.number().int(),netMinor:z.number().int()})),
-   voucherMovements:z.array(z.object({journalId:z.string(),expenseId:z.string(),kind:z.enum(['expense','adjustment','refund']),department:z.string(),description:z.string(),originalBusinessDate:z.string(),netMinor:z.number().int()})),
+   voucherMovements:z.array(z.object({journalId:z.string(),expenseId:z.string(),kind:z.enum(['expense','adjustment','refund','supplier_bill']),department:z.string(),description:z.string(),originalBusinessDate:z.string(),netMinor:z.number().int()})),
   }).optional(),
  }).optional(),
  limitations:z.array(z.string()),blockers:z.array(z.string()),

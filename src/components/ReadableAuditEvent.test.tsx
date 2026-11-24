@@ -79,3 +79,9 @@ describe('staff-readable activity history',()=>{
   ]);
  });
 });
+
+it('describes expense payout evidence and excludes unrelated fields',()=>{
+ expect(cashEventDetails('expense_payout',{amountMinor:35000,payee:'Supply Shop',description:'Cleaning supplies',expenseId:'7',password:'secret'})).toEqual([
+  {label:'Cash paid out',value:'₱350.00'}, {label:'Payee',value:'Supply Shop'}, {label:'Purpose',value:'Cleaning supplies'}, {label:'Expense voucher',value:'#7'},
+ ]);
+});

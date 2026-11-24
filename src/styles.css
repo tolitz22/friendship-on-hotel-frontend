@@ -3438,3 +3438,33 @@
 :root[data-theme="dark"] .stay-next-strip-icon{background:#1b3b2c;color:#a5ebbf}
 :root[data-theme="dark"] .stay-next-strip-icon.attention{background:#48351c;color:#ffd499}
 @media(max-width:600px){.stay-next-strip{align-items:flex-start;flex-wrap:wrap;padding:13px;gap:10px}.stay-next-strip-icon{width:34px;height:34px;flex-basis:34px}.stay-next-strip-copy{flex-basis:calc(100% - 46px)}.stay-next-strip-action{width:100%;padding-left:44px}.stay-next-strip-button{width:100%}}
+
+
+/* Overdue departures: visually distinct from routine due-today checkouts */
+.fdc-stat.overdue.has-overdue{background:color-mix(in srgb,#dc2626 5%,var(--surface));border-color:color-mix(in srgb,#dc2626 45%,var(--border))}
+.fdc-stat.overdue.has-overdue>svg,.fdc-stat.overdue.has-overdue>strong{color:#ba2929}
+.fdc-stat.overdue.active{outline:2px solid color-mix(in srgb,#dc2626 45%,transparent);outline-offset:1px}
+.fdc-overdue-alert,.ov-overdue-priority{display:flex;align-items:center;gap:14px;padding:16px 18px;border:1px solid color-mix(in srgb,#dc2626 35%,var(--border));border-left:4px solid #c93434;border-radius:12px;background:color-mix(in srgb,#dc2626 5%,var(--surface));margin:0 0 18px;min-width:0}
+.fdc-overdue-alert-icon,.ov-overdue-priority-icon{width:40px;height:40px;flex:0 0 40px;display:grid;place-items:center;border-radius:11px;background:color-mix(in srgb,#dc2626 12%,var(--surface));color:#b42f2f}
+.fdc-overdue-alert-copy{flex:1;min-width:0}
+.fdc-overdue-alert-copy strong,.ov-overdue-priority strong{display:block;color:var(--text);font-size:14px;font-weight:750}
+.fdc-overdue-alert-copy p,.ov-overdue-priority small{display:block;color:var(--muted);font-size:12px;line-height:1.5;margin:5px 0 0}
+.fdc-overdue-alert-action,.ov-overdue-priority-action{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--surface);color:var(--text);border:1px solid color-mix(in srgb,#dc2626 35%,var(--border));border-radius:9px;padding:10px 13px;font-size:12px;font-weight:750;white-space:nowrap}
+.fdc-overdue-alert-action:hover,.ov-overdue-priority:hover .ov-overdue-priority-action{border-color:#c93434}
+.fdc-assign-hint{display:flex;align-items:center;gap:10px;padding:9px 0 16px;color:var(--muted);font-size:12px;flex-wrap:wrap}
+.fdc-assign-hint svg{color:var(--accent)}.fdc-assign-hint button{display:inline-flex;align-items:center;gap:5px;padding:0;border:0;background:none;color:var(--accent);font-size:12px;font-weight:700}
+.fdc-guest-row.is-overdue{background:color-mix(in srgb,#dc2626 3%,var(--surface));border-left:3px solid #ce4141}
+.fdc-guest-row.is-overdue .fdc-guest-primary>strong{font-weight:800}
+.fdc-overdue-date{display:block;font-size:11px;color:#b42f2f;font-weight:700;line-height:1.4;margin-top:6px}
+.ov-overdue-priority{text-decoration:none;justify-content:space-between}
+.ov-overdue-priority>span:nth-child(2){flex:1;min-width:0}
+.ov-queue-overdue.has-overdue{border-color:color-mix(in srgb,#dc2626 45%,var(--border));background:color-mix(in srgb,#dc2626 4%,var(--surface))}
+.ov-queue-overdue.has-overdue .ov-queue-icon,.ov-queue-overdue.has-overdue>strong{color:#ba2929}
+:root[data-theme="dark"] .fdc-stat.overdue.has-overdue>svg,
+:root[data-theme="dark"] .fdc-stat.overdue.has-overdue>strong,
+:root[data-theme="dark"] .fdc-overdue-date,
+:root[data-theme="dark"] .ov-queue-overdue.has-overdue>strong{color:#ff9898}
+:root[data-theme="dark"] .fdc-overdue-alert-icon,
+:root[data-theme="dark"] .ov-overdue-priority-icon{color:#ff9898}
+@media(max-width:780px){.fdc-overdue-alert,.ov-overdue-priority{align-items:flex-start;flex-wrap:wrap}.fdc-overdue-alert-action,.ov-overdue-priority-action{margin-left:54px}.ov-queue-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.fdc-overdue-alert,.ov-overdue-priority{gap:10px;padding:13px}.fdc-overdue-alert-icon,.ov-overdue-priority-icon{width:34px;height:34px;flex-basis:34px}.fdc-overdue-alert-copy,.ov-overdue-priority>span:nth-child(2){flex-basis:calc(100% - 48px)}.fdc-overdue-alert-action,.ov-overdue-priority-action{width:100%;margin-left:0}.ov-queue-grid{grid-template-columns:1fr}}

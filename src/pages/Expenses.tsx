@@ -2,7 +2,7 @@ import {useState} from 'react';
 import {ExpenseCorrectionHistory} from '../components/ExpenseCorrectionHistory';
 import {useQueryClient} from '@tanstack/react-query';
 import {ExpenseReviewDialog,ExpensePolicyDialog} from '../components/ExpenseManagerDialogs';
-import {Link} from '@tanstack/react-router';
+import {Link,useSearch} from '@tanstack/react-router';
 import {Receipt,Wallet,AlertTriangle} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel,Stat,Status} from '../components/ui';
@@ -16,7 +16,7 @@ const money=(n:number)=>new Intl.NumberFormat('en-PH',{style:'currency',currency
 const labels={rooms:'Rooms',maintenance:'Property operations & maintenance',administration:'Administration',utilities:'Energy, water & waste',food_beverage:'Food & beverage'};
 const reviewLabel=(value:string)=>value==='not_required'?'No review required':value==='pending'?'Needs review':statusLabel(value);
 
-function Register({hotel}:{hotel:string}){
+function Register({hotel,date,expense}:{hotel:string;date?:string;expense?:string}){
  const {user}=useHotelAuth();
  const client=useQueryClient();
  const policy=useExpensePolicy(hotel,true);
@@ -24,8 +24,8 @@ function Register({hotel}:{hotel:string}){
  const [reviewOpen,setReviewOpen]=useState(false);
  const [message,setMessage]=useState('');
  function refresh(){void Promise.all([client.invalidateQueries({queryKey:['live','expenses',hotel]}),client.invalidateQueries({queryKey:['live','expense-detail',hotel]}),client.invalidateQueries({queryKey:['live','expense-policy',hotel]}),client.invalidateQueries({queryKey:['live','cashier-shifts',hotel]}),client.invalidateQueries({queryKey:['live','cashier-shift-detail',hotel]}),client.invalidateQueries({queryKey:['live','current-cashier-shift',hotel]})]);}
- const [filters,setFilters]=useState<ExpenseFilters>({page:1});
- const [selected,setSelected]=useState<string|null>(null);
+ const [filters,setFilters]=useState<ExpenseFilters>({page:1,...(date?{from:date,to:date}:{})});
+ const [selected,setSelected]=useState<string|null>(expense??null);
  const list=useExpenses(hotel,true,filters);
  const detail=useExpenseDetail(hotel,selected);
  const summary=list.data?.summary;
@@ -39,7 +39,7 @@ function Register({hotel}:{hotel:string}){
   {policyOpen&&policy.data&&<ExpensePolicyDialog hotel={hotel} currentLimit={policy.data.routineLimitMinor} onClose={()=>setPolicyOpen(false)} onSaved={()=>{setPolicyOpen(false);setMessage('Expense policy saved.');refresh();}}/>}
   {list.data&&!list.data.postingEnabled&&<div className="notice">Expense posting is not enabled for this deployment. Existing vouchers remain available for review.</div>}
   <div className="expense-summary">
-   <Stat label="Expenses this month" value={summary?.monthExpenseMinor==null?'—':money(summary.monthExpenseMinor)} detail={summary?.businessDate?'Business date '+readableDate(summary.businessDate):'Financial business date required'} icon={<Receipt size={20}/>}/>
+   <Stat label="Original expenses this month" value={summary?.monthExpenseMinor==null?'—':money(summary.monthExpenseMinor)} detail={summary?.businessDate?'Business date '+readableDate(summary.businessDate):'Financial business date required'} icon={<Receipt size={20}/>}/>
    <Stat label="Unpaid bills" value="—" detail="Supplier billing is not available yet" icon={<Wallet size={20}/>}/>
    <button className="expense-summary-button" type="button" onClick={()=>filter({reviewStatus:'pending'})}>
     <Stat label="Needs review" value={summary?String(summary.pendingReviewCount):'—'} detail={summary?summary.flaggedCount+' flagged for investigation':'Awaiting expense data'} icon={<AlertTriangle size={20}/>}/>
@@ -50,6 +50,8 @@ function Register({hotel}:{hotel:string}){
     <label>Search<input className="wizard-input" value={filters.search??''} placeholder="Payee, purpose or invoice" onChange={e=>filter({search:e.target.value})}/></label>
     <label>Department<select className="wizard-input" value={filters.department??''} onChange={e=>filter({department:(e.target.value||undefined) as ExpenseFilters['department']})}><option value="">All departments</option>{expenseDepartments.map(d=><option key={d} value={d}>{labels[d]}</option>)}</select></label>
     <label>Review status<select className="wizard-input" value={filters.reviewStatus??''} onChange={e=>filter({reviewStatus:(e.target.value||undefined) as ExpenseFilters['reviewStatus']})}><option value="">All statuses</option>{reviewStatuses.map(s=><option key={s} value={s}>{reviewLabel(s)}</option>)}</select></label>
+    <label>From business date<input type="date" className="wizard-input" value={filters.from??''} max={filters.to} onChange={e=>filter({from:e.target.value||undefined})}/></label>
+    <label>To business date<input type="date" className="wizard-input" value={filters.to??''} min={filters.from} onChange={e=>filter({to:e.target.value||undefined})}/></label>
     <button className="btn-inline" type="button" onClick={()=>setFilters({page:1})}>Clear filters</button>
    </div>
    <QueryFeedback loading={list.isPending} error={list.error} onRetry={()=>void list.refetch()}/>
@@ -81,7 +83,9 @@ function Register({hotel}:{hotel:string}){
 
 export function Expenses(){
  const {hotelId,user}=useHotelAuth();
+ const search=useSearch({from:'/expenses'});
  if(dataMode!=='api')return <Heading title="Expenses" description="Available with live hotel data."/>;
  if(!hotelId||user?.hotels.find(h=>h.id===hotelId)?.role!=='admin')return <Heading title="Expenses" description="This workspace requires administrator access."/>;
- return <Register key={hotelId} hotel={hotelId}/>;
+ if(search.hotel&&search.hotel!==hotelId)return <Heading title="Expenses" description="Select the original hotel to open this voucher."/>; 
+ return <Register key={hotelId+':'+(search.date??'')+':'+(search.expense??'')} hotel={hotelId} date={search.date} expense={search.expense}/>;
 }

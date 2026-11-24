@@ -3574,3 +3574,10 @@
 .expense-detail-grid dd{margin:5px 0 0;overflow-wrap:anywhere;}
 @media(max-width:800px){.expense-summary,.expense-filters,.expense-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:480px){.expense-summary,.expense-filters,.expense-detail-grid{grid-template-columns:1fr;}}
+
+.expense-payout-dialog{max-height:90dvh;overflow-y:auto;}
+.expense-payout-fields{border:0;padding:0;margin:12px 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;min-width:0;}
+.expense-payout-fields label{display:grid;gap:6px;min-width:0;}
+.expense-payout-fields .wizard-input{width:100%;min-width:0;box-sizing:border-box;}
+.expense-field-wide{grid-column:1/-1;}
+@media(max-width:520px){.expense-payout-fields{grid-template-columns:1fr;}}

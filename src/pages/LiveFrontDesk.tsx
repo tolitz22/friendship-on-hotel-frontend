@@ -5,7 +5,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {Link,useSearch} from '@tanstack/react-router';
 import {
  ArrowLeft,ArrowRight,BedDouble,CalendarDays,LogIn,LogOut,
- Search,Users,AlertTriangle,RefreshCw,ClipboardCheck,Plus,Clock3,ShieldAlert,Info,
+ Search,Users,AlertTriangle,RefreshCw,ClipboardCheck,Plus,Clock3,Info,
 } from 'lucide-react';
 import {useLiveManifest} from '../api/liveFrontDesk';
 import {useRoomInventoryStatus} from '../api/roomInventoryStatus';
@@ -18,10 +18,10 @@ import {useHotelAuth} from '../components/AuthProvider';
 import {selectedRole} from '../features/workspaces/roleNavigation';
 import type {ManifestKind,ManifestEntry} from '../api/liveFrontDesk';
 import {recommendedDeskAction} from '../features/front-desk/deskActions';
-import {Heading,Panel,Status} from '../components/ui';
+import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {addDays,hotelToday} from '../features/reservations/calendarDate';
-import {dateLabel,statusLabel} from '../lib/format';
+import {dateLabel} from '../lib/format';
 
 const queues:{kind:ManifestKind;title:string}[]=[
  {kind:'arrivals',title:'Arrivals'},

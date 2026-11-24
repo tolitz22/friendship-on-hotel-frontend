@@ -87,6 +87,18 @@ function money(value:number,currency:string){
   ?new Intl.NumberFormat('en-PH',{style:'currency',currency:'PHP'}).format(value/100)
   :value.toLocaleString()+' '+currency+' minor units';
 }
+function paymentReviewSentence(payment:Payment,currency:string){
+ const amount=money(payment.amountMinor,currency);
+ const displayAmount=currency==='PHP'&&payment.amountMinor%100===0?amount.replace(/\.00$/,''):amount;
+ const description=displayAmount+' '+payment.method.replaceAll('_',' ');
+ switch(payment.status){
+  case 'pending_review':return description+' recorded; staff review pending.';
+  case 'staff_confirmed':return description+' reviewed and confirmed by staff.';
+  case 'rejected':return description+' rejected by staff.';
+  case 'voided':return description+' voided.';
+  default:return description+' · '+statusLabel(payment.status)+'.';
+ }
+}
 function KeyValue({label,value}:{label:string;value:string}){
  return <div className="settlement-metric"><small>{label}</small><strong>{value}</strong></div>;
 }
@@ -648,7 +660,7 @@ export function SettlementPanel({bookingId,requestedAction,requestedPayment}:{bo
       const staff=staffByPayment.get(payment.id);
       return <tr key={payment.id}>
        <td>{payment.method} · {payment.reference}</td>
-       <td>{payment.status==='staff_confirmed'?'Payment reviewed':payment.status==='pending_review'?'Awaiting payment review':statusLabel(payment.status)}
+       <td>{paymentReviewSentence(payment,data.currency)}
         {payment.verificationStatus&&<small className="cell-note">Evidence {statusLabel(payment.verificationStatus).toLowerCase()}</small>}</td>
        <td>
         <span>Recorded by {staff?.recordedByName??'—'}</span>
@@ -684,13 +696,12 @@ export function SettlementPanel({bookingId,requestedAction,requestedPayment}:{bo
     </>}
     <div className="settlement-signature">
      <p>{data.signed?'Signed settlement: '+readableDateTime(data.signedAt)+' · Manager #'+data.signedBy:
-      !checkoutBlock&&data.status==='checked_in'?'Guest bill reconciled — ready for checkout. Manager signature is not required.':
+      (guestBillSettled||routineCashReady)&&!checkoutBlock&&data.status==='checked_in'?'Guest bill reconciled — ready for checkout. Manager signature is not required.':
       guestBillSettled?'Guest payments cover the recorded bill. Finish any outstanding reconciliation checks.':
       'Guest statement is available for review. Resolve outstanding billing items before checkout.'}</p>
      {data.signed&&<p><small>Signed financial snapshot SHA-256: {data.signedSnapshotSha256}</small></p>}
      <small>This is an internal PMS guest-account statement, NOT a BIR tax invoice, bank receipt,
-      payment gateway confirmation, or proof that a refund has been disbursed.
-      Payment evidence has been reviewed by staff, not confirmed via a live bank/PSP API.</small>
+      payment gateway confirmation, or proof that a refund has been disbursed.</small>
     </div>
    </div>
    <div className="desk-tools settlement-controls">

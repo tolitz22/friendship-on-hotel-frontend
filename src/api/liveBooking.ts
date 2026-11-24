@@ -12,10 +12,11 @@ const responseSchema=z.object({data:z.object({
 })});
 export type ConfirmedBooking=z.infer<typeof responseSchema>['data'];
 export type BookingSelection=LiveStay&{guestId:string;ratePlanId:string};
-export type BookingSubmission={hotelId:string;key:string;selection:BookingSelection};
+export type ReviewedPricing={dynamicQuoteToken:string;corporateCode?:string;promoCode?:string};
+export type BookingSubmission={hotelId:string;key:string;selection:BookingSelection;pricing?:ReviewedPricing};
 export type BookingPayload={
  idempotencyKey:string;guestId:number;roomTypeId:number;ratePlanId:number;
- checkIn:string;checkOut:string;
+ checkIn:string;checkOut:string;dynamicQuoteToken?:string;corporateCode?:string;promoCode?:string;
 };
 
 function numericId(value:string):number{
@@ -26,7 +27,8 @@ function numericId(value:string):number{
 }
 
 export function buildBookingPayload(submission:BookingSubmission):BookingPayload{
- const {selection,key}=submission;
+ const {selection,key,pricing}=submission;
+ if(pricing&&(!/^[a-f0-9]{64}$/.test(pricing.dynamicQuoteToken)||(pricing.corporateCode&&pricing.promoCode)||[pricing.corporateCode,pricing.promoCode].some(code=>code!==undefined&&!/^[A-Z0-9_-]{1,40}$/.test(code))))throw new Error('Invalid reviewed pricing. Request a new quote.');
  numericId(submission.hotelId);
  if(!validLiveStay(selection))throw new Error('Choose a valid stay from 1 to 31 nights.');
  if(key.length<8||key.length>100)throw new Error('Invalid booking request key.');
@@ -37,6 +39,7 @@ export function buildBookingPayload(submission:BookingSubmission):BookingPayload
   ratePlanId:numericId(selection.ratePlanId),
   checkIn:selection.checkIn,
   checkOut:selection.checkOut,
+  ...(pricing?{...pricing}:{}),
  };
 }
 
@@ -61,6 +64,6 @@ export async function createLiveBooking(submission:BookingSubmission):Promise<Co
  return parseBookingResult(result,submission);
 }
 
-export function makeBookingSubmission(hotelId:string,selection:BookingSelection,key:string):BookingSubmission{
- return {hotelId,selection:{...selection},key};
+export function makeBookingSubmission(hotelId:string,selection:BookingSelection,key:string,pricing?:ReviewedPricing):BookingSubmission{
+ return {hotelId,selection:{...selection},key,...(pricing?{pricing:{...pricing}}:{})};
 }

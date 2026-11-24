@@ -89,7 +89,12 @@ const roomCalendar=createRoute({getParentRoute:()=>root,path:'/room-calendar',
   hotel:typeof value.hotel==='string'&&/^[1-9][0-9]*$/.test(value.hotel)?value.hotel:undefined,
  }),component:LiveRoomCalendar});
 const functionalRoutes=[
- createRoute({getParentRoute:()=>root,path:'/expenses',component:Expenses}),
+ createRoute({getParentRoute:()=>root,path:'/expenses',component:Expenses,
+ validateSearch:(value:Record<string,unknown>):{expense?:string;date?:string;hotel?:string}=>({
+ expense:/^[1-9]\d*$/.test(String(value.expense??''))?String(value.expense):undefined,
+ hotel:/^[1-9]\d*$/.test(String(value.hotel??''))?String(value.hotel):undefined,
+ date:typeof value.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.date)?value.date:undefined,
+ })}),
  createRoute({getParentRoute:()=>root,path:'/front-desk',
   validateSearch:(value:Record<string,unknown>):{queue?:'arrivals'|'departures'|'in_house'|'overdue'}=>({
    queue:value.queue==='arrivals'||value.queue==='departures'||value.queue==='in_house'||value.queue==='overdue'?value.queue:undefined,

@@ -116,12 +116,28 @@ export function LiveFrontDesk(){
    </button>
    <button type="button" className={'fdc-stat'+(kind==='in_house'?' active':'')} onClick={()=>{setKind('in_house');setSearch('');}} aria-pressed={kind==='in_house'}><Users size={20}/><span>In-house</span><strong>{count('in_house')}</strong><small>Registered stays</small>
    </button>
-   <button type="button" className="fdc-stat attention" onClick={()=>{setKind('arrivals');setPageByKind(prev=>({...prev,arrivals:1}));setSearch('');}}>
-    <AlertTriangle size={20}/><span>Need room assignment</span>
-    <strong>{arrivals.data?.meta.unassignedCount??'—'}</strong>
-    <small>All arrivals on the selected date</small>
+   <button type="button" className={'fdc-stat overdue'+(kind==='overdue'?' active':'')+(overdue.isSuccess&&count('overdue')!==0?' has-overdue':'')}
+    onClick={()=>{setKind('overdue');setPageByKind(prev=>({...prev,overdue:1}));setSearch('');}}
+    aria-pressed={kind==='overdue'} aria-label={'View overdue checkouts, '+count('overdue')}>
+    <AlertTriangle size={20}/><span>Overdue checkouts</span>
+    <strong>{count('overdue')}</strong>
+    <small>Past scheduled departure · needs follow-up</small>
    </button>
   </section>
+  {overdue.isSuccess&&count('overdue')!==0&&<section className="fdc-overdue-alert" aria-label="Overdue checkout priority" role="status">
+   <div className="fdc-overdue-alert-icon"><AlertTriangle size={22}/></div>
+   <div className="fdc-overdue-alert-copy">
+    <strong>{count('overdue')} overdue checkout{count('overdue')===1?'':'s'} need attention</strong>
+    <p>Guests remain checked in past their scheduled departure cutoff. Confirm occupancy, contact the guest or extend the stay before recording checkout.</p>
+   </div>
+   <button type="button" className="fdc-overdue-alert-action" onClick={()=>{setKind('overdue');setPageByKind(prev=>({...prev,overdue:1}));setSearch('');}}>
+    Review overdue checkouts <ArrowRight size={15}/>
+   </button>
+  </section>}
+  {arrivals.isSuccess&&(arrivals.data.meta.unassignedCount??0)>0&&<div className="fdc-assign-hint">
+   <BedDouble size={16}/> {arrivals.data.meta.unassignedCount} arrival{arrivals.data.meta.unassignedCount===1?'':'s'} need a room assignment for {dateLabel(date)}.
+   <button type="button" onClick={()=>{setKind('arrivals');setSearch('');}}>Review arrivals <ArrowRight size={14}/></button>
+  </div>}
   <section className="fdc-workspace" aria-label="Daily front desk work queue">
    <div className="fdc-workspace-heading">
     <div><h3>{kind==='overdue'?'Overdue checkouts':'Reservations for '+dateLabel(date)}</h3>
@@ -159,12 +175,13 @@ export function LiveFrontDesk(){
       ?maintenanceNotes.data.data.filter(note=>note.roomId===row.assignedRoomId):[];
      const advisoryCount=informationalMaintenanceCount(relatedNotes);
      const noteCoverageComplete=maintenanceNotes.isSuccess&&maintenanceNotes.data.meta.totalPages<=1;
-     return <article className="fdc-guest-row" key={row.id}>
+     return <article className={'fdc-guest-row'+(kind==='overdue'?' is-overdue':'')} key={row.id}>
       <div className="fdc-guest-primary">
        <strong>{displayGuest(row)}</strong><span>{row.reference}</span>
       </div>
       <div className="fdc-guest-stay">
        <small>Stay</small><strong>{dateLabel(row.checkIn)} – {dateLabel(row.checkOut)}</strong>
+       {kind==='overdue'&&<span className="fdc-overdue-date">Scheduled checkout: {dateLabel(row.checkOut)}</span>}
       </div>
       <div className="fdc-guest-room">
        <small>Room</small>

@@ -8,6 +8,7 @@ import {CatalogEditDialog} from '../components/CatalogEditDialog';
 import {updateLiveProperty,type LiveRoomType,type UpdateHotelProfileInput} from '../api/liveCatalog';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
+import {SeasonalRateManager} from '../components/SeasonalRateManager';
 import {QueryFeedback} from '../components/QueryFeedback';
 
 const hotelProfile=(hotel:{name:string;address:string|null;contactEmail:string|null;contactPhone:string|null}):UpdateHotelProfileInput=>({
@@ -122,6 +123,7 @@ export function LiveSettings(){
    <Link to="/staff"><Users size={19}/><span><strong>Staff & permissions</strong><small>Accounts, roles, and access</small></span><ArrowRight size={16}/></Link>
   </div>
  </section>
+ {admin&&hotelId&&<SeasonalRateManager key={hotelId} hotelId={hotelId}/>}
  <Panel title="Registered room types"><div className="table-scroll"><table><thead><tr><th>Type</th><th>Capacity</th><th>Rooms</th>{admin&&<th>Action</th>}</tr></thead><tbody>
   {data.roomTypes.map(t=><tr key={t.id}><td>{t.name}</td><td>{t.maxOccupancy}</td><td>{t.roomCount}</td>{admin&&<td><button className="guest-edit-button" type="button" onClick={()=>{const record=roomTypes.data?.data.find(rt=>rt.id===t.id);if(record)setEditingType(record);}}>Edit</button></td>}</tr>)}
   </tbody></table></div></Panel>

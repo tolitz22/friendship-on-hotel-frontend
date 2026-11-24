@@ -13,6 +13,7 @@ import {useSelectedGuest} from '../api/liveSelectedGuest';
 import {useLiveAvailability,useLiveRoomQuote,useLiveRatePlans,useLiveRoomTypes,validLiveStay} from '../api/liveReservations';
 import {buildBookingPayload,createLiveBooking,makeBookingSubmission} from '../api/liveBooking';
 import type {BookingSelection,BookingSubmission,ConfirmedBooking} from '../api/liveBooking';
+import {dynamicBookingEnabled,useDynamicBookingQuote} from '../api/dynamicBookingQuote';
 import {readSession} from '../api/session';
 import {ApiError} from '../api/http';
 import {useHotelAuth} from '../components/AuthProvider';
@@ -33,6 +34,13 @@ const displayMoney=(minor:number,currency:string)=>currency==='PHP'
  * Submission requires an authorized hotel manager or receptionist. A pending request is immutable:
  * uncertain failures must be retried with identical body and idempotency key.
  */
+function describePolicy(kind:string,value:number,currency:string){
+ if(kind==='none')return 'None';
+ if(kind==='fixed')return displayMoney(value,currency)+' (up to room subtotal)';
+ if(kind==='percent')return (value/100)+'% of room subtotal';
+ return kind==='first_night'?'First night':'Full room subtotal';
+}
+
 export function LiveBookingForm(){
  const {user,hotelId}=useHotelAuth();
  const property=useLiveProperty();
@@ -42,6 +50,10 @@ export function LiveBookingForm(){
  const canBook=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&(h.role==='admin'||h.role==='front_desk')
   &&(h.role==='admin'||h.permissions?.includes('booking.create')!==false));
  const [selection,setSelection]=useState<BookingSelection>(()=>initialSelection(today,requestedGuest,requestedDay,requestedOut));
+ const [codeKind,setCodeKind]=useState<'none'|'corporate'|'promotion'>('none');
+ const [code,setCode]=useState('');
+ const [reviewVersion,setReviewVersion]=useState(0);
+ const [acceptedToken,setAcceptedToken]=useState('');
  const [checked,setChecked]=useState<BookingSelection|null>(null);
  const [pending,setPending]=useState<BookingSubmission|null>(null);
  const [result,setResult]=useState<ConfirmedBooking|null>(null);
@@ -74,10 +86,15 @@ export function LiveBookingForm(){
  });
  const suggestedRoom=selectedRoomQuery.data??null;
  const availability=useLiveAvailability(checked);
- const quote=useLiveRoomQuote(checked,checked?.ratePlanId??'');
+ const quote=useLiveRoomQuote(dynamicBookingEnabled?null:checked,checked?.ratePlanId??'');
+ const codes=codeKind==='corporate'?{corporateCode:code.trim().toUpperCase()}:codeKind==='promotion'?{promoCode:code.trim().toUpperCase()}:{};
+ const dynamicQuote=useDynamicBookingQuote(checked,codes,reviewVersion);
+ const reviewed=dynamicQuote.data;
+ const validCode=!dynamicBookingEnabled||codeKind==='none'||/^[A-Z0-9_-]{1,40}$/.test(code.trim().toUpperCase());
+ const policy=reviewed?.policyTerms;
 
  useEffect(()=>{
-  setSelection(initialSelection(today,requestedGuest,requestedDay,requestedOut));setChecked(null);
+  setSelection(initialSelection(today,requestedGuest,requestedDay,requestedOut));setChecked(null);setCodeKind('none');setCode('');setAcceptedToken('');
   // Retain an uncertain booking request when switching away and back to its
   // hotel. Replaying the original key is safer than generating a duplicate.
   setPending(hotelId?pendingByHotel.current.get(hotelId)??null:null);
@@ -104,14 +121,14 @@ export function LiveBookingForm(){
   ??(createdGuest?.id===selection.guestId?createdGuest:undefined)
   ??(linkedGuest.isSuccess&&usingLinkedGuest?linkedGuest.data:undefined);
  const rate=activeRates.find(item=>item.id===selection.ratePlanId);
- const valid=!!guest&&!!rate&&validLiveStay(selection)&&selection.checkIn>=today;
+ const valid=!!guest&&!!rate&&validLiveStay(selection)&&selection.checkIn>=today&&validCode;
  const samePreview=checked!==null&&checked.guestId===selection.guestId
   &&checked.roomTypeId===selection.roomTypeId&&checked.ratePlanId===selection.ratePlanId
   &&checked.checkIn===selection.checkIn&&checked.checkOut===selection.checkOut;
  const ready=canBook&&valid&&samePreview
   &&availability.isSuccess&&availability.data.data.canBook
-  &&quote.isSuccess&&quote.data.data.roomTypeId===selection.roomTypeId
-  &&quote.data.data.ratePlanId===selection.ratePlanId&&!pending&&!result&&!busy;
+  &&(dynamicBookingEnabled?dynamicQuote.isSuccess&&!dynamicQuote.isFetching&&!!reviewed&&acceptedToken===reviewed.quoteToken:
+  quote.isSuccess&&quote.data.data.roomTypeId===selection.roomTypeId&&quote.data.data.ratePlanId===selection.ratePlanId)&&!pending&&!result&&!busy;
  const locked=!!pending||!!result||busy;
  const stage=result?'complete':checked&&samePreview?'review':'details';
  useEffect(()=>{
@@ -132,7 +149,7 @@ export function LiveBookingForm(){
   event.preventDefault();
   if(!valid||!canBook||locked)return;
   setError(null);
-  setChecked({...selection});
+  setAcceptedToken('');setReviewVersion(v=>v+1);setChecked({...selection});
  };
 
  async function send(submission:BookingSubmission){
@@ -171,7 +188,7 @@ export function LiveBookingForm(){
  }
  const submit=()=>{
   if(!ready||!hotelId)return;
-  const submission=makeBookingSubmission(hotelId,selection,crypto.randomUUID());
+  const submission=makeBookingSubmission(hotelId,selection,crypto.randomUUID(),dynamicBookingEnabled&&reviewed?{dynamicQuoteToken:reviewed.quoteToken,...codes}:undefined);
   try{buildBookingPayload(submission);}catch(cause){
    setError(cause instanceof Error?cause:new Error('Invalid booking inputs.'));return;
   }
@@ -183,7 +200,7 @@ export function LiveBookingForm(){
  const reset=()=>{
   if(busy)return;
   if(hotelId)pendingByHotel.current.delete(hotelId);
-  setPending(null);setResult(null);setError(null);setChecked(null);
+  setPending(null);setResult(null);setError(null);setChecked(null);setCodeKind('none');setCode('');setAcceptedToken('');
   setSelection(initialSelection(today,requestedGuest,requestedDay,requestedOut));
  };
  return <section className="reservation-booking-panel" aria-label="Create booking">
@@ -260,6 +277,10 @@ export function LiveBookingForm(){
            </option>)}
           </select></div>
         </div>
+        {dynamicBookingEnabled&&<div className="rb-grid" style={{marginTop:12}}>
+         <div><label className="rb-label" htmlFor="booking-code-kind">Rate eligibility (optional)</label><select id="booking-code-kind" className="wizard-input" value={codeKind} onChange={event=>{setCodeKind(event.target.value as typeof codeKind);setCode('');setChecked(null);setAcceptedToken('');}}><option value="none">Standard rate</option><option value="corporate">Corporate code</option><option value="promotion">Promo code</option></select></div>
+         {codeKind!=='none'&&<div><label className="rb-label" htmlFor="booking-code">Eligibility code</label><input id="booking-code" className="wizard-input" value={code} required maxLength={40} pattern="[A-Za-z0-9_\\-]+" onChange={event=>{setCode(event.target.value.toUpperCase());setChecked(null);setAcceptedToken('');}}/></div>}
+        </div>}
        </div>
       </fieldset>
       {!samePreview&&checked&&<p className="rb-hint" role="status">Details changed. Check availability again to refresh the quote.</p>}
@@ -283,7 +304,7 @@ export function LiveBookingForm(){
      <div className="rb-summary-row"><span>Duration</span><strong>{nights?`${nights} ${nights===1?'night':'nights'}`:'—'}</strong></div>
      <div className="rb-summary-row"><span>Room</span><strong>{suggestedRoom&&suggestedRoom.roomTypeId===selection.roomTypeId?'Preferred '+suggestedRoom.number:types.data.data.find(item=>item.id===selection.roomTypeId)?.name??'Not selected'}</strong></div>
      <div className="rb-summary-total"><small>Estimated room subtotal</small><strong>{estimate!==null&&rate?displayMoney(estimate,rate.currency):'—'}</strong></div>
-     <p>Based on the selected nightly rate. Taxes, fees and deposits are not included.</p>
+     <p>{dynamicBookingEnabled?'Base-rate estimate only. Actual nightly rates and policy terms are shown during review.':'Based on the selected nightly rate. Taxes, fees and deposits are not included.'}</p>
     </aside>
    </div>}
    {checked&&samePreview&&!result&&<section className="rb-review" aria-label="Review and confirm reservation" aria-live="polite">
@@ -292,18 +313,30 @@ export function LiveBookingForm(){
      <span className={'rb-availability '+(availability.isSuccess&&availability.data.data.canBook?'available':'')}>
       {availability.isPending?'Checking…':availability.isSuccess?(availability.data.data.canBook?'Available':'Unavailable'):'Not verified'}
      </span></div>
-    <QueryFeedback loading={availability.isPending||quote.isPending} error={availability.error??quote.error}/>
+    <QueryFeedback loading={availability.isPending||(dynamicBookingEnabled?dynamicQuote.isPending:quote.isPending)} error={availability.error??(dynamicBookingEnabled?dynamicQuote.error:quote.error)} onRetry={()=>{setAcceptedToken('');void availability.refetch();if(dynamicBookingEnabled)void dynamicQuote.refetch();else void quote.refetch();}}/>
     <div className="rb-review-grid">
      <div><small>Guest</small><strong>{guest?.firstName} {guest?.lastName}</strong></div>
      <div><small>Stay</small><strong>{selection.checkIn} → {selection.checkOut}</strong></div>
      <div><small>Room type</small><strong>{types.data?.data.find(t=>t.id===selection.roomTypeId)?.name??'—'}</strong></div>
-     <div><small>Room subtotal</small><strong>{quote.isSuccess?displayMoney(quote.data.data.roomSubtotalMinor,quote.data.data.currency):'Checking…'}</strong></div>
+     <div><small>Room subtotal</small><strong>{dynamicBookingEnabled?(reviewed?displayMoney(reviewed.roomSubtotalMinor,reviewed.currency):'Not verified'):quote.isSuccess?displayMoney(quote.data.data.roomSubtotalMinor,quote.data.data.currency):'Checking…'}</strong></div>
     </div>
+    {dynamicBookingEnabled&&reviewed&&<div className="rb-section" style={{marginTop:16}}>
+     <h4>Nightly rate breakdown</h4>
+     {reviewed.nightlyRates.map(night=><div className="rb-summary-row" key={night.date}><span>{night.date} · {night.source.replaceAll('_',' ')}</span><strong>{displayMoney(night.amountMinor,reviewed.currency)}</strong></div>)}
+     {policy?<><h4 style={{marginTop:16}}>Booking policy · version {policy.version}</h4>
+      <div className="rb-summary-row"><span>Deposit requirement</span><strong>{describePolicy(policy.depositKind,policy.depositValue,reviewed.currency)}</strong></div>
+      <div className="rb-summary-row"><span>Free cancellation</span><strong>{Math.max(1,policy.freeCancelDays)} day(s) before arrival</strong></div>
+      <div className="rb-summary-row"><span>Late cancellation</span><strong>{describePolicy(policy.lateCancelKind,policy.lateCancelValue,reviewed.currency)}</strong></div>
+      <div className="rb-summary-row"><span>No-show</span><strong>{describePolicy(policy.noShowKind,policy.noShowValue,reviewed.currency)}</strong></div>
+     </>:<p>No rate-specific policy has been configured.</p>}
+     <p className="rb-hint">Taxes and fees are not calculated here. Policy terms are saved with the booking; no deposit or penalty is automatically collected.</p>
+     <label className="stay-confirm-check"><input type="checkbox" disabled={locked||dynamicQuote.isFetching} checked={acceptedToken===reviewed.quoteToken} onChange={event=>setAcceptedToken(event.target.checked?reviewed.quoteToken:'')}/> <span>I reviewed the nightly prices and booking terms.</span></label>
+    </div>}
     {availability.isSuccess&&!availability.data.data.canBook&&<p className="rb-unavailable" role="alert">No rooms are available for every night of this stay. Change the dates or room type.</p>}
     <div className="rb-review-actions"><button type="button" className="btn-inline" disabled={locked} onClick={()=>setChecked(null)}><ArrowLeft size={15}/> Edit details</button>
      <button type="button" className="btn-primary rb-main-action" disabled={!ready} onClick={submit}>
       {busy?'Creating booking…':'Confirm booking'} <ArrowRight size={16}/></button></div>
-    <p className="rb-review-footnote"><AlertTriangle size={14}/> Room assignment, identity checks and payments happen separately. The quote is provisional.</p>
+    <p className="rb-review-footnote"><AlertTriangle size={14}/> Room assignment, identity checks and payments happen separately. {dynamicBookingEnabled?'The server revalidates the reviewed price and terms before saving.':'The quote is provisional.'}</p>
    </section>}
    {error&&<div role="alert" className="auth-error rb-booking-error">
     {error instanceof ApiError&&error.status===409?'Availability changed. Review your stay and try again. '+error.message:

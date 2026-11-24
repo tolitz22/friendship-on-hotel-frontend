@@ -67,3 +67,17 @@ describe('Phase 31 live booking creation contract',()=>{
   expect(()=>buildBookingPayload(makeBookingSubmission('4',selection,'short'))).toThrow(/request key/);
  });
 });
+
+
+describe('Phase 66G.2 reviewed pricing payload',()=>{
+ it('keeps the reviewed quote and code unchanged during safe retry',()=>{
+  const pricing={dynamicQuoteToken:'a'.repeat(64),corporateCode:'CORP'};
+  const attempt=makeBookingSubmission('4',selection,'dynamic-key-0001',pricing);
+  pricing.corporateCode='OTHER';
+  expect(buildBookingPayload(attempt)).toMatchObject({dynamicQuoteToken:'a'.repeat(64),corporateCode:'CORP'});
+ });
+ it('rejects invalid tokens and simultaneous eligibility codes',()=>{
+  expect(()=>buildBookingPayload(makeBookingSubmission('4',selection,'dynamic-key-0002',{dynamicQuoteToken:'bad'}))).toThrow(/Invalid reviewed pricing/);
+  expect(()=>buildBookingPayload(makeBookingSubmission('4',selection,'dynamic-key-0003',{dynamicQuoteToken:'a'.repeat(64),corporateCode:'CORP',promoCode:'SALE'}))).toThrow(/Invalid reviewed pricing/);
+ });
+});

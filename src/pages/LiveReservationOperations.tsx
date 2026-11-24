@@ -96,9 +96,9 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const billMoney=(minor:number)=>new Intl.NumberFormat('en-PH',{style:'currency',currency:bill?.currency??'PHP'}).format(minor/100);
  const recordedBalance=bill?bill.netRecordedChargesMinor-recordedPayments+bill.verifiedRefundsMinor:0;
  const billStatus=!bill?'Unavailable':financialBlock
-  ?pendingPayment?'Payment review pending':recordedBalance>0?'Balance outstanding':'Billing needs attention'
-  :paymentReady||bill.routineCashCheckoutEligible?'Paid · checkout ready'
-  :recordedBalance>0?'Balance outstanding':pendingPayment?'Payment review pending'
+  ?pendingPayment?'Review pending':recordedBalance>0?'Unpaid balance':'Needs attention'
+  :paymentReady||bill.routineCashCheckoutEligible?'Paid'
+  :recordedBalance>0?'Unpaid balance':pendingPayment?'Review pending'
   :recordedBalance<0?'Credit / overpayment':recordedBalance===0?'No recorded balance':'Review bill';
 
  useEffect(()=>{
@@ -239,7 +239,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
    Opened from the front desk queue. Review the details before confirming a change.
   </p>}
 
-  {allowStayAction&&<section className="stay-next-strip" aria-label="Recommended next step">
+  {allowStayAction&&isConfirmed&&<section className="stay-next-strip" aria-label="Recommended next step">
    <span className={'stay-next-strip-icon '+(
     isInHouse&&financialBlock||isConfirmed&&!roomAssigned||
     isConfirmed&&roomAssigned&&readinessNeeded&&readiness.isSuccess&&!readiness.data.advisoryReady
@@ -300,7 +300,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
        <p className="stay-action-description">{isConfirmed
         ?'Confirm guest identity and room readiness before recording arrival.'
         :earlyDepartureWindow?'Request an early departure and have it reviewed by an authorized manager.'
-        :'Confirm departure and financial follow-up before ending this registered stay.'}</p>
+        :'Review the bill and confirm the guest has departed.'}</p>
       </div>
      </div>
      {isConfirmed&&<div className="stay-requirement">
@@ -360,31 +360,21 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
      {isConfirmed&&!roomAssigned&&<p className="stay-security-note">Assign a room to view inspection and housekeeping status.</p>}
      {isInHouse&&<section className="stay-operation-impact" aria-label="Guest bill and payment status">
       <div className="stay-section-heading">
-       <div><h3>Guest bill</h3><p>Review payment before completing departure.</p></div>
-       {canDo('finance.read')&&<Link to="/billing" search={{booking:record.id}} className="stay-text-button">Open guest bill <ArrowRight size={15}/></Link>}
+       <div><h3>Guest bill</h3>{bill&&<p role="status"><strong>{billStatus}</strong></p>}</div>
+       {canDo('finance.read')&&<Link to="/billing" search={{booking:record.id}} className="stay-text-button">View bill <ArrowRight size={15}/></Link>}
       </div>
-      {bill?<><div className="stay-facts-item"><small>Payment status</small><strong>{billStatus}</strong></div>
-       <div className="stay-facts-item"><small>Total charges (net)</small><strong>{billMoney(bill.netRecordedChargesMinor)}</strong></div>
-       <div className="stay-facts-item"><small>Recorded payments</small><strong>{billMoney(recordedPayments)}</strong></div>
-       {bill.verifiedRefundsMinor>0&&<div className="stay-facts-item"><small>Verified refunds</small><strong>{billMoney(bill.verifiedRefundsMinor)}</strong></div>}
-       <div className="stay-facts-item"><small>{recordedBalance<0?'Recorded credit':'Recorded balance'}</small><strong>{billMoney(Math.abs(recordedBalance))}</strong></div>
-       {activePayments.length>0&&<ul>{activePayments.map(p=><li key={p.id}>{statusLabel(p.method)} · {billMoney(p.amountMinor)} · {p.status==='pending_review'?'Review pending':p.verificationStatus==='verified'?'Verified':'Recorded / staff confirmed'}</li>)}</ul>}
-       {financialBlock&&<p className="stay-blocked-hint" role="status">{financialBlock}{recordedBalance<=0?' Do not collect the recorded payment again.':''}</p>}
+      {bill?<><div className="stay-facts-item"><small>Total bill</small><strong>{billMoney(bill.netRecordedChargesMinor)}</strong></div>
+       <div className="stay-facts-item"><small>Payments recorded</small><strong>{billMoney(recordedPayments)}</strong></div>
+       {bill.verifiedRefundsMinor>0&&<div className="stay-facts-item"><small>Refunds</small><strong>{billMoney(bill.verifiedRefundsMinor)}</strong></div>}
+       <div className="stay-facts-item"><small>{recordedBalance<0?'Credit':'Balance'}</small><strong>{billMoney(Math.abs(recordedBalance))}</strong></div>
+       {financialBlock&&recordedBalance<=0&&<p className="stay-security-note">Do not collect the recorded payment again.</p>}
+       {earlyDepartureWindow&&financialBlock&&<p className="stay-blocked-hint" role="status">{financialBlock}</p>}
        {checkoutStatement.isFetching&&<small role="status">Refreshing bill…</small>}
-      </>:<p role="status">{!canDo('finance.read')?'Your role cannot view financial details. The server will validate billing at checkout.':checkoutStatement.isFetching?'Loading billing details…':'Billing preview unavailable. The server will validate billing at checkout.'}</p>}
-      {canDo('finance.read')&&<button type="button" className="stay-text-button" disabled={checkoutStatement.isFetching||busy} onClick={()=>void checkoutStatement.refetch()}><RefreshCw size={14}/> Refresh bill</button>}
+      </>:<p role="status">{!canDo('finance.read')?'Billing is checked at checkout.':checkoutStatement.isFetching?'Loading bill…':'Bill unavailable. Billing is checked at checkout.'}</p>}
+      {canDo('finance.read')&&checkoutStatement.isError&&<button type="button" className="stay-text-button" disabled={checkoutStatement.isFetching||busy} onClick={()=>void checkoutStatement.refetch()}><RefreshCw size={14}/> Retry</button>}
      </section>}
-     {isInHouse&&<div className="stay-operation-impact" aria-label="Checkout confirmation details">
-      <strong>Before checking out this guest{record.assignedRoomNumber?' from Room '+record.assignedRoomNumber:''}:</strong>
-      <ul>
-       <li>The reservation will be marked checked out after server validation.</li>
-       <li>A checkout-clean housekeeping task will be created for the room.</li>
-       <li>This action does not verify, allocate, refund or financially settle a payment.</li>
-       <li>Room readiness still requires a current inspection and separate cleaning records.</li>
-      </ul>
-     </div>}
      {isInHouse&&!earlyDepartureWindow&&<label className="night-audit-date">
-      Confirmed departure time (optional, hotel local)
+      Departure time (optional)
       <input className="wizard-input" type="datetime-local" value={confirmedDepartureAt}
        disabled={busy} onChange={event=>setConfirmedDepartureAt(event.target.value)}/>
      </label>}
@@ -393,7 +383,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
        onChange={e=>setAcknowledged(e.target.checked)}/>
       <span>{isConfirmed
        ?'I have verified the guest’s identity against their identification.'
-       :'I have verified departure timing and reviewed any payment or balance follow-up.'}</span>
+       :'I confirm the guest has departed and I have reviewed the bill.'}</span>
      </label>}
      {!earlyDepartureWindow&&<div className="stay-action-footer">
       <button type="button" className="btn-primary stay-submit-btn" disabled={!canProceed}
@@ -417,7 +407,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
        <Link to="/billing" search={{booking:record.id}}>Review guest bill <ArrowRight size={14}/></Link>
       </div>
      </>}
-     <p className="stay-security-note">The server checks stay dates, permissions and applicable financial checkout rules. Early checkout does not change payments or automatically refund unused nights.</p>
+     <p className="stay-security-note">Checkout creates a housekeeping cleaning task. It does not change payments or issue refunds.</p>
     </section>}
     {!canOperate&&(isConfirmed||isInHouse)&&<p className="stay-blocked-hint" role="status">
      Your hotel role cannot check in or check out this guest. Ask authorized front-desk staff or an administrator.

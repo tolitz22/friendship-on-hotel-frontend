@@ -81,7 +81,7 @@ const list=z.object({
  }),
 });
 export type GroupBooking=z.infer<typeof group>;
-export type GroupRoomInput={guestId:number;roomTypeId:number;ratePlanId?:number};
+export type GroupRoomInput={guestId:number;roomTypeId:number;ratePlanId?:number;dynamicQuoteToken?:string;corporateCode?:string;promoCode?:string};
 export type GroupBookingInput={
  idempotencyKey:string;name:string;contactName?:string;allotmentId?:number;
  checkIn:string;checkOut:string;rooms:GroupRoomInput[];

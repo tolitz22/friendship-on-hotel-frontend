@@ -11,7 +11,7 @@ const expense=z.object({
  id,journalId:id,recordedBy:id,recordedByName:z.string().nullable(),shiftId:id.nullable(),
  payee:z.string(),description:z.string(),department:z.enum(expenseDepartments),category:z.string(),
  serviceDate:z.string(),businessDate:z.string(),currency:z.literal('PHP'),amountMinor:amount,
- paymentSource:z.literal('cashier_drawer'),paymentStatus:z.literal('paid'),
+ paymentSource:z.enum(['cashier_drawer','hotel_bank','hotel_card']),paymentReference:z.string().nullable().optional(),paymentStatus:z.literal('paid'),
  reviewStatus:z.enum(reviewStatuses),reviewReason:z.string().nullable(),policyLimitMinor:amount.nullable(),
  invoiceReference:z.string().nullable(),createdAt:z.string(),
 });
@@ -23,6 +23,7 @@ const policy=z.object({configured:z.boolean(),routineLimitMinor:amount.nullable(
 export type Expense=z.infer<typeof expense>;
 export type ExpenseFilters={page?:number;department?:typeof expenseDepartments[number];reviewStatus?:typeof reviewStatuses[number];search?:string;from?:string;to?:string};
 export type ExpenseInput={requestKey:string;payee:string;description:string;department:typeof expenseDepartments[number];category:string;serviceDate:string;amountMinor:number;invoiceReference?:string};
+export type DirectExpenseInput=ExpenseInput & {paymentSource:'hotel_bank'|'hotel_card';paymentReference:string};
 function scoped(hotel:string,path:string){
  if(readSession().hotelId!==hotel)throw new Error('Property changed. Reopen this form for the selected hotel.');
  return hotelPath(path);
@@ -43,6 +44,11 @@ export function useExpensePolicy(hotel:string|null,enabled:boolean){
 }
 export async function recordExpensePayout(hotel:string,shift:string,input:ExpenseInput){
  const result=z.object({data:z.object({expenseId:id,payoutId:id,journalId:id,replayed:z.boolean()})}).parse(await requestJson<unknown>(scoped(hotel,'/cashier-shifts/'+encodeURIComponent(shift)+'/expense-payouts'),{method:'POST',body:input})).data;
+ verifyHotel(hotel);return result;
+}
+export async function recordDirectExpense(hotel:string,input:DirectExpenseInput){
+ const result=z.object({data:z.object({expenseId:id,journalId:id,replayed:z.boolean()})}).parse(
+  await requestJson<unknown>(scoped(hotel,'/expenses'),{method:'POST',body:input})).data;
  verifyHotel(hotel);return result;
 }
 export async function reviewExpense(hotel:string,expenseId:string,decision:'approve'|'flag',note:string){

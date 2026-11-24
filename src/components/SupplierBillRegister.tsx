@@ -12,13 +12,14 @@ import {QueryFeedback} from './QueryFeedback';
 import {readableDate,statusLabel} from '../lib/format';
 
 const money=(n:number)=>new Intl.NumberFormat('en-PH',{style:'currency',currency:'PHP'}).format(n/100);
-export function SupplierBillRegister({hotel}:{hotel:string}){
+export function SupplierBillRegister({hotel,recordRequested,onRecordClosed}:{hotel:string;recordRequested?:boolean;onRecordClosed?:()=>void}){
  const {user}=useHotelAuth();
  const client=useQueryClient();
  const [agingOpen,setAgingOpen]=useState(false);
  const [invoiceOpen,setInvoiceOpen]=useState(false);
  const [paymentOpen,setPaymentOpen]=useState(false);
  const [message,setMessage]=useState('');
+ function closeInvoice(){setInvoiceOpen(false);onRecordClosed?.();}
  function refresh(){for(const key of ['supplier-aging','supplier-bills','supplier-bill','cashier-shifts','cashier-shift-detail','current-cashier-shift','cashier-shift-history','expenses','night-audit-reconciliation'])void client.invalidateQueries({queryKey:['live',key,hotel]});}
  const [filters,setFilters]=useState<BillFilters>({page:1,status:'all'});
  const [selected,setSelected]=useState<string|null>(null);
@@ -30,7 +31,7 @@ export function SupplierBillRegister({hotel}:{hotel:string}){
  const filter=(status:BillFilters['status'])=>setFilters(p=>({...p,status,page:1}));
  return <>
   {message&&<p role="status" className="cashier-feedback-success">{message}</p>}
-  {invoiceOpen&&canWrite&&user?.id&&summary?.businessDate&&<SupplierInvoiceDialog hotel={hotel} userId={user.id} businessDate={summary.businessDate} onClose={()=>setInvoiceOpen(false)} onSaved={id=>{setInvoiceOpen(false);setSelected(id);setMessage('Supplier invoice recorded.');refresh();}}/>}
+  {(invoiceOpen||recordRequested)&&canWrite&&user?.id&&summary?.businessDate&&<SupplierInvoiceDialog hotel={hotel} userId={user.id} businessDate={summary.businessDate} onClose={closeInvoice} onSaved={id=>{closeInvoice();setSelected(id);setMessage('Supplier invoice recorded.');refresh();}}/>}
   <div className="expense-summary">
    <Stat label="Outstanding payable" value={summary?money(summary.outstandingMinor):'—'} detail={summary?summary.outstandingCount+' outstanding invoices':'Awaiting supplier data'} icon={<Wallet size={20}/>}/>
    <button type="button" className="expense-summary-button" onClick={()=>filter('overdue')}><Stat label="Overdue payable" value={summary?.overdueMinor==null?'—':money(summary.overdueMinor)} detail={summary?.overdueCount==null?'Financial business date required':summary.overdueCount+' overdue invoices'} icon={<AlertTriangle size={20}/>}/></button>

@@ -18,32 +18,30 @@ import type {ExpenseFilters} from '../api/expenses';
 import {readableDate} from '../lib/format';
 import {expenseMoney as money,expenseDepartmentLabels as labels,expenseReviewLabel as reviewLabel} from '../features/expenses/display';
 
+type RecordPath='drawer'|'direct'|'bill'|'claim';
+
 export type ExpenseView='expenses'|'bills'|'suppliers'|'reimbursements';
 
-function Register({hotel,date}:{hotel:string;date?:string}){
+function Register({hotel,date,recordPath,onRecordClosed}:{hotel:string;date?:string;recordPath:RecordPath|null;onRecordClosed:()=>void}){
  const {user}=useHotelAuth();
  const client=useQueryClient();
  const navigate=useNavigate({from:'/expenses'});
  const returnedFilters=useRouterState({select:s=>s.location.state.expenseRegister?.hotel===hotel?s.location.state.expenseRegister.filters:undefined});
  const policy=useExpensePolicy(hotel,true);
- const [payoutShiftId,setPayoutShiftId]=useState<string|null>(null);
- const payoutButton=useRef<HTMLButtonElement>(null);
  const [policyOpen,setPolicyOpen]=useState(false);
  const [message,setMessage]=useState('');
  function refresh(){void Promise.all([client.invalidateQueries({queryKey:['live','expenses',hotel]}),client.invalidateQueries({queryKey:['live','expense-exceptions',hotel]}),client.invalidateQueries({queryKey:['live','expense-detail',hotel]}),client.invalidateQueries({queryKey:['live','expense-policy',hotel]}),client.invalidateQueries({queryKey:['live','cashier-shifts',hotel]}),client.invalidateQueries({queryKey:['live','cashier-shift-detail',hotel]}),client.invalidateQueries({queryKey:['live','current-cashier-shift',hotel]}),client.invalidateQueries({queryKey:['live','cashier-shift-history',hotel]}),client.invalidateQueries({queryKey:['live','night-audit-reconciliation',hotel]})]);}
  const [filters,setFilters]=useState<ExpenseFilters>(returnedFilters??{page:1,...(date?{from:date,to:date}:{})});
  const list=useExpenses(hotel,true,filters);
  const postingEnabled=list.data?.postingEnabled===true;
- const currentShift=useCurrentCashierShift(postingEnabled);
+ const currentShift=useCurrentCashierShift(postingEnabled&&recordPath==='drawer');
  const shift=currentShift.data;
  const payoutAvailable=postingEnabled&&currentShift.isSuccess&&shift?.hotelId===hotel&&
   shift.cashierId===user?.id&&shift.expensePostingEnabled===true;
- function closePayout(){
-  setPayoutShiftId(null);
-  payoutButton.current?.focus();
- }
+ const directAvailable=postingEnabled&&recordPath==='direct';
+ const payoutShiftId=recordPath==='drawer'&&payoutAvailable?shift.id:undefined;
  function payoutSaved(id:string){
-  setPayoutShiftId(null);
+  onRecordClosed();
   refresh();
   void navigate({to:'/expenses/$expenseId',params:{expenseId:id},search:{hotel,date},
    state:{expenseRegister:{hotel,filters},recordedExpenseId:id}});
@@ -60,18 +58,16 @@ function Register({hotel,date}:{hotel:string;date?:string}){
    </div>
    <div className="desk-tools">
     <button type="button" className="btn-inline" disabled={!policy.isSuccess} onClick={()=>setPolicyOpen(true)}>Expense policy</button>
-    {postingEnabled&&<button ref={payoutButton} type="button" className="btn-primary" disabled={!payoutAvailable}
-     onClick={()=>{if(payoutAvailable&&shift){setMessage('');setPayoutShiftId(shift.id);}}}>Record cash paid out</button>}
    </div>
   </div>
-  {postingEnabled&&<QueryFeedback loading={currentShift.isPending} error={currentShift.error} onRetry={()=>void currentShift.refetch()}/>}
-  {postingEnabled&&currentShift.isSuccess&&!payoutAvailable&&<div className="notice">
+  {recordPath==='drawer'&&postingEnabled&&<QueryFeedback loading={currentShift.isPending} error={currentShift.error} onRetry={()=>void currentShift.refetch()}/>}
+  {recordPath==='drawer'&&postingEnabled&&currentShift.isSuccess&&!payoutAvailable&&<div className="notice">
    {shift?.cashierId===user?.id&&shift?.hotelId===hotel
     ?'Expense posting is unavailable for this shift.'
     :<>Open your own cashier shift to record cash paid out. <Link to="/cashier-shifts">Go to Cashier shifts</Link></>}
   </div>}
-  {payoutShiftId&&user?.id&&<ExpensePayoutModal key={hotel+':'+payoutShiftId+':'+user.id}
-   hotel={hotel} shift={payoutShiftId} userId={user.id} onClose={closePayout} onSuccess={payoutSaved}/>}
+  {(payoutShiftId||directAvailable)&&user?.id&&<ExpensePayoutModal key={hotel+':'+recordPath+':'+user.id}
+   hotel={hotel} shift={payoutShiftId} userId={user.id} onClose={onRecordClosed} onSuccess={payoutSaved}/>}
   {message&&<p role="status" className="cashier-feedback-success">{message}</p>}
   {policyOpen&&policy.data&&<ExpensePolicyDialog hotel={hotel} currentLimit={policy.data.routineLimitMinor} onClose={()=>setPolicyOpen(false)} onSaved={()=>{setPolicyOpen(false);setMessage('Expense policy saved.');refresh();}}/>}
   {list.data&&!list.data.postingEnabled&&<div className="notice">Expense posting is not enabled for this deployment. Existing vouchers remain available for review.</div>}
@@ -95,8 +91,8 @@ function Register({hotel,date}:{hotel:string;date?:string}){
    </div>
    <QueryFeedback loading={list.isPending} error={list.error} onRetry={()=>void list.refetch()}/>
    {list.data&&list.data.data.length===0&&<p>{hasFilters?'No expenses match these filters.':'No expense vouchers have been recorded yet.'}</p>}
-   {!!list.data?.data.length&&<div className="table-scroll"><table><thead><tr><th>Expense</th><th>Department</th><th>Business date</th><th>Amount</th><th>Review</th><th>Voucher</th></tr></thead><tbody>
-    {list.data.data.map(e=><tr key={e.id}><td><strong>{e.description}</strong><small className="expense-payee">{e.payee}</small></td><td>{labels[e.department]}</td><td>{readableDate(e.businessDate)}</td><td>{money(e.amountMinor)}</td><td><Status value={reviewLabel(e.reviewStatus)}/></td><td><Link className="btn-inline" to="/expenses/$expenseId" params={{expenseId:e.id}} search={{hotel,date}}
+   {!!list.data?.data.length&&<div className="table-scroll"><table><thead><tr><th>Expense</th><th>Department</th><th>Business date</th><th>Paid from</th><th>Amount</th><th>Review</th><th>Voucher</th></tr></thead><tbody>
+    {list.data.data.map(e=><tr key={e.id}><td><strong>{e.description}</strong><small className="expense-payee">{e.payee}</small></td><td>{labels[e.department]}</td><td>{readableDate(e.businessDate)}</td><td>{{cashier_drawer:'Cashier drawer',hotel_bank:'Hotel bank',hotel_card:'Hotel card'}[e.paymentSource]}</td><td>{money(e.amountMinor)}</td><td><Status value={reviewLabel(e.reviewStatus)}/></td><td><Link className="btn-inline" to="/expenses/$expenseId" params={{expenseId:e.id}} search={{hotel,date}}
      state={{expenseRegister:{hotel,filters}}}>{e.reviewStatus==='pending'?'Inspect expense':'View details'}</Link></td></tr>)}
    </tbody></table></div>}
    {list.data&&<div className="desk-tools"><button className="btn-inline" disabled={list.data.meta.page<=1} onClick={()=>setFilters(p=>({...p,page:(p.page??1)-1}))}>Previous</button><span>Page {list.data.meta.page} of {Math.max(1,list.data.meta.totalPages)}</span><button className="btn-inline" disabled={list.data.meta.page>=list.data.meta.totalPages} onClick={()=>setFilters(p=>({...p,page:(p.page??1)+1}))}>Next</button></div>}
@@ -116,19 +112,44 @@ const expenseViews:ReadonlyArray<{id:ExpenseView;label:string}>=[
 function ExpensesWorkspace({hotel,date,tab}:{hotel:string;date?:string;tab:ExpenseView}){
  const {user}=useHotelAuth();
  const navigate=useNavigate({from:'/expenses'});
+ const [chooserOpen,setChooserOpen]=useState(false);
+ const [recordPath,setRecordPath]=useState<RecordPath|null>(null);
+ const recordButton=useRef<HTMLButtonElement>(null);
+ function stopRecording(){
+  setChooserOpen(false);
+  setRecordPath(null);
+  recordButton.current?.focus();
+ }
+ function record(path:RecordPath,view:ExpenseView){
+  setChooserOpen(false);
+  setRecordPath(path);
+  void navigate({search:previous=>({...previous,tab:view==='expenses'?undefined:view})});
+ }
  return <>
-  <Heading title="Expenses" description="Review cash payouts, supplier invoices, and employee expense claims."/>
+  <Heading title="Expenses" description="Record and review hotel expenses, supplier bills, and employee claims."/>
+  <div className="desk-tools">
+   <button type="button" ref={recordButton} className="btn-primary" aria-expanded={chooserOpen}
+    onClick={()=>{setRecordPath(null);setChooserOpen(open=>!open);}}>Record expense</button>
+  </div>
+  {chooserOpen&&<Panel title="How was this expense paid?">
+   <div className="desk-tools">
+    <button type="button" className="btn-inline" onClick={()=>record('drawer','expenses')}>Front-desk drawer paid</button>
+    <button type="button" className="btn-inline" onClick={()=>record('direct','expenses')}>Hotel bank account or card paid</button>
+    <button type="button" className="btn-inline" onClick={()=>record('claim','reimbursements')}>I paid with my own money</button>
+    <button type="button" className="btn-inline" onClick={()=>record('bill','bills')}>Supplier hasn’t been paid yet</button>
+   </div>
+  </Panel>}
   <div className="expense-workspace-nav" role="group" aria-label="Expenses workspace">
    {expenseViews.map(view=><button key={view.id} type="button" className="btn-inline"
     aria-pressed={tab===view.id}
-    onClick={()=>void navigate({search:previous=>({...previous,tab:view.id==='expenses'?undefined:view.id})})}>
+    onClick={()=>{setRecordPath(null);setChooserOpen(false);void navigate({search:previous=>({...previous,tab:view.id==='expenses'?undefined:view.id})});}}>
     {view.label}
    </button>)}
   </div>
-  {tab==='expenses'&&<Register hotel={hotel} date={date}/>}
-  {tab==='bills'&&<SupplierBillRegister hotel={hotel}/>}
+  {tab==='expenses'&&<Register hotel={hotel} date={date} recordPath={recordPath} onRecordClosed={stopRecording}/>}
+  {tab==='bills'&&<SupplierBillRegister hotel={hotel} recordRequested={recordPath==='bill'} onRecordClosed={stopRecording}/>}
   {tab==='suppliers'&&<SupplierDirectory hotel={hotel}/>}
-  {tab==='reimbursements'&&user&&<EmployeeReimbursements hotel={hotel} userId={user.id} admin canSubmit/>}
+  {tab==='reimbursements'&&user&&<EmployeeReimbursements hotel={hotel} userId={user.id} admin canSubmit recordRequested={recordPath==='claim'} onRecordClosed={stopRecording}/>}
  </>;
 }
 

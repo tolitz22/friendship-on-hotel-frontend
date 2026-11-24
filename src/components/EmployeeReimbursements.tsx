@@ -60,12 +60,14 @@ function ClaimDialog({hotel,userId,mode,claim,onClose,onSaved}:{hotel:string;use
  <div className="cash-shift-close-buttons"><button className="btn-primary" disabled={busy||(!pending&&!valid)} type="submit">{busy?'Saving…':pending?'Retry original transaction':title}</button><button className="btn-inline" type="button" disabled={busy} onClick={onClose}>{pending?'Close (retry saved)':'Cancel'}</button></div>
  </form></section></div>;
 }
-export function EmployeeReimbursements({hotel,userId,admin,canSubmit}:{hotel:string;userId:string;admin:boolean;canSubmit:boolean}){
- const [page,setPage]=useState(1),[selected,setSelected]=useState<string|null>(null),[mode,setMode]=useState<Mode|null>(null),[message,setMessage]=useState('');
+export function EmployeeReimbursements({hotel,userId,admin,canSubmit,recordRequested,onRecordClosed}:{hotel:string;userId:string;admin:boolean;canSubmit:boolean;recordRequested?:boolean;onRecordClosed?:()=>void}){
+ const [page,setPage]=useState(1),[selected,setSelected]=useState<string|null>(null),[localMode,setMode]=useState<Mode|null>(null),[message,setMessage]=useState('');
  const list=useEmployeeClaims(hotel,page),detail=useEmployeeClaim(hotel,selected),client=useQueryClient();
  const enabled=list.isSuccess&&list.data.postingEnabled;
  const claim=detail.data;
- function saved(id:string){setMode(null);setSelected(id);setMessage('Transaction recorded.');for(const k of ['employee-claims','employee-claim','cashier-shifts','cashier-shift-detail','cashier-shift-history','current-cashier-shift','night-audit-reconciliation','employee-liability'])void client.invalidateQueries({queryKey:['live',k,hotel]});}
+ const mode=recordRequested&&canSubmit?'submit':localMode;
+ function closeDialog(){setMode(null);onRecordClosed?.();}
+ function saved(id:string){closeDialog();setSelected(id);setMessage('Transaction recorded.');for(const k of ['employee-claims','employee-claim','cashier-shifts','cashier-shift-detail','cashier-shift-history','current-cashier-shift','night-audit-reconciliation','employee-liability'])void client.invalidateQueries({queryKey:['live',k,hotel]});}
  function pending(m:Mode,id:string){try{return !!sessionStorage.getItem('foh.reimbursement.pending.'+hotel+'.'+userId+'.'+m+'.'+id);}catch{return false;}}
  return <>
  {message&&<p role="status">{message}</p>}
@@ -85,6 +87,6 @@ export function EmployeeReimbursements({hotel,userId,admin,canSubmit}:{hotel:str
  {enabled&&admin&&claim.employeeId!==userId&&<div className="desk-tools">{(claim.status==='pending'||pending('review',claim.id))&&<button className="btn-primary" onClick={()=>setMode('review')}>Review claim</button>}{(claim.outstandingMinor>0||pending('pay',claim.id))&&<button className="btn-primary" onClick={()=>setMode('pay')}>Record reimbursement</button>}</div>}
  <h4>Payment history</h4>{claim.payments.length===0&&<p>No payments recorded.</p>}{claim.payments.map(p=><p key={p.id}>{money(p.amountMinor)} · {statusLabel(p.paymentSource)} · {readableDate(p.businessDate)} · {p.evidenceReference}</p>)}</>}
  </Panel>}
- {mode&&enabled&&(mode==='submit'||claim)&&<ClaimDialog key={mode+':'+(claim?.id??'new')} hotel={hotel} userId={userId} mode={mode} claim={mode==='submit'?undefined:claim} onClose={()=>setMode(null)} onSaved={saved}/>}
+ {mode&&enabled&&(mode==='submit'||claim)&&<ClaimDialog key={mode+':'+(claim?.id??'new')} hotel={hotel} userId={userId} mode={mode} claim={mode==='submit'?undefined:claim} onClose={closeDialog} onSaved={saved}/>}
  </>;
 }

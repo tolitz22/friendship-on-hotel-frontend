@@ -45,7 +45,12 @@ test(`${fromExpenses?'Expenses':'Cashier shifts'} retries the same payout after 
  });
  const routePath=fromExpenses?'/expenses':'/cashier-shifts';
  await page.goto(base+routePath);
- await page.getByRole('button',{name:'Record cash paid out'}).click();
+ if(fromExpenses){
+  await page.getByRole('button',{name:'Record expense',exact:true}).click();
+  await page.getByRole('button',{name:'Front-desk drawer paid'}).click();
+ }else{
+  await page.getByRole('button',{name:'Record cash paid out'}).click();
+ }
  const dialog=page.getByRole('dialog',{name:'Record cash paid out'});
  await dialog.getByLabel('Amount (PHP)').fill('350.00');
  await dialog.getByLabel('Payee').fill('Supply Shop');
@@ -55,7 +60,12 @@ test(`${fromExpenses?'Expenses':'Cashier shifts'} retries the same payout after 
  await expect(dialog.getByRole('button',{name:'Retry original payout'})).toBeEnabled();
  await expect(dialog.getByLabel('Amount (PHP)')).toBeDisabled();
  await dialog.getByRole('button',{name:'Close (retry saved)'}).click();
- await page.getByRole('button',{name:'Record cash paid out'}).click();
+ if(fromExpenses){
+  await page.getByRole('button',{name:'Record expense',exact:true}).click();
+  await page.getByRole('button',{name:'Front-desk drawer paid'}).click();
+ }else{
+  await page.getByRole('button',{name:'Record cash paid out'}).click();
+ }
  await dialog.getByRole('button',{name:'Retry original payout'}).click();
  await expect(dialog).toHaveCount(0);
  expect(requests).toHaveLength(2);
@@ -92,7 +102,8 @@ test('manager can inspect and review a voucher and update the future payout limi
   return route.fulfill({status:404,json:{message:'Outside fixture'}});
  });
  await page.goto(base+'/expenses');
- await expect(page.getByRole('button',{name:'Record cash paid out'})).toBeDisabled();
+ await page.getByRole('button',{name:'Record expense',exact:true}).click();
+ await page.getByRole('button',{name:'Front-desk drawer paid'}).click();
  await expect(page.getByRole('link',{name:'Go to Cashier shifts'})).toHaveAttribute('href','/cashier-shifts');
  const needsReview=page.getByRole('button',{name:/Needs review/});
  await needsReview.click();
@@ -127,4 +138,40 @@ test('manager can inspect and review a voucher and update the future payout limi
  await policy.getByRole('button',{name:'Save policy'}).click();
  await expect(page.getByText('Routine payout limit: ₱500.00')).toBeVisible();
  expect(limit).toBe(50000);
+});
+
+test('records a paid hotel-card expense without loading a cashier shift',async({page})=>{
+ await session(page);
+ const paidVoucher={...voucher,recordedBy:'1',shiftId:null,description:'Electricity',
+  paymentSource:'hotel_card',paymentReference:'CARD-123'};
+ let payload:Record<string,unknown>|undefined;
+ let drawerRequests=0;
+ await page.route('**/api/v1/**',async route=>{
+  const path=new URL(route.request().url()).pathname;
+  if(path.endsWith('/auth/me'))return route.fulfill({json:{data:{id:'1',name:'Demo manager',email:'manager@example.test',
+   hotels:[{id:'1',name:'Demo hotel',role:'admin'}]}}});
+  if(path.includes('/cashier-shifts'))drawerRequests++;
+  if(path.endsWith('/expenses')&&route.request().method()==='POST'){
+   payload=route.request().postDataJSON();
+   return route.fulfill({status:201,json:{data:{expenseId:'7',journalId:'9',replayed:false}}});
+  }
+  if(path.endsWith('/expenses'))return route.fulfill({json:{data:[],meta,postingEnabled:true,
+   summary:{businessDate:'2026-11-24',monthExpenseMinor:0,pendingReviewCount:0,flaggedCount:0,supplierBalancesSupported:false}}});
+  if(path.endsWith('/expenses/7'))return route.fulfill({json:{data:{...paidVoucher,review:null}}});
+  return route.fulfill({status:404,json:{message:'Outside fixture'}});
+ });
+ await page.goto(base+'/expenses');
+ await page.getByRole('button',{name:'Record expense',exact:true}).click();
+ await page.getByRole('button',{name:'Hotel bank account or card paid'}).click();
+ const form=page.getByRole('dialog',{name:'Record expense paid by hotel'});
+ await form.getByLabel('Amount (PHP)').fill('350.00');
+ await form.getByLabel('Payee').fill('Utility Company');
+ await form.getByLabel('Purpose').fill('Electricity');
+ await form.getByLabel('Payment method').selectOption('hotel_card');
+ await form.getByLabel('Payment reference').fill('CARD-123');
+ await form.getByRole('button',{name:'Record expense',exact:true}).click();
+ await expect(page).toHaveURL(/\/expenses\/7(?:\?|$)/);
+ await expect(page.getByRole('region',{name:'Expense voucher'})).toContainText('CARD-123');
+ expect(payload).toMatchObject({amountMinor:35000,paymentSource:'hotel_card',paymentReference:'CARD-123'});
+ expect(drawerRequests).toBe(0);
 });

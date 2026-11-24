@@ -78,14 +78,15 @@ function Voucher({hotel,userId,expenseId,date}:{hotel:string;userId:string;expen
      <div><dt>Department</dt><dd>{expenseDepartmentLabels[expense.department]}</dd></div>
      <div><dt>Category</dt><dd>{statusLabel(expense.category)}</dd></div>
      <div><dt>Purchase date</dt><dd>{readableDate(expense.serviceDate)}</dd></div>
-     <div><dt>Payment source</dt><dd>Cashier drawer</dd></div>
+     <div><dt>Payment source</dt><dd>{{cashier_drawer:'Cashier drawer',hotel_bank:'Hotel bank account',hotel_card:'Hotel card'}[expense.paymentSource]}</dd></div>
      <div><dt>Invoice reference</dt><dd>{expense.invoiceReference??'Not recorded'}</dd></div>
      <div><dt>Journal reference</dt><dd>#{expense.journalId}</dd></div>
+     {expense.paymentReference&&<div><dt>Payment reference</dt><dd>{expense.paymentReference}</dd></div>}
      <div><dt>Recorded by</dt><dd>{expense.recordedByName??'Staff name unavailable'}</dd></div>
      <div><dt>Recorded at</dt><dd>{readableDateTime(expense.createdAt)}</dd></div>
     </dl>
    </Panel>
-   <ExpenseCorrectionHistory hotel={hotel} expense={expense} userId={userId}/>
+   {expense.paymentSource==='cashier_drawer'&&<ExpenseCorrectionHistory hotel={hotel} expense={expense} userId={userId}/>}
    {reviewOpen&&canReview&&<ExpenseReviewDialog hotel={hotel} expense={expense} onClose={()=>setReviewOpen(false)} onSaved={savedReview}/>}
   </>}
  </div>;

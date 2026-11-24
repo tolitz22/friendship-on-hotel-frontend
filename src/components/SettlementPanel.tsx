@@ -111,8 +111,8 @@ export function financialCheckoutBlock(data:Statement):string|null{
   return data.routineCashCheckoutEligible?null:data.routineCashCheckoutReason||'Review the guest bill and linked cash receipt.';
  }
  if(!data.settlementWorkflowEnabled)return null;
- if(!data.signed)return 'A manager must sign the financial statement.';
- if(!data.signedSnapshotIntegrity||!data.canSignOff)return 'The signed statement needs financial investigation.';
+ if(data.signed&&!data.signedSnapshotIntegrity)return 'The signed financial statement needs investigation.';
+ if(!data.canSignOff)return data.blockers[0]??'Resolve the remaining billing checks before checkout.';
  return null;
 }
 
@@ -254,7 +254,7 @@ export function SettlementPanel({bookingId,requestedAction}:{bookingId:string;re
   :routineCashException?'Cash payment recorded — review needed'
   :needsCashInvestigation?'Payment needs investigation'
   :nextTask==='disabled'?'Payment recorded — approval unavailable'
-  :nextTask==='signoff'?'Payment verified — final approval needed'
+  :nextTask==='signoff'?'Payment verified — checkout ready'
   :nextTask==='allocation'?'Payment verified — apply to bill'
   :nextTask==='verification'&&cashNeedsReconciliation?'Cash payment recorded — shift review pending'
   :nextTask==='verification'?'Payment confirmed — approval pending'
@@ -312,7 +312,7 @@ export function SettlementPanel({bookingId,requestedAction}:{bookingId:string;re
   :nextTask==='allocation'
    ?'The funds were independently verified. Apply them to the guest charges; do not record another receipt.'
   :nextTask==='signoff'
-   ?'Payment review is complete. An authorized manager must sign the financial statement before operational checkout.'
+   ?'Payment review is complete. The guest can check out when all billing checks pass; separate manager signature is optional.'
   :nextTask==='disabled'
    ?'Payment evidence is on file, but the hotel has not enabled financial sign-off. Ask the manager to verify the approved configuration.'
   :'Check the remaining conditions before settlement. Recorded cash is not an instruction to collect again.';
@@ -403,13 +403,8 @@ export function SettlementPanel({bookingId,requestedAction}:{bookingId:string;re
     <strong>{checkoutBlock?'Checkout blocked — financial action required':'Billing checks clear for checkout'}</strong>
     {guestBillSettled&&<p><strong>{money(0,data.currency)} due</strong> · Reviewed payments cover the bill. Do not collect again.</p>}
     {checkoutBlock&&<p>{checkoutBlock}</p>}
-    {checkoutBlock&&data.settlementWorkflowEnabled&&!data.signed
-     ?manager
-      ?<button type="button" className="btn-inline" disabled={busy}
-        onClick={()=>openDialog('signoff')}><ClipboardCheck size={15}/> Review and sign statement</button>
-      :<p role="status"><ShieldCheck size={15}/> An authorized hotel manager or owner must review and sign the financial statement. Ask the manager to open this folio.</p>
-     :checkoutBlock
-      ?<p role="status">An authorized manager must investigate the remaining checkout blocker before proceeding.</p>
+    {checkoutBlock
+      ?<p role="status">Resolve the listed billing checks before completing checkout. Manager signature is not required for a reconciled guest bill.</p>
       :<Link to="/reservations" search={{booking:bookingId,deskAction:'check-out'}}>Review checkout <ArrowRight size={14}/></Link>}
    </div>}
    <section className="frontdesk-payment-hub" aria-label="Front desk payment and checkout">

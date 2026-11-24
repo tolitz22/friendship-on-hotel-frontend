@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {EmployeeReimbursements} from '../components/EmployeeReimbursements';
 import {SupplierBillRegister} from '../components/SupplierBillRegister';
 import {SupplierDirectory} from '../components/SupplierDirectory';
 import {ExpenseExceptionQueue} from '../components/ExpenseExceptionQueue';
@@ -86,14 +87,16 @@ function Register({hotel,date,expense}:{hotel:string;date?:string;expense?:strin
 }
 
 function ExpensesWorkspace({hotel,date,expense}:{hotel:string;date?:string;expense?:string}){
- const [tab,setTab]=useState<'expenses'|'suppliers'|'bills'>('expenses');
+ const {user}=useHotelAuth();
+ const [tab,setTab]=useState<'expenses'|'suppliers'|'bills'|'reimbursements'>('expenses');
  return <>
   <div className="desk-tools" role="group" aria-label="Expenses workspace">
    <button type="button" className={tab==='expenses'?'btn-primary':'btn-inline'} aria-pressed={tab==='expenses'} onClick={()=>setTab('expenses')}>Expense register</button>
    <button type="button" className={tab==='bills'?'btn-primary':'btn-inline'} aria-pressed={tab==='bills'} onClick={()=>setTab('bills')}>Supplier bills</button>
    <button type="button" className={tab==='suppliers'?'btn-primary':'btn-inline'} aria-pressed={tab==='suppliers'} onClick={()=>setTab('suppliers')}>Suppliers</button>
+   <button type="button" className={tab==='reimbursements'?'btn-primary':'btn-inline'} aria-pressed={tab==='reimbursements'} onClick={()=>setTab('reimbursements')}>Reimbursements</button>
   </div>
-  {tab==='expenses'?<Register hotel={hotel} date={date} expense={expense}/>:tab==='bills'?<><Heading title="Supplier bills" description="Track invoices, outstanding balances and supplier payments."/><SupplierBillRegister hotel={hotel}/></>:<><Heading title="Expenses" description="Manage the hotel's supplier directory."/><SupplierDirectory hotel={hotel}/></>}
+  {tab==='reimbursements'&&user?<EmployeeReimbursements hotel={hotel} userId={user.id} admin canSubmit/>:tab==='expenses'?<Register hotel={hotel} date={date} expense={expense}/>:tab==='bills'?<><Heading title="Supplier bills" description="Track invoices, outstanding balances and supplier payments."/><SupplierBillRegister hotel={hotel}/></>:<><Heading title="Expenses" description="Manage the hotel's supplier directory."/><SupplierDirectory hotel={hotel}/></>}
  </>;
 }
 

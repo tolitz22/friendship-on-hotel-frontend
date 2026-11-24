@@ -32,7 +32,19 @@ const closeResponse=z.object({data:z.object({
 
 function readableDay(date:string){return new Intl.DateTimeFormat('en-PH',{dateStyle:'long',timeZone:'UTC'}).format(new Date(date+'T00:00:00Z'));}
 
-export function FinancialBusinessDayPanel({selectedDate}:{selectedDate:string}){
+export function useFinancialBusinessDay(hotelId:string){
+ return useQuery({
+  queryKey:['live','financial-business-day',hotelId],
+  queryFn:async():Promise<CloseReadiness>=>{
+   const response=z.object({data:dataSchema}).parse(await getJson<unknown>(
+    hotelPath('/finance/business-day'))).data;
+   return response;
+  },
+  retry:false,
+ });
+}
+
+export function FinancialBusinessDayPanel({selectedDate,query,onSelectDate}:{selectedDate:string;query:ReturnType<typeof useFinancialBusinessDay>;onSelectDate:(date:string)=>void}){
  const {hotelId}=useHotelAuth();
  const client=useQueryClient();
  const [typedDate,setTypedDate]=useState('');
@@ -41,16 +53,6 @@ export function FinancialBusinessDayPanel({selectedDate}:{selectedDate:string}){
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState('');
  const [success,setSuccess]=useState('');
- const query=useQuery({
-  queryKey:['live','financial-business-day',hotelId],
-  enabled:!!hotelId,
-  queryFn:async():Promise<CloseReadiness>=>{
-   const response=z.object({data:dataSchema}).parse(await getJson<unknown>(
-    hotelPath('/finance/business-day'))).data;
-   return response;
-  },
-  retry:false,
- });
  useEffect(()=>{setSetupDate('');setTypedDate('');setAck(false);setError('');setSuccess('');},[hotelId,selectedDate]);
  const data=query.data;
  const dateMatches=data?.businessDate===selectedDate;
@@ -102,8 +104,11 @@ export function FinancialBusinessDayPanel({selectedDate}:{selectedDate:string}){
     result.nextBusinessDate+'. Journal totals: '+
     new Intl.NumberFormat('en-PH',{style:'currency',currency:result.reconciliationSnapshot.currency}).format(result.reconciliationSnapshot.debits_minor/100)+' debits and '+
     new Intl.NumberFormat('en-PH',{style:'currency',currency:result.reconciliationSnapshot.currency}).format(result.reconciliationSnapshot.credits_minor/100)+' credits.');
-   await client.invalidateQueries({queryKey:['live','financial-business-day',hotelId]});
-   await client.invalidateQueries({queryKey:['live','night-audit-preview',hotelId]});
+   await Promise.all([
+    client.invalidateQueries({queryKey:['live','financial-business-day',hotelId]}),
+    client.invalidateQueries({queryKey:['live','night-audit-preview',hotelId]}),
+    client.invalidateQueries({queryKey:['live','night-audit-reconciliation',hotelId]}),
+   ]);
   }catch(e){
    if(readSession().hotelId===hotelId){
     setError(e instanceof Error?e.message:'Financial close failed. Refresh status before retrying.');
@@ -141,12 +146,15 @@ export function FinancialBusinessDayPanel({selectedDate}:{selectedDate:string}){
     <div className="night-audit-metric"><small>Invalid journals</small><strong>{data.invalidJournalCount}</strong></div>
    </div>
    {ready?<p className="night-audit-clean"><CheckCircle2 size={17}/> Ready to close. The system will check again before closing.</p>
-    :<div className="night-audit-issues" role="status"><h4><AlertTriangle size={17}/> Complete these items before closing</h4>
+    :dateMatches&&<div className="night-audit-issues" role="status"><h4><AlertTriangle size={17}/> Complete these items before closing</h4>
      <ul>
-      {!dateMatches&&<li>Select {data.businessDate} in the daily checks to close the current financial business date.</li>}
       {data.blockers.map(item=><li key={item}>{item}</li>)}
       {data.openShiftIds?.map(shift=><li key={shift}><Link to="/cashier-shifts" search={{hotel:hotelId??undefined,shift}}>Open cashier shift #{shift}</Link></li>)}
      </ul></div>}
+   {!dateMatches&&<div className="desk-tools">
+    <p>Closing is available for the current financial business date.</p>
+    <button type="button" className="btn-inline" disabled={busy} onClick={()=>onSelectDate(data.businessDate)}>Review current business date</button>
+   </div>}
    <p className="desk-muted">Manager review: <strong>{data.nightAuditReview?.status??'Not yet recorded'}</strong>.
     This readiness check is advisory and can change while other staff post transactions.</p>
    {ready&&<>

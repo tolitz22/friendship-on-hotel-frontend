@@ -7,7 +7,7 @@ import {QueryFeedback} from '../components/QueryFeedback';
 import {hotelToday} from '../features/reservations/calendarDate';
 import {useNightAuditPreview} from '../api/nightAuditPreview';
 import {NightAuditReviewPanel} from '../components/NightAuditReviewPanel';
-import {FinancialBusinessDayPanel} from '../components/FinancialBusinessDayPanel';
+import {FinancialBusinessDayPanel,useFinancialBusinessDay} from '../components/FinancialBusinessDayPanel';
 import {NightAuditReconciliationPanel} from '../components/NightAuditReconciliationPanel';
 import type {NightAuditPreview as Preview} from '../api/nightAuditPreview';
 
@@ -30,15 +30,23 @@ function Exceptions({label,items}:{label:string;items:Preview['missingNightEntri
 }
 export function NightAuditPreview(){
  const {user,hotelId}=useHotelAuth();
- const manager=!!hotelId&&user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
- const [date,setDate]=useState(hotelToday);
- const [showReport,setShowReport]=useState(false);
- useEffect(()=>{setDate(hotelToday());setShowReport(false);},[hotelId]);
- const query=useNightAuditPreview(date,!!manager);
- if(!manager)return <>
+ if(!hotelId||!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin'))return <>
   <Heading title="Daily Closing" description="Manager-only operational and financial review."/>
   <Panel title="Restricted"><p>Ask an active administrator for this hotel to open Daily Closing and set up the business date.</p></Panel>
  </>;
+ return <DailyClosing key={hotelId} hotelId={hotelId}/>;
+}
+
+function DailyClosing({hotelId}:{hotelId:string}){
+ const financialDay=useFinancialBusinessDay(hotelId);
+ const currentDate=financialDay.data?.businessDate;
+ const [selectedDate,setDate]=useState<string|null>(null);
+ const date=selectedDate??currentDate??hotelToday();
+ const [showReport,setShowReport]=useState(false);
+ useEffect(()=>{
+  if(currentDate)setDate(selected=>selected??currentDate);
+ },[currentDate]);
+ const query=useNightAuditPreview(date,!financialDay.isPending);
  const data=query.data;
  return <>
   <Heading title="Daily Closing" description="Review hotel activity, check daily finances, and close the business date."/>
@@ -48,13 +56,14 @@ export function NightAuditPreview(){
      <input type="date" className="wizard-input" value={date} max={data?.hotelDate??hotelToday()}
       onChange={e=>{if(e.target.value)setDate(e.target.value);}}/>
     </label>
+    {currentDate&&date!==currentDate&&<button type="button" className="btn-inline" onClick={()=>setDate(currentDate)}>Review current business date</button>}
     <button type="button" className="btn-inline" onClick={()=>{
      const current=data?.hotelDate??hotelToday();
      const utc=new Date(current+'T00:00:00Z');
      utc.setUTCDate(utc.getUTCDate()-1);
      setDate(utc.toISOString().slice(0,10));
     }}>Review yesterday</button>
-    <button type="button" className="btn-inline" disabled={query.isFetching} onClick={()=>void query.refetch()}>
+    <button type="button" className="btn-inline" disabled={financialDay.isPending||query.isFetching} onClick={()=>void query.refetch()}>
      <RefreshCw size={16}/> {query.isFetching?'Refreshing…':'Refresh checks'}
     </button>
    </div>
@@ -88,9 +97,8 @@ export function NightAuditPreview(){
     <Exceptions label="Duplicate room-night charge" items={data.duplicateNightEntries}/>
     <Exceptions label="Unpriced reservations" items={data.unpricedBookings}/>
     <div className="night-audit-next-actions">
-     <Link to="/cashier-shifts"><Wallet size={16}/> Review cashier shifts</Link>
-     <Link to="/billing">Review reservation folios</Link>
-     <Link to="/operational-exceptions">Review operational exceptions</Link>
+     {(data.openCashierShifts>0||data.unreconciledCashierShifts>0)&&<Link to="/cashier-shifts"><Wallet size={16}/> Review cashier shifts</Link>}
+     {data.pendingPaymentEvidence>0&&<Link to="/operational-exceptions">Review payment evidence</Link>}
     </div>
     <h3>2. Record manager review</h3>
     <NightAuditReviewPanel key={hotelId+'-'+data.businessDate} date={data.businessDate} preflight={data}/>
@@ -98,7 +106,7 @@ export function NightAuditPreview(){
     <button type="button" className="btn-inline" aria-expanded={showReport} onClick={()=>setShowReport(v=>!v)}>{showReport?'Hide financial report':'View financial report and expenses'}</button>
     {showReport&&<NightAuditReconciliationPanel key={'reconciliation-'+hotelId} selectedDate={data.businessDate}/>}
     <h3>4. Close the business day</h3>
-    <FinancialBusinessDayPanel key={'financial-'+hotelId} selectedDate={data.businessDate}/>
+    <FinancialBusinessDayPanel selectedDate={data.businessDate} query={financialDay} onSelectDate={setDate}/>
     <details><summary>About these figures</summary><p className="night-audit-fineprint">The scheduled-night count is based on current reservation records, not historical physical room occupancy. Current inventory counts may differ from the inventory on the selected historical date. Payment totals are staff-maintained evidence, not settlement. The cashier and payment exception counts are current property-wide counts, not date-scoped historical snapshots.</p></details>
    </>}
   </Panel>

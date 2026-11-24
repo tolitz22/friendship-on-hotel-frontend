@@ -32,6 +32,14 @@ const schema=z.object({
   varianceMinor:z.number().int(),reconciledCountedCashMinor:z.number().int(),
   scope:z.string(),
  }),
+ expenses:z.object({
+  grossExpenseMinor:z.number().int().optional(),accountingAdjustmentMinor:z.number().int().optional(),
+  supplierRefundMinor:z.number().int().optional(),clearingCashReturnMinor:z.number().int().optional(),
+  physicalCashReturnMinor:z.number().int().optional(),clearingBalanceMinor:z.number().int().optional(),
+  postedExpenseMinor:z.number().int(),reversedExpenseMinor:z.number().int(),
+  creditAdjustmentMinor:z.number().int().optional(),netExpenseMinor:z.number().int(),
+  scope:z.string(),closedLedgerVerified:z.boolean(),
+ }).optional(),
  limitations:z.array(z.string()),blockers:z.array(z.string()),
  financialJournalReconciled:z.boolean(),reportScope:z.string(),
 });

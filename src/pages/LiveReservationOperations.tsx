@@ -223,25 +223,50 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
    Opened from the front desk queue. Review the details before confirming a change.
   </p>}
 
-  {allowStayAction&&<section className="stay-operation-impact" aria-label="Next action">
-   <strong>Next action</strong>
-   {isConfirmed&&!roomAssigned?<div>
-    <p>Assign a room before checking in this guest.</p>
-    <button type="button" className="btn-inline" aria-haspopup="dialog" onClick={openRoomPicker}>Assign room</button>
-   </div>:isConfirmed&&roomAssigned&&readiness.isSuccess&&!readiness.data.advisoryReady&&record.assignedRoomNumber?<div>
-    <p>Room readiness needs attention before check-in.</p>
-    <Link to="/housekeeping" search={{}} className="btn-inline">Open housekeeping task</Link>
-   </div>:isInHouse&&financialBlock?<div>
-    <p>Checkout blocked. {financialBlock}</p>
-    {guestBillSettled&&<p><strong>₱0 due</strong> · Guest bill settled. Do not collect another payment.</p>}
-    <Link to="/billing" search={{booking:record.id}} className="btn-inline">Resolve in Billing <ArrowRight size={14}/></Link>
-   </div>:<div>
-    <p>{isConfirmed?'Review the check-in requirements.':earlyDepartureWindow?'Review options for an early departure.':
-     checkoutStatement.isSuccess?'Billing checks clear. Confirm the guest’s departure.':'Review the checkout requirements.'}</p>
-    <button type="button" className="btn-inline" onClick={()=>lifecycleRef.current?.scrollIntoView({block:'start'})}>
-     {isConfirmed?'Review check-in':'Review checkout'}
-    </button>
-   </div>}
+  {allowStayAction&&<section className="stay-next-strip" aria-label="Recommended next step">
+   <span className={'stay-next-strip-icon '+(
+    isInHouse&&financialBlock||isConfirmed&&!roomAssigned||
+    isConfirmed&&roomAssigned&&readinessNeeded&&readiness.isSuccess&&!readiness.data.advisoryReady
+     ?'attention':'ready')} aria-hidden="true">
+    {isInHouse&&financialBlock||isConfirmed&&!roomAssigned||
+     isConfirmed&&roomAssigned&&readinessNeeded&&readiness.isSuccess&&!readiness.data.advisoryReady
+      ?<AlertTriangle size={18}/>:<CheckCircle2 size={18}/>}
+   </span>
+   <div className="stay-next-strip-copy">
+    <span className="stay-next-strip-eyebrow">NEXT STEP</span>
+    <strong>{isConfirmed&&!roomAssigned?'Assign a room'
+     :isConfirmed&&roomAssigned&&readinessNeeded&&readiness.isSuccess&&!readiness.data.advisoryReady?'Room needs attention'
+     :isConfirmed?'Review check-in'
+     :financialBlock?'Resolve billing before checkout'
+     :checkoutStatement.isPending?'Checking guest billing'
+     :checkoutStatement.isError?'Billing status unavailable'
+     :earlyDepartureWindow?'Review early departure'
+     :'Ready to review checkout'}</strong>
+    <p>{isConfirmed&&!roomAssigned?'Choose an available room to continue.'
+     :isConfirmed&&roomAssigned&&readinessNeeded&&readiness.isSuccess&&!readiness.data.advisoryReady?'Housekeeping must clear room readiness before check-in.'
+     :isConfirmed?'Confirm the guest’s identity and arrival details.'
+     :financialBlock?financialBlock
+     :checkoutStatement.isPending?'We’re loading the current guest bill.'
+     :checkoutStatement.isError?'Refresh the bill before confirming checkout.'
+     :earlyDepartureWindow?'An early departure requires the appropriate exception approval.'
+     :'Billing checks are clear. Review departure details below.'}</p>
+   </div>
+   <div className="stay-next-strip-action">
+    {isConfirmed&&!roomAssigned
+     ?<button type="button" className="stay-next-strip-button" aria-haspopup="dialog"
+       onClick={openRoomPicker}>Select room <ArrowRight size={15}/></button>
+     :isConfirmed&&roomAssigned&&readinessNeeded&&readiness.isSuccess&&!readiness.data.advisoryReady
+     ?<Link to="/housekeeping" search={{}} className="stay-next-strip-button">Housekeeping <ArrowRight size={15}/></Link>
+     :isInHouse&&financialBlock
+     ?<Link to="/billing" search={{booking:record.id}} className="stay-next-strip-button">Open Billing <ArrowRight size={15}/></Link>
+     :isInHouse&&checkoutStatement.isError
+     ?<button type="button" className="stay-next-strip-button" disabled={checkoutStatement.isFetching}
+       onClick={()=>void checkoutStatement.refetch()}><RefreshCw size={15}/> Retry billing</button>
+     :<button type="button" className="stay-next-strip-button" disabled={isInHouse&&checkoutStatement.isPending}
+       onClick={()=>lifecycleRef.current?.scrollIntoView({behavior:'smooth',block:'start'})}>
+       {isConfirmed?'Check-in details':'Checkout details'} <ArrowRight size={15}/>
+      </button>}
+   </div>
   </section>}
 
   <div className="stay-detail-grid">

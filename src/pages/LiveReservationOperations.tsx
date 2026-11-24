@@ -82,10 +82,12 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const paymentCovered=checkoutStatement.isSuccess&&isGuestBillSettled(checkoutStatement.data);
  const paymentReady=paymentCovered&&!financialBlock;
 
- const canCheckOut=checkoutStatement.isSuccess&&!financialBlock&&canDo('booking.check_out')&&allowedOperation(record,'check-out',hotelDate)&&acknowledged&&!busy;
+ // Checkout permission is independent of permission to view the financial statement.
+ // The lifecycle endpoint validates billing under lock even if the preflight is unavailable.
+ const canCheckOut=!financialBlock&&canDo('booking.check_out')&&allowedOperation(record,'check-out',hotelDate)&&acknowledged&&!busy&&!(canDo('finance.read')&&checkoutStatement.isFetching);
 
  useEffect(()=>{
-  setRoomPage(1);setHistoryPage(1);setRoomId('');setAcknowledged(false);
+  setRoomPage(1);setHistoryPage(1);setRoomId('');setAcknowledged(false);setConfirmedDepartureAt('');
   setShowRoomPicker(false);
   setSuccess('');setError('');
  },[hotelId,record.id,record.lifecycleState]);
@@ -191,10 +193,11 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
    ?'Check-in is not available for this stay date.'
   :isInHouse&&!allowedOperation(record,'check-out',hotelDate)
    ?'Scheduled checkout has not arrived. Use Request early checkout below for an authorized exception.'
-  :isInHouse&&checkoutStatement.isPending?'Checking the guest bill before checkout…'
-  :isInHouse&&checkoutStatement.isError?'Could not load guest billing. Retry before checking out.'
+  :isInHouse&&!canDo('booking.check_out')?'Your role does not have permission to complete checkout.'
+  :isInHouse&&canDo('finance.read')&&checkoutStatement.isFetching?'Checking the guest bill before checkout…'
   :isInHouse&&financialBlock?financialBlock
-  :!acknowledged?'Confirm the guest’s identity to continue.'
+  :!acknowledged?(isConfirmed?'Confirm the guest’s identity to continue.':'Confirm the departure checklist to continue.')
+  :isInHouse&&!checkoutStatement.isSuccess?'Billing will be validated by the server when you submit checkout.'
   :null;
 
  return <div className="stay-detail-page">
@@ -242,7 +245,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
      :isConfirmed?'Review check-in'
      :paymentCovered&&financialBlock?'Payment received · review pending'
      :financialBlock?'Review outstanding billing'
-     :checkoutStatement.isPending?'Checking guest billing'
+     :!canDo('finance.read')?'Review checkout':checkoutStatement.isFetching?'Checking guest billing'
      :checkoutStatement.isError?'Billing status unavailable'
      :earlyDepartureWindow?'Review early departure'
      :paymentReady?'Payment settled · ready for checkout'
@@ -252,8 +255,8 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
      :isConfirmed?'Confirm the guest’s identity and arrival details.'
      :paymentCovered&&financialBlock?'Payment is recorded and covers the charges. '+financialBlock+' Do not collect another payment.'
      :financialBlock?financialBlock
-     :checkoutStatement.isPending?'We’re loading the current guest bill.'
-     :checkoutStatement.isError?'Refresh the bill before confirming checkout.'
+     :!canDo('finance.read')?'Billing will be validated when checkout is submitted.':checkoutStatement.isFetching?'We’re loading the current guest bill.'
+     :checkoutStatement.isError?'You can retry the billing preview or submit checkout for server validation.'
      :earlyDepartureWindow?'An early departure requires the appropriate exception approval.'
      :paymentReady?'No outstanding guest payment. Review departure details to complete checkout.'
      :'Billing checks are clear. Review departure details below.'}</p>
@@ -269,7 +272,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
      :isInHouse&&checkoutStatement.isError
      ?<button type="button" className="stay-next-strip-button" disabled={checkoutStatement.isFetching}
        onClick={()=>void checkoutStatement.refetch()}><RefreshCw size={15}/> Retry billing</button>
-     :<button type="button" className="stay-next-strip-button" disabled={isInHouse&&checkoutStatement.isPending}
+     :<button type="button" className="stay-next-strip-button" disabled={isInHouse&&canDo('finance.read')&&checkoutStatement.isFetching}
        onClick={()=>lifecycleRef.current?.scrollIntoView({behavior:'smooth',block:'start'})}>
        {isConfirmed?'Check-in details':'Checkout details'} <ArrowRight size={15}/>
       </button>}

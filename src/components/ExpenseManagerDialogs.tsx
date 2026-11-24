@@ -1,4 +1,5 @@
 import {useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
 import {X} from 'lucide-react';
 import {reviewExpense,updateExpensePolicy} from '../api/expenses';
 import type {Expense} from '../api/expenses';
@@ -6,6 +7,7 @@ import {readableDate} from '../lib/format';
 
 const money=(n:number)=>new Intl.NumberFormat('en-PH',{style:'currency',currency:'PHP'}).format(n/100);
 export function ExpenseReviewDialog({hotel,expense,onClose,onSaved}:{hotel:string;expense:Expense;onClose:()=>void;onSaved:()=>void}){
+ const [completed,setCompleted]=useState(false);
  const [decision,setDecision]=useState<'approve'|'flag'>('approve');
  const [note,setNote]=useState('');
  const [busy,setBusy]=useState(false);
@@ -14,11 +16,12 @@ export function ExpenseReviewDialog({hotel,expense,onClose,onSaved}:{hotel:strin
  async function submit(){
   if(guard.current||note.trim().length<5)return;
   guard.current=true;setBusy(true);setError('');
-  try{await reviewExpense(hotel,expense.id,decision,note.trim());onSaved();}
+  try{await reviewExpense(hotel,expense.id,decision,note.trim());setCompleted(true);onSaved();}
   catch(e){setError(e instanceof Error?e.message:'Review could not be confirmed. Reload the voucher before retrying.');}
   finally{guard.current=false;setBusy(false);}
  }
- return <div className="billing-modal-backdrop"><section role="dialog" aria-modal="true" aria-label="Review expense" className="billing-action-modal expense-payout-dialog">
+ if(completed)return null;
+ return createPortal(<div className="billing-modal-backdrop"><section role="dialog" aria-modal="true" aria-label="Review expense" className="billing-action-modal expense-payout-dialog">
   <div className="billing-action-modal-header"><div><span className="rr-eyebrow">VOUCHER #{expense.id}</span><h3>Review expense</h3><p>{expense.description} · {money(expense.amountMinor)}</p></div><button type="button" className="billing-modal-dismiss" disabled={busy} onClick={onClose} aria-label="Close review"><X size={20}/></button></div>
   <dl className="expense-detail-grid"><div><dt>Payee</dt><dd>{expense.payee}</dd></div><div><dt>Recorded by</dt><dd>{expense.recordedByName??'Name unavailable'}</dd></div><div><dt>Business date</dt><dd>{readableDate(expense.businessDate)}</dd></div><div><dt>Invoice</dt><dd>{expense.invoiceReference??'Not recorded'}</dd></div></dl>
   <form onSubmit={e=>{e.preventDefault();void submit();}} className="cash-shift-close-form">
@@ -28,7 +31,7 @@ export function ExpenseReviewDialog({hotel,expense,onClose,onSaved}:{hotel:strin
    {error&&<p role="alert" className="auth-error">{error}</p>}
    <div className="cash-shift-close-buttons"><button type="submit" className="btn-primary" disabled={busy||note.trim().length<5}>{busy?'Saving…':decision==='approve'?'Approve expense':'Flag expense'}</button><button type="button" className="btn-inline" disabled={busy} onClick={onClose}>Cancel</button></div>
   </form>
- </section></div>;
+ </section></div>,document.body);
 }
 export function ExpensePolicyDialog({hotel,currentLimit,onClose,onSaved}:{hotel:string;currentLimit:number|null;onClose:()=>void;onSaved:()=>void}){
  const [limit,setLimit]=useState(currentLimit===null?'':(currentLimit/100).toFixed(2));

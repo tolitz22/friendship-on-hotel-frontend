@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {ExpenseCorrectionHistory} from '../components/ExpenseCorrectionHistory';
 import {useQueryClient} from '@tanstack/react-query';
 import {ExpenseReviewDialog,ExpensePolicyDialog} from '../components/ExpenseManagerDialogs';
 import {Link} from '@tanstack/react-router';
@@ -72,6 +73,7 @@ function Register({hotel}:{hotel:string}){
     {detail.data.recordedBy!==user?.id&&!!user?.id&&<button type="button" className="btn-primary" onClick={()=>setReviewOpen(true)}>Review expense</button>}</div>}
     {reviewOpen&&detail.data.reviewStatus==='pending'&&detail.data.recordedBy!==user?.id&&!!user?.id&&<ExpenseReviewDialog key={detail.data.id} hotel={hotel} expense={detail.data} onClose={()=>setReviewOpen(false)} onSaved={()=>{setReviewOpen(false);setMessage('Expense review recorded.');refresh();}}/>}
     {detail.data.review&&<p><strong>{detail.data.review.reviewedByName??'Manager'} · {statusLabel(detail.data.review.decision)}</strong> — {detail.data.review.note} ({readableDateTime(detail.data.review.createdAt)})</p>}
+    {user?.id&&<ExpenseCorrectionHistory key={detail.data.id} hotel={hotel} expense={detail.data} userId={user.id}/>}
    </>}
   </Panel>}
  </>;

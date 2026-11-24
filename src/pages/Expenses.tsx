@@ -1,4 +1,4 @@
-import {useRef,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {ExpensePayoutModal} from '../components/ExpensePayoutModal';
 import {useCurrentCashierShift} from '../api/cashierShifts';
 import {EmployeeReimbursements} from '../components/EmployeeReimbursements';
@@ -8,7 +8,7 @@ import {ExpenseExceptionQueue} from '../components/ExpenseExceptionQueue';
 import {useQueryClient} from '@tanstack/react-query';
 import {ExpensePolicyDialog} from '../components/ExpenseManagerDialogs';
 import {Link,Navigate,useNavigate,useRouterState,useSearch} from '@tanstack/react-router';
-import {Receipt,AlertTriangle} from 'lucide-react';
+import {Receipt,AlertTriangle,X,Wallet,CreditCard,UserRound,FileText,ChevronRight} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel,Stat,Status} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
@@ -115,6 +115,12 @@ function ExpensesWorkspace({hotel,date,tab}:{hotel:string;date?:string;tab:Expen
  const [chooserOpen,setChooserOpen]=useState(false);
  const [recordPath,setRecordPath]=useState<RecordPath|null>(null);
  const recordButton=useRef<HTMLButtonElement>(null);
+ const chooser=useRef<HTMLDialogElement>(null);
+ useEffect(()=>{
+  const dialog=chooser.current;
+  if(chooserOpen&&dialog&&!dialog.open)dialog.showModal();
+  else if(!chooserOpen&&dialog?.open)dialog.close();
+ },[chooserOpen]);
  function stopRecording(){
   setChooserOpen(false);
   setRecordPath(null);
@@ -128,17 +134,27 @@ function ExpensesWorkspace({hotel,date,tab}:{hotel:string;date?:string;tab:Expen
  return <>
   <Heading title="Expenses" description="Record and review hotel expenses, supplier bills, and employee claims."/>
   <div className="desk-tools">
-   <button type="button" ref={recordButton} className="btn-primary" aria-expanded={chooserOpen}
+   <button type="button" ref={recordButton} className="btn-primary" aria-expanded={chooserOpen} aria-haspopup="dialog"
     onClick={()=>{setRecordPath(null);setChooserOpen(open=>!open);}}>Record expense</button>
   </div>
-  {chooserOpen&&<Panel title="How was this expense paid?">
-   <div className="desk-tools">
-    <button type="button" className="btn-inline" onClick={()=>record('drawer','expenses')}>Front-desk drawer paid</button>
-    <button type="button" className="btn-inline" onClick={()=>record('direct','expenses')}>Hotel bank account or card paid</button>
-    <button type="button" className="btn-inline" onClick={()=>record('claim','reimbursements')}>I paid with my own money</button>
-    <button type="button" className="btn-inline" onClick={()=>record('bill','bills')}>Supplier hasn’t been paid yet</button>
+  <dialog ref={chooser} aria-labelledby="expense-record-title" onCancel={e=>{e.preventDefault();stopRecording();}} className="billing-action-modal expense-payout-dialog" style={{margin:'auto',maxWidth:'min(560px, calc(100% - 32px))',maxHeight:'calc(100% - 32px)',overflowY:'auto'}}>
+   <style>{'dialog.expense-payout-dialog::backdrop { background: rgba(15, 23, 42, .55); }'}</style>
+   <div className="billing-action-modal-header">
+    <div><h3 id="expense-record-title">How was this expense paid?</h3><p>Choose how the purchase was funded to record it correctly.</p></div>
+    <button type="button" className="billing-modal-dismiss" aria-label="Close expense options" onClick={stopRecording}><X size={20}/></button>
    </div>
-  </Panel>}
+   <div style={{display:'grid',gap:10}}>
+    {([
+     {path:'drawer',view:'expenses',label:'Front-desk drawer paid',hint:'Cash taken from your active cashier shift.',Icon:Wallet},
+     {path:'direct',view:'expenses',label:'Hotel bank account or card paid',hint:'Already paid using hotel funds outside the drawer.',Icon:CreditCard},
+     {path:'claim',view:'reimbursements',label:'I paid with my own money',hint:'Submit an employee reimbursement claim.',Icon:UserRound},
+     {path:'bill',view:'bills',label:'Supplier hasn’t been paid yet',hint:'Record an unpaid supplier invoice.',Icon:FileText},
+    ] as const).map(({path,view,label,hint,Icon})=><button key={path} type="button" className="btn-inline" aria-label={label} onClick={()=>record(path,view)} style={{display:'flex',alignItems:'center',gap:12,width:'100%',textAlign:'left',whiteSpace:'normal',padding:12}}>
+     <Icon size={20} aria-hidden="true"/><span style={{flex:1}}><strong style={{display:'block'}}>{label}</strong><small className="desk-muted">{hint}</small></span><ChevronRight size={18} aria-hidden="true"/>
+    </button>)}
+   </div>
+   <div className="cash-shift-close-buttons"><button type="button" className="btn-inline" onClick={stopRecording}>Cancel</button></div>
+  </dialog>
   <div className="expense-workspace-nav" role="group" aria-label="Expenses workspace">
    {expenseViews.map(view=><button key={view.id} type="button" className="btn-inline"
     aria-pressed={tab===view.id}

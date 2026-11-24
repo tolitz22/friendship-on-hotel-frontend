@@ -49,3 +49,8 @@ export async function reviewExpense(hotel:string,expenseId:string,decision:'appr
  const result=z.object({data:z.object({expenseId:id,reviewStatus:z.enum(reviewStatuses),replayed:z.boolean()})}).parse(await requestJson<unknown>(scoped(hotel,'/expenses/'+encodeURIComponent(expenseId)+'/review'),{method:'POST',body:{decision,note}})).data;
  verifyHotel(hotel);if(result.expenseId!==expenseId)throw new Error('Unexpected expense returned.');return result;
 }
+
+export async function updateExpensePolicy(hotel:string,routineLimitMinor:number,reason:string){
+ const result=z.object({data:policy}).parse(await requestJson<unknown>(scoped(hotel,'/expenses/policy'),{method:'PUT',body:{routineLimitMinor,reason}})).data;
+ verifyHotel(hotel);return result;
+}

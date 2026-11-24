@@ -29,3 +29,13 @@ describe('Phase 52 cashier response safety',()=>{
   expect(parseShifts({...payload,data:[open]},'1').data[0].expectedCashMinor).toBeNull();
  });
 });
+
+it('preserves expense payouts without exposing expected cash before count submission',()=>{
+ const payout={id:'1',expenseId:'7',amountMinor:35000,payee:'Supply Shop',description:'Cleaning supplies',department:'rooms',category:'cleaning_supplies',reviewStatus:'pending',createdAt:'2026-11-24'};
+ const open={...row,status:'open',expectedCashMinor:null,countedCashMinor:null,varianceMinor:null,expensePostingEnabled:true,expensePayoutTotalMinor:35000,expensePayoutCount:1,expensePayouts:[payout]};
+ const parsed=parseShifts({...payload,data:[open]},'1').data[0];
+ expect(parsed.expensePayouts).toEqual([payout]);
+ expect(parsed.expensePayoutTotalMinor).toBe(35000);
+ expect(parsed.expectedCashMinor).toBeNull();
+ expect(()=>parseShifts({...payload,data:[{...open,expensePayoutTotalMinor:-1}]},'1')).toThrow();
+});

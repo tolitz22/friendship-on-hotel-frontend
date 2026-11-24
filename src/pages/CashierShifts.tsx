@@ -26,6 +26,7 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
  const cashierName=auditActorName(shift.cashierId,staff.data?.data.find(member=>member.userId===shift.cashierId)?.name,user?.id,user?.name);
  const [payoutOpen,setPayoutOpen]=useState(false);
  const [returnOpen,setReturnOpen]=useState(false);
+ const [employeeDetailsOpen,setEmployeeDetailsOpen]=useState(false);
  const [supplierDetailsOpen,setSupplierDetailsOpen]=useState(false);
  const [returnDetailsOpen,setReturnDetailsOpen]=useState(false);
  const [payoutDetailsOpen,setPayoutDetailsOpen]=useState(false);
@@ -39,7 +40,7 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
  const [historyOpen,setHistoryOpen]=useState(false);
  const [closingOpen,setClosingOpen]=useState(false);
  const [countConfirmed,setCountConfirmed]=useState(false);
- const detail=useCashierShiftDetails((manager&&shift.status==='submitted')||payoutDetailsOpen||returnDetailsOpen||supplierDetailsOpen,shift.id);
+ const detail=useCashierShiftDetails((manager&&shift.status==='submitted')||payoutDetailsOpen||returnDetailsOpen||supplierDetailsOpen||employeeDetailsOpen,shift.id);
  const log=useQuery({
   queryKey:['live','cashier-shift-history',hotelId,shift.id],
   enabled:historyOpen&&!!hotelId,
@@ -71,6 +72,7 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
   <div className="cash-shift-metrics">
    <div><small>Opening cash</small><strong>{money(shift.openingFloatMinor,shift.currency)}</strong></div>
    <div><small>Cash receipts recorded</small><strong>{shift.receiptCount}</strong></div>
+   {shift.employeeReimbursementTotalMinor!==undefined&&<div><small>Employee reimbursements</small><strong>{money(shift.employeeReimbursementTotalMinor,shift.currency)}</strong></div>}
    {shift.supplierPaymentTotalMinor!==undefined&&<div><small>Supplier invoice payments</small><strong>{money(shift.supplierPaymentTotalMinor,shift.currency)}</strong></div>}
    {shift.expensePayoutTotalMinor!==undefined&&<div><small>Expense payouts</small><strong>{money(shift.expensePayoutTotalMinor,shift.currency)}</strong></div>}
    {shift.expenseCashReturnTotalMinor!==undefined&&<div><small>Supplier cash returns</small><strong>{money(shift.expenseCashReturnTotalMinor,shift.currency)}</strong></div>}
@@ -85,6 +87,8 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
    <div><small>Difference</small><strong>{money(shift.varianceMinor??0,shift.currency)}</strong></div></div>}
   {shift.unconfirmedReceiptCount>0&&<p className="cash-shift-alert"><AlertTriangle size={16}/>
    {shift.unconfirmedReceiptCount} receipt{shift.unconfirmedReceiptCount===1?'':'s'} still need independent payment review.</p>}
+  {!!shift.employeeReimbursementCount&&<div><button className="btn-inline" type="button" aria-expanded={employeeDetailsOpen} onClick={()=>setEmployeeDetailsOpen(v=>!v)}>{employeeDetailsOpen?'Hide':'View'} employee reimbursements ({shift.employeeReimbursementCount})</button>
+  {employeeDetailsOpen&&<><QueryFeedback loading={detail.isPending} error={detail.error} onRetry={()=>void detail.refetch()}/>{detail.data?.employeeReimbursements?.map(p=><p key={p.id}>{p.employeeName} · {p.description} · {money(p.amountMinor,shift.currency)} · {p.evidenceReference} · {readableDateTime(p.createdAt)}</p>)}</>}</div>}
   {!!shift.supplierPaymentCount&&<div>
    <button type="button" className="btn-inline" aria-expanded={supplierDetailsOpen} onClick={()=>setSupplierDetailsOpen(v=>!v)}>{supplierDetailsOpen?'Hide':'View'} supplier invoice payments ({shift.supplierPaymentCount})</button>
    {supplierDetailsOpen&&<><QueryFeedback loading={detail.isPending} error={detail.error} onRetry={()=>void detail.refetch()}/>

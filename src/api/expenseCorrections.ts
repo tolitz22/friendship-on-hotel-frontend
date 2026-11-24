@@ -44,3 +44,10 @@ export async function reviewCashReturn(hotel:string,returnId:string,decision:'ap
  const result=z.object({data:z.object({cashReturnId:id,decision:z.enum(['approve','flag']),replayed:z.boolean()})}).parse(await requestJson<unknown>(scoped(hotel,'/expense-cash-returns/'+encodeURIComponent(returnId)+'/review'),{method:'POST',body:{decision,note}})).data;
  verify(hotel);if(result.cashReturnId!==returnId||result.decision!==decision)throw new Error('Unexpected cash return result.');return result;
 }
+
+export async function getCashReturnQuote(hotel:string,shift:string,expense:string){
+ const quote=z.object({hotelId:id,shiftId:id,expenseId:id,payee:z.string(),description:z.string(),originalAmountMinor:amount,maximumReturnMinor:amount,correctionId:id.nullable(),blockedReason:z.string().nullable()});
+ const result=z.object({data:quote}).parse(await getJson<unknown>(scoped(hotel,'/cashier-shifts/'+encodeURIComponent(shift)+'/expenses/'+encodeURIComponent(expense)+'/cash-return-quote'))).data;
+ verify(hotel);if(result.hotelId!==hotel||result.shiftId!==shift||result.expenseId!==expense)throw new Error('Unexpected voucher lookup.');return result;
+}
+export type CashReturnQuote=Awaited<ReturnType<typeof getCashReturnQuote>>;

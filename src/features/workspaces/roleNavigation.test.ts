@@ -86,3 +86,12 @@ it('restricts the management expense register to administrators',()=>{
   expect(canViewWorkspacePath(role,'/expenses',['expense.record'])).toBe(false);
  }
 });
+
+it('only exposes personal claims to staff with the selected hotel permission',()=>{
+ for(const role of ['front_desk','housekeeping','maintenance'] as const){
+  expect(navigationForRole(role).management).toContain('/my-expense-claims');
+  expect(canViewWorkspacePath(role,'/my-expense-claims',['reimbursement.read_own'])).toBe(true);
+  expect(canViewWorkspacePath(role,'/my-expense-claims',[])).toBe(false);
+  expect(canViewWorkspacePath(role,'/my-expense-claims')).toBe(false);
+ }
+});

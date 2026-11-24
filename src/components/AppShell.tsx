@@ -29,6 +29,7 @@ const primaryPaths=['/','/front-desk','/reservations','/group-reservations','/ro
 const primaryDaily=daily.filter(item=>primaryPaths.includes(item.to));
 const secondaryDaily=daily.filter(item=>!primaryPaths.includes(item.to));
 const administration=[
+ {to:'/my-expense-claims' as const,label:'My expense claims',icon:Receipt},
  {to:'/expenses' as const,label:'Expenses',icon:Receipt},
  {to:'/night-audit' as const,label:'Daily Closing',icon:ClipboardCheck},
  {to:'/tax-policies' as const,label:'Tax configuration',icon:Wallet},
@@ -86,7 +87,7 @@ export function AppShell(){
  if(dataMode==='api'&&!hotelId)return <HotelChooser/>;
 
  const renderNav=(items:readonly NavItem[],section:'daily'|'management'|'advanced')=>items
-  .filter(item=>dataMode==='api'||!['/change-password','/staff','/expenses'].includes(item.to))
+  .filter(item=>dataMode==='api'||!['/change-password','/staff','/expenses','/my-expense-claims'].includes(item.to))
   .filter(item=>dataMode!=='api'||(
    canViewWorkspacePath(role,item.to,effectivePermissions)&&(
    section==='daily'?workspace.daily.includes(item.to):

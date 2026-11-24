@@ -3,7 +3,7 @@ import type {StaffHotel} from '../../api/auth';
 export type HotelRole='admin'|'front_desk'|'housekeeping'|'maintenance';
 export type WorkspacePath='/'|'/front-desk'|'/reservations'|'/room-calendar'|
  '/rooms'|'/group-reservations'|'/guests'|'/housekeeping'|'/maintenance'|'/billing'|'/cashier-shifts'|
- '/expenses'|'/reports'|'/operational-exceptions'|'/manager-approvals'|'/settings'|'/staff'|
+ '/my-expense-claims'|'/expenses'|'/reports'|'/operational-exceptions'|'/manager-approvals'|'/settings'|'/staff'|
  '/occupancy-verification'|'/occupancy-coverage'|'/night-audit'|'/tax-policies'|'/folio-night-accounting'|'/change-password'|'/reservation-demand'|'/reservation-policy'|'/reservation-simulation';
 
 const allDaily:WorkspacePath[]=['/','/front-desk','/reservations','/group-reservations','/room-calendar','/rooms','/guests','/housekeeping','/maintenance','/billing','/cashier-shifts','/occupancy-verification','/occupancy-coverage'];
@@ -12,11 +12,11 @@ const allAdvanced:WorkspacePath[]=['/reservation-demand','/reservation-policy','
 const roleNav:Record<HotelRole,{daily:WorkspacePath[];management:WorkspacePath[];advanced:WorkspacePath[];label:string}>={
  admin:{daily:allDaily,management:allManagement,advanced:allAdvanced,label:'Manager'},
  front_desk:{daily:['/','/front-desk','/reservations','/room-calendar','/rooms','/guests','/billing','/cashier-shifts'],
-  management:['/change-password'],advanced:[],label:'Reception'},
+  management:['/my-expense-claims','/change-password'],advanced:[],label:'Reception'},
  housekeeping:{daily:['/','/housekeeping','/rooms','/maintenance','/occupancy-verification'],
-  management:['/change-password'],advanced:[],label:'Housekeeping'},
+  management:['/my-expense-claims','/change-password'],advanced:[],label:'Housekeeping'},
  maintenance:{daily:['/','/maintenance','/rooms','/housekeeping'],
-  management:['/change-password'],advanced:[],label:'Maintenance'},
+  management:['/my-expense-claims','/change-password'],advanced:[],label:'Maintenance'},
 };
 export function selectedRole(hotels:StaffHotel[]|undefined,hotelId:string|null):HotelRole|null{
  const role=hotels?.find(hotel=>hotel.id===hotelId)?.role;
@@ -37,6 +37,7 @@ export function canViewWorkspacePath(role:HotelRole|null,pathname:string,permiss
  const workspace=navigationForRole(role);
  if(![...workspace.daily,...workspace.management,...workspace.advanced].some(allowed=>allowed===normalized))
   return false;
+ if(normalized==='/my-expense-claims')return permissions?.includes('reimbursement.read_own')===true;
  if(role==='admin'||!permissions)return true;
  const requirement:Partial<Record<WorkspacePath,string>>={
   '/front-desk':'reservation.read','/reservations':'reservation.read',

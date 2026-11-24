@@ -14,6 +14,7 @@ import {LiveRoomCalendar} from './pages/LiveRoomCalendar';
 const OperationalExceptions=React.lazy(async()=>({default:(await import('./pages/OperationalExceptions')).OperationalExceptions}));
 import {ManagerApprovals} from './pages/ManagerApprovals';
 import {CashierShifts} from './pages/CashierShifts';
+import {MyExpenseClaims} from './pages/MyExpenseClaims';
 import {Expenses} from './pages/Expenses';
 import {OccupancyVerification} from './pages/OccupancyVerification';
 const OccupancyCoverageReport=React.lazy(async()=>({default:(await import('./pages/OccupancyCoverageReport')).OccupancyCoverageReport}));
@@ -89,6 +90,7 @@ const roomCalendar=createRoute({getParentRoute:()=>root,path:'/room-calendar',
   hotel:typeof value.hotel==='string'&&/^[1-9][0-9]*$/.test(value.hotel)?value.hotel:undefined,
  }),component:LiveRoomCalendar});
 const functionalRoutes=[
+ createRoute({getParentRoute:()=>root,path:'/my-expense-claims',component:MyExpenseClaims}),
  createRoute({getParentRoute:()=>root,path:'/expenses',component:Expenses,
  validateSearch:(value:Record<string,unknown>):{expense?:string;date?:string;hotel?:string}=>({
  expense:/^[1-9]\d*$/.test(String(value.expense??''))?String(value.expense):undefined,

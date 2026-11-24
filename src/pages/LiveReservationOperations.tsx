@@ -80,6 +80,8 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const [newDeparture,setNewDeparture]=useState(addDays(hotelDate,1));
  const amendDialog=useRef<HTMLDialogElement>(null);
  const [amendError,setAmendError]=useState('');
+ const noShowDialog=useRef<HTMLDialogElement>(null);
+ const [noShowError,setNoShowError]=useState('');
  const roomRestricted=readiness.isSuccess&&(readiness.data.blockers.activeInventoryBlockToday||readiness.data.blockers.activeRoomImpactMaintenance);
  const readyForEnforcedCheckin=readinessPolicy.isSuccess&&(
   !readinessPolicy.data.enforceAtCheckIn || (readiness.isSuccess&&readiness.data.advisoryReady)
@@ -148,6 +150,17 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
   }catch(cause){setAmendError(cause instanceof Error?cause.message:'Could not update stay dates.');}
   finally{inFlight.current=false;setBusy(false);}
  }
+ async function markNoShow(event:FormEvent){
+  event.preventDefault();
+  if(!hotelId||!manager||!expiredStay||inFlight.current||readSession().hotelId!==hotelId)return;
+  inFlight.current=true;setBusy(true);setNoShowError('');
+  try{
+   await requestJson(hotelPath('/bookings/'+record.id+'/no-show'),{method:'POST'});
+   if(readSession().hotelId!==hotelId)return;
+   noShowDialog.current?.close();void refresh(hotelId).catch(()=>{});
+  }catch(cause){setNoShowError(cause instanceof Error?cause.message:'Could not mark this booking as no-show.');}
+  finally{inFlight.current=false;setBusy(false);}
+ }
  function openRoomPicker(){
   setRoomPage(1);setRoomId('');setError('');setShowRoomPicker(true);
  }
@@ -212,7 +225,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const isConfirmed=record.lifecycleState==='confirmed';
  const isInHouse=record.lifecycleState==='checked_in';
  const earlyDepartureWindow=isInHouse&&hotelDate>=record.checkIn&&hotelDate<record.checkOut;
- const isFinished=record.lifecycleState==='checked_out'||record.lifecycleState==='cancelled';
+ const isFinished=record.lifecycleState==='checked_out'||record.lifecycleState==='cancelled'||record.lifecycleState==='no_show';
  const roomAssigned=!!record.assignedRoomId;
  const allowStayAction=canOperate&&(isConfirmed||isInHouse);
  const actionLabel=isConfirmed?'Check in guest':isInHouse?'Complete checkout':'View stay history';
@@ -327,10 +340,22 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
      {expiredStay&&<div className="stay-operation-impact">
       <strong>{dateLabel(record.checkIn)} – {dateLabel(record.checkOut)}</strong>
       <p>Hotel date: {dateLabel(hotelDate)}. {manager?'Modify dates if the guest still intends to stay. Review cancellation and deposit obligations before resolving a missed arrival.':'Ask a manager to resolve the expired booking.'}</p>
-      {manager&&<button type="button" className="btn-primary" disabled={busy} onClick={()=>{setNewArrival(hotelDate);setNewDeparture(addDays(hotelDate,1));setAmendError('');amendDialog.current?.showModal();}}>Modify stay dates <ArrowRight size={16}/></button>}
-      <dialog ref={amendDialog} className="billing-action-modal" aria-label="Modify stay dates" onCancel={event=>{if(busy)event.preventDefault();}}>
+      {manager&&<div style={{display:'grid',gap:10,marginTop:16}}>
+       <button type="button" className="btn-primary" disabled={busy} onClick={()=>{setNewArrival(hotelDate);setNewDeparture(addDays(hotelDate,1));setAmendError('');amendDialog.current?.showModal();}}>Modify stay dates <ArrowRight size={16}/></button>
+       <button type="button" className="btn-inline" disabled={busy} onClick={()=>{setNoShowError('');noShowDialog.current?.showModal();}}>Mark as no-show</button>
+      </div>}
+      <dialog ref={noShowDialog} className="billing-action-modal" style={{position:'fixed',inset:0,margin:'auto',width:'min(480px, calc(100% - 32px))',maxHeight:'calc(100dvh - 32px)',overflowY:'auto',color:'var(--text)'}} aria-label="Confirm no-show" onCancel={event=>{if(busy)event.preventDefault();}}>
+       <header className="billing-action-modal-header"><div><h3>Mark as no-show?</h3><p>{record.reference} · {record.guestName}</p></div></header>
+       <form className="billing-payment-fields" onSubmit={markNoShow}>
+        <p>Confirm that the guest never arrived. This releases the booking inventory and records the action in history. Bookings with existing folios require financial review.</p>
+        {noShowError&&<p role="alert" className="stay-feedback-error">{noShowError}</p>}
+        <button type="submit" className="btn-primary" disabled={busy}>{busy?'Saving…':'Confirm no-show'}</button>
+        <button type="button" className="btn-inline" disabled={busy} onClick={()=>noShowDialog.current?.close()}>Keep booking</button>
+       </form>
+      </dialog>
+      <dialog ref={amendDialog} className="billing-action-modal" style={{position:'fixed',inset:0,margin:'auto',width:'min(480px, calc(100% - 32px))',maxHeight:'calc(100dvh - 32px)',overflowY:'auto',color:'var(--text)'}} aria-label="Modify stay dates" onCancel={event=>{if(busy)event.preventDefault();}}>
        <form className="billing-payment-fields" onSubmit={amendDates}>
-        <h3>Modify stay dates</h3><p>Availability is validated when saving. Priced bookings require a financial repricing workflow.</p>
+        <header className="billing-action-modal-header"><div><h3>Modify stay dates</h3><p>{record.reference} · {record.guestName}</p></div></header><p>Choose a new arrival and departure. Room availability is checked when saving. Bookings with existing folios require financial review.</p>
         <label className="night-audit-date">Arrival<input type="date" className="wizard-input" required min={hotelDate} value={newArrival} disabled={busy} onChange={event=>{setNewArrival(event.target.value);if(newDeparture<=event.target.value)setNewDeparture(addDays(event.target.value,1));}}/></label>
         <label className="night-audit-date">Departure<input type="date" className="wizard-input" required min={addDays(newArrival||hotelDate,1)} value={newDeparture} disabled={busy} onChange={event=>setNewDeparture(event.target.value)}/></label>
         {amendError&&<p role="alert" className="stay-feedback-error">{amendError}</p>}

@@ -1,0 +1,17 @@
+.expense-voucher-page { display:grid; gap:16px; }
+.expense-voucher-page > .heading { margin:0; }
+.expense-voucher-summary {
+ display:grid;
+ grid-template-columns:repeat(4,minmax(0,1fr));
+ gap:16px;
+ padding:18px;
+ background:var(--surface);
+ border:1px solid var(--border);
+ border-radius:14px;
+}
+.expense-voucher-summary > div { display:grid; align-content:start; justify-items:start; gap:6px; overflow-wrap:anywhere; }
+.expense-voucher-summary small { color:var(--muted); }
+.expense-voucher-summary > div:first-child strong { font-size:1.4rem; font-variant-numeric:tabular-nums; }
+@media (max-width:700px) {
+ .expense-voucher-summary { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}

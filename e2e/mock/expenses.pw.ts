@@ -63,7 +63,7 @@ test(`${fromExpenses?'Expenses':'Cashier shifts'} retries the same payout after 
  expect(requests[0].amountMinor).toBe(35000);
  await expect(page.getByText('Expense voucher #7 recorded.')).toBeVisible();
  if(fromExpenses){
-  await expect(page).toHaveURL(base+routePath);
+  await expect(page).toHaveURL(/\/expenses\/7(?:\?|$)/);
   await expect(page.getByRole('region',{name:'Expense voucher'})).toContainText('Cleaning supplies');
  }else{
   await expect(page.locator('.cash-shift-metrics').first()).toContainText('₱350.00');
@@ -97,12 +97,16 @@ test('manager can inspect and review a voucher and update the future payout limi
  const needsReview=page.getByRole('button',{name:/Needs review/});
  await needsReview.click();
  await expect(page.getByLabel('Review status')).toHaveValue('pending');
- const inspect=page.getByRole('button',{name:'Inspect expense'});
+ const inspect=page.getByRole('link',{name:'Inspect expense'});
  await inspect.click();
  const voucherPanel=page.getByRole('region',{name:'Expense voucher'});
  await expect(voucherPanel).toBeFocused();
- await voucherPanel.getByRole('button',{name:'Close details'}).click();
- await expect(inspect).toBeFocused();
+ await expect(page).toHaveURL(/\/expenses\/7(?:\?|$)/);
+ await expect(voucherPanel.getByText('Amount paid')).toBeVisible();
+ await page.reload();
+ await expect(voucherPanel.getByRole('heading',{name:'Cleaning supplies'})).toBeVisible();
+ await voucherPanel.getByRole('link',{name:'Back to expense register'}).click();
+ await expect(page.getByLabel('Review status')).toHaveValue('pending');
  await inspect.click();
  await page.getByRole('button',{name:'Review expense',exact:true}).click();
  const review=page.getByRole('dialog',{name:'Review expense'});
@@ -111,6 +115,11 @@ test('manager can inspect and review a voucher and update the future payout limi
  await expect(page.getByText('Expense review recorded.')).toBeVisible();
  await expect(review).toBeHidden();
  await expect(page.getByText(/Demo manager · Approve/)).toBeVisible();
+ await page.goto(base+'/expenses?expense=7&hotel=1&date=2026-11-24');
+ await expect(page).toHaveURL(/\/expenses\/7(?:\?|$)/);
+ await expect(voucherPanel.getByText(/Demo manager · Approve/)).toBeVisible();
+ await voucherPanel.getByRole('link',{name:'Back to expense register'}).click();
+ await expect(page.getByLabel('From business date')).toHaveValue('2026-11-24');
  await page.getByRole('button',{name:'Expense policy',exact:true}).click();
  const policy=page.getByRole('dialog',{name:'Expense policy'});
  await policy.getByLabel('Routine limit (PHP)').fill('500.00');

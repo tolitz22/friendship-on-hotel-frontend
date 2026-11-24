@@ -31,7 +31,7 @@ export function ExpenseExceptionQueue({hotel}:{hotel:string}){
     {items.map(item=><article key={item.kind+':'+item.id} className="readable-audit-event">
      <strong><AlertTriangle size={15}/> {item.description} · Voucher #{item.expenseId}</strong>
      <p>{labels[item.kind]} · Original business date {readableDate(item.businessDate)}{item.amountMinor!==null?' · '+money(item.amountMinor):''}</p>
-     <Link className="btn-inline" to="/expenses" search={{hotel,expense:item.expenseId,date:item.businessDate}}>{actions[item.kind]} <ArrowRight size={15}/></Link>
+     <Link className="btn-inline" to="/expenses/$expenseId" params={{expenseId:item.expenseId}} search={{hotel,date:item.businessDate}}>{actions[item.kind]} <ArrowRight size={15}/></Link>
     </article>)}
     {items.length===0&&<p>No issues in this category.</p>}
     {(filter?counts[filter]:total)>items.length&&<p className="desk-muted">Showing {items.length} of {filter?counts[filter]:total} issues. Refresh after resolving items to see remaining issues.</p>}

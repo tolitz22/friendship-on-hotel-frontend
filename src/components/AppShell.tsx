@@ -65,7 +65,7 @@ export function AppShell(){
  const [showAdvanced,setShowAdvanced]=useState(false);
  const [showMoreOperations,setShowMoreOperations]=useState(false);
  const pathname=useRouterState({select:s=>s.location.pathname});
- const current=pathname.startsWith('/guests/')?'Customer stays':all.find(item=>item.to===pathname)?.label??'Overview';
+ const current=pathname.startsWith('/guests/')?'Customer stays':pathname.startsWith('/expenses/')?'Expense voucher':all.find(item=>item.to===pathname)?.label??'Overview';
  const role=selectedRole(user?.hotels,hotelId);
  const effectivePermissions=user?.hotels.find(h=>h.id===hotelId)?.permissions;
  const workspace=navigationForRole(role);
@@ -95,7 +95,7 @@ export function AppShell(){
    workspace.advanced.includes(item.to))))
   .map(({to,label,icon:Icon})=><Link key={to} to={to} activeOptions={{exact:true}}
    aria-current={pathname===to?'page':undefined}
-   className={'nav-link'+(pathname===to?' active':'')}>
+   className={'nav-link'+(pathname===to||to==='/expenses'&&pathname.startsWith('/expenses/')?' active':'')}>
    <Icon size={18} aria-hidden="true"/><span>{label}</span>
   </Link>);
 

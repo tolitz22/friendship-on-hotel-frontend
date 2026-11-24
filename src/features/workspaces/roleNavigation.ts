@@ -33,7 +33,7 @@ export function navigationForRole(role:HotelRole|null):{daily:WorkspacePath[];ma
 export function canViewWorkspacePath(role:HotelRole|null,pathname:string,permissions?:readonly string[]):boolean{
  if(pathname==='/change-password')return true;
  const path=pathname.replace(/\/+$/,'')||'/';
- const normalized=/^\/guests\/[^/]+\/stays$/.test(path)?'/guests':path;
+ const normalized=/^\/expenses\/[^/]+$/.test(path)?'/expenses':/^\/guests\/[^/]+\/stays$/.test(path)?'/guests':path;
  const workspace=navigationForRole(role);
  if(![...workspace.daily,...workspace.management,...workspace.advanced].some(allowed=>allowed===normalized))
   return false;

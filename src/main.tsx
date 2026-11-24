@@ -16,6 +16,7 @@ import {ManagerApprovals} from './pages/ManagerApprovals';
 import {CashierShifts} from './pages/CashierShifts';
 import {MyExpenseClaims} from './pages/MyExpenseClaims';
 import {Expenses} from './pages/Expenses';
+import {ExpenseVoucher} from './pages/ExpenseVoucher';
 import type {ExpenseView} from './pages/Expenses';
 import {OccupancyVerification} from './pages/OccupancyVerification';
 const OccupancyCoverageReport=React.lazy(async()=>({default:(await import('./pages/OccupancyCoverageReport')).OccupancyCoverageReport}));
@@ -98,6 +99,11 @@ const functionalRoutes=[
  expense:/^[1-9]\d*$/.test(String(value.expense??''))?String(value.expense):undefined,
  hotel:/^[1-9]\d*$/.test(String(value.hotel??''))?String(value.hotel):undefined,
  date:typeof value.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.date)?value.date:undefined,
+ })}),
+ createRoute({getParentRoute:()=>root,path:'/expenses/$expenseId',component:ExpenseVoucher,
+ validateSearch:(value:Record<string,unknown>):{date?:string;hotel?:string}=>({
+  hotel:/^[1-9]\d*$/.test(String(value.hotel??''))?String(value.hotel):undefined,
+  date:typeof value.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.date)?value.date:undefined,
  })}),
  createRoute({getParentRoute:()=>root,path:'/front-desk',
   validateSearch:(value:Record<string,unknown>):{queue?:'arrivals'|'departures'|'in_house'|'overdue'}=>({

@@ -23,6 +23,7 @@ const OccupancyCoverageReport=React.lazy(async()=>({default:(await import('./pag
 const NightAuditPreview=React.lazy(async()=>({default:(await import('./pages/NightAuditPreview')).NightAuditPreview}));
 const TaxPolicies=React.lazy(async()=>({default:(await import('./pages/TaxPolicies')).TaxPolicies}));
 const FolioNightAccounting=React.lazy(async()=>({default:(await import('./pages/FolioNightAccounting')).FolioNightAccounting}));
+import {RateCalendar} from './pages/RateCalendar';
 import {LiveSettings} from './pages/LiveSettings';
 import {LiveStaff} from './pages/LiveStaff';
 import {AcceptInvitation} from './pages/AcceptInvitation';
@@ -125,6 +126,7 @@ const functionalRoutes=[
   }),component:OccupancyVerification}),
  createRoute({getParentRoute:()=>root,path:'/occupancy-coverage',component:OccupancyCoverageReport}),
  createRoute({getParentRoute:()=>root,path:'/night-audit',component:NightAuditPreview}),
+ createRoute({getParentRoute:()=>root,path:'/rate-calendar',component:RateCalendar}),
  createRoute({getParentRoute:()=>root,path:'/tax-policies',component:TaxPolicies}),
  createRoute({getParentRoute:()=>root,path:'/folio-night-accounting',component:FolioNightAccounting}),
  createRoute({getParentRoute:()=>root,path:'/reservation-demand',component:LiveReservationDemand}),

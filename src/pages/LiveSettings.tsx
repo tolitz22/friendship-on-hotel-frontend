@@ -119,6 +119,7 @@ export function LiveSettings(){
   <h3>Operational settings</h3>
   <p>Use the dedicated settings pages for policies that affect bookings and financial records.</p>
   <div className="hotel-settings-link-grid">
+   <Link to="/rate-calendar"><CalendarClock size={19}/><span><strong>Rate calendar</strong><small>View nightly prices and update date ranges</small></span><ArrowRight size={16}/></Link>
    <Link to="/reservation-policy"><CalendarClock size={19}/><span><strong>Reservation policies</strong><small>Booking rules and exceptions</small></span><ArrowRight size={16}/></Link>
    <Link to="/tax-policies"><ReceiptText size={19}/><span><strong>Taxes & charges</strong><small>Finance and tax configuration</small></span><ArrowRight size={16}/></Link>
    <Link to="/staff"><Users size={19}/><span><strong>Staff & permissions</strong><small>Accounts, roles, and access</small></span><ArrowRight size={16}/></Link>

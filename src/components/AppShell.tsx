@@ -29,6 +29,7 @@ const primaryPaths=['/','/front-desk','/reservations','/group-reservations','/ro
 const primaryDaily=daily.filter(item=>primaryPaths.includes(item.to));
 const secondaryDaily=daily.filter(item=>!primaryPaths.includes(item.to));
 const administration=[
+ {to:'/rate-calendar' as const,label:'Rate calendar',icon:Wallet},
  {to:'/my-expense-claims' as const,label:'My expense claims',icon:Receipt},
  {to:'/expenses' as const,label:'Expenses',icon:Receipt},
  {to:'/night-audit' as const,label:'Daily Closing',icon:ClipboardCheck},

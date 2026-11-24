@@ -10,6 +10,7 @@ import {useRoomRack,type RackRoom} from '../api/roomRack';
 import type {LiveRoom} from '../api/liveCatalog';
 import {useLiveCatalogSummary,useLiveRoomTypes} from '../api/liveCatalogQueries';
 import {RoomReadinessPanel} from './RoomReadinessPanel';
+import {RoomInventoryBlockManager} from './RoomInventoryBlockManager';
 import {QueryFeedback} from './QueryFeedback';
 import {readableDate,readableDateTime} from '../lib/format';
 import {
@@ -46,9 +47,9 @@ const stateIcon=(tone:ReturnType<typeof roomTone>)=>({
  attention:ClipboardCheck,blocked:ShieldAlert,unknown:Info,
 })[tone];
 
-function RackDrawer({room,hotelId,canInspect,onEditRoom,onClose,restoreFocus}:{
- room:RackRoom;hotelId:string;canInspect:boolean;onEditRoom?: (room:LiveRoom)=>void;
- onClose:()=>void;restoreFocus:()=>void;
+function RackDrawer({room,hotelId,today,canInspect,onEditRoom,onClose,restoreFocus,onBlockChanged}:{
+ room:RackRoom;hotelId:string;today:string;canInspect:boolean;onEditRoom?: (room:LiveRoom)=>void;
+ onClose:()=>void;restoreFocus:()=>void;onBlockChanged:()=>void;
 }){
  const dialog=useRef<HTMLElement|null>(null);
  useEffect(()=>{
@@ -101,6 +102,8 @@ function RackDrawer({room,hotelId,canInspect,onEditRoom,onClose,restoreFocus}:{
       <Link to="/reservations" search={{booking:room.upcomingStay.bookingId}}>Review upcoming booking <ArrowRight size={15}/></Link>
      </div>}
     </section>
+    {onEditRoom&&<RoomInventoryBlockManager hotelId={hotelId} roomId={room.roomId}
+     roomNumber={room.roomNumber} today={today} onChanged={onBlockChanged}/>}
     {onEditRoom&&<button type="button" className="rack-manage-room" onClick={()=>{onClose();onEditRoom(liveRoom);}}>
      <Settings2 size={16}/> Edit room details
     </button>}
@@ -309,8 +312,10 @@ export function RoomRackDashboard({hotelId,focusRoomNumber,onEditRoom}:{hotelId:
    </details>
   </>}
   {selected&&<RackDrawer key={hotelId+'-'+selected.roomId} room={selected} hotelId={hotelId}
+   today={data?.hotelDate??new Date().toISOString().slice(0,10)}
    canInspect={data?.allowedActions.completeInspection??false}
-   onEditRoom={onEditRoom} onClose={close} restoreFocus={restore}/>}
+   onEditRoom={onEditRoom} onClose={close} restoreFocus={restore}
+   onBlockChanged={()=>{close();void rack.refetch();}}/>}
  </section>;
 }
 

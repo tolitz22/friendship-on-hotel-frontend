@@ -84,7 +84,7 @@ export function ReadableAuditEvent({event,actorName,currentUserId,currentUserNam
 
 type CashDetail={label:string;value:string};
 const cashEventTitle=(event:string):string=>({
- opened:'Cashier shift opened',cash_received:'Cash payment recorded',
+ opened:'Cashier shift opened',cash_received:'Cash payment recorded',expense_payout:'Recorded hotel expense payout',
  submitted:'Cash counted and shift submitted',
  reconciled:'Manager reconciled the drawer',flagged:'Manager flagged a discrepancy',
 }[event]??headline(event));
@@ -110,7 +110,14 @@ export function cashEventDetails(event:string,details:unknown):CashDetail[]{
   if(safe('bookingId')!==null)result.push({label:'Guest booking',value:'Booking #'+safe('bookingId')});
   if(safe('reference')!==null)result.push({label:'Receipt reference',value:safe('reference')!});
  }
+ if(event==='expense_payout'){
+  if(number('amountMinor')!==null)result.push({label:'Cash paid out',value:number('amountMinor')!});
+  if(safe('payee'))result.push({label:'Payee',value:safe('payee')!});
+  if(typeof obj.description==='string')result.push({label:'Purpose',value:obj.description.slice(0,255)});
+  if(safe('expenseId'))result.push({label:'Expense voucher',value:'#'+safe('expenseId')});
+ }
  if(event==='submitted'){
+  if(number('expensePayoutTotalMinor')!==null)result.push({label:'Expense payouts included',value:number('expensePayoutTotalMinor')!});
   if(number('countedCashMinor')!==null)result.push({label:'Cash physically counted',value:number('countedCashMinor')!});
   if(number('expectedCashMinor')!==null)result.push({label:'Expected drawer total',value:number('expectedCashMinor')!});
   if(number('varianceMinor')!==null)result.push({label:'Difference',value:number('varianceMinor')!});

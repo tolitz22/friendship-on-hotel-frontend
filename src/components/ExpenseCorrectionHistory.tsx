@@ -67,7 +67,7 @@ export function ExpenseCorrectionHistory({hotel,expense,userId}:{hotel:string;ex
  const data=history.data;
  function saved(){
   setAction(null);setMessage('Voucher transaction saved.');
-  for(const key of ['expense-history','expense-detail','expenses','cashier-shifts','cashier-shift-detail','current-cashier-shift','cashier-shift-history'])
+  for(const key of ['expense-exceptions','night-audit-reconciliation','expense-history','expense-detail','expenses','cashier-shifts','cashier-shift-detail','current-cashier-shift','cashier-shift-history'])
    void client.invalidateQueries({queryKey:['live',key,hotel]});
  }
  return <section className="expense-correction-history">

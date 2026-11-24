@@ -33,6 +33,7 @@ export function NightAuditReviewPanel({date,preflight}:{date:string;preflight:Ni
    });
    if(readSession().hotelId!==hotelId)return;
    await client.invalidateQueries({queryKey:['live','night-audit-review',hotelId,date]});
+   await client.invalidateQueries({queryKey:['live','financial-business-day',hotelId]});
    setSuccess('Manager review #'+result?.id+' recorded. No financial close or ledger lock was performed.');
   }catch(e){setError(e instanceof Error?e.message:'Unable to record business-day review. Refresh before retrying.');}
   finally{setBusy(false);}

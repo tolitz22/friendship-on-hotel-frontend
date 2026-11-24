@@ -36,7 +36,7 @@ export function NightAuditPreview(){
  const query=useNightAuditPreview(date,!!manager);
  if(!manager)return <>
   <Heading title="Night audit preflight" description="Manager-only operational and financial review."/>
-  <Panel title="Restricted"><p>A current active hotel manager is required to view financial details.</p></Panel>
+  <Panel title="Restricted"><p>Ask an active administrator for this hotel to open Night Audit and set up the business date.</p></Panel>
  </>;
  const data=query.data;
  return <>

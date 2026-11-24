@@ -34,6 +34,7 @@ export function FinancialBusinessDayPanel({selectedDate}:{selectedDate:string}){
  const {hotelId}=useHotelAuth();
  const client=useQueryClient();
  const [typedDate,setTypedDate]=useState('');
+ const [setupDate,setSetupDate]=useState('');
  const [ack,setAck]=useState(false);
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState('');
@@ -48,12 +49,29 @@ export function FinancialBusinessDayPanel({selectedDate}:{selectedDate:string}){
   },
   retry:false,
  });
- useEffect(()=>{setTypedDate('');setAck(false);setError('');setSuccess('');},[hotelId,selectedDate]);
+ useEffect(()=>{setSetupDate('');setTypedDate('');setAck(false);setError('');setSuccess('');},[hotelId,selectedDate]);
  const data=query.data;
  const dateMatches=data?.businessDate===selectedDate;
  const ready=!!data?.canClose&&dateMatches&&data.blockers.length===0;
- const configurationError=query.error instanceof ApiError&&query.error.status===409?query.error.message:null;
+ const configurationError=query.error instanceof ApiError&&query.error.code==='BUSINESS_DATE_NOT_CONFIGURED'?query.error.message:null;
  const confirmed=ready&&typedDate===data?.businessDate&&ack&&!busy&&!query.isFetching;
+
+ async function initializeDay(){
+  if(!hotelId||readSession().hotelId!==hotelId||busy||setupDate!==selectedDate)return;
+  setBusy(true);setError('');setSuccess('');
+  try{
+   await requestJson(hotelPath('/finance/business-day/initialize'),{
+    method:'POST',body:{businessDate:setupDate},
+   });
+   if(readSession().hotelId!==hotelId)return;
+   setSuccess('Business date set to '+setupDate+'.');
+  }catch(e){
+   if(readSession().hotelId===hotelId)setError(e instanceof Error?e.message:'Business date setup failed.');
+  }finally{
+   if(readSession().hotelId===hotelId){setSetupDate('');await query.refetch();}
+   setBusy(false);
+  }
+ }
 
  async function closeDay(){
   if(!hotelId||readSession().hotelId!==hotelId||!confirmed||!data)return;
@@ -102,7 +120,15 @@ export function FinancialBusinessDayPanel({selectedDate}:{selectedDate:string}){
     onClick={()=>void query.refetch()}><RefreshCw size={15}/> Refresh readiness</button>
   </div>
   {!data&&<p>Selected date <strong>{selectedDate}</strong></p>}
-  {configurationError&&<p className="night-audit-issues" role="status">{configurationError}</p>}
+  {configurationError&&<div className="night-audit-issues">
+   <h4>Set up the first business date</h4>
+   <p>A hotel administrator can initialize the clock for this property. Folio-night accounting is activated separately.</p>
+   {setupDate===selectedDate?<><p>Start on <strong>{selectedDate}</strong>? Setup opens any missing calendar-month periods needed for the first close.</p>
+    <button type="button" className="btn-primary" disabled={busy} onClick={()=>void initializeDay()}>Confirm starting date</button>
+    <button type="button" className="btn-inline" disabled={busy} onClick={()=>setSetupDate('')}>Cancel</button></>
+    :<button type="button" className="btn-primary" disabled={busy} onClick={()=>setSetupDate(selectedDate)}>Set up business date</button>}
+  </div>}
+  {query.error instanceof ApiError&&query.error.status===403&&<p>Ask an active administrator for this hotel to set up the business date in Night Audit.</p>}
   <QueryFeedback loading={query.isPending} error={configurationError?null:query.error} onRetry={()=>void query.refetch()}/>
   {data&&<>
    <div className="night-audit-metrics">

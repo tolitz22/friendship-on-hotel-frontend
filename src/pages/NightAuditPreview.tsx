@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react';
 import {Link} from '@tanstack/react-router';
-import {AlertTriangle,CalendarDays,ClipboardCheck,RefreshCw,ShieldAlert,Wallet} from 'lucide-react';
+import {CalendarDays,ClipboardCheck,RefreshCw,ShieldAlert,Wallet} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
@@ -32,7 +32,8 @@ export function NightAuditPreview(){
  const {user,hotelId}=useHotelAuth();
  const manager=!!hotelId&&user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const [date,setDate]=useState(hotelToday);
- useEffect(()=>setDate(hotelToday()),[hotelId]);
+ const [showReport,setShowReport]=useState(false);
+ useEffect(()=>{setDate(hotelToday());setShowReport(false);},[hotelId]);
  const query=useNightAuditPreview(date,!!manager);
  if(!manager)return <>
   <Heading title="Daily Closing" description="Manager-only operational and financial review."/>
@@ -43,9 +44,9 @@ export function NightAuditPreview(){
   <Heading title="Daily Closing" description="Review hotel activity, check daily finances, and close the business date."/>
   <Panel title="Review daily activity">
    <div className="desk-tools">
-    <label className="night-audit-date">Hotel-local date
+    <label className="night-audit-date">Date to review
      <input type="date" className="wizard-input" value={date} max={data?.hotelDate??hotelToday()}
-      onChange={e=>setDate(e.target.value)}/>
+      onChange={e=>{if(e.target.value)setDate(e.target.value);}}/>
     </label>
     <button type="button" className="btn-inline" onClick={()=>{
      const current=data?.hotelDate??hotelToday();
@@ -53,22 +54,21 @@ export function NightAuditPreview(){
      utc.setUTCDate(utc.getUTCDate()-1);
      setDate(utc.toISOString().slice(0,10));
     }}>Review yesterday</button>
-    <button type="button" className="btn-inline" onClick={()=>void query.refetch()}>
-     <RefreshCw size={16}/> Refresh daily checks
+    <button type="button" className="btn-inline" disabled={query.isFetching} onClick={()=>void query.refetch()}>
+     <RefreshCw size={16}/> {query.isFetching?'Refreshing…':'Refresh checks'}
     </button>
    </div>
-   <p className="night-audit-warning"><AlertTriangle size={18}/>
-    The daily checks are <strong>read-only and does not close the day.</strong> The separate financial-close control below advances the business date only after manager review and reconciliation. Neither action calculates VAT or verifies gateway settlement.
-    Existing room nights are already posted when priced bookings are created.</p>
+   <p className="desk-muted">Review activity, record the manager review, then close the financial day. Reviewing alone does not close the day.</p>
    <QueryFeedback loading={query.isPending} error={query.error}
     onRetry={()=>void query.refetch()}/>
    {data&&<>
     <div className="night-audit-headline">
-     <div><CalendarDays size={18}/><strong>{data.businessDate}</strong><span>Hotel-local review date</span></div>
+     <div><CalendarDays size={18}/><strong>{new Intl.DateTimeFormat('en-PH',{dateStyle:'long',timeZone:'UTC'}).format(new Date(data.businessDate+'T00:00:00Z'))}</strong><span>Hotel-local review date</span></div>
      <span className={data.preflightClear?'night-audit-pass':'night-audit-needs-review'}>
-      {data.preflightClear?'No listed exceptions':'Exceptions require review'}
+      {data.preflightClear?'Daily checks passed':'Action required'}
      </span>
     </div>
+    <h3>1. Check hotel activity</h3>
     <div className="night-audit-metrics">
      <Metric label="Rooms in current inventory" value={data.roomCount}/>
      <Metric label="Scheduled room nights" value={data.scheduledRoomNights}/>
@@ -83,7 +83,7 @@ export function NightAuditPreview(){
      <h3><ShieldAlert size={19}/> Issues requiring investigation</h3>
      {data.issues.map(issue=><p key={issue}>{issue}</p>)}
     </section>:<p className="night-audit-clean"><ClipboardCheck size={18}/>
-     No issues detected by this limited preflight. This does not certify a balanced or closed ledger.</p>}
+     No operational exceptions found. Financial readiness is checked separately.</p>}
     <Exceptions label="Missing room-night charge" items={data.missingNightEntries}/>
     <Exceptions label="Duplicate room-night charge" items={data.duplicateNightEntries}/>
     <Exceptions label="Unpriced reservations" items={data.unpricedBookings}/>
@@ -92,10 +92,14 @@ export function NightAuditPreview(){
      <Link to="/billing">Review reservation folios</Link>
      <Link to="/operational-exceptions">Review operational exceptions</Link>
     </div>
+    <h3>2. Record manager review</h3>
     <NightAuditReviewPanel key={hotelId+'-'+data.businessDate} date={data.businessDate} preflight={data}/>
-    <NightAuditReconciliationPanel key={'reconciliation-'+hotelId} selectedDate={data.businessDate}/>
+    <h3>3. Review daily finances</h3>
+    <button type="button" className="btn-inline" aria-expanded={showReport} onClick={()=>setShowReport(v=>!v)}>{showReport?'Hide financial report':'View financial report and expenses'}</button>
+    {showReport&&<NightAuditReconciliationPanel key={'reconciliation-'+hotelId} selectedDate={data.businessDate}/>}
+    <h3>4. Close the business day</h3>
     <FinancialBusinessDayPanel key={'financial-'+hotelId} selectedDate={data.businessDate}/>
-    <p className="night-audit-fineprint">The scheduled-night count is based on current reservation records, not historical physical room occupancy. Current inventory counts may differ from the inventory on the selected historical date. Payment totals are staff-maintained evidence, not settlement. The cashier and payment exception counts are current property-wide counts, not date-scoped historical snapshots.</p>
+    <details><summary>About these figures</summary><p className="night-audit-fineprint">The scheduled-night count is based on current reservation records, not historical physical room occupancy. Current inventory counts may differ from the inventory on the selected historical date. Payment totals are staff-maintained evidence, not settlement. The cashier and payment exception counts are current property-wide counts, not date-scoped historical snapshots.</p></details>
    </>}
   </Panel>
  </>;

@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {SupplierDirectory} from '../components/SupplierDirectory';
 import {ExpenseExceptionQueue} from '../components/ExpenseExceptionQueue';
 import {ExpenseCorrectionHistory} from '../components/ExpenseCorrectionHistory';
 import {useQueryClient} from '@tanstack/react-query';
@@ -83,11 +84,22 @@ function Register({hotel,date,expense}:{hotel:string;date?:string;expense?:strin
  </>;
 }
 
+function ExpensesWorkspace({hotel,date,expense}:{hotel:string;date?:string;expense?:string}){
+ const [tab,setTab]=useState<'expenses'|'suppliers'>('expenses');
+ return <>
+  <div className="desk-tools" role="group" aria-label="Expenses workspace">
+   <button type="button" className={tab==='expenses'?'btn-primary':'btn-inline'} aria-pressed={tab==='expenses'} onClick={()=>setTab('expenses')}>Expense register</button>
+   <button type="button" className={tab==='suppliers'?'btn-primary':'btn-inline'} aria-pressed={tab==='suppliers'} onClick={()=>setTab('suppliers')}>Suppliers</button>
+  </div>
+  {tab==='expenses'?<Register hotel={hotel} date={date} expense={expense}/>:<><Heading title="Expenses" description="Manage the hotel's supplier directory."/><SupplierDirectory hotel={hotel}/></>}
+ </>;
+}
+
 export function Expenses(){
  const {hotelId,user}=useHotelAuth();
  const search=useSearch({from:'/expenses'});
  if(dataMode!=='api')return <Heading title="Expenses" description="Available with live hotel data."/>;
  if(!hotelId||user?.hotels.find(h=>h.id===hotelId)?.role!=='admin')return <Heading title="Expenses" description="This workspace requires administrator access."/>;
  if(search.hotel&&search.hotel!==hotelId)return <Heading title="Expenses" description="Select the original hotel to open this voucher."/>; 
- return <Register key={hotelId+':'+(search.date??'')+':'+(search.expense??'')} hotel={hotelId} date={search.date} expense={search.expense}/>;
+ return <ExpensesWorkspace key={hotelId+':'+(search.date??'')+':'+(search.expense??'')} hotel={hotelId} date={search.date} expense={search.expense}/>;
 }

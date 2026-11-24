@@ -83,6 +83,7 @@ export function TaxPolicies(){
  const [previewAmount,setPreviewAmount]=useState('');
  const [preview,setPreview]=useState<Preview|null>(null);
  const [showHistory,setShowHistory]=useState(false);
+ const [showDraft,setShowDraft]=useState(false);
  const [touched,setTouched]=useState({rate:false,from:false,until:false,note:false});
 
  useEffect(()=>{
@@ -90,7 +91,7 @@ export function TaxPolicies(){
   setFrom('');setUntil('');setNote('');setBusy(false);setApproveId(null);
   setAck(false);setDraftError('');setDraftSuccess('');setApprovalError('');setApprovalSuccess('');
   setPreviewError('');setPreview(null);setPreviewDate('');setPreviewAmount('');
-  setShowHistory(false);setTouched({rate:false,from:false,until:false,note:false});
+  setShowHistory(false);setShowDraft(false);setTouched({rate:false,from:false,until:false,note:false});
  },[hotelId]);
 
  const query=useQuery({
@@ -112,7 +113,7 @@ export function TaxPolicies(){
  const untilError=until&&(!validDate(until)||until<from)?'The end date must be on or after the start date.':'';
  const noteError=note.trim().length<15?'Add a finance review note with at least 15 characters.':'';
  const conflicts=validDate(from)&&!untilError?policies.filter(p=>p.status==='approved'&&rangeOverlap(from,until||null,p)):[];
- const canDraft=!busy&&!rateError&&!fromError&&!untilError&&!noteError&&conflicts.length===0;
+ const canDraft=query.isSuccess&&!busy&&!rateError&&!fromError&&!untilError&&!noteError&&conflicts.length===0;
  const previewMinor=pesosToMinor(previewAmount);
  const applicablePolicy=selectedPolicy.length===1?selectedPolicy[0]:null;
  const reviewPolicy=policies.find(p=>p.id===approveId);
@@ -129,7 +130,7 @@ export function TaxPolicies(){
      effectiveFrom:from,effectiveUntil:until||null,reviewNote:note.trim()},
    });
    if(!safeHotel())return;
-   setNote('');setTouched({rate:false,from:false,until:false,note:false});
+   setNote('');setShowDraft(false);setTouched({rate:false,from:false,until:false,note:false});
    setDraftSuccess('Draft saved. A different authorized administrator must review and approve it. No folio or journal was changed.');
    await client.invalidateQueries({queryKey:['live','tax-policies',hotelId]});
   }catch(e){if(safeHotel())setDraftError(e instanceof Error?e.message:'Unable to save draft.');}
@@ -176,16 +177,20 @@ export function TaxPolicies(){
  const approved=policies.some(p=>p.status==='approved');
  const hasDraft=policies.some(p=>p.status==='draft');
  return <main className="tax-page">
-  <Heading title="Tax configuration" description="Prepare, independently approve, and preview effective-dated hotel tax treatment."
+  <Heading title="Tax configuration" description="Manage hotel tax policies, review proposed changes and preview guest pricing."
    action={<span className="tax-page-badge"><ShieldCheck size={15}/> Preview-only controls</span>}/>
+  <QueryFeedback loading={query.isPending} error={query.error} onRetry={()=>void query.refetch()}/>
   <section className="tax-overview" aria-label="Tax configuration overview">
   <Panel title="Current configuration">
    <div className="tax-state">
     <span className={'tax-state-icon '+(current?'is-approved':hasDraft?'is-pending':'')} aria-hidden="true">
      {current?<CheckCircle2 size={23}/>:hasDraft?<Clock3 size={23}/>:<BadgePercent size={23}/>}</span>
     <div><small>CONFIGURATION STATUS</small>
-     <strong>{current?'Current approved preview policy':upcoming?'Approved — starts on '+fmt(upcoming.effective_from):hasDraft?'Draft awaiting independent review':'Tax configuration not started'}</strong>
-     <p>{current?policyLabel(current):'No approved policy applies to today.'}</p>
+     <strong>{query.isPending?'Loading tax configuration…':query.isError?'Configuration unavailable':current?'Current approved preview policy':upcoming?'Approved — starts on '+fmt(upcoming.effective_from):hasDraft?'Draft awaiting independent review':'Tax configuration not started'}</strong>
+     <p>{current?policyLabel(current):query.isSuccess?'No approved policy applies to today.':''}</p>
+     {current&&<p>Effective {fmt(current.effective_from)} – {current.effective_until?fmt(current.effective_until):'No planned end'}</p>}
+     {current&&upcoming&&<p>Next approved policy: {policyLabel(upcoming)} · Starts {fmt(upcoming.effective_from)}</p>}
+     {query.isSuccess&&<p>{policies.filter(p=>p.status==='draft').length} drafts awaiting review</p>}
      <span>Automatic guest tax calculation: Not enabled by this page · Guest folios and journals affected: No</span>
     </div>
    </div>
@@ -200,13 +205,14 @@ export function TaxPolicies(){
      <span>3</span><div><strong>Preview approved</strong><small>No folio or journal posting</small></div>
     </div>
    </div>
-   <button type="button" className="btn-primary tax-overview-action" onClick={()=>document.getElementById('tax-draft-heading')?.scrollIntoView({block:'start'})}>
-    <ClipboardCheck size={16}/> Prepare draft policy
+   <button type="button" className="btn-primary tax-overview-action" aria-expanded={showDraft} aria-controls="tax-draft-panel" disabled={!query.isSuccess||busy} onClick={()=>setShowDraft(v=>!v)}>
+    <ClipboardCheck size={16}/> {showDraft?'Close draft editor':'Prepare draft policy'}
    </button>
   </Panel>
   </section>
 
-  <section className="tax-form-panel tax-main-card" aria-labelledby="tax-draft-heading">
+  {draftSuccess&&<p className="stay-feedback-success" role="status">{draftSuccess}</p>}
+  {showDraft&&<section id="tax-draft-panel" className="tax-form-panel tax-main-card" aria-labelledby="tax-draft-heading">
    <Panel title="Prepare a tax policy draft">
     <h3 id="tax-draft-heading" className="tax-section-heading">1. Tax treatment</h3>
     <div className="tax-form-grid">
@@ -285,29 +291,29 @@ export function TaxPolicies(){
      </ul>
     </div>}
     {draftError&&<p className="stay-feedback-error" role="alert">{draftError}</p>}
-    {draftSuccess&&<p className="stay-feedback-success" role="status">{draftSuccess}</p>}
+
     <button type="button" className="btn-primary tax-primary-action" disabled={!canDraft}
      aria-describedby={!canDraft?'tax-save-help':undefined} onClick={()=>void createDraft()}>
      <ClipboardCheck size={16}/>{busy?'Saving…':'Save draft policy'}
     </button>
     <small id="tax-save-help">Requires complete, valid inputs and no known overlap with approved periods.</small>
+    <button type="button" className="btn-inline" disabled={busy} onClick={()=>setShowDraft(false)}>Close editor (keep inputs)</button>
    </Panel>
-  </section>
+  </section>}
 
   <div className="tax-support-grid">
   <div className="tax-support-card tax-review-card">
-  <Panel title="Independent review">
+  <Panel title={`Independent review (${policies.filter(p=>p.status==='draft').length})`}>
    <div className="tax-card-intro"><span><FileCheck2 size={19}/></span><p>A different authorized hotel administrator must approve each draft. The creator cannot approve their own policy. Older drafts without a verified creator must be recreated.</p></div>
    <div className="desk-tools"><button type="button" className="btn-inline" onClick={()=>void query.refetch()} disabled={query.isFetching}>
     <RefreshCw size={15}/> Refresh policies
    </button></div>
-   <QueryFeedback loading={query.isPending} error={query.error} onRetry={()=>void query.refetch()}/>
-   {policies.filter(p=>p.status==='draft').length===0&&<p className="desk-muted">No drafts currently awaiting review.</p>}
+   {query.isSuccess&&policies.filter(p=>p.status==='draft').length===0&&<p className="desk-muted">No drafts currently awaiting review.</p>}
    {policies.filter(p=>p.status==='draft').map(p=><article className="tax-policy-row" key={p.id}>
     <div><strong>Draft #{p.id} · {policyLabel(p)}</strong>
      <small>Created by {p.created_by_name??'Unverified legacy creator'} · {p.created_at?readableDateTime(p.created_at):'Date unavailable'}</small>
      <small>Effective {fmt(p.effective_from)} – {p.effective_until?fmt(p.effective_until):'open-ended'}</small>
-     <p>{p.review_note}</p>
+     {p.review_note&&<details><summary>Finance review note</summary><p>{p.review_note}</p></details>}
     </div>
     <button type="button" className="btn-inline" disabled={busy}
      onClick={()=>{setApproveId(p.id);setAck(false);setApprovalError('');setApprovalSuccess('');}}>
@@ -352,10 +358,11 @@ export function TaxPolicies(){
      <small id="tax-preview-amount-help">Enter pesos and centavos normally, for example 1120.00.</small>
     </label>
    </div>
+   {current&&<button type="button" className="btn-inline" onClick={()=>{setPreviewDate(today);setPreview(null);setPreviewError('');}}>Use today's policy</button>}
    <div className="tax-applicable-policy" role="status">
     {!validDate(previewDate)?'Select a preview date to find the applicable policy.':
      applicablePolicy?'Applicable policy: #'+applicablePolicy.id+' · '+policyLabel(applicablePolicy):
-     'No approved policy applies to '+fmt(previewDate)+'. No tax preview can be calculated for that date.'}
+     selectedPolicy.length>1?'Multiple approved policies cover this date. Resolve the overlap before calculating.':'No approved policy applies to '+fmt(previewDate)+'. No tax preview can be calculated for that date.'}
    </div>
    {previewError&&<p className="stay-feedback-error" role="alert">{previewError}</p>}
    <button type="button" className="btn-primary tax-primary-action" disabled={busy||!applicablePolicy||previewMinor===null}
@@ -365,8 +372,8 @@ export function TaxPolicies(){
     <dl className="readable-audit-changes">
      <div><dt>Entered amount</dt><dd>{previewMinor===null?'—':peso(previewMinor)}</dd></div>
      <div><dt>Net amount before tax</dt><dd>{peso(preview.breakdown.base_minor)}</dd></div>
-     <div><dt>Tax included or added</dt><dd>{peso(preview.breakdown.tax_minor)}</dd></div>
-     <div><dt>Illustrated total</dt><dd>{peso(preview.breakdown.total_minor)}</dd></div>
+     <div><dt>{preview.breakdown.price_mode==='inclusive'?'Tax included in price':'Tax added to price'}</dt><dd>{peso(preview.breakdown.tax_minor)}</dd></div>
+     <div><dt>Total guest price (preview)</dt><dd>{peso(preview.breakdown.total_minor)}</dd></div>
     </dl>
     <p className="gb-attention-note">Preview only — nothing was posted to a guest folio or accounting journal. This is not a tax invoice or final guest balance.</p>
    </div>}
@@ -381,7 +388,7 @@ export function TaxPolicies(){
   </details>
   <details className="workflow-disclosure tax-history" open={showHistory} onToggle={e=>setShowHistory(e.currentTarget.open)}>
    <summary>Policy history ({policies.length})</summary>
-   {policies.length===0&&<p>No historical policy records.</p>}
+   {query.isSuccess&&policies.length===0&&<p>No historical policy records.</p>}
    {policies.map(p=><article className="tax-policy-row" key={p.id}>
     <div><strong>Policy #{p.id} · {policyLabel(p)}</strong>
      <small>{p.status==='draft'?'Draft awaiting review':effectiveOn(p,today)?'Current approved preview policy':p.status==='approved'&&p.effective_from>today?'Approved — starts '+fmt(p.effective_from):p.status==='approved'?'Expired policy':p.status}</small>

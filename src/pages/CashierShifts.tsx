@@ -208,6 +208,8 @@ export function CashierShifts(){
   client.invalidateQueries({queryKey:['live','cashier-shift-detail',hotelId]}),
   client.invalidateQueries({queryKey:['live','cashier-shift-history',hotelId]}),
   client.invalidateQueries({queryKey:['live','expenses',hotelId]}),
+  client.invalidateQueries({queryKey:['live','expense-exceptions',hotelId]}),
+  client.invalidateQueries({queryKey:['live','night-audit-reconciliation',hotelId]}),
   client.invalidateQueries({queryKey:['live','expense-history',hotelId]}),
   client.invalidateQueries({queryKey:['live','expense-detail',hotelId]}),
  ]);

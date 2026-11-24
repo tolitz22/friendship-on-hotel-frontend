@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {SupplierAgingReport} from './SupplierAgingReport';
 import {useQueryClient} from '@tanstack/react-query';
 import {useHotelAuth} from './AuthProvider';
 import {SupplierInvoiceDialog,SupplierPaymentDialog} from './SupplierBillDialogs';
@@ -14,10 +15,11 @@ const money=(n:number)=>new Intl.NumberFormat('en-PH',{style:'currency',currency
 export function SupplierBillRegister({hotel}:{hotel:string}){
  const {user}=useHotelAuth();
  const client=useQueryClient();
+ const [agingOpen,setAgingOpen]=useState(false);
  const [invoiceOpen,setInvoiceOpen]=useState(false);
  const [paymentOpen,setPaymentOpen]=useState(false);
  const [message,setMessage]=useState('');
- function refresh(){for(const key of ['supplier-bills','supplier-bill','cashier-shifts','cashier-shift-detail','current-cashier-shift','cashier-shift-history','expenses','night-audit-reconciliation'])void client.invalidateQueries({queryKey:['live',key,hotel]});}
+ function refresh(){for(const key of ['supplier-aging','supplier-bills','supplier-bill','cashier-shifts','cashier-shift-detail','current-cashier-shift','cashier-shift-history','expenses','night-audit-reconciliation'])void client.invalidateQueries({queryKey:['live',key,hotel]});}
  const [filters,setFilters]=useState<BillFilters>({page:1,status:'all'});
  const [selected,setSelected]=useState<string|null>(null);
  const query=useSupplierBills(hotel,filters);
@@ -35,6 +37,8 @@ export function SupplierBillRegister({hotel}:{hotel:string}){
    <button type="button" className="expense-summary-button" onClick={()=>filter('inconsistent')}><Stat label="Balance exceptions" value={summary?String(summary.inconsistentCount):'—'} detail="Invoices requiring investigation" icon={<Receipt size={20}/>}/></button>
   </div>
   {query.data&&!query.data.postingEnabled&&<p className="notice">Supplier billing writes are not enabled for this deployment. Existing invoices remain available for inspection.</p>}
+  {summary?.businessDate&&<div className="desk-tools"><button type="button" className="btn-inline" aria-expanded={agingOpen} onClick={()=>setAgingOpen(v=>!v)}>{agingOpen?'Hide aging report':'View accounts payable aging'}</button></div>}
+  {agingOpen&&summary?.businessDate&&<SupplierAgingReport hotel={hotel} businessDate={summary.businessDate}/>}
   <Panel title="Supplier bill register" action={canWrite&&summary?.businessDate?<button type="button" className="btn-primary" onClick={()=>{setMessage('');setInvoiceOpen(true);}}>Record supplier bill</button>:undefined}>
    <p className="desk-muted">Outstanding amounts reflect recorded payments. {summary?.businessDate?'Overdue as of '+readableDate(summary.businessDate)+'.':'No financial business date configured.'}</p>
    <div className="expense-filters">

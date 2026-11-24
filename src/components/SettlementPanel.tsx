@@ -680,7 +680,9 @@ export function SettlementPanel({bookingId,requestedAction}:{bookingId:string;re
     </>}
     <div className="settlement-signature">
      <p>{data.signed?'Signed settlement: '+readableDateTime(data.signedAt)+' · Manager #'+data.signedBy:
-      guestBillSettled?'Reviewed payments cover the guest bill. Financial sign-off is pending.':'Financial sign-off is pending.'}</p>
+      !checkoutBlock&&data.status==='checked_in'?'Guest bill reconciled — ready for checkout. Manager signature is not required.':
+      guestBillSettled?'Guest payments cover the recorded bill. Finish any outstanding reconciliation checks.':
+      'Guest statement is available for review. Resolve outstanding billing items before checkout.'}</p>
      {data.signed&&<p><small>Signed financial snapshot SHA-256: {data.signedSnapshotSha256}</small></p>}
      <small>This is an internal PMS guest-account statement, NOT a BIR tax invoice, bank receipt,
       payment gateway confirmation, or proof that a refund has been disbursed.
@@ -697,7 +699,7 @@ export function SettlementPanel({bookingId,requestedAction}:{bookingId:string;re
      <AlertTriangle size={16}/> Signed statement integrity failed. Printing and checkout are blocked pending independent investigation.
     </p>:data.signed?<p className="night-audit-clean"><CheckCircle2 size={16}/>
      Signed by manager #{data.signedBy}. Financial snapshot integrity confirmed.</p>
-     :<p className="desk-muted">Printable for review. Unsigned statements remain provisional.</p>}
+     :<p className="desk-muted">Printable guest-account record. Manager sign-off is optional and not required for routine checkout.</p>}
    </div>
    {data.blockers.length>0&&<div className="night-audit-issues" role="status">
     <h4><AlertTriangle size={17}/> What still needs attention before checkout</h4>

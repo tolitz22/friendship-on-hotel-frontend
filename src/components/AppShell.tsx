@@ -32,7 +32,7 @@ const administration=[
  {to:'/expenses' as const,label:'Expenses',icon:Receipt},
  {to:'/night-audit' as const,label:'Daily Closing',icon:ClipboardCheck},
  {to:'/tax-policies' as const,label:'Tax configuration',icon:Wallet},
- {to:'/folio-night-accounting' as const,label:'Folio-night accounting',icon:ClipboardList},
+ {to:'/folio-night-accounting' as const,label:'Nightly Room Charges',icon:ClipboardList},
  {to:'/reports' as const,label:'Reports',icon:ChartNoAxesCombined},
  {to:'/operational-exceptions' as const,label:'Exceptions & audit',icon:ShieldAlert},
  {to:'/manager-approvals' as const,label:'Manager approvals',icon:ClipboardList},

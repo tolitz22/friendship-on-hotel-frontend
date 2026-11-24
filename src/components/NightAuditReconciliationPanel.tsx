@@ -144,9 +144,9 @@ export function NightAuditReconciliationPanel({selectedDate}:{selectedDate?:stri
 
    </p>
    {data.folioTaxAccountingEnabled===false&&
-    <p className="report-hint">Folio-night accounting is disabled. Ask the finance administrator to review the property setup before enabling it.</p>}
+    <p className="report-hint">Nightly room charge accounting is disabled. Ask the finance administrator to review the property setup before enabling it.</p>}
    {(data.kpis.adrMinor===null||data.kpis.revparMinor===null||data.kpis.occupancyPercent===null)&&
-    <p className="report-hint">Publishing requires verified occupied room nights and historical sellable room-night inventory, plus recognized room revenue attributed to stay dates for ADR and RevPAR. <Link to="/folio-night-accounting">Review folio-night accounting</Link>.</p>}
+    <p className="report-hint">Publishing requires verified occupied room nights and historical sellable room-night inventory, plus recognized room revenue attributed to stay dates for ADR and RevPAR. <Link to="/folio-night-accounting">Review nightly room charges</Link>.</p>}
   </>}
  </section>;
 }

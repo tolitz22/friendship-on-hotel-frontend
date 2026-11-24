@@ -129,17 +129,17 @@ export function FolioNightAccounting(){
   }finally{setBusy(false);}
  }
  if(!admin)return <>
-  <Heading title="Folio-night accounting" description="A current hotel administrator is required."/>
+  <Heading title="Nightly Room Charges" description="A current hotel administrator is required."/>
   <Panel title="Restricted"><p>Only authorized hotel administrators can access accounting review.</p></Panel>
  </>;
  return <>
-  <Heading title="Room-night tax & earned revenue"
-   description="Prepare, independently review and recognize accounting against actual hotel reservation folio nights."/>
+  <Heading title="Nightly Room Charges"
+   description="Review accommodation charges by stay date, verify taxes and recognize earned room revenue."/>
   {!enabled&&<Panel title="Finance activation required">
    <p role="status" className="night-audit-warning"><AlertTriangle size={18}/>
     This accounting workflow is deliberately disabled. An administrator must validate historical folios,
     tax compliance and system readiness before enabling this feature.
-    Viewing existing room-night entries remains read-only.</p>
+    Viewing existing nightly room charges remains read-only.</p>
   </Panel>}
   <Panel title="Choose a priced reservation">
    <form onSubmit={event=>{
@@ -153,7 +153,7 @@ export function FolioNightAccounting(){
        value={draftBooking} onChange={e=>setDraftBooking(e.target.value)} required
        placeholder="Booking number"/>
      </label>
-     <button className="btn-primary" type="submit">Load room nights</button>
+     <button className="btn-primary" type="submit">Load room charges</button>
      <button type="button" className="btn-inline" disabled={busy} onClick={()=>void refresh()}>
       <RefreshCw size={15}/> Refresh
      </button>
@@ -162,11 +162,11 @@ export function FolioNightAccounting(){
    {booking&&!validBooking&&<p role="alert">Enter a valid numeric reservation ID.</p>}
    <QueryFeedback loading={nights.isPending&&validBooking} error={nights.error}
     onRetry={()=>void nights.refetch()}/>
-   {validBooking&&nights.data?.length===0&&<p>This reservation has no priced room-night entries.</p>}
+   {validBooking&&nights.data?.length===0&&<p>This reservation has no nightly room charges.</p>}
    {nights.data&&<div className="occupancy-coverage-rows">
     {nights.data.map(n=><article key={n.id} className="ex-record">
      <div className="desk-tools">
-      <strong>{readableDate(n.stayDate)} · Folio entry #{n.id}</strong>
+      <strong>{readableDate(n.stayDate)} · Room charge #{n.id}</strong>
       <span>{peso(n.amountMinor)}</span>
      </div>
      <p>Assessment: <strong>{assessments.data?.find(a=>a.folioEntryId===n.id)?.status??'Not prepared'}</strong></p>
@@ -174,13 +174,13 @@ export function FolioNightAccounting(){
       onClick={()=>{
        setEntryId(n.id);setAssessmentId(assessments.data?.find(a=>a.folioEntryId===n.id)?.id??'');
        setPolicyId('');setAck(false);setError('');setSuccess('');
-      }}>Select this room night</button>
+      }}>Select room charge</button>
     </article>)}
    </div>}
   </Panel>
-  {currentNight&&<Panel title={'Review room night '+currentNight.stayDate}>
+  {currentNight&&<Panel title={'Review room charge · '+readableDate(currentNight.stayDate)}>
    <p className="desk-muted">Existing folio charge: <strong>{peso(currentNight.amountMinor)}</strong>.
-    Approval does not add another room-night charge. VAT is posted as a separate liability.</p>
+    Approval does not add another nightly room charge. VAT is posted as a separate liability.</p>
    {assessments.data?.some(a=>a.folioEntryId===entryId)
     ?<p>Assessment already recorded. Select it below to review, recognize, or correct it.</p>
     :<>
@@ -203,7 +203,7 @@ export function FolioNightAccounting(){
       </label>
      </div>
      {benefitKind!=='none'&&<div className="desk-tools">
-      <label>Eligible portion of room-night gross (centavos)
+      <label>Eligible portion of room charge (centavos)
        <input className="wizard-input" inputMode="numeric" value={eligibleMinor}
         onChange={e=>setEligibleMinor(e.target.value)}/>
       </label>
@@ -229,7 +229,7 @@ export function FolioNightAccounting(){
     <div className="desk-tools"><strong>{readableDate(a.stayDate)} · Assessment #{a.id}</strong>
      <span>{a.status.toUpperCase()}</span></div>
     <div className="night-audit-metrics">
-     <div className="night-audit-metric"><small>Room-night gross</small><strong>{peso(a.grossMinor)}</strong></div>
+     <div className="night-audit-metric"><small>Gross room charge</small><strong>{peso(a.grossMinor)}</strong></div>
      <div className="night-audit-metric"><small>VAT liability</small><strong>{peso(a.vatMinor)}</strong></div>
      <div className="night-audit-metric"><small>Benefit / folio credit</small><strong>{peso(a.folioCreditMinor)}</strong></div>
      <div className="night-audit-metric"><small>Net room revenue</small><strong>{peso(a.roomRevenueMinor)}</strong></div>
@@ -244,15 +244,15 @@ export function FolioNightAccounting(){
       disabled={busy||business.data?.status!=='open'||business.data?.businessDate!==a.stayDate}
       onClick={()=>void send(root+'/folio-night-assessments/'+a.id+'/recognize',{
        acknowledged:true,
-      },'Earned room revenue reconciled with existing folio-night accounting.')}>
-      <Calculator size={15}/> Recognize on open stay date
+      },'Earned room revenue reconciled with existing room charge accounting.')}>
+      <Calculator size={15}/> Recognize earned room revenue
      </button>}
     </div>
    </article>)}
   </Panel>}
   {selectedAssessment&&<Panel title={'Review assessment #'+selectedAssessment.id}>
    {selectedAssessment.status==='pending'&&<>
-    <p>This approval posts the accounting source and VAT liability, and applies a folio credit only for verified eligible benefits. The original room-night charge is not duplicated.</p>
+    <p>This approval posts the accounting source and VAT liability, and applies a folio credit only for verified eligible benefits. The original room charge is not duplicated.</p>
     {selectedAssessment.preparedBy===String(userId)&&<p role="alert">You prepared this assessment. A different administrator must approve it.</p>}
     <label className="night-review-ack"><input type="checkbox" checked={ack} disabled={busy}
      onChange={e=>setAck(e.target.checked)}/>

@@ -20,6 +20,9 @@ const cashReturn=z.object({
 });
 const supplierPayment=z.object({id,billId:id,amountMinor:z.number().int().positive(),supplierName:z.string(),invoiceReference:z.string(),evidenceReference:z.string(),createdAt:z.string()});
 const shift=z.object({
+ employeeReimbursementTotalMinor:z.number().int().nonnegative().optional(),
+ employeeReimbursementCount:z.number().int().nonnegative().optional(),
+ employeeReimbursements:z.array(z.object({id,claimId:id,amountMinor:z.number().int().positive(),employeeName:z.string(),description:z.string(),evidenceReference:z.string(),createdAt:z.string()})).optional(),
  supplierPaymentTotalMinor:z.number().int().nonnegative().optional(),
  supplierPaymentCount:z.number().int().nonnegative().optional(),
  supplierPayments:z.array(supplierPayment).optional(),

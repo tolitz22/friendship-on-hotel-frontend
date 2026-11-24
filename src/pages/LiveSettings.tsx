@@ -124,7 +124,7 @@ export function LiveSettings(){
  </section>
  <Panel title="Registered room types"><div className="table-scroll"><table><thead><tr><th>Type</th><th>Capacity</th><th>Rooms</th>{admin&&<th>Action</th>}</tr></thead><tbody>
   {data.roomTypes.map(t=><tr key={t.id}><td>{t.name}</td><td>{t.maxOccupancy}</td><td>{t.roomCount}</td>{admin&&<td><button className="guest-edit-button" type="button" onClick={()=>{const record=roomTypes.data?.data.find(rt=>rt.id===t.id);if(record)setEditingType(record);}}>Edit</button></td>}</tr>)}
-  </tbody></table></div></Panel></div>
+  </tbody></table></div></Panel>
   <Panel title="Registered floors"><div className="settings-floor-grid">{data.floors.map((floor,i)=><div key={floor.number??'unknown-'+i}><span>{floor.number===null?'Unassigned floor':'Floor '+floor.number}</span><strong>{floor.roomCount} room(s)</strong></div>)}
   {data.floors.length===0&&<p>No rooms registered yet.</p>}</div></Panel>
   {admin&&<p className="guest-info">Add and edit room types above. Edit individual rooms from the Rooms dashboard.</p>}

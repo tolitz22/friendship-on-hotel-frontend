@@ -12,6 +12,7 @@ import type {Operation} from '../api/liveReservationOperations';
 import {readSession} from '../api/session';
 import {ApiError} from '../api/http';
 import {financialCheckoutBlock,useSettlementStatement} from '../components/SettlementPanel';
+import {isGuestBillSettled} from '../features/billing/reviewedPaymentSettlement';
 import {StayExtensionModal} from '../components/StayExtensionModal';
 import {useReadinessPolicy} from '../api/readinessEnforcementPolicy';
 import {useLiveReadiness} from '../api/liveRoomReadiness';
@@ -78,6 +79,8 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
   &&readyForEnforcedCheckin&&acknowledged&&!busy;
  const checkoutStatement=useSettlementStatement(hotelId,record.id,canDo('finance.read')&&record.lifecycleState==='checked_in');
  const financialBlock=checkoutStatement.isSuccess?financialCheckoutBlock(checkoutStatement.data):null;
+ const paymentCovered=checkoutStatement.isSuccess&&isGuestBillSettled(checkoutStatement.data);
+ const paymentReady=paymentCovered&&!financialBlock;
 
  const canCheckOut=checkoutStatement.isSuccess&&!financialBlock&&canDo('booking.check_out')&&allowedOperation(record,'check-out',hotelDate)&&acknowledged&&!busy;
 
@@ -237,18 +240,22 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
     <strong>{isConfirmed&&!roomAssigned?'Assign a room'
      :isConfirmed&&roomAssigned&&readinessNeeded&&readiness.isSuccess&&!readiness.data.advisoryReady?'Room needs attention'
      :isConfirmed?'Review check-in'
-     :financialBlock?'Resolve billing before checkout'
+     :paymentCovered&&financialBlock?'Payment received · review pending'
+     :financialBlock?'Review outstanding billing'
      :checkoutStatement.isPending?'Checking guest billing'
      :checkoutStatement.isError?'Billing status unavailable'
      :earlyDepartureWindow?'Review early departure'
+     :paymentReady?'Payment settled · ready for checkout'
      :'Ready to review checkout'}</strong>
     <p>{isConfirmed&&!roomAssigned?'Choose an available room to continue.'
      :isConfirmed&&roomAssigned&&readinessNeeded&&readiness.isSuccess&&!readiness.data.advisoryReady?'Housekeeping must clear room readiness before check-in.'
      :isConfirmed?'Confirm the guest’s identity and arrival details.'
+     :paymentCovered&&financialBlock?'Payment is recorded and covers the charges. '+financialBlock+' Do not collect another payment.'
      :financialBlock?financialBlock
      :checkoutStatement.isPending?'We’re loading the current guest bill.'
      :checkoutStatement.isError?'Refresh the bill before confirming checkout.'
      :earlyDepartureWindow?'An early departure requires the appropriate exception approval.'
+     :paymentReady?'No outstanding guest payment. Review departure details to complete checkout.'
      :'Billing checks are clear. Review departure details below.'}</p>
    </div>
    <div className="stay-next-strip-action">
@@ -258,7 +265,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
      :isConfirmed&&roomAssigned&&readinessNeeded&&readiness.isSuccess&&!readiness.data.advisoryReady
      ?<Link to="/housekeeping" search={{}} className="stay-next-strip-button">Housekeeping <ArrowRight size={15}/></Link>
      :isInHouse&&financialBlock
-     ?<Link to="/billing" search={{booking:record.id}} className="stay-next-strip-button">Open Billing <ArrowRight size={15}/></Link>
+     ?<Link to="/billing" search={{booking:record.id}} className="stay-next-strip-button">Review bill <ArrowRight size={15}/></Link>
      :isInHouse&&checkoutStatement.isError
      ?<button type="button" className="stay-next-strip-button" disabled={checkoutStatement.isFetching}
        onClick={()=>void checkoutStatement.refetch()}><RefreshCw size={15}/> Retry billing</button>

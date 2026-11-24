@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {ExpenseExceptionQueue} from '../components/ExpenseExceptionQueue';
 import {ExpenseCorrectionHistory} from '../components/ExpenseCorrectionHistory';
 import {useQueryClient} from '@tanstack/react-query';
 import {ExpenseReviewDialog,ExpensePolicyDialog} from '../components/ExpenseManagerDialogs';
@@ -23,7 +24,7 @@ function Register({hotel,date,expense}:{hotel:string;date?:string;expense?:strin
  const [policyOpen,setPolicyOpen]=useState(false);
  const [reviewOpen,setReviewOpen]=useState(false);
  const [message,setMessage]=useState('');
- function refresh(){void Promise.all([client.invalidateQueries({queryKey:['live','expenses',hotel]}),client.invalidateQueries({queryKey:['live','expense-detail',hotel]}),client.invalidateQueries({queryKey:['live','expense-policy',hotel]}),client.invalidateQueries({queryKey:['live','cashier-shifts',hotel]}),client.invalidateQueries({queryKey:['live','cashier-shift-detail',hotel]}),client.invalidateQueries({queryKey:['live','current-cashier-shift',hotel]})]);}
+ function refresh(){void Promise.all([client.invalidateQueries({queryKey:['live','expenses',hotel]}),client.invalidateQueries({queryKey:['live','expense-exceptions',hotel]}),client.invalidateQueries({queryKey:['live','expense-detail',hotel]}),client.invalidateQueries({queryKey:['live','expense-policy',hotel]}),client.invalidateQueries({queryKey:['live','cashier-shifts',hotel]}),client.invalidateQueries({queryKey:['live','cashier-shift-detail',hotel]}),client.invalidateQueries({queryKey:['live','current-cashier-shift',hotel]})]);}
  const [filters,setFilters]=useState<ExpenseFilters>({page:1,...(date?{from:date,to:date}:{})});
  const [selected,setSelected]=useState<string|null>(expense??null);
  const list=useExpenses(hotel,true,filters);
@@ -45,6 +46,7 @@ function Register({hotel,date,expense}:{hotel:string;date?:string;expense?:strin
     <Stat label="Needs review" value={summary?String(summary.pendingReviewCount):'—'} detail={summary?summary.flaggedCount+' flagged for investigation':'Awaiting expense data'} icon={<AlertTriangle size={20}/>}/>
    </button>
   </div>
+  <ExpenseExceptionQueue hotel={hotel}/>
   <Panel title="Expense register">
    <div className="expense-filters">
     <label>Search<input className="wizard-input" value={filters.search??''} placeholder="Payee, purpose or invoice" onChange={e=>filter({search:e.target.value})}/></label>

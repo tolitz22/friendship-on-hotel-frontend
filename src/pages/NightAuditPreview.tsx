@@ -35,13 +35,13 @@ export function NightAuditPreview(){
  useEffect(()=>setDate(hotelToday()),[hotelId]);
  const query=useNightAuditPreview(date,!!manager);
  if(!manager)return <>
-  <Heading title="Night audit preflight" description="Manager-only operational and financial review."/>
-  <Panel title="Restricted"><p>Ask an active administrator for this hotel to open Night Audit and set up the business date.</p></Panel>
+  <Heading title="Daily Closing" description="Manager-only operational and financial review."/>
+  <Panel title="Restricted"><p>Ask an active administrator for this hotel to open Daily Closing and set up the business date.</p></Panel>
  </>;
  const data=query.data;
  return <>
-  <Heading title="Night audit preflight" description="Review operational exceptions, record the manager decision, then use the separate financial-close checklist to advance the accounting date."/>
-  <Panel title="Review hotel date">
+  <Heading title="Daily Closing" description="Review hotel activity, check daily finances, and close the business date."/>
+  <Panel title="Review daily activity">
    <div className="desk-tools">
     <label className="night-audit-date">Hotel-local date
      <input type="date" className="wizard-input" value={date} max={data?.hotelDate??hotelToday()}
@@ -54,11 +54,11 @@ export function NightAuditPreview(){
      setDate(utc.toISOString().slice(0,10));
     }}>Review yesterday</button>
     <button type="button" className="btn-inline" onClick={()=>void query.refetch()}>
-     <RefreshCw size={16}/> Refresh preflight
+     <RefreshCw size={16}/> Refresh daily checks
     </button>
    </div>
    <p className="night-audit-warning"><AlertTriangle size={18}/>
-    The preflight above is <strong>read-only and does not close the day.</strong> The separate financial-close control below advances the business date only after manager review and reconciliation. Neither action calculates VAT or verifies gateway settlement.
+    The daily checks are <strong>read-only and does not close the day.</strong> The separate financial-close control below advances the business date only after manager review and reconciliation. Neither action calculates VAT or verifies gateway settlement.
     Existing room nights are already posted when priced bookings are created.</p>
    <QueryFeedback loading={query.isPending} error={query.error}
     onRetry={()=>void query.refetch()}/>
@@ -93,7 +93,7 @@ export function NightAuditPreview(){
      <Link to="/operational-exceptions">Review operational exceptions</Link>
     </div>
     <NightAuditReviewPanel key={hotelId+'-'+data.businessDate} date={data.businessDate} preflight={data}/>
-    <NightAuditReconciliationPanel key={'reconciliation-'+hotelId}/>
+    <NightAuditReconciliationPanel key={'reconciliation-'+hotelId} selectedDate={data.businessDate}/>
     <FinancialBusinessDayPanel key={'financial-'+hotelId} selectedDate={data.businessDate}/>
     <p className="night-audit-fineprint">The scheduled-night count is based on current reservation records, not historical physical room occupancy. Current inventory counts may differ from the inventory on the selected historical date. Payment totals are staff-maintained evidence, not settlement. The cashier and payment exception counts are current property-wide counts, not date-scoped historical snapshots.</p>
    </>}

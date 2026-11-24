@@ -311,11 +311,12 @@ export function RoomRackDashboard({hotelId,focusRoomNumber,onEditRoom}:{hotelId:
     <p>Vacant in PMS is not bookable inventory. A room may have future reservations, holds, maintenance, cleaning, or other restrictions. Physical occupancy is not independently verified; room readiness is advisory unless the hotel enables enforcement. Guest identity and financial settlement remain separate checks.</p>
    </details>
   </>}
-  {selected&&<RackDrawer key={hotelId+'-'+selected.roomId} room={selected} hotelId={hotelId}
+  {selected&&<RackDrawer key={hotelId+'-'+selected.roomId}
+   room={data?.rooms.find(current=>current.roomId===selected.roomId)??selected} hotelId={hotelId}
    today={data?.hotelDate??new Date().toISOString().slice(0,10)}
    canInspect={data?.allowedActions.completeInspection??false}
    onEditRoom={onEditRoom} onClose={close} restoreFocus={restore}
-   onBlockChanged={()=>{close();void rack.refetch();}}/>}
+   onBlockChanged={()=>{void rack.refetch();}}/>}
  </section>;
 }
 

@@ -11,9 +11,17 @@ const receipt=z.object({
  netReceiptMinor:z.number().int().nonnegative().nullable(),
  paymentStatus:z.string(),
 });
+const payout=z.object({
+ id,expenseId:id,amountMinor:z.number().int().positive(),payee:z.string(),description:z.string(),
+ department:z.string(),category:z.string(),reviewStatus:z.string(),createdAt:z.string(),
+});
 const shift=z.object({
  id,hotelId:id,cashierId:id,currency:z.string(),status:z.enum(['open','submitted','reconciled','flagged']),
  cashTenderTrackingSupported:z.boolean().optional().default(false),
+ expensePostingEnabled:z.boolean().optional(),
+ expensePayoutTotalMinor:z.number().int().nonnegative().optional(),
+ expensePayoutCount:z.number().int().nonnegative().optional(),
+ expensePayouts:z.array(payout).optional(),
  openingFloatMinor:z.number().int().nonnegative(),expectedCashMinor:z.number().int().nonnegative().nullable(),
  countedCashMinor:z.number().int().nonnegative().nullable(),varianceMinor:z.number().int().nullable(),
  receiptCount:z.number().int().nonnegative(),unconfirmedReceiptCount:z.number().int().nonnegative(),

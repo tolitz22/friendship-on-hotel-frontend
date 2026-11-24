@@ -1,6 +1,6 @@
 import {StaffNotifications} from './StaffNotifications';
 import {Link,Outlet,useRouterState} from '@tanstack/react-router';
-import {LayoutDashboard,CalendarDays,CalendarRange,BedDouble,Users,Wallet,ClipboardCheck,Wrench,ChartNoAxesCombined,Settings,Sun,Moon,Menu,X,Hotel,LogOut,ArrowRight,ChevronDown,ShieldCheck,ShieldAlert,ClipboardList} from 'lucide-react';
+import {LayoutDashboard,CalendarDays,CalendarRange,BedDouble,Users,Wallet,ClipboardCheck,Wrench,ChartNoAxesCombined,Settings,Sun,Moon,Menu,X,Hotel,LogOut,ArrowRight,ChevronDown,ShieldCheck,ShieldAlert,ClipboardList,Receipt} from 'lucide-react';
 import {Suspense,useEffect,useState} from 'react';
 import {useTheme} from './ThemeProvider';
 import {dataMode} from '../api';
@@ -29,6 +29,7 @@ const primaryPaths=['/','/front-desk','/reservations','/group-reservations','/ro
 const primaryDaily=daily.filter(item=>primaryPaths.includes(item.to));
 const secondaryDaily=daily.filter(item=>!primaryPaths.includes(item.to));
 const administration=[
+ {to:'/expenses' as const,label:'Expenses',icon:Receipt},
  {to:'/night-audit' as const,label:'Night audit preflight',icon:ClipboardCheck},
  {to:'/tax-policies' as const,label:'Tax configuration',icon:Wallet},
  {to:'/folio-night-accounting' as const,label:'Folio-night accounting',icon:ClipboardList},
@@ -85,7 +86,7 @@ export function AppShell(){
  if(dataMode==='api'&&!hotelId)return <HotelChooser/>;
 
  const renderNav=(items:readonly NavItem[],section:'daily'|'management'|'advanced')=>items
-  .filter(item=>dataMode==='api'||!['/change-password','/staff'].includes(item.to))
+  .filter(item=>dataMode==='api'||!['/change-password','/staff','/expenses'].includes(item.to))
   .filter(item=>dataMode!=='api'||(
    canViewWorkspacePath(role,item.to,effectivePermissions)&&(
    section==='daily'?workspace.daily.includes(item.to):

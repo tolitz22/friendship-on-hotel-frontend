@@ -3581,3 +3581,17 @@
 .expense-payout-fields .wizard-input{width:100%;min-width:0;box-sizing:border-box;}
 .expense-field-wide{grid-column:1/-1;}
 @media(max-width:520px){.expense-payout-fields{grid-template-columns:1fr;}}
+
+.expense-workspace-nav{display:flex;flex-wrap:wrap;gap:8px;padding-bottom:12px;margin-bottom:18px;border-bottom:1px solid var(--border);}
+.expense-workspace-nav .btn-inline[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--surface));font-weight:700;}
+.expense-register-toolbar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 16px;margin-bottom:14px;}
+.expense-register-toolbar .desk-muted{margin:0;}
+.expense-register-summary{grid-template-columns:repeat(2,minmax(0,1fr));}
+.expense-summary-button[aria-pressed="true"] .stat{outline:2px solid currentColor;outline-offset:-2px;}
+.expense-focus-target{scroll-margin-top:88px;}
+.expense-focus-target:focus-visible{outline:2px solid currentColor;outline-offset:3px;border-radius:12px;}
+@media(max-width:480px){
+ .expense-workspace-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));}
+ .expense-workspace-nav .btn-inline{justify-content:center;text-align:center;}
+ .expense-register-summary{grid-template-columns:1fr;}
+}

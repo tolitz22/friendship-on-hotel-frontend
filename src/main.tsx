@@ -16,6 +16,7 @@ import {ManagerApprovals} from './pages/ManagerApprovals';
 import {CashierShifts} from './pages/CashierShifts';
 import {MyExpenseClaims} from './pages/MyExpenseClaims';
 import {Expenses} from './pages/Expenses';
+import type {ExpenseView} from './pages/Expenses';
 import {OccupancyVerification} from './pages/OccupancyVerification';
 const OccupancyCoverageReport=React.lazy(async()=>({default:(await import('./pages/OccupancyCoverageReport')).OccupancyCoverageReport}));
 const NightAuditPreview=React.lazy(async()=>({default:(await import('./pages/NightAuditPreview')).NightAuditPreview}));
@@ -92,7 +93,8 @@ const roomCalendar=createRoute({getParentRoute:()=>root,path:'/room-calendar',
 const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/my-expense-claims',component:MyExpenseClaims}),
  createRoute({getParentRoute:()=>root,path:'/expenses',component:Expenses,
- validateSearch:(value:Record<string,unknown>):{expense?:string;date?:string;hotel?:string}=>({
+ validateSearch:(value:Record<string,unknown>):{expense?:string;date?:string;hotel?:string;tab?:ExpenseView}=>({
+ tab:value.tab==='bills'||value.tab==='suppliers'||value.tab==='reimbursements'?value.tab:undefined,
  expense:/^[1-9]\d*$/.test(String(value.expense??''))?String(value.expense):undefined,
  hotel:/^[1-9]\d*$/.test(String(value.hotel??''))?String(value.hotel):undefined,
  date:typeof value.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.date)?value.date:undefined,

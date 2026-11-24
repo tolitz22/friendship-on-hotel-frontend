@@ -77,7 +77,16 @@ test('manager can inspect and review a voucher and update the future payout limi
   return route.fulfill({status:404,json:{message:'Outside fixture'}});
  });
  await page.goto(base+'/expenses');
- await page.getByRole('button',{name:'Inspect expense'}).click();
+ const needsReview=page.getByRole('button',{name:/Needs review/});
+ await needsReview.click();
+ await expect(page.getByLabel('Review status')).toHaveValue('pending');
+ const inspect=page.getByRole('button',{name:'Inspect expense'});
+ await inspect.click();
+ const voucherPanel=page.getByRole('region',{name:'Expense voucher'});
+ await expect(voucherPanel).toBeFocused();
+ await voucherPanel.getByRole('button',{name:'Close details'}).click();
+ await expect(inspect).toBeFocused();
+ await inspect.click();
  await page.getByRole('button',{name:'Review expense',exact:true}).click();
  const review=page.getByRole('dialog',{name:'Review expense'});
  await review.getByLabel('Review note').fill('Invoice checked');

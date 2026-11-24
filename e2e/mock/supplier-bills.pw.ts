@@ -93,6 +93,9 @@ test('manager creates supplier and records invoice with suggested payment terms'
  await expect(editor).toBeHidden();
  await expect(page.getByRole('cell',{name:'New Laundry',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Supplier bills',exact:true}).click();
+ await expect(page).toHaveURL(/tab=bills/);
+ await page.reload();
+ await expect(page.getByRole('button',{name:'Supplier bills',exact:true})).toHaveAttribute('aria-pressed','true');
  await page.getByRole('button',{name:'Record supplier bill',exact:true}).click();
  const dialog=page.getByRole('dialog',{name:'Record supplier bill'});
  await dialog.getByLabel('Supplier',{exact:true}).selectOption('3');

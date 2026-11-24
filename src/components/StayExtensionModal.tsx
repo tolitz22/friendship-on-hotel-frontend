@@ -9,6 +9,7 @@ import {dateLabel} from '../lib/format';
 
 type ExtensionQuote = {
  checkOut:string;nights:number;nightlyMinor:number;subtotalMinor:number;currency:string;saved:boolean;
+ quoteToken?:string;nightlyRates?:{date:string;amountMinor:number;source:string;ruleId:string|null}[];
 };
 
 export function StayExtensionModal({hotelId,record,today,openOnEntry=false,disabled=false,hideTrigger=false,onDismiss,onSaved}:{
@@ -44,7 +45,7 @@ export function StayExtensionModal({hotelId,record,today,openOnEntry=false,disab
    const result=await requestJson<{data:ExtensionQuote}>(hotelPath('/bookings/'+record.id+'/extend-stay'),{
     method:'POST',body:{
      expectedCheckOut:record.checkOut,checkOut:date,
-     ...(save?{expectedNightlyMinor:quote!.nightlyMinor}:{}),
+     ...(save?(quote!.quoteToken?{expectedQuoteToken:quote!.quoteToken}:{expectedNightlyMinor:quote!.nightlyMinor}):{}),
     },
    });
    if(readSession().hotelId!==hotelId)return;
@@ -77,7 +78,7 @@ export function StayExtensionModal({hotelId,record,today,openOnEntry=false,disab
   {!hideTrigger&&<button ref={trigger} type="button" className="btn-inline" aria-haspopup="dialog" disabled={disabled}
    onClick={open}>Extend stay <ArrowRight size={15}/></button>}
   <dialog ref={dialog} className="billing-action-modal" aria-labelledby={titleId}
-   style={{margin:'auto',width:'min(480px, calc(100% - 32px))',color:'var(--text)'}}
+   style={{position:'fixed',inset:0,margin:'auto',width:'min(480px, calc(100% - 32px))',maxHeight:'calc(100dvh - 32px)',overflowY:'auto',color:'var(--text)'}}
    onCancel={event=>{if(requestInProgress.current)event.preventDefault();}}
    onClose={()=>{trigger.current?.focus();onDismiss?.();}}>
    <header className="billing-action-modal-header">
@@ -93,8 +94,9 @@ export function StayExtensionModal({hotelId,record,today,openOnEntry=false,disab
     <input className="wizard-input" type="date" required min={minimum} value={date} disabled={busy}
      onChange={event=>{setDate(event.target.value);setQuote(null);setError('');setMessage('');}}/>
    </label>
-   {canConfirm&&<p role="status">{quote.nights} added {quote.nights===1?'night':'nights'} at {currency.format(quote.nightlyMinor/100)} per night.
-    {' '}<strong>{currency.format(quote.subtotalMinor/100)} added to the guest bill on confirmation.</strong></p>}
+   {canConfirm&&<section aria-label="Extension price review"><h4>Added nights · {quote.nights}</h4>
+    {quote.nightlyRates?quote.nightlyRates.map(night=><div className="rb-summary-row" key={night.date}><span>{dateLabel(night.date)} · {night.source.replaceAll('_',' ')}</span><strong>{currency.format(night.amountMinor/100)}</strong></div>):<p>{quote.nights} × {currency.format(quote.nightlyMinor/100)}</p>}
+    <div className="rb-summary-row"><span>Additional room charges</span><strong>{currency.format(quote.subtotalMinor/100)}</strong></div><p className="desk-muted">Original room charges and recorded payments remain unchanged. Added room charges are saved only after confirmation.</p></section>}
    <button type="submit" className="btn-primary" disabled={busy||date<minimum}>
     {busy?'Working…':canConfirm?'Confirm extension':'Check availability and rate'}
    </button>

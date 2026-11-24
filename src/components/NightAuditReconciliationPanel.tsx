@@ -14,11 +14,12 @@ function csv(value:string|number|null){
  const text=value===null?'UNVERIFIED':String(value);
  return '"'+text.replaceAll('"','""')+'"';
 }
-export function NightAuditReconciliationPanel(){
+export function NightAuditReconciliationPanel({selectedDate}:{selectedDate?:string}={}){
  const {hotelId,user}=useHotelAuth();
  const admin=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const [date,setDate]=useState(()=>addDays(hotelToday(),-1));
- const report=useNightAuditReconciliation(hotelId,date,admin);
+ const reportDate=selectedDate??date;
+ const report=useNightAuditReconciliation(hotelId,reportDate,admin);
  const data=report.data;
  function download(){
   if(!data||!hotelId)return;
@@ -26,7 +27,7 @@ export function NightAuditReconciliationPanel(){
    ['Friendship On Hotel - Audited Financial Reconciliation'],
    ['Hotel ID',data.hotelId],['Business date',data.businessDate],['Currency',data.currency],
    ['Financial journal reconciled',data.financialJournalReconciled?'YES':'NO'],
-   ['Night audit',data.nightAudit.status],['Financial close',data.financialClose.status],
+   ['Daily operational review',data.nightAudit.status],['Financial close',data.financialClose.status],
    ['Journal debit (minor units)',data.financialClose.debitsMinor],
    ['Journal credit (minor units)',data.financialClose.creditsMinor],
    ['Room revenue movement (minor units)',data.kpis.recognizedRoomRevenueMinor],
@@ -40,6 +41,15 @@ export function NightAuditReconciliationPanel(){
    ['Cashier shifts pending',data.cashier.pendingCount],
    ['Cashier shifts flagged',data.cashier.flaggedCount],
    ['Cashier variance (minor units)',data.cashier.varianceMinor],
+   ...(data.expenses?[
+    ['Gross operating expenses (minor units)',data.expenses.grossExpenseMinor??null],
+    ['Accounting adjustments (minor units)',data.expenses.accountingAdjustmentMinor??null],
+    ['Supplier refunds (minor units)',data.expenses.supplierRefundMinor??null],
+    ['Net operating expenses (minor units)',data.expenses.netExpenseMinor],
+    ['Physical cash returned (minor units)',data.expenses.physicalCashReturnMinor??null],
+    ['Net clearing balance through date (minor units)',data.expenses.clearingBalanceMinor??null],
+    ['Expense closed ledger verified',data.expenses.closedLedgerVerified?'YES':'NO'],
+   ]:[]),
    ...data.blockers.map(b=>['BLOCKER',b]),
    ...data.limitations.map(l=>['LIMITATION',l]),
   ];
@@ -47,16 +57,16 @@ export function NightAuditReconciliationPanel(){
   const blob=new Blob(['\uFEFF'+value],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;
-  a.download='night-audit-reconciliation-'+data.businessDate+'.csv';a.click();
+  a.download='daily-closing-reconciliation-'+data.businessDate+'.csv';a.click();
   URL.revokeObjectURL(url);
  }
  if(!admin)return <p role="status">Financial reconciliation is available to authorized hotel managers.</p>;
- return <section className="report-financial" aria-label="Live night-audit financial reconciliation">
-  <header><h3>Live financial reconciliation</h3><span>Accounting records · read-only</span></header>
+ return <section className="report-financial" aria-label="Daily financial reconciliation">
+  <header><h3>Daily financial report</h3><span>Accounting records · read-only</span></header>
   <div className="desk-tools">
    <label className="night-audit-date">Business date
-    <input type="date" className="wizard-input" value={date}
-     max={hotelToday()} onChange={e=>setDate(e.target.value)}/>
+    <input type="date" className="wizard-input" value={reportDate}
+     max={hotelToday()} readOnly={!!selectedDate} onChange={e=>setDate(e.target.value)}/>
    </label>
    <button className="btn-inline" type="button" disabled={report.isFetching}
     onClick={()=>void report.refetch()}><RefreshCw size={15}/> Refresh</button>
@@ -81,6 +91,20 @@ export function NightAuditReconciliationPanel(){
      <strong>{data.kpis.inspectionOccupancyPercent===null?'Incomplete':
       data.kpis.inspectionOccupancyPercent.toFixed(2)+'%'}</strong></div>
    </div>
+   {data.expenses?<section className="expense-correction-history" aria-label="Daily operating expenses">
+    <div className="desk-tools"><h4>Operating expenses</h4><Link to="/expenses">Open expense register</Link></div>
+    <p className="desk-muted">{data.expenses.closedLedgerVerified?'Closed ledger totals verified.':'Recorded journal movements — not yet verified against a closed ledger.'}</p>
+    <div className="night-audit-metrics">
+     <div className="night-audit-metric"><small>Gross expenses</small><strong>{money(data.expenses.grossExpenseMinor??null,data.currency)}</strong></div>
+     <div className="night-audit-metric"><small>Accounting adjustments</small><strong>{money(data.expenses.accountingAdjustmentMinor??null,data.currency)}</strong></div>
+     <div className="night-audit-metric"><small>Supplier refunds reducing expense</small><strong>{money(data.expenses.supplierRefundMinor??null,data.currency)}</strong></div>
+     <div className="night-audit-metric"><small>Net operating expenses</small><strong>{money(data.expenses.netExpenseMinor,data.currency)}</strong></div>
+     <div className="night-audit-metric"><small>Physical cash returned</small><strong>{money(data.expenses.physicalCashReturnMinor??null,data.currency)}</strong></div>
+     <div className="night-audit-metric"><small>Net clearing balance through date</small><strong>{money(data.expenses.clearingBalanceMinor??null,data.currency)}</strong></div>
+    </div>
+    {!!data.expenses.clearingBalanceMinor&&<p className="notice">Net clearing balance requires investigation. A zero net balance alone does not establish that every voucher has been resolved.</p>}
+    <p className="desk-muted">Clearing cash returns settle previous adjustments; they do not reduce expenses again. This is not a complete profit and loss statement.</p>
+   </section>:<p className="desk-muted">Expense accounting totals are unavailable from this API version.</p>}
    <div className="night-audit-metrics">
     <div className="night-audit-metric"><small>Debits</small><strong>{money(data.financialClose.debitsMinor,data.currency)}</strong></div>
     <div className="night-audit-metric"><small>Credits</small><strong>{money(data.financialClose.creditsMinor,data.currency)}</strong></div>

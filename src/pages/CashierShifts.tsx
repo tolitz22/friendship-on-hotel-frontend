@@ -10,6 +10,7 @@ import {getCashShiftHistory,openCashierShift,reconcileCashShift,submitCashCount,
 import type {CashierShift} from '../api/cashierShifts';
 import {readableDateTime} from '../lib/format';
 import {listHotelStaff} from '../api/liveStaff';
+import {ExpensePayoutModal} from '../components/ExpensePayoutModal';
 import {ReadableCashAuditEvent,auditActorName} from '../components/ReadableAuditEvent';
 
 const validMoney=(s:string)=>/^\d+(\.\d{1,2})?$/.test(s)&&Number.isSafeInteger(Math.round(Number(s)*100))&&Number(s)<=1_000_000_000;
@@ -22,6 +23,10 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
  const {hotelId,user}=useHotelAuth();
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:manager&&!!hotelId});
  const cashierName=auditActorName(shift.cashierId,staff.data?.data.find(member=>member.userId===shift.cashierId)?.name,user?.id,user?.name);
+ const [payoutOpen,setPayoutOpen]=useState(false);
+ const [payoutDetailsOpen,setPayoutDetailsOpen]=useState(false);
+ const permissions=user?.hotels.find(h=>h.id===hotelId)?.permissions;
+ const canRecord=manager||!!permissions?.includes('expense.record')&&permissions.includes('cashier.write');
  const [count,setCount]=useState('');
  const [note,setNote]=useState('');
  const [busy,setBusy]=useState(false);
@@ -30,7 +35,7 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
  const [historyOpen,setHistoryOpen]=useState(false);
  const [closingOpen,setClosingOpen]=useState(false);
  const [countConfirmed,setCountConfirmed]=useState(false);
- const detail=useCashierShiftDetails(manager&&shift.status==='submitted',shift.id);
+ const detail=useCashierShiftDetails((manager&&shift.status==='submitted')||payoutDetailsOpen,shift.id);
  const log=useQuery({
   queryKey:['live','cashier-shift-history',hotelId,shift.id],
   enabled:historyOpen&&!!hotelId,
@@ -62,6 +67,7 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
   <div className="cash-shift-metrics">
    <div><small>Opening cash</small><strong>{money(shift.openingFloatMinor,shift.currency)}</strong></div>
    <div><small>Cash receipts recorded</small><strong>{shift.receiptCount}</strong></div>
+   {shift.expensePayoutTotalMinor!==undefined&&<div><small>Expense payouts</small><strong>{money(shift.expensePayoutTotalMinor,shift.currency)}</strong></div>}
    <div><small>Needs payment review</small><strong>{shift.unconfirmedReceiptCount}</strong></div>
   </div>
   {shift.status==='open'&&<p className="cash-shift-explainer"><Info size={15}/>
@@ -73,7 +79,14 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
    <div><small>Difference</small><strong>{money(shift.varianceMinor??0,shift.currency)}</strong></div></div>}
   {shift.unconfirmedReceiptCount>0&&<p className="cash-shift-alert"><AlertTriangle size={16}/>
    {shift.unconfirmedReceiptCount} receipt{shift.unconfirmedReceiptCount===1?'':'s'} still need independent payment review.</p>}
+  {!!shift.expensePayoutCount&&<div>
+   <button type="button" className="btn-inline" aria-expanded={payoutDetailsOpen} onClick={()=>setPayoutDetailsOpen(v=>!v)}>{payoutDetailsOpen?'Hide':'View'} expense payouts ({shift.expensePayoutCount})</button>
+   {payoutDetailsOpen&&<><QueryFeedback loading={detail.isPending} error={detail.error} onRetry={()=>void detail.refetch()}/>
+   {detail.data&&<div className="table-scroll"><table><thead><tr><th>Purpose / payee</th><th>Amount</th><th>Review</th><th>Date</th></tr></thead><tbody>{detail.data.expensePayouts?.map(p=><tr key={p.id}><td><strong>{p.description}</strong><small className="expense-payee">{p.payee}</small></td><td>{money(p.amountMinor,shift.currency)}</td><td>{p.reviewStatus==='not_required'?'No review required':p.reviewStatus==='pending'?'Needs review':p.reviewStatus}</td><td>{readableDateTime(p.createdAt)}</td></tr>)}</tbody></table></div>}</>}
+  </div>}
   {ownShift&&shift.status==='open'&&<>
+   {shift.expensePostingEnabled&&canRecord&&hotelId&&user?.id&&<button type="button" className="cash-shift-close-toggle" onClick={()=>setPayoutOpen(true)}><span><strong>Record cash paid out</strong><small>Record a hotel purchase from your drawer</small></span><ArrowRight size={17}/></button>}
+   {payoutOpen&&hotelId===shift.hotelId&&user?.id&&<ExpensePayoutModal key={hotelId+':'+shift.id+':'+user.id} hotel={shift.hotelId} shift={shift.id} userId={user.id} onClose={()=>setPayoutOpen(false)} onSuccess={id=>{setPayoutOpen(false);setResult('Expense voucher #'+id+' recorded.');onChange();}}/>}
    <button type="button" className="cash-shift-close-toggle cash-shift-end-action"
     aria-expanded={closingOpen} onClick={()=>{setClosingOpen(true);setCountConfirmed(false);}}>
     <span><strong>End cashier shift</strong>
@@ -180,6 +193,8 @@ export function CashierShifts(){
   client.invalidateQueries({queryKey:['live','cashier-shifts',hotelId]}),
   client.invalidateQueries({queryKey:['live','current-cashier-shift',hotelId]}),
   client.invalidateQueries({queryKey:['live','cashier-shift-detail',hotelId]}),
+  client.invalidateQueries({queryKey:['live','cashier-shift-history',hotelId]}),
+  client.invalidateQueries({queryKey:['live','expenses',hotelId]}),
  ]);
  async function start(){
   if(!hotelId||openBusy||ownOpenShift.isFetching||!ownOpenShift.isSuccess||active||!validMoney(float))return;

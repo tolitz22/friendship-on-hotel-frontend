@@ -84,7 +84,22 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
 
  // Checkout permission is independent of permission to view the financial statement.
  // The lifecycle endpoint validates billing under lock even if the preflight is unavailable.
- const canCheckOut=!financialBlock&&canDo('booking.check_out')&&allowedOperation(record,'check-out',hotelDate)&&acknowledged&&!busy&&!(canDo('finance.read')&&checkoutStatement.isFetching);
+ const checkoutBlockReason=!canDo('booking.check_out')?'Your role does not have permission to complete checkout.'
+  :!allowedOperation(record,'check-out',hotelDate)?'Normal checkout opens '+dateLabel(record.checkOut)+'. Use early checkout if the guest is leaving sooner.'
+  :financialBlock
+  ??(!acknowledged?'Confirm the departure checklist to continue.':busy?'Saving checkout…':null);
+ const canCheckOut=checkoutBlockReason===null;
+ const bill=canDo('finance.read')?checkoutStatement.data:undefined;
+ const activePayments=bill?.payments.filter(p=>p.status==='pending_review'||p.status==='staff_confirmed')??[];
+ const recordedPayments=activePayments.reduce((sum,p)=>sum+p.amountMinor,0);
+ const pendingPayment=activePayments.some(p=>p.status==='pending_review'||(bill?.settlementWorkflowEnabled&&p.verificationStatus!=='verified'));
+ const billMoney=(minor:number)=>new Intl.NumberFormat('en-PH',{style:'currency',currency:bill?.currency??'PHP'}).format(minor/100);
+ const recordedBalance=bill?bill.netRecordedChargesMinor-recordedPayments+bill.verifiedRefundsMinor:0;
+ const billStatus=!bill?'Unavailable':financialBlock
+  ?pendingPayment?'Payment review pending':recordedBalance>0?'Balance outstanding':'Billing needs attention'
+  :paymentReady||bill.routineCashCheckoutEligible?'Paid · checkout ready'
+  :recordedBalance>0?'Balance outstanding':pendingPayment?'Payment review pending'
+  :recordedBalance<0?'Credit / overpayment':recordedBalance===0?'No recorded balance':'Review bill';
 
  useEffect(()=>{
   setRoomPage(1);setHistoryPage(1);setRoomId('');setAcknowledged(false);setConfirmedDepartureAt('');
@@ -167,6 +182,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
     void Promise.all([
      client.invalidateQueries({queryKey:['live','room-choices',targetHotel,record.id]}),
      client.invalidateQueries({queryKey:['live','reservation-detail',targetHotel,record.id]}),
+     client.invalidateQueries({queryKey:['live','settlement-statement',targetHotel,record.id]}),
     ]).catch(()=>{});
    }
    if(readSession().hotelId===targetHotel)
@@ -191,14 +207,8 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
    ?'This room is not approved as ready. Ask housekeeping to complete readiness review.'
   :isConfirmed&&!allowedOperation(record,'check-in',hotelDate)
    ?'Check-in is not available for this stay date.'
-  :isInHouse&&!allowedOperation(record,'check-out',hotelDate)
-   ?'Scheduled checkout has not arrived. Use Request early checkout below for an authorized exception.'
-  :isInHouse&&!canDo('booking.check_out')?'Your role does not have permission to complete checkout.'
-  :isInHouse&&canDo('finance.read')&&checkoutStatement.isFetching?'Checking the guest bill before checkout…'
-  :isInHouse&&financialBlock?financialBlock
-  :!acknowledged?(isConfirmed?'Confirm the guest’s identity to continue.':'Confirm the departure checklist to continue.')
-  :isInHouse&&!checkoutStatement.isSuccess?'Billing will be validated by the server when you submit checkout.'
-  :null;
+  :isInHouse?checkoutBlockReason
+  :!acknowledged?'Confirm the guest’s identity to continue.':null;
 
  return <div className="stay-detail-page">
   <header className="stay-detail-header">
@@ -348,6 +358,23 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
       </p>}
      </section>}
      {isConfirmed&&!roomAssigned&&<p className="stay-security-note">Assign a room to view inspection and housekeeping status.</p>}
+     {isInHouse&&<section className="stay-operation-impact" aria-label="Guest bill and payment status">
+      <div className="stay-section-heading">
+       <div><h3>Guest bill</h3><p>Review payment before completing departure.</p></div>
+       {canDo('finance.read')&&<Link to="/billing" search={{booking:record.id}} className="stay-text-button">Open guest bill <ArrowRight size={15}/></Link>}
+      </div>
+      {bill?<><div className="stay-facts-item"><small>Payment status</small><strong>{billStatus}</strong></div>
+       <div className="stay-facts-item"><small>Total charges (net)</small><strong>{billMoney(bill.netRecordedChargesMinor)}</strong></div>
+       <div className="stay-facts-item"><small>Recorded payments</small><strong>{billMoney(recordedPayments)}</strong></div>
+       {bill.verifiedRefundsMinor>0&&<div className="stay-facts-item"><small>Verified refunds</small><strong>{billMoney(bill.verifiedRefundsMinor)}</strong></div>}
+       <div className="stay-facts-item"><small>{recordedBalance<0?'Recorded credit':'Recorded balance'}</small><strong>{billMoney(Math.abs(recordedBalance))}</strong></div>
+       <div className="stay-facts-item"><small>Verified payments applied</small><strong>{billMoney(bill.verifiedAllocatedMinor)}</strong></div>
+       {activePayments.length>0&&<ul>{activePayments.map(p=><li key={p.id}>{statusLabel(p.method)} · {billMoney(p.amountMinor)} · {p.status==='pending_review'?'Review pending':p.verificationStatus==='verified'?'Verified':'Recorded / staff confirmed'}</li>)}</ul>}
+       {financialBlock&&<p className="stay-blocked-hint" role="status">{financialBlock}{recordedBalance<=0?' Do not collect the recorded payment again.':''}</p>}
+       {checkoutStatement.isFetching&&<small role="status">Refreshing bill…</small>}
+      </>:<p role="status">{!canDo('finance.read')?'Your role cannot view financial details. The server will validate billing at checkout.':checkoutStatement.isFetching?'Loading billing details…':'Billing preview unavailable. The server will validate billing at checkout.'}</p>}
+      {canDo('finance.read')&&<button type="button" className="stay-text-button" disabled={checkoutStatement.isFetching||busy} onClick={()=>void checkoutStatement.refetch()}><RefreshCw size={14}/> Refresh bill</button>}
+     </section>}
      {isInHouse&&<div className="stay-operation-impact" aria-label="Checkout confirmation details">
       <strong>Before checking out this guest{record.assignedRoomNumber?' from Room '+record.assignedRoomNumber:''}:</strong>
       <ul>

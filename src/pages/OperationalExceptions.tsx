@@ -34,13 +34,13 @@ function actorLabel(item:OperationalException){
  if(item.type==='maintenance_blocker')return 'Assigned technician';
  return 'Recorded employee';
 }
-function TaskLink({item}:{item:OperationalException}){
+function TaskLink({item,hotelId}:{item:OperationalException;hotelId:string}){
  if(item.type==='room_inspection_review')return <Link to="/rooms" search={{room:item.roomNumber||undefined}}>Review room readiness <ArrowRight size={15}/></Link>;
  if(item.type==='occupancy_review'||item.type==='occupancy_investigation')
   return <Link to="/occupancy-verification" search={{room:item.roomId||undefined,date:item.checkDate||undefined}}>Open room check <ArrowRight size={15}/></Link>;
  if(item.type==='maintenance_blocker')return <Link to="/maintenance">Open maintenance <ArrowRight size={15}/></Link>;
  if(item.type==='cashier_shift_review'||item.type==='cashier_shift_discrepancy')return <Link to="/cashier-shifts">Review cashier shifts <ArrowRight size={15}/></Link>;
- if(item.type==='payment_pending_review'&&item.bookingId)return <Link to="/billing" search={{booking:item.bookingId}}>Open guest bill <ArrowRight size={15}/></Link>;
+ if(item.type==='payment_pending_review'&&item.bookingId)return <Link to="/billing" search={{hotel:hotelId,booking:item.bookingId,payment:item.paymentId}}>{item.paymentId?'Review payment #'+item.paymentId:'Open guest bill'} <ArrowRight size={15}/></Link>;
  if(item.type==='assigned_room_overlap')return <Link to="/room-calendar">Inspect room calendar <ArrowRight size={15}/></Link>;
  if(item.bookingId)return <Link to="/reservations" search={{booking:item.bookingId}}>Open reservation <ArrowRight size={15}/></Link>;
  return null;
@@ -76,7 +76,7 @@ export function OperationalExceptions(){
    <small>{item.ownerName?actorLabel(item)+': '+item.ownerName+' · ':''}{readableDateTime(item.recordDate)}</small>
   </div>
   <div className="ops-task-side"><span>{item.suggestion||types[item.type].next}</span>
-   <TaskLink item={item}/></div>
+   <TaskLink item={item} hotelId={hotelId!}/></div>
  </article>;
  return <div className="ops-workspace">
   <div className="ops-heading">

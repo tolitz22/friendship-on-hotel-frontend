@@ -116,11 +116,12 @@ const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/guests',component:Guests}),
  createRoute({getParentRoute:()=>root,path:'/guests/$guestId/stays',component:GuestStays}),
  createRoute({getParentRoute:()=>root,path:'/billing',
-  validateSearch:(value:Record<string,unknown>):{booking?:string;action?:'signoff';group?:string;hotel?:string;checkIn?:string;checkOut?:string}=>({
+  validateSearch:(value:Record<string,unknown>):{booking?:string;payment?:string;action?:'signoff';group?:string;hotel?:string;checkIn?:string;checkOut?:string}=>({
    booking:normalizeBillingBookingId(value.booking),
+   payment:normalizeBillingBookingId(value.payment),
    action:value.action==='signoff'?'signoff':undefined,
    group:typeof value.group==='string'&&/^[1-9][0-9]*$/.test(value.group)?value.group:undefined,
-   hotel:typeof value.hotel==='string'&&/^[1-9][0-9]*$/.test(value.hotel)?value.hotel:undefined,
+   hotel:normalizeBillingBookingId(value.hotel),
    checkIn:typeof value.checkIn==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.checkIn)?value.checkIn:undefined,
    checkOut:typeof value.checkOut==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.checkOut)?value.checkOut:undefined,
   }),component:Billing}),

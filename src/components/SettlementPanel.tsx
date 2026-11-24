@@ -116,7 +116,7 @@ export function financialCheckoutBlock(data:Statement):string|null{
  return null;
 }
 
-export function SettlementPanel({bookingId,requestedAction}:{bookingId:string;requestedAction?:'signoff'}){
+export function SettlementPanel({bookingId,requestedAction,requestedPayment}:{bookingId:string;requestedAction?:'signoff';requestedPayment?:string}){
  const {hotelId,user}=useHotelAuth();
  const client=useQueryClient();
  const manager=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
@@ -389,6 +389,10 @@ export function SettlementPanel({bookingId,requestedAction}:{bookingId:string;re
     onClick={()=>void query.refetch()}><RefreshCw size={15}/> Refresh</button>
   </div>
   <QueryFeedback loading={query.isPending||query.isFetching} error={query.error} onRetry={()=>void query.refetch()}/>
+  {requestedPayment&&query.data&&manager&&!query.data.signed&&
+   <BillingActions key={requestedPayment} bookingId={bookingId} signed={false} mode="target" targetPayment={requestedPayment}/>}
+  {requestedPayment&&query.data&&(query.data.signed||!manager)&&<p role="status">
+   {query.data.signed?'This folio has been signed.':'An authorized hotel administrator can review this payment.'}</p>}
   {data&&<>
    <div className="billing-account-overview billing-account-compact" aria-label="Guest account overview">
     <div className="billing-account-overview-head">
@@ -425,7 +429,7 @@ export function SettlementPanel({bookingId,requestedAction}:{bookingId:string;re
     <div className="frontdesk-payment-status" role="status">
      <div className="frontdesk-payment-status-title">
       <div><span className="rr-eyebrow">PAYMENT STATUS</span>
-       <h3>{paymentStatus}</h3></div>
+       <h3>{requestedPayment&&unconfirmed.some(p=>p.id===requestedPayment)?'Payment #'+requestedPayment+' awaits evidence review':paymentStatus}</h3></div>
       <span className="checkout-guide-status">{data.signed
        ?data.signedSnapshotIntegrity?'Approved':'Investigate'
        :routineCashReady?'Ready for checkout'
@@ -438,13 +442,13 @@ export function SettlementPanel({bookingId,requestedAction}:{bookingId:string;re
        :'The signed statement failed its integrity check. Stop checkout and request investigation.'
       :guestBillSettled&&!routineCashReady&&!routineCashCheckedOut
        ?'Reviewed payments cover the recorded guest charges. No further guest payment is due.'
-       :operationalDescription}</p>
+       :requestedPayment&&unconfirmed.some(p=>p.id===requestedPayment)?'Check the recorded evidence before collecting any outstanding balance.':operationalDescription}</p>
      {!data.signed&&<div className="frontdesk-payment-primary">
       {!checkoutBlock&&data.status==='checked_in'
        ?<Link to="/reservations" search={{booking:bookingId,deskAction:'check-out'}}
          className="btn-primary">Continue guest checkout <ArrowRight size={16}/></Link>
        :canCollectExtra&&hasExistingMoney
-       ?<button type="button" className="btn-primary" disabled={busy}
+       ?<button type="button" className={requestedPayment?'rr-secondary-action':'btn-primary'} disabled={busy}
          onClick={()=>openDialog('payment')}><Banknote size={16}/>
          Record additional payment · {money(extraBalanceMinor,data.currency)}</button>
        :routineCashCheckedOut&&allCashShiftsReconciled&&cashAuditValid

@@ -8,8 +8,8 @@ import {formatBillingMoney,parseBillingAmount,recordFolioAdjustment,reviewFolioP
 import {readSession} from '../api/session';
 import {QueryFeedback} from './QueryFeedback';
 
-export function BillingActions({bookingId,signed,mode='full'}:{
- bookingId:string;signed:boolean;mode?:'full'|'review';
+export function BillingActions({bookingId,signed,mode='full',targetPayment}:{
+ bookingId:string;signed:boolean;mode?:'full'|'review'|'target';targetPayment?:string;
 }){
  const {hotelId,user}=useHotelAuth();
  const manager=!!hotelId&&user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
@@ -20,7 +20,7 @@ export function BillingActions({bookingId,signed,mode='full'}:{
  const [category,setCategory]=useState('Extra service');
  const [reason,setReason]=useState('');
  const [confirm,setConfirm]=useState(false);
- const [reviewDialog,setReviewDialog]=useState<{paymentId:string;decision:'confirm'|'reject'}|null>(null);
+ const [reviewDialog,setReviewDialog]=useState<{paymentId:string;decision:'confirm'|'reject'|'choose'}|null>(()=>targetPayment?{paymentId:targetPayment,decision:'choose'}:null);
  const [reviewNote,setReviewNote]=useState('');
  const reviewNoteRef=useRef<HTMLTextAreaElement>(null);
  const reviewOpener=useRef<HTMLElement|null>(null);
@@ -38,7 +38,7 @@ export function BillingActions({bookingId,signed,mode='full'}:{
   if(!reviewDialog)return;
   const previousOverflow=document.body.style.overflow;
   document.body.style.overflow='hidden';
-  reviewNoteRef.current?.focus();
+  (reviewNoteRef.current??document.querySelector<HTMLButtonElement>('#payment-evidence-review-dialog .billing-modal-dismiss'))?.focus();
   const onKeyDown=(event:KeyboardEvent)=>{
    if(event.key==='Escape'&&!busyRef.current){
     setReviewDialog(null);
@@ -62,7 +62,7 @@ export function BillingActions({bookingId,signed,mode='full'}:{
    reviewOpener.current?.focus();
   };
  },[reviewDialog]);
- const openReview=(paymentId:string,decision:'confirm'|'reject')=>{
+ const openReview=(paymentId:string,decision:'confirm'|'reject'|'choose')=>{
   reviewOpener.current=document.activeElement instanceof HTMLElement?document.activeElement:null;
   setReviewDialog({paymentId,decision});
   setReviewNote('');setReviewError('');
@@ -122,9 +122,12 @@ export function BillingActions({bookingId,signed,mode='full'}:{
   }catch(e){if(readSession().hotelId===hotelId)setError(e instanceof Error?e.message:'Outcome uncertain. Review the folio before retrying.');}
   finally{setBusy(false);}
  };
- const review=async()=>{
+ const review=async(decision:'confirm'|'reject')=>{
   if(!reviewDialog||!canWrite||reviewNote.trim().length<5)return;
-  const {paymentId,decision}=reviewDialog;
+  const {paymentId}=reviewDialog;
+  const payment=ledger.data?.data.payments.find(p=>p.id===paymentId);
+  if(payment?.status!=='pending_review'||readSession().hotelId!==hotelId||
+   (decision==='confirm'&&payment.method==='bank_transfer'&&payment.recordedBy===user?.id))return;
   const note=reviewNote.trim();
   setBusy(true);setReviewError('');setNotice('');
   try{
@@ -135,6 +138,7 @@ export function BillingActions({bookingId,signed,mode='full'}:{
     :'Payment evidence rejected. The original record remains in the audit history.');
    setReviewDialog(null);
    void refresh();
+   void client.invalidateQueries({queryKey:['live','operational-exceptions',hotelId]});
   }catch(e){
    if(readSession().hotelId===hotelId)setReviewError(
     e instanceof Error?e.message:'Review could not be saved.');
@@ -142,6 +146,8 @@ export function BillingActions({bookingId,signed,mode='full'}:{
  };
  if(!manager||signed)return null;
  return <section className="billing-actions" aria-label="Manager folio actions">
+  {mode==='target'&&targetPayment&&<button type="button" className="btn-primary" disabled={busy}
+   onClick={()=>openReview(targetPayment,'choose')}><ShieldCheck size={16}/> Review payment #{targetPayment}</button>}
   {mode==='full'&&<>
   <div className="billing-section-heading"><div><h3>Update the guest's bill</h3>
    <p>Add an extra service or correct an existing charge. This does not record a payment.</p></div></div>
@@ -267,7 +273,7 @@ export function BillingActions({bookingId,signed,mode='full'}:{
     className="billing-action-modal billing-evidence-dialog">
     <div className="billing-action-modal-header">
      <div><span className="rr-eyebrow">INDEPENDENT PAYMENT REVIEW</span>
-      <h3 id="payment-evidence-review-title">{reviewDialog.decision==='confirm'
+      <h3 id="payment-evidence-review-title">{reviewDialog.decision==='choose'?'Review payment #'+reviewDialog.paymentId:reviewDialog.decision==='confirm'
        ?'Confirm payment evidence':'Reject payment evidence'}</h3>
       <p id="payment-evidence-review-description">Check the actual receipt or supporting evidence before making a decision.
        This action will be recorded with your manager account.</p>
@@ -277,8 +283,9 @@ export function BillingActions({bookingId,signed,mode='full'}:{
     </div>
     {(()=>{
      const payment=ledger.data?.data.payments.find(p=>p.id===reviewDialog.paymentId);
+     if(ledger.isPending||ledger.isError)return <QueryFeedback loading={ledger.isPending} error={ledger.error} onRetry={()=>void ledger.refetch()}/>;
      if(!payment)return <p role="alert">This payment is no longer available. Close and refresh the bill.</p>;
-     const selfBank=reviewDialog.decision==='confirm'
+     const selfBank=reviewDialog.decision!=='reject'
       &&payment.method==='bank_transfer'&&payment.recordedBy===user?.id;
      return <div className="billing-evidence-modal-body">
       <div className="billing-evidence-summary">
@@ -287,28 +294,29 @@ export function BillingActions({bookingId,signed,mode='full'}:{
        <div><span>Reference</span><strong>{payment.reference}</strong></div>
        <div><span>Recorded by</span><strong>{payment.recordedByName??'Staff name unavailable'}</strong></div>
       </div>
+      {payment.status!=='pending_review'?<p role="status">Payment #{payment.id} is {payment.status.replaceAll('_',' ')}. No pending evidence decision.</p>:<>
       {selfBank&&<p role="alert" className="stay-feedback-error">
        <AlertTriangle size={16}/> Another administrator must confirm bank evidence you recorded.</p>}
       <p className="billing-evidence-explainer">
-       {reviewDialog.decision==='confirm'
+       {reviewDialog.decision==='choose'?'Check the payment reference against the supporting evidence and record your findings.':reviewDialog.decision==='confirm'
         ?'Confirming acknowledges that you reviewed this payment record. It does not verify bank settlement, allocate money, or sign off the folio.'
         :'Reject only when the record is incorrect or unsupported. Rejected evidence stays in the audit history and cannot settle the folio.'}
       </p>
       <label>Review note <span className="desk-muted">(required)</span>
        <textarea ref={reviewNoteRef} className="wizard-input" rows={3} maxLength={500}
         disabled={busy} value={reviewNote} onChange={e=>setReviewNote(e.target.value)}
-        placeholder={reviewDialog.decision==='confirm'
+        placeholder={reviewDialog.decision!=='reject'
          ?'Describe what receipt or evidence you checked.'
          :'Explain why this evidence is incorrect or unsupported.'}/>
       </label>
       {reviewError&&<p role="alert" className="stay-feedback-error"><AlertTriangle size={16}/>{reviewError}</p>}
       <div className="billing-evidence-dialog-actions">
        <button type="button" className="rr-secondary-action" disabled={busy} onClick={closeReview}>Cancel</button>
-       <button type="button" className="btn-primary" disabled={busy||!canWrite||selfBank||
-        reviewNote.trim().length<5||payment.status!=='pending_review'}
-        onClick={()=>void review()}>{busy?'Saving decision…':
-         reviewDialog.decision==='confirm'?'Confirm payment evidence':'Reject payment evidence'}</button>
-      </div>
+       {reviewDialog.decision!=='confirm'&&<button type="button" className="btn-inline"
+        disabled={!canWrite||reviewNote.trim().length<5} onClick={()=>void review('reject')}>Reject payment evidence</button>}
+       {reviewDialog.decision!=='reject'&&<button type="button" className="btn-primary"
+        disabled={!canWrite||selfBank||reviewNote.trim().length<5} onClick={()=>void review('confirm')}>Confirm payment evidence</button>}
+      </div></>}
      </div>;
     })()}
    </section>

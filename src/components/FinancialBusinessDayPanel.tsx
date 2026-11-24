@@ -30,6 +30,8 @@ const closeResponse=z.object({data:z.object({
  }),
 })});
 
+function readableDay(date:string){return new Intl.DateTimeFormat('en-PH',{dateStyle:'long',timeZone:'UTC'}).format(new Date(date+'T00:00:00Z'));}
+
 export function FinancialBusinessDayPanel({selectedDate}:{selectedDate:string}){
  const {hotelId}=useHotelAuth();
  const client=useQueryClient();
@@ -86,7 +88,7 @@ export function FinancialBusinessDayPanel({selectedDate}:{selectedDate:string}){
    if(current.businessDate!==selectedDate){
     throw new Error('The financial business date has changed. Select the current date before closing.');
    }
-   if(!current.canClose){
+   if(!current.canClose||current.blockers.length>0){
     throw new Error('Closing is blocked. Review the updated checklist.');
    }
    if(readSession().hotelId!==hotelId)throw new Error('Hotel selection changed.');
@@ -98,8 +100,8 @@ export function FinancialBusinessDayPanel({selectedDate}:{selectedDate:string}){
    setTypedDate('');setAck(false);
    setSuccess('Closed '+result.closedBusinessDate+'. New business date: '+
     result.nextBusinessDate+'. Journal totals: '+
-    result.reconciliationSnapshot.debits_minor+' debit centavos and '+
-    result.reconciliationSnapshot.credits_minor+' credit centavos.');
+    new Intl.NumberFormat('en-PH',{style:'currency',currency:result.reconciliationSnapshot.currency}).format(result.reconciliationSnapshot.debits_minor/100)+' debits and '+
+    new Intl.NumberFormat('en-PH',{style:'currency',currency:result.reconciliationSnapshot.currency}).format(result.reconciliationSnapshot.credits_minor/100)+' credits.');
    await client.invalidateQueries({queryKey:['live','financial-business-day',hotelId]});
    await client.invalidateQueries({queryKey:['live','night-audit-preview',hotelId]});
   }catch(e){
@@ -111,8 +113,8 @@ export function FinancialBusinessDayPanel({selectedDate}:{selectedDate:string}){
  }
  return <section className="night-review-panel" aria-label="Financial business-date close">
   <div className="night-review-header"><LockKeyhole size={18}/>
-   <div><h3>Financial business-date close</h3>
-    <p>Separate from the manager's daily operational review. Closing advances the accounting business date and locks past journal posting dates.</p>
+   <div><h3>Close business day</h3>
+    <p>Closing locks the current financial date and opens the next business date.</p>
    </div>
   </div>
   <div className="desk-tools">
@@ -132,14 +134,14 @@ export function FinancialBusinessDayPanel({selectedDate}:{selectedDate:string}){
   <QueryFeedback loading={query.isPending} error={configurationError?null:query.error} onRetry={()=>void query.refetch()}/>
   {data&&<>
    <div className="night-audit-metrics">
-    <div className="night-audit-metric"><small>Selected date</small><strong>{selectedDate}</strong></div>
-    <div className="night-audit-metric"><small>Current business date</small><strong>{data.businessDate}</strong></div>
-    <div className="night-audit-metric"><small>Next date</small><strong>{data.nextBusinessDate}</strong></div>
+    <div className="night-audit-metric"><small>Selected date</small><strong>{readableDay(selectedDate)}</strong></div>
+    <div className="night-audit-metric"><small>Current business date</small><strong>{readableDay(data.businessDate)}</strong></div>
+    <div className="night-audit-metric"><small>Next date</small><strong>{readableDay(data.nextBusinessDate)}</strong></div>
     <div className="night-audit-metric"><small>Journals to reconcile</small><strong>{data.journalCount}</strong></div>
     <div className="night-audit-metric"><small>Invalid journals</small><strong>{data.invalidJournalCount}</strong></div>
    </div>
-   {ready?<p className="night-audit-clean"><CheckCircle2 size={17}/> Listed readiness checks passed. Final validation is repeated during the database transaction.</p>
-    :<div className="night-audit-issues" role="status"><h4><AlertTriangle size={17}/> Closing blocked</h4>
+   {ready?<p className="night-audit-clean"><CheckCircle2 size={17}/> Ready to close. The system will check again before closing.</p>
+    :<div className="night-audit-issues" role="status"><h4><AlertTriangle size={17}/> Complete these items before closing</h4>
      <ul>
       {!dateMatches&&<li>Select {data.businessDate} in the daily checks to close the current financial business date.</li>}
       {data.blockers.map(item=><li key={item}>{item}</li>)}
@@ -147,6 +149,7 @@ export function FinancialBusinessDayPanel({selectedDate}:{selectedDate:string}){
      </ul></div>}
    <p className="desk-muted">Manager review: <strong>{data.nightAuditReview?.status??'Not yet recorded'}</strong>.
     This readiness check is advisory and can change while other staff post transactions.</p>
+   {ready&&<>
    <label className="night-review-note">Type <strong>{data.businessDate}</strong> to confirm the exact date
     <input className="wizard-input" type="text" autoComplete="off" value={typedDate}
      disabled={!ready||busy} placeholder="YYYY-MM-DD" onChange={e=>setTypedDate(e.target.value)}/>
@@ -156,7 +159,8 @@ export function FinancialBusinessDayPanel({selectedDate}:{selectedDate:string}){
     <span>I verified the manager review and understand this locks the current financial journal date and advances the hotel business clock. It does not settle bank payments or calculate VAT.</span>
    </label>
    <button type="button" className="btn-primary" disabled={!confirmed}
-    onClick={()=>void closeDay()}>{busy?'Closing financial day…':'Close financial business date'}</button>
+    onClick={()=>void closeDay()}>{busy?'Closing financial day…':'Close business day'}</button>
+   </>}
   </>}
   {success&&<p className="stay-feedback-success" role="status">{success}</p>}
   {error&&<p className="stay-feedback-error" role="alert"><AlertTriangle size={15}/>{error}</p>}

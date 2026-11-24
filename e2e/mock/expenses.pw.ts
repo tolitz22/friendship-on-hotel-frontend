@@ -68,6 +68,7 @@ test('manager can inspect and review a voucher and update the future payout limi
    if(route.request().method()==='PUT')limit=route.request().postDataJSON().routineLimitMinor;
    return route.fulfill({json:{data:{configured:true,routineLimitMinor:limit}}});
   }
+  if(path.endsWith('/expenses/exceptions'))return route.fulfill({json:{data:{hotelId:'1',pendingCorrectionCount:0,pendingReturnCount:0,flaggedReturnCount:0,unresolvedClearingCount:0,items:[]}}});
   if(path.endsWith('/expenses/7/history'))return route.fulfill({json:{data:{hotelId:'1',expenseId:'7',correctionsEnabled:false,originalAmountMinor:35000,netRecordedExpenseMinor:35000,effectiveDepartment:'rooms',effectiveCategory:'cleaning_supplies',clearingBalanceMinor:0,cashReturnedMinor:0,unapprovedCashReturnCount:0,corrections:[],cashReturns:[]}}});
   if(path.endsWith('/expenses/7/review')){approved=true;return route.fulfill({json:{data:{expenseId:'7',reviewStatus:'approved',replayed:false}}});}
   const row={...voucher,reviewStatus:approved?'approved':'pending'};

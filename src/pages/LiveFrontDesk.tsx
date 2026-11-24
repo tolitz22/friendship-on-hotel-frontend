@@ -175,47 +175,64 @@ export function LiveFrontDesk(){
       ?maintenanceNotes.data.data.filter(note=>note.roomId===row.assignedRoomId):[];
      const advisoryCount=informationalMaintenanceCount(relatedNotes);
      const noteCoverageComplete=maintenanceNotes.isSuccess&&maintenanceNotes.data.meta.totalPages<=1;
-     return <article className={'fdc-guest-row'+(kind==='overdue'?' is-overdue':'')} key={row.id}>
-      <div className="fdc-guest-primary">
-       <strong>{displayGuest(row)}</strong><span>{row.reference}</span>
+     return <article className={'fdc-guest-row fdc-guest-row-v2'+(kind==='overdue'?' is-overdue':'')} key={row.id}>
+      <div className="fdc-v2-identity">
+       <div className="fdc-v2-avatar" aria-hidden="true">{displayGuest(row).trim().slice(0,1).toUpperCase()}</div>
+       <div className="fdc-v2-guest-details">
+        <strong>{displayGuest(row)}</strong>
+        <span>{row.reference}</span>
+        <div className="fdc-v2-badges">
+         {kind==='overdue'
+          ?<span className="fdc-v2-status overdue"><AlertTriangle size={13}/> Overdue checkout</span>
+          :<span className={'fdc-v2-status '+(row.status==='checked_in'?'in-house':'expected')}>
+           {row.status==='checked_in'?'Checked in':'Confirmed'}
+          </span>}
+        </div>
+       </div>
       </div>
-      <div className="fdc-guest-stay">
-       <small>Stay</small><strong>{dateLabel(row.checkIn)} – {dateLabel(row.checkOut)}</strong>
-       {kind==='overdue'&&<span className="fdc-overdue-date">Scheduled checkout: {dateLabel(row.checkOut)}</span>}
+      <div className="fdc-v2-details">
+       <div className="fdc-v2-detail">
+        <small><CalendarDays size={14}/> Stay dates</small>
+        <strong>{dateLabel(row.checkIn)} – {dateLabel(row.checkOut)}</strong>
+        {kind==='overdue'&&<span className="fdc-overdue-date">Scheduled checkout has passed</span>}
+       </div>
+       <div className="fdc-v2-detail">
+        <small><BedDouble size={14}/> Room</small>
+        <strong>{row.roomNumber?'Room '+row.roomNumber:'Not assigned'}</strong>
+        {needsAssignment&&<span className="fdc-issue"><AlertTriangle size={13}/> Assignment required</span>}
+       </div>
       </div>
-      <div className="fdc-guest-room">
-       <small>Room</small>
-       <strong>{row.roomNumber??'Not assigned'}</strong>
-       {needsAssignment&&<span className="fdc-issue"><AlertTriangle size={13}/> Assignment needed</span>}
-       {kind!=='overdue'&&canOperate&&isToday&&row.assignedRoomId&&<div className="fdc-room-signals" aria-label={'Current room checks for '+(row.roomNumber??'assigned room')}>
-        {signal?<div className={'fdc-room-signal fdc-signal-'+signal.tone}>
-         {signal.tone==='blocked'?<ShieldAlert size={14}/>:signal.tone==='approved'?<ClipboardCheck size={14}/>:<Info size={14}/>}
-         <span><strong>{signal.title}</strong><small>{signal.action}</small></span>
-        </div>:<span className="fdc-check-unavailable">{roomStatus.isPending?'Checking room status…':'Room status not available · verify before check-in'}</span>}
-        {advisoryCount>0&&<span className="fdc-maint-note"><Info size={13}/>{advisoryCount} open room-impact work order{advisoryCount===1?'':'s'} (note only)</span>}
-        <Link to="/rooms" search={{room:row.roomNumber??'',inspect:shouldInspect||undefined}} className="ops-room-link">{shouldInspect?'Inspect room':'Review room details'} <ArrowRight size={13}/></Link>
-        {maintenanceNotes.isError&&<span className="fdc-check-unavailable">Repair notes could not be checked.</span>}
-        {maintenanceNotes.isSuccess&&!noteCoverageComplete&&<span className="fdc-check-unavailable">Repair notes may be incomplete; see Maintenance.</span>}
-        </div>}
-      </div>
-      <div className="fdc-guest-status">
-       <small>Status</small>{kind==='overdue'?<span className="fdc-issue"><AlertTriangle size={13}/> Checkout overdue</span>:<Status value={statusLabel(row.status)}/>}
-      </div>
-      <div className="fdc-guest-actions">
-       <Link to="/reservations" search={{booking:row.id,...(!canOperate||action.kind==='view'?{}:{deskAction:action.kind})}} className="fdc-action-link">
-        {!canOperate?<ClipboardCheck size={16}/>:action.kind==='assign'?<BedDouble size={16}/>:action.kind==='check-in'?<LogIn size={16}/>:action.kind==='check-out'?<LogOut size={16}/>:<ClipboardCheck size={16}/>} 
-        {canOperate&&kind==='overdue'?'Review checkout':canOperate?action.label:'View reservation'} <ArrowRight size={15}/>
+      <div className="fdc-v2-actions">
+       <Link to="/reservations"
+        search={{booking:row.id,...(!canOperate||action.kind==='view'?{}:{deskAction:action.kind})}}
+        className="fdc-action-link fdc-v2-primary-action">
+        {!canOperate?<ClipboardCheck size={16}/>:action.kind==='assign'?<BedDouble size={16}/>:action.kind==='check-in'?<LogIn size={16}/>:action.kind==='check-out'?<LogOut size={16}/>:<ClipboardCheck size={16}/>}
+        {canOperate&&kind==='overdue'?'Review checkout':canOperate?action.label:'View stay'} <ArrowRight size={15}/>
        </Link>
-       <span>{canOperate&&kind==='overdue'?'Confirm the guest has left before checking out.':canOperate?action.hint:'Read-only staff review. Contact a manager for changes.'}</span>
        {canOperate&&row.status==='checked_in'&&row.assignedRoomId&&
-        <button type="button" className="btn-inline" aria-haspopup="dialog"
-         onClick={()=>setExtension({hotelId,record:row})}>Extend stay <ArrowRight size={15}/></button>}
-       {kind==='overdue'&&<>
-        {row.departureFollowUp&&<p><strong>Shift handoff</strong><br/>{row.departureFollowUp}</p>}
-        {canOperate&&<DepartureFollowUp key={hotelId+'-'+row.id} bookingId={row.id}
-         savedNote={row.departureFollowUp} onSaved={refresh}/>}
-       </>}
+        <button type="button" className="fdc-v2-secondary-action" aria-haspopup="dialog"
+         onClick={()=>setExtension({hotelId,record:row})}><Clock3 size={15}/> Extend stay</button>}
       </div>
+      {kind==='overdue'&&row.departureFollowUp&&
+       <p className="fdc-v2-handoff"><strong>Shift handoff:</strong> {row.departureFollowUp}</p>}
+      {kind!=='overdue'&&canOperate&&isToday&&row.assignedRoomId&&
+       (signal?.tone==='attention'||signal?.tone==='blocked'||advisoryCount>0||maintenanceNotes.isError||!noteCoverageComplete&&maintenanceNotes.isSuccess)&&
+       <div className="fdc-v2-room-alert">
+        <Info size={15}/>
+        <div>
+         <strong>{signal?.title??'Room follow-up'}</strong>
+         <span>{signal?.action??(advisoryCount>0?`${advisoryCount} maintenance note(s) to review`:'Check current room notes')}</span>
+        </div>
+        <Link to="/rooms" search={{room:row.roomNumber??'',inspect:shouldInspect||undefined}}>
+         Room details <ArrowRight size={14}/>
+        </Link>
+       </div>}
+      {kind==='overdue'&&canOperate&&
+       <div className="fdc-v2-overdue-followup">
+        <span><AlertTriangle size={14}/> Confirm departure or extend the stay before closing the booking.</span>
+        <DepartureFollowUp key={hotelId+'-'+row.id} bookingId={row.id}
+         savedNote={row.departureFollowUp} onSaved={refresh}/>
+       </div>}
      </article>;
     })}
    </div>}

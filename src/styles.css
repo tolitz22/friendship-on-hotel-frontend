@@ -3559,3 +3559,18 @@
 .hotel-settings-link-grid a>svg:last-child{color:var(--muted);flex-shrink:0}
 @media(max-width:900px){.hotel-settings-link-grid{grid-template-columns:1fr}}
 @media(max-width:560px){.hotel-settings-profile,.hotel-settings-links{padding:15px}.hotel-settings-profile-heading{flex-wrap:wrap}.hotel-settings-profile-summary,.hotel-settings-profile-form{grid-template-columns:1fr}.hotel-settings-profile-form label:nth-child(2){grid-column:auto}.hotel-settings-form-actions button{flex:1;justify-content:center}}
+
+/* Expense register: reuse the existing theme and responsive page rhythm. */
+.expense-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:18px;}
+.expense-summary-button{display:block;padding:0;border:0;background:none;color:inherit;text-align:left;cursor:pointer;font:inherit;min-width:0;}
+.expense-summary-button:focus-visible{outline:2px solid currentColor;outline-offset:3px;border-radius:12px;}
+.expense-summary .stat{height:100%;box-sizing:border-box;}
+.expense-filters{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.5fr) minmax(0,1fr) auto;gap:12px;align-items:end;margin-bottom:16px;}
+.expense-filters label{display:grid;gap:6px;min-width:0;}
+.expense-filters .wizard-input{width:100%;min-width:0;box-sizing:border-box;}
+.expense-payee{display:block;opacity:.75;margin-top:4px;}
+.expense-detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:16px 0;}
+.expense-detail-grid dt{font-size:.8rem;opacity:.75;}
+.expense-detail-grid dd{margin:5px 0 0;overflow-wrap:anywhere;}
+@media(max-width:800px){.expense-summary,.expense-filters,.expense-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:480px){.expense-summary,.expense-filters,.expense-detail-grid{grid-template-columns:1fr;}}

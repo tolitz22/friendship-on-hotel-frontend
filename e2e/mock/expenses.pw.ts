@@ -15,15 +15,17 @@ const voucher={id:'7',journalId:'9',recordedBy:'8',recordedByName:'Reception sta
  paymentSource:'cashier_drawer',paymentStatus:'paid',reviewStatus:'pending',reviewReason:'above_limit',
  policyLimitMinor:10000,invoiceReference:null,createdAt:'2026-11-24T04:00:00Z'};
 
-test('cashier retries identical payout after a lost response without recording it twice',async({page})=>{
+for(const fromExpenses of [false,true]){
+test(`${fromExpenses?'Expenses':'Cashier shifts'} retries the same payout after a lost response`,async({page})=>{
  await session(page);
  const requests:Record<string,unknown>[]=[];
  let recorded=false;
  await page.route('**/api/v1/**',async route=>{
   const path=new URL(route.request().url()).pathname;
   if(path.endsWith('/auth/me'))return route.fulfill({json:{data:{id:'8',name:'Reception staff',email:'staff@example.test',
-   hotels:[{id:'1',name:'Demo hotel',role:'front_desk',permissions:['cashier.read','cashier.write','expense.record']}]}}});
+   hotels:[{id:'1',name:'Demo hotel',role:fromExpenses?'admin':'front_desk',permissions:['cashier.read','cashier.write','expense.record']}]}}});
   if(path.endsWith('/expense-payouts')){
+   expect(path).toContain('/cashier-shifts/4/expense-payouts');
    requests.push(route.request().postDataJSON());
    if(!recorded){recorded=true;return route.abort('failed');}
    return route.fulfill({json:{data:{expenseId:'7',payoutId:'3',journalId:'9',replayed:true}}});
@@ -32,11 +34,17 @@ test('cashier retries identical payout after a lost response without recording i
    expectedCashMinor:null,countedCashMinor:null,varianceMinor:null,receiptCount:0,unconfirmedReceiptCount:0,
    closingNote:null,managerNote:null,reviewedBy:null,openedAt:'2026-11-24T03:00:00Z',submittedAt:null,reconciledAt:null,
    expensePostingEnabled:true,expensePayoutTotalMinor:recorded?35000:0,expensePayoutCount:recorded?1:0};
+  if(path.endsWith('/expenses'))return route.fulfill({json:{
+   data:recorded?[voucher]:[],meta,postingEnabled:true,
+   summary:{businessDate:'2026-11-24',monthExpenseMinor:recorded?35000:0,pendingReviewCount:recorded?1:0,flaggedCount:0,supplierBalancesSupported:false},
+  }});
+  if(path.endsWith('/expenses/7'))return route.fulfill({json:{data:{...voucher,review:null}}});
   if(path.endsWith('/cashier-shifts/current'))return route.fulfill({json:{data:shift}});
   if(path.endsWith('/cashier-shifts'))return route.fulfill({json:{data:[],meta:{...meta,total:0,totalPages:0}}});
   return route.fulfill({status:404,json:{message:'Outside fixture'}});
  });
- await page.goto(base+'/cashier-shifts');
+ const routePath=fromExpenses?'/expenses':'/cashier-shifts';
+ await page.goto(base+routePath);
  await page.getByRole('button',{name:'Record cash paid out'}).click();
  const dialog=page.getByRole('dialog',{name:'Record cash paid out'});
  await dialog.getByLabel('Amount (PHP)').fill('350.00');
@@ -54,9 +62,15 @@ test('cashier retries identical payout after a lost response without recording i
  expect(requests[0]).toEqual(requests[1]);
  expect(requests[0].amountMinor).toBe(35000);
  await expect(page.getByText('Expense voucher #7 recorded.')).toBeVisible();
- await expect(page.locator('.cash-shift-metrics').first()).toContainText('₱350.00');
- await expect(page.getByText('Expected cash', {exact:true})).toHaveCount(0);
+ if(fromExpenses){
+  await expect(page).toHaveURL(base+routePath);
+  await expect(page.getByRole('region',{name:'Expense voucher'})).toContainText('Cleaning supplies');
+ }else{
+  await expect(page.locator('.cash-shift-metrics').first()).toContainText('₱350.00');
+  await expect(page.getByText('Expected cash',{exact:true})).toHaveCount(0);
+ }
 });
+}
 
 test('manager can inspect and review a voucher and update the future payout limit',async({page})=>{
  await session(page);
@@ -64,6 +78,7 @@ test('manager can inspect and review a voucher and update the future payout limi
  await page.route('**/api/v1/**',async route=>{
   const path=new URL(route.request().url()).pathname;
   if(path.endsWith('/auth/me'))return route.fulfill({json:{data:{id:'1',name:'Demo manager',email:'manager@example.test',hotels:[{id:'1',name:'Demo hotel',role:'admin'}]}}});
+  if(path.endsWith('/cashier-shifts/current'))return route.fulfill({json:{data:null}});
   if(path.endsWith('/expenses/policy')){
    if(route.request().method()==='PUT')limit=route.request().postDataJSON().routineLimitMinor;
    return route.fulfill({json:{data:{configured:true,routineLimitMinor:limit}}});
@@ -77,6 +92,8 @@ test('manager can inspect and review a voucher and update the future payout limi
   return route.fulfill({status:404,json:{message:'Outside fixture'}});
  });
  await page.goto(base+'/expenses');
+ await expect(page.getByRole('button',{name:'Record cash paid out'})).toBeDisabled();
+ await expect(page.getByRole('link',{name:'Go to Cashier shifts'})).toHaveAttribute('href','/cashier-shifts');
  const needsReview=page.getByRole('button',{name:/Needs review/});
  await needsReview.click();
  await expect(page.getByLabel('Review status')).toHaveValue('pending');

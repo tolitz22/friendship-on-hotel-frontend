@@ -1,4 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
+import {ExpensePayoutModal} from '../components/ExpensePayoutModal';
+import {useCurrentCashierShift} from '../api/cashierShifts';
 import {EmployeeReimbursements} from '../components/EmployeeReimbursements';
 import {SupplierBillRegister} from '../components/SupplierBillRegister';
 import {SupplierDirectory} from '../components/SupplierDirectory';
@@ -26,14 +28,33 @@ function Register({hotel,date,expense}:{hotel:string;date?:string;expense?:strin
  const {user}=useHotelAuth();
  const client=useQueryClient();
  const policy=useExpensePolicy(hotel,true);
+ const [payoutShiftId,setPayoutShiftId]=useState<string|null>(null);
+ const payoutButton=useRef<HTMLButtonElement>(null);
  const [policyOpen,setPolicyOpen]=useState(false);
  const [reviewOpen,setReviewOpen]=useState(false);
  const [message,setMessage]=useState('');
- function refresh(){void Promise.all([client.invalidateQueries({queryKey:['live','expenses',hotel]}),client.invalidateQueries({queryKey:['live','expense-exceptions',hotel]}),client.invalidateQueries({queryKey:['live','expense-detail',hotel]}),client.invalidateQueries({queryKey:['live','expense-policy',hotel]}),client.invalidateQueries({queryKey:['live','cashier-shifts',hotel]}),client.invalidateQueries({queryKey:['live','cashier-shift-detail',hotel]}),client.invalidateQueries({queryKey:['live','current-cashier-shift',hotel]})]);}
+ function refresh(){void Promise.all([client.invalidateQueries({queryKey:['live','expenses',hotel]}),client.invalidateQueries({queryKey:['live','expense-exceptions',hotel]}),client.invalidateQueries({queryKey:['live','expense-detail',hotel]}),client.invalidateQueries({queryKey:['live','expense-policy',hotel]}),client.invalidateQueries({queryKey:['live','cashier-shifts',hotel]}),client.invalidateQueries({queryKey:['live','cashier-shift-detail',hotel]}),client.invalidateQueries({queryKey:['live','current-cashier-shift',hotel]}),client.invalidateQueries({queryKey:['live','cashier-shift-history',hotel]}),client.invalidateQueries({queryKey:['live','night-audit-reconciliation',hotel]})]);}
  const [filters,setFilters]=useState<ExpenseFilters>({page:1,...(date?{from:date,to:date}:{})});
  const [selected,setSelected]=useState<string|null>(expense??null);
  const list=useExpenses(hotel,true,filters);
  const detail=useExpenseDetail(hotel,selected);
+ const postingEnabled=list.data?.postingEnabled===true;
+ const currentShift=useCurrentCashierShift(postingEnabled);
+ const shift=currentShift.data;
+ const payoutAvailable=postingEnabled&&currentShift.isSuccess&&shift?.hotelId===hotel&&
+  shift.cashierId===user?.id&&shift.expensePostingEnabled===true;
+ function closePayout(){
+  setPayoutShiftId(null);
+  payoutButton.current?.focus();
+ }
+ function payoutSaved(id:string){
+  setPayoutShiftId(null);
+  setMessage('Expense voucher #'+id+' recorded.');
+  setReviewOpen(false);
+  if(selected===id)voucher.current?.focus();
+  setSelected(id);
+  refresh();
+ }
  const voucher=useRef<HTMLDivElement>(null);
  const register=useRef<HTMLDivElement>(null);
  const voucherTrigger=useRef<HTMLButtonElement>(null);
@@ -54,9 +75,18 @@ function Register({hotel,date,expense}:{hotel:string;date?:string;expense?:strin
    </div>
    <div className="desk-tools">
     <button type="button" className="btn-inline" disabled={!policy.isSuccess} onClick={()=>setPolicyOpen(true)}>Expense policy</button>
-    {list.data?.postingEnabled&&<Link className="btn-primary" to="/cashier-shifts">Record cash paid out</Link>}
+    {postingEnabled&&<button ref={payoutButton} type="button" className="btn-primary" disabled={!payoutAvailable}
+     onClick={()=>{if(payoutAvailable&&shift){setMessage('');setPayoutShiftId(shift.id);}}}>Record cash paid out</button>}
    </div>
   </div>
+  {postingEnabled&&<QueryFeedback loading={currentShift.isPending} error={currentShift.error} onRetry={()=>void currentShift.refetch()}/>}
+  {postingEnabled&&currentShift.isSuccess&&!payoutAvailable&&<div className="notice">
+   {shift?.cashierId===user?.id&&shift?.hotelId===hotel
+    ?'Expense posting is unavailable for this shift.'
+    :<>Open your own cashier shift to record cash paid out. <Link to="/cashier-shifts">Go to Cashier shifts</Link></>}
+  </div>}
+  {payoutShiftId&&user?.id&&<ExpensePayoutModal key={hotel+':'+payoutShiftId+':'+user.id}
+   hotel={hotel} shift={payoutShiftId} userId={user.id} onClose={closePayout} onSuccess={payoutSaved}/>}
   {message&&<p role="status" className="cashier-feedback-success">{message}</p>}
   {policyOpen&&policy.data&&<ExpensePolicyDialog hotel={hotel} currentLimit={policy.data.routineLimitMinor} onClose={()=>setPolicyOpen(false)} onSaved={()=>{setPolicyOpen(false);setMessage('Expense policy saved.');refresh();}}/>}
   {list.data&&!list.data.postingEnabled&&<div className="notice">Expense posting is not enabled for this deployment. Existing vouchers remain available for review.</div>}

@@ -33,6 +33,9 @@ const schema=z.object({
   scope:z.string(),
  }),
  expenses:z.object({
+  employeeClaimExpenseMinor:z.number().int().optional(),employeeReimbursementMinor:z.number().int().optional(),
+  employeeDrawerReimbursementMinor:z.number().int().optional(),employeeBankReimbursementMinor:z.number().int().optional(),
+  employeeLiability:z.object({asOf:z.string(),outstandingMinor:z.number().int(),signedSubledgerMinor:z.number().int(),ledgerBalanceMinor:z.number().int(),differenceMinor:z.number().int(),inconsistentCount:z.number().int(),reconciled:z.boolean(),employees:z.array(z.object({employeeId:z.string(),employeeName:z.string(),outstandingMinor:z.number().int(),claimCount:z.number().int()}))}).optional(),
   supplierInvoiceExpenseMinor:z.number().int().optional(),supplierPaymentMinor:z.number().int().optional(),
   supplierDrawerPaymentMinor:z.number().int().optional(),supplierBankPaymentMinor:z.number().int().optional(),
   grossExpenseMinor:z.number().int().optional(),accountingAdjustmentMinor:z.number().int().optional(),
@@ -43,7 +46,7 @@ const schema=z.object({
   scope:z.string(),closedLedgerVerified:z.boolean(),
   breakdown:z.object({available:z.boolean(),attributedNetMinor:nullableInt,unattributedNetMinor:nullableInt,movementCount:z.number().int().nonnegative(),
    departments:z.array(z.object({department:z.string(),grossMinor:z.number().int(),adjustmentMinor:z.number().int(),refundMinor:z.number().int(),netMinor:z.number().int()})),
-   voucherMovements:z.array(z.object({journalId:z.string(),expenseId:z.string(),kind:z.enum(['expense','adjustment','refund','supplier_bill']),department:z.string(),description:z.string(),originalBusinessDate:z.string(),netMinor:z.number().int()})),
+   voucherMovements:z.array(z.object({journalId:z.string(),expenseId:z.string(),kind:z.enum(['expense','adjustment','refund','supplier_bill','employee_claim']),department:z.string(),description:z.string(),originalBusinessDate:z.string(),netMinor:z.number().int()})),
   }).optional(),
  }).optional(),
  limitations:z.array(z.string()),blockers:z.array(z.string()),

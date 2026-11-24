@@ -2,7 +2,7 @@ import {useMemo,useState} from 'react';
 import {Link} from '@tanstack/react-router';
 import {AlertTriangle,ArrowRight,BedDouble,CalendarDays,ChevronLeft,ChevronRight,ClipboardList,Filter,LogIn,LogOut,Plus,RefreshCw,Search,RotateCcw,X} from 'lucide-react';
 import {useRoomCalendar} from '../api/liveRoomCalendar';
-import type {LiveRecord,ReservationListFilter} from '../api/liveReservations';
+import type {LiveRecord,ReservationListFilter,BookingDateOptions} from '../api/liveReservations';
 import {addDays,hotelToday} from '../features/reservations/calendarDate';
 import {nextReservationAction} from '../features/reservations/managementWorkflow';
 import {readableDate} from '../lib/format';
@@ -10,6 +10,7 @@ import {QueryFeedback} from '../components/QueryFeedback';
 
 type Pagination={page:number;perPage:number;total:number;totalPages:number};
 type Props={
+ dates:BookingDateOptions;onDates:(value:BookingDateOptions)=>void;
  rows:LiveRecord[];pagination:Pagination|undefined;
  isPending:boolean;isError:boolean;error:Error|null;isFetching:boolean;
  searching:boolean;search:string;filter:ReservationListFilter;page:number;
@@ -36,7 +37,7 @@ const tileStatus=(state:string)=>state==='checked_in'?'inhouse':
 
 export function LiveBookingsWorkspace({
  rows,pagination,isPending,isError,error,isFetching,searching,search,filter,page,canOperate,
- onSearch,onFilter,onPage,onClear,onRefresh,onOpen,onNew,
+ onSearch,onFilter,onPage,onClear,onRefresh,onOpen,onNew,dates,onDates,
 }:Props){
  const [roomDay,setRoomDay]=useState(hotelToday);
  const [floor,setFloor]=useState('all');
@@ -63,7 +64,7 @@ export function LiveBookingsWorkspace({
   checked_out:rows.filter(row=>row.lifecycleState==='checked_out').length,
   cancelled:rows.filter(row=>row.lifecycleState==='cancelled').length,
  };
- const filtersActive=search.trim().length>0||filter!=='all';
+ const filtersActive=search.trim().length>0||filter!=='all'||!!dates.from||!!dates.to||dates.field!=='created_at'||dates.sortBy!=='created_at'||dates.direction!=='desc';
  return <div className="bk-workspace">
   <div className="bk-overview">
    <section className="bk-room-panel" aria-label="Room assignment snapshot">
@@ -154,6 +155,22 @@ export function LiveBookingsWorkspace({
     <button type="button" className="btn-inline" disabled={isFetching} onClick={onRefresh}>
      <RefreshCw size={15}/> Refresh</button>
    </div>
+   <div className="bk-filter-row" style={{flexWrap:'wrap',gap:12}}>
+    <label>Filter by date <select className="wizard-input" value={dates.field} onChange={e=>onDates({...dates,field:e.target.value as BookingDateOptions['field']})}>
+     <option value="created_at">Date created</option><option value="check_in">Check-in</option><option value="check_out">Check-out</option><option value="stay">Stay period</option><option value="updated_at">Last updated</option>
+    </select></label>
+    <label>From <input className="wizard-input" type="date" value={dates.from} max={dates.to||undefined} onChange={e=>onDates({...dates,from:e.target.value,to:dates.to&&e.target.value>dates.to?'':dates.to})}/></label>
+    <label>To <input className="wizard-input" type="date" value={dates.to} min={dates.from||undefined} onChange={e=>onDates({...dates,to:e.target.value,from:dates.from&&e.target.value&&e.target.value<dates.from?'':dates.from})}/></label>
+    <label>Sort by <select className="wizard-input" value={dates.sortBy+':'+dates.direction} onChange={e=>{const [sortBy,direction]=e.target.value.split(':');onDates({...dates,sortBy:sortBy as BookingDateOptions['sortBy'],direction:direction as BookingDateOptions['direction']});}}>
+     <option value="created_at:desc">Created · newest first</option><option value="created_at:asc">Created · oldest first</option>
+     <option value="check_in:asc">Check-in · earliest first</option><option value="check_in:desc">Check-in · latest first</option>
+     <option value="check_out:asc">Check-out · earliest first</option><option value="check_out:desc">Check-out · latest first</option>
+     <option value="updated_at:desc">Updated · newest first</option><option value="updated_at:asc">Updated · oldest first</option>
+    </select></label>
+    <div role="group" aria-label="Quick booking date ranges" className="bk-filter-tabs">
+     {['Today','Yesterday','Last 7 days','This month'].map(preset=><button type="button" key={preset} onClick={()=>{const today=hotelToday();const from=preset==='Yesterday'?addDays(today,-1):preset==='Last 7 days'?addDays(today,-6):preset==='This month'?today.slice(0,7)+'-01':today;const nextMonth=new Date(today.slice(0,7)+'-01T00:00:00Z');nextMonth.setUTCMonth(nextMonth.getUTCMonth()+1);const to=preset==='Yesterday'?from:preset==='This month'?addDays(nextMonth.toISOString().slice(0,10),-1):today;onDates({...dates,from,to});}}>{preset}</button>)}
+    </div>
+   </div>
    <div className="bk-results-bar" role="status">
     <span>{searching?'Searching…':isPending?'Loading bookings…':
      isError?'Booking list unavailable':
@@ -162,11 +179,11 @@ export function LiveBookingsWorkspace({
    </div>
    <QueryFeedback loading={isPending||searching} error={error} onRetry={onRefresh}
     empty={!searching&&!isPending&&!isError&&rows.length===0}
-    emptyMessage={filtersActive?'No bookings match this search or status. Clear filters to see all reservations.':
+    emptyMessage={filtersActive?'No bookings match the selected filters. Clear filters to see all reservations.':
       'No reservations yet. Add a booking to get started.'}/>
    {!isPending&&!isError&&!searching&&rows.length>0&&<div className="bk-table-scroll">
     <table className="bk-table">
-     <thead><tr><th>Guest / Booking</th><th>Room</th><th>Stay dates</th>
+     <thead><tr><th>Guest / Booking</th><th>Room</th><th>Stay dates</th><th>Date created</th>
       <th>Status</th><th>Contact</th><th>Next step</th><th>Actions</th></tr></thead>
      <tbody>{rows.map(record=><tr key={record.id}>
       <td><button type="button" className="bk-guest-link" onClick={()=>onOpen(record.id)}>
@@ -177,6 +194,7 @@ export function LiveBookingsWorkspace({
        <small>{record.roomTypeName??'Room type #'+record.roomTypeId}</small></td>
       <td><span>{readableDate(record.checkIn)}</span>
        <small>to {readableDate(record.checkOut)}</small></td>
+      <td>{record.createdDate?readableDate(record.createdDate):'—'}</td>
       <td><span className={'bk-state bk-state-'+(record.lifecycleState??'unknown').replaceAll('_','-')}>
        {lifecycleName(record.lifecycleState)}</span></td>
       <td><span className="bk-contact">{record.guestPhone?.trim()||'Not provided'}</span></td>

@@ -269,8 +269,8 @@ export function SettlementPanel({bookingId,requestedAction}:{bookingId:string;re
   :nextTask==='confirmation'?'Confirm recorded payment'
   :nextTask==='verification'?'Review payment verification'
   :nextTask==='allocation'?'Apply verified payment'
-  :nextTask==='signoff'?'Authorize settlement'
-  :nextTask==='disabled'?'Final approval unavailable'
+  :nextTask==='signoff'?'Optional finance sign-off'
+  :nextTask==='disabled'?'Financial sign-off unavailable'
   :'Review settlement checks';
  const shiftLabel=handoff?.cashShiftId?'Shift '+handoff.cashShiftId:'Cashier shift';
  const operationalDescription=routineCashCheckedOut
@@ -440,7 +440,10 @@ export function SettlementPanel({bookingId,requestedAction}:{bookingId:string;re
        ?'Reviewed payments cover the recorded guest charges. No further guest payment is due.'
        :operationalDescription}</p>
      {!data.signed&&<div className="frontdesk-payment-primary">
-      {canCollectExtra&&hasExistingMoney
+      {!checkoutBlock&&data.status==='checked_in'
+       ?<Link to="/reservations" search={{booking:bookingId,deskAction:'check-out'}}
+         className="btn-primary">Continue guest checkout <ArrowRight size={16}/></Link>
+       :canCollectExtra&&hasExistingMoney
        ?<button type="button" className="btn-primary" disabled={busy}
          onClick={()=>openDialog('payment')}><Banknote size={16}/>
          Record additional payment · {money(extraBalanceMinor,data.currency)}</button>

@@ -855,6 +855,8 @@ export function GroupReservations(){
           .map(rate=><option key={rate.id} value={rate.id}>{rate.name} · {rate.currency==='PHP'?
            money(rate.nightlyMinor,'PHP'):rate.currency+' '+rate.nightlyMinor+' minor units'}/night</option>)}
         </select></div>
+       {dynamicBookingEnabled&&<><div><label className="wizard-label" htmlFor={'group-code-kind-'+index}>Rate eligibility (optional)</label><select id={'group-code-kind-'+index} className="wizard-input" value={room.codeKind??'none'} onChange={e=>{const kind=e.target.value as Room['codeKind'];setRooms(old=>old.map((item,i)=>i===index?{...item,codeKind:kind,code:''}:item));}}><option value="none">Standard rate</option><option value="corporate">Corporate code</option><option value="promotion">Promo code</option></select></div>
+       {room.codeKind&&room.codeKind!=='none'&&<div><label className="wizard-label" htmlFor={'group-code-'+index}>Eligibility code</label><input id={'group-code-'+index} className="wizard-input" value={room.code??''} maxLength={40} required onChange={e=>update(index,'code',e.target.value.toUpperCase())}/></div>}</>}
       </div>
      </div>)}
      <button type="button" className="btn-inline" disabled={rooms.length>=10}

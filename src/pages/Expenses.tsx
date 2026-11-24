@@ -1,11 +1,13 @@
 import {useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
+import {ExpenseReviewDialog,ExpensePolicyDialog} from '../components/ExpenseManagerDialogs';
 import {Link} from '@tanstack/react-router';
 import {Receipt,Wallet,AlertTriangle} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel,Stat,Status} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {dataMode} from '../api';
-import {useExpenses,useExpenseDetail,expenseDepartments,reviewStatuses} from '../api/expenses';
+import {useExpenses,useExpenseDetail,useExpensePolicy,expenseDepartments,reviewStatuses} from '../api/expenses';
 import type {ExpenseFilters} from '../api/expenses';
 import {readableDate,readableDateTime,statusLabel} from '../lib/format';
 
@@ -14,6 +16,13 @@ const labels={rooms:'Rooms',maintenance:'Property operations & maintenance',admi
 const reviewLabel=(value:string)=>value==='not_required'?'No review required':value==='pending'?'Needs review':statusLabel(value);
 
 function Register({hotel}:{hotel:string}){
+ const {user}=useHotelAuth();
+ const client=useQueryClient();
+ const policy=useExpensePolicy(hotel,true);
+ const [policyOpen,setPolicyOpen]=useState(false);
+ const [reviewOpen,setReviewOpen]=useState(false);
+ const [message,setMessage]=useState('');
+ function refresh(){void Promise.all([client.invalidateQueries({queryKey:['live','expenses',hotel]}),client.invalidateQueries({queryKey:['live','expense-detail',hotel]}),client.invalidateQueries({queryKey:['live','expense-policy',hotel]}),client.invalidateQueries({queryKey:['live','cashier-shifts',hotel]}),client.invalidateQueries({queryKey:['live','cashier-shift-detail',hotel]}),client.invalidateQueries({queryKey:['live','current-cashier-shift',hotel]})]);}
  const [filters,setFilters]=useState<ExpenseFilters>({page:1});
  const [selected,setSelected]=useState<string|null>(null);
  const list=useExpenses(hotel,true,filters);
@@ -22,7 +31,11 @@ function Register({hotel}:{hotel:string}){
  function filter(next:Partial<ExpenseFilters>){setFilters(previous=>({...previous,...next,page:1}));}
  return <>
   <Heading title="Expenses" description="Track hotel operating costs, cash payouts and independent reviews."
-   action={<Link className="btn-primary" to="/cashier-shifts">Record cash paid out</Link>}/>
+   action={<div className="desk-tools"><button type="button" className="btn-inline" disabled={!policy.isSuccess} onClick={()=>setPolicyOpen(true)}>Expense policy</button>{list.data?.postingEnabled&&<Link className="btn-primary" to="/cashier-shifts">Record cash paid out</Link>}</div>}/>
+  {message&&<p role="status" className="cashier-feedback-success">{message}</p>}
+  <QueryFeedback loading={policy.isPending} error={policy.error} onRetry={()=>void policy.refetch()}/>
+  {policy.data&&<p className="desk-muted">Routine payout limit: {policy.data.routineLimitMinor===null?'Not configured — all payouts need review':money(policy.data.routineLimitMinor)}</p>}
+  {policyOpen&&policy.data&&<ExpensePolicyDialog hotel={hotel} currentLimit={policy.data.routineLimitMinor} onClose={()=>setPolicyOpen(false)} onSaved={()=>{setPolicyOpen(false);setMessage('Expense policy saved.');refresh();}}/>}
   {list.data&&!list.data.postingEnabled&&<div className="notice">Expense posting is not enabled for this deployment. Existing vouchers remain available for review.</div>}
   <div className="expense-summary">
    <Stat label="Expenses this month" value={summary?.monthExpenseMinor==null?'—':money(summary.monthExpenseMinor)} detail={summary?.businessDate?'Business date '+readableDate(summary.businessDate):'Financial business date required'} icon={<Receipt size={20}/>}/>
@@ -41,7 +54,7 @@ function Register({hotel}:{hotel:string}){
    <QueryFeedback loading={list.isPending} error={list.error} onRetry={()=>void list.refetch()}/>
    {list.data&&list.data.data.length===0&&<p>No expenses match these filters.</p>}
    {!!list.data?.data.length&&<div className="table-scroll"><table><thead><tr><th>Expense</th><th>Department</th><th>Business date</th><th>Amount</th><th>Payment</th><th>Review</th><th>Voucher</th></tr></thead><tbody>
-    {list.data.data.map(e=><tr key={e.id}><td><strong>{e.description}</strong><small className="expense-payee">{e.payee}</small></td><td>{labels[e.department]}</td><td>{readableDate(e.businessDate)}</td><td>{money(e.amountMinor)}</td><td><Status value="Paid"/></td><td><Status value={reviewLabel(e.reviewStatus)}/></td><td><button className="btn-inline" type="button" onClick={()=>setSelected(e.id)}>View details</button></td></tr>)}
+    {list.data.data.map(e=><tr key={e.id}><td><strong>{e.description}</strong><small className="expense-payee">{e.payee}</small></td><td>{labels[e.department]}</td><td>{readableDate(e.businessDate)}</td><td>{money(e.amountMinor)}</td><td><Status value="Paid"/></td><td><Status value={reviewLabel(e.reviewStatus)}/></td><td><button className="btn-inline" type="button" onClick={()=>{setReviewOpen(false);setSelected(e.id);}}>{e.reviewStatus==='pending'?'Inspect expense':'View details'}</button></td></tr>)}
    </tbody></table></div>}
    {list.data&&<div className="desk-tools"><button className="btn-inline" disabled={list.data.meta.page<=1} onClick={()=>setFilters(p=>({...p,page:(p.page??1)-1}))}>Previous</button><span>Page {list.data.meta.page} of {Math.max(1,list.data.meta.totalPages)}</span><button className="btn-inline" disabled={list.data.meta.page>=list.data.meta.totalPages} onClick={()=>setFilters(p=>({...p,page:(p.page??1)+1}))}>Next</button></div>}
   </Panel>
@@ -55,6 +68,9 @@ function Register({hotel}:{hotel:string}){
     <div><dt>Payment source</dt><dd>Cashier drawer</dd></div><div><dt>Review</dt><dd>{reviewLabel(detail.data.reviewStatus)}</dd></div>
     <div><dt>Journal reference</dt><dd>#{detail.data.journalId}</dd></div></dl>
     {detail.data.shiftId&&<Link to="/cashier-shifts" search={{shift:detail.data.shiftId,hotel}}>View cashier shift</Link>}
+    {detail.data.reviewStatus==='pending'&&<div className="notice"><strong>Independent review required.</strong> {detail.data.reviewReason==='above_limit'?'This payout exceeded the routine limit.':'Review is required by the expense policy.'} {detail.data.recordedBy===user?.id?'Another administrator must review your own expense.':''}
+    {detail.data.recordedBy!==user?.id&&!!user?.id&&<button type="button" className="btn-primary" onClick={()=>setReviewOpen(true)}>Review expense</button>}</div>}
+    {reviewOpen&&detail.data.reviewStatus==='pending'&&detail.data.recordedBy!==user?.id&&!!user?.id&&<ExpenseReviewDialog key={detail.data.id} hotel={hotel} expense={detail.data} onClose={()=>setReviewOpen(false)} onSaved={()=>{setReviewOpen(false);setMessage('Expense review recorded.');refresh();}}/>}
     {detail.data.review&&<p><strong>{detail.data.review.reviewedByName??'Manager'} · {statusLabel(detail.data.review.decision)}</strong> — {detail.data.review.note} ({readableDateTime(detail.data.review.createdAt)})</p>}
    </>}
   </Panel>}

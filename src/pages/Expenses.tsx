@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {SupplierBillRegister} from '../components/SupplierBillRegister';
 import {SupplierDirectory} from '../components/SupplierDirectory';
 import {ExpenseExceptionQueue} from '../components/ExpenseExceptionQueue';
 import {ExpenseCorrectionHistory} from '../components/ExpenseCorrectionHistory';
@@ -42,7 +43,7 @@ function Register({hotel,date,expense}:{hotel:string;date?:string;expense?:strin
   {list.data&&!list.data.postingEnabled&&<div className="notice">Expense posting is not enabled for this deployment. Existing vouchers remain available for review.</div>}
   <div className="expense-summary">
    <Stat label="Original expenses this month" value={summary?.monthExpenseMinor==null?'—':money(summary.monthExpenseMinor)} detail={summary?.businessDate?'Business date '+readableDate(summary.businessDate):'Financial business date required'} icon={<Receipt size={20}/>}/>
-   <Stat label="Unpaid bills" value="—" detail="Supplier billing is not available yet" icon={<Wallet size={20}/>}/>
+   <Stat label="Unpaid bills" value="—" detail="See Supplier bills for current payable balances" icon={<Wallet size={20}/>}/>
    <button className="expense-summary-button" type="button" onClick={()=>filter({reviewStatus:'pending'})}>
     <Stat label="Needs review" value={summary?String(summary.pendingReviewCount):'—'} detail={summary?summary.flaggedCount+' flagged for investigation':'Awaiting expense data'} icon={<AlertTriangle size={20}/>}/>
    </button>
@@ -85,13 +86,14 @@ function Register({hotel,date,expense}:{hotel:string;date?:string;expense?:strin
 }
 
 function ExpensesWorkspace({hotel,date,expense}:{hotel:string;date?:string;expense?:string}){
- const [tab,setTab]=useState<'expenses'|'suppliers'>('expenses');
+ const [tab,setTab]=useState<'expenses'|'suppliers'|'bills'>('expenses');
  return <>
   <div className="desk-tools" role="group" aria-label="Expenses workspace">
    <button type="button" className={tab==='expenses'?'btn-primary':'btn-inline'} aria-pressed={tab==='expenses'} onClick={()=>setTab('expenses')}>Expense register</button>
+   <button type="button" className={tab==='bills'?'btn-primary':'btn-inline'} aria-pressed={tab==='bills'} onClick={()=>setTab('bills')}>Supplier bills</button>
    <button type="button" className={tab==='suppliers'?'btn-primary':'btn-inline'} aria-pressed={tab==='suppliers'} onClick={()=>setTab('suppliers')}>Suppliers</button>
   </div>
-  {tab==='expenses'?<Register hotel={hotel} date={date} expense={expense}/>:<><Heading title="Expenses" description="Manage the hotel's supplier directory."/><SupplierDirectory hotel={hotel}/></>}
+  {tab==='expenses'?<Register hotel={hotel} date={date} expense={expense}/>:tab==='bills'?<><Heading title="Supplier bills" description="Track invoices, outstanding balances and supplier payments."/><SupplierBillRegister hotel={hotel}/></>:<><Heading title="Expenses" description="Manage the hotel's supplier directory."/><SupplierDirectory hotel={hotel}/></>}
  </>;
 }
 

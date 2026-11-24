@@ -3422,3 +3422,19 @@
 .staff-manage-section>small{display:block;margin-top:9px;font-size:11px;color:var(--muted);line-height:1.5}
 .staff-access-section .btn-inline{color:var(--text)}
 @media(max-width:680px){.staff-page-heading{align-items:stretch;flex-direction:column}.staff-page-heading>.btn-primary{justify-content:center}.staff-overview{gap:7px}.staff-overview>div,.staff-overview>button{padding:12px}.staff-overview strong{font-size:20px}.staff-overview span{font-size:10px}.staff-page-tabs{gap:14px}.staff-add-dialog{padding:18px}.staff-add-dialog .staff-add-form{grid-template-columns:1fr}.staff-list-scroll{margin:0 -12px}.staff-directory-table td,.staff-directory-table th{padding:12px 9px}.staff-directory-table .staff-person{min-width:140px}}
+
+
+/* Guest checkout: compact next-step strip, not a second action card */
+.stay-next-strip{display:flex;align-items:center;gap:13px;padding:15px 17px;background:var(--surface);border:1px solid var(--border);border-radius:13px;min-width:0}
+.stay-next-strip-icon{width:38px;height:38px;flex:0 0 38px;display:grid;place-items:center;border-radius:11px;color:#166534;background:#eaf7ee}
+.stay-next-strip-icon.attention{color:#975d0e;background:#fff4e4}
+.stay-next-strip-copy{display:grid;gap:4px;flex:1;min-width:0}
+.stay-next-strip-eyebrow{color:var(--muted);font-weight:750;letter-spacing:.09em;font-size:9px}
+.stay-next-strip-copy strong{color:var(--text);font-size:14px;line-height:1.25}
+.stay-next-strip-copy p{margin:0;color:var(--muted);font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.stay-next-strip-action{display:flex;flex-shrink:0;align-items:center}
+.stay-next-strip-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:39px;padding:9px 13px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font-size:12px;font-weight:700;white-space:nowrap}
+.stay-next-strip-button:hover{border-color:var(--accent);color:var(--text)}
+:root[data-theme="dark"] .stay-next-strip-icon{background:#1b3b2c;color:#a5ebbf}
+:root[data-theme="dark"] .stay-next-strip-icon.attention{background:#48351c;color:#ffd499}
+@media(max-width:600px){.stay-next-strip{align-items:flex-start;flex-wrap:wrap;padding:13px;gap:10px}.stay-next-strip-icon{width:34px;height:34px;flex-basis:34px}.stay-next-strip-copy{flex-basis:calc(100% - 46px)}.stay-next-strip-action{width:100%;padding-left:44px}.stay-next-strip-button{width:100%}}

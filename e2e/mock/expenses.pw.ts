@@ -47,7 +47,17 @@ test(`${fromExpenses?'Expenses':'Cashier shifts'} retries the same payout after 
  await page.goto(base+routePath);
  if(fromExpenses){
   await page.getByRole('button',{name:'Record expense',exact:true}).click();
-  await page.getByRole('button',{name:'Front-desk drawer paid'}).click();
+  const chooser=page.getByRole('dialog',{name:'How was this expense paid?'});
+  await expect(chooser).toBeVisible();
+  for(const label of ['Front-desk drawer paid','Hotel bank account or card paid','I paid with my own money','Supplier hasn’t been paid yet']){
+   await expect(chooser.getByRole('button',{name:label,exact:true})).toBeVisible();
+  }
+  await page.keyboard.press('Escape');
+  await expect(chooser).not.toBeVisible();
+  await expect(page.getByRole('button',{name:'Record expense',exact:true})).toBeFocused();
+  await page.getByRole('button',{name:'Record expense',exact:true}).click();
+  await chooser.getByRole('button',{name:'Front-desk drawer paid'}).click();
+  await expect(chooser).not.toBeVisible();
  }else{
   await page.getByRole('button',{name:'Record cash paid out'}).click();
  }

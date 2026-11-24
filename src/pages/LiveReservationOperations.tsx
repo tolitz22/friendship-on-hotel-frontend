@@ -12,7 +12,6 @@ import type {Operation} from '../api/liveReservationOperations';
 import {readSession} from '../api/session';
 import {ApiError} from '../api/http';
 import {financialCheckoutBlock,useSettlementStatement} from '../components/SettlementPanel';
-import {isGuestBillSettled} from '../features/billing/reviewedPaymentSettlement';
 import {StayExtensionModal} from '../components/StayExtensionModal';
 import {useReadinessPolicy} from '../api/readinessEnforcementPolicy';
 import {useLiveReadiness} from '../api/liveRoomReadiness';
@@ -79,7 +78,6 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
   &&readyForEnforcedCheckin&&acknowledged&&!busy;
  const checkoutStatement=useSettlementStatement(hotelId,record.id,canDo('finance.read')&&record.lifecycleState==='checked_in');
  const financialBlock=checkoutStatement.isSuccess?financialCheckoutBlock(checkoutStatement.data):null;
- const guestBillSettled=checkoutStatement.isSuccess&&isGuestBillSettled(checkoutStatement.data);
 
  const canCheckOut=checkoutStatement.isSuccess&&!financialBlock&&canDo('booking.check_out')&&allowedOperation(record,'check-out',hotelDate)&&acknowledged&&!busy;
 

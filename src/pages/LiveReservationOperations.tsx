@@ -83,11 +83,10 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const paymentReady=paymentCovered&&!financialBlock;
 
  // Checkout permission is independent of permission to view the financial statement.
- // The lifecycle endpoint validates billing under lock even if the preflight is unavailable.
+ // Billing preview is advisory for submission; the lifecycle endpoint validates billing under lock.
  const checkoutBlockReason=!canDo('booking.check_out')?'Your role does not have permission to complete checkout.'
   :!allowedOperation(record,'check-out',hotelDate)?'Normal checkout opens '+dateLabel(record.checkOut)+'. Use early checkout if the guest is leaving sooner.'
-  :financialBlock
-  ??(!acknowledged?'Confirm the departure checklist to continue.':busy?'Saving checkout…':null);
+  :!acknowledged?'Confirm the departure checklist to continue.':busy?'Saving checkout…':null;
  const canCheckOut=checkoutBlockReason===null;
  const bill=canDo('finance.read')?checkoutStatement.data:undefined;
  const activePayments=bill?.payments.filter(p=>p.status==='pending_review'||p.status==='staff_confirmed')??[];

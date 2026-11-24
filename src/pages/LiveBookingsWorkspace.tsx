@@ -1,6 +1,6 @@
 import {useMemo,useState} from 'react';
 import {Link} from '@tanstack/react-router';
-import {AlertTriangle,ArrowRight,BedDouble,CalendarDays,ChevronLeft,ChevronRight,ClipboardList,Filter,LogIn,LogOut,Plus,RefreshCw,Search,RotateCcw,X} from 'lucide-react';
+import {AlertTriangle,ArrowRight,BedDouble,CalendarDays,ChevronLeft,ChevronRight,ClipboardList,LogIn,LogOut,Plus,RefreshCw,Search,RotateCcw,X} from 'lucide-react';
 import {useRoomCalendar} from '../api/liveRoomCalendar';
 import type {LiveRecord,ReservationListFilter,BookingDateOptions} from '../api/liveReservations';
 import {addDays,hotelToday} from '../features/reservations/calendarDate';
@@ -39,6 +39,7 @@ export function LiveBookingsWorkspace({
  rows,pagination,isPending,isError,error,isFetching,searching,search,filter,page,canOperate,
  onSearch,onFilter,onPage,onClear,onRefresh,onOpen,onNew,dates,onDates,
 }:Props){
+ const [showDates,setShowDates]=useState(false);
  const [roomDay,setRoomDay]=useState(hotelToday);
  const [floor,setFloor]=useState('all');
  const [roomPage,setRoomPage]=useState(1);
@@ -140,36 +141,55 @@ export function LiveBookingsWorkspace({
      <p>Search guest names, booking references or room numbers. Open a booking to manage its stay.</p></div>
     {canOperate&&<button type="button" className="btn-primary" onClick={onNew}><Plus size={16}/> Add booking</button>}
    </div>
-   <div className="bk-filter-row">
-    <label className="bk-search"><Search size={17}/>
-     <input type="search" value={search} onChange={e=>onSearch(e.target.value)}
-      aria-label="Search bookings" placeholder="Search guest, booking reference, or room…"/>
-     {search&&<button type="button" aria-label="Clear search" onClick={()=>onSearch('')}><X size={15}/></button>}
-    </label>
-    <div className="bk-filter-label"><Filter size={15}/> Status</div>
-    <div className="bk-filter-tabs" role="group" aria-label="Booking lifecycle filters">
+   <div style={{display:'grid',gap:12,marginTop:12}}>
+        <div className="bk-filter-tabs" role="group" aria-label="Booking lifecycle filters">
      {filters.map(([value,label])=><button type="button" key={value}
       aria-pressed={filter===value} className={filter===value?'selected':''}
       onClick={()=>onFilter(value)}>{label}</button>)}
     </div>
-    <button type="button" className="btn-inline" disabled={isFetching} onClick={onRefresh}>
-     <RefreshCw size={15}/> Refresh</button>
-   </div>
-   <div className="bk-filter-row" style={{flexWrap:'wrap',gap:12}}>
-    <label>Filter by date <select className="wizard-input" value={dates.field} onChange={e=>onDates({...dates,field:e.target.value as BookingDateOptions['field']})}>
-     <option value="created_at">Date created</option><option value="check_in">Check-in</option><option value="check_out">Check-out</option><option value="stay">Stay period</option><option value="updated_at">Last updated</option>
-    </select></label>
-    <label>From <input className="wizard-input" type="date" value={dates.from} max={dates.to||undefined} onChange={e=>onDates({...dates,from:e.target.value,to:dates.to&&e.target.value>dates.to?'':dates.to})}/></label>
-    <label>To <input className="wizard-input" type="date" value={dates.to} min={dates.from||undefined} onChange={e=>onDates({...dates,to:e.target.value,from:dates.from&&e.target.value&&e.target.value<dates.from?'':dates.from})}/></label>
-    <label>Sort by <select className="wizard-input" value={dates.sortBy+':'+dates.direction} onChange={e=>{const [sortBy,direction]=e.target.value.split(':');onDates({...dates,sortBy:sortBy as BookingDateOptions['sortBy'],direction:direction as BookingDateOptions['direction']});}}>
+
+    <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:8}}>
+     <div style={{flex:'1 1 280px',minWidth:0}}>    <label className="bk-search"><Search size={17}/>
+     <input type="search" value={search} onChange={e=>onSearch(e.target.value)}
+      aria-label="Search bookings" placeholder="Search guest, booking reference, or room…"/>
+     {search&&<button type="button" aria-label="Clear search" onClick={()=>onSearch('')}><X size={15}/></button>}
+    </label>
+</div>
+     <button type="button" className="btn-inline" aria-expanded={showDates} aria-controls="booking-date-filters" onClick={()=>setShowDates(v=>!v)} style={{whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:6}}>
+      <CalendarDays size={16}/> Dates{dates.from||dates.to?' (active)':''} {showDates?'▴':'▾'}
+     </button>
+     <label style={{display:'flex',alignItems:'center',gap:8,flex:'0 1 auto',minWidth:0,fontSize:12,fontWeight:600}}> Sort by <select className="wizard-input" aria-label="Sort bookings" style={{minWidth:0,maxWidth:"100%"}} value={dates.sortBy+':'+dates.direction} onChange={e=>{const [sortBy,direction]=e.target.value.split(':');onDates({...dates,sortBy:sortBy as BookingDateOptions['sortBy'],direction:direction as BookingDateOptions['direction']});}}>
      <option value="created_at:desc">Created · newest first</option><option value="created_at:asc">Created · oldest first</option>
      <option value="check_in:asc">Check-in · earliest first</option><option value="check_in:desc">Check-in · latest first</option>
      <option value="check_out:asc">Check-out · earliest first</option><option value="check_out:desc">Check-out · latest first</option>
      <option value="updated_at:desc">Updated · newest first</option><option value="updated_at:asc">Updated · oldest first</option>
     </select></label>
-    <div role="group" aria-label="Quick booking date ranges" className="bk-filter-tabs">
-     {['Today','Yesterday','Last 7 days','This month'].map(preset=><button type="button" key={preset} onClick={()=>{const today=hotelToday();const from=preset==='Yesterday'?addDays(today,-1):preset==='Last 7 days'?addDays(today,-6):preset==='This month'?today.slice(0,7)+'-01':today;const nextMonth=new Date(today.slice(0,7)+'-01T00:00:00Z');nextMonth.setUTCMonth(nextMonth.getUTCMonth()+1);const to=preset==='Yesterday'?from:preset==='This month'?addDays(nextMonth.toISOString().slice(0,10),-1):today;onDates({...dates,from,to});}}>{preset}</button>)}
+     <button type="button" className="btn-inline" aria-label="Refresh bookings" title="Refresh bookings" disabled={isFetching} onClick={onRefresh}><RefreshCw size={16}/></button>
     </div>
+    {showDates&&<div id="booking-date-filters" style={{display:'grid',gap:12,padding:12,border:'1px solid var(--border, #e2e8f0)',borderRadius:10}}>
+     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}>
+      <strong style={{fontSize:13}}>Date range</strong>
+      {(dates.from||dates.to)&&<button type="button" className="btn-inline" onClick={()=>onDates({...dates,from:'',to:''})}><X size={14}/> Clear dates</button>}
+     </div>
+     <div className="bk-filter-tabs" role="group" aria-label="Quick booking date ranges">
+      {['All dates','Today','Yesterday','Last 7 days','This month'].map(preset=>{
+       const today=hotelToday();
+       const from=preset==='All dates'?'':preset==='Yesterday'?addDays(today,-1):preset==='Last 7 days'?addDays(today,-6):preset==='This month'?today.slice(0,7)+'-01':today;
+       const nextMonth=new Date(today.slice(0,7)+'-01T00:00:00Z');nextMonth.setUTCMonth(nextMonth.getUTCMonth()+1);
+       const to=preset==='All dates'?'':preset==='Yesterday'?from:preset==='This month'?addDays(nextMonth.toISOString().slice(0,10),-1):today;
+       const active=dates.from===from&&dates.to===to;
+       return <button type="button" key={preset} aria-pressed={active} className={active?'selected':''} onClick={()=>onDates({...dates,from,to})}>{preset}</button>;
+      })}
+     </div>
+     <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%, 180px),1fr))',gap:10}}>
+          <label style={{display:"grid",gap:4,fontSize:12,fontWeight:600,minWidth:0}}>Filter by date <select className="wizard-input" value={dates.field} onChange={e=>onDates({...dates,field:e.target.value as BookingDateOptions['field']})}>
+     <option value="created_at">Date created</option><option value="check_in">Check-in</option><option value="check_out">Check-out</option><option value="stay">Stay period</option><option value="updated_at">Last updated</option>
+    </select></label>
+    <label style={{display:"grid",gap:4,fontSize:12,fontWeight:600,minWidth:0}}>From <input className="wizard-input" type="date" value={dates.from} max={dates.to||undefined} onChange={e=>onDates({...dates,from:e.target.value,to:dates.to&&e.target.value>dates.to?'':dates.to})}/></label>
+    <label style={{display:"grid",gap:4,fontSize:12,fontWeight:600,minWidth:0}}>To <input className="wizard-input" type="date" value={dates.to} min={dates.from||undefined} onChange={e=>onDates({...dates,to:e.target.value,from:dates.from&&e.target.value&&e.target.value<dates.from?'':dates.from})}/></label>
+
+     </div>
+    </div>}
    </div>
    <div className="bk-results-bar" role="status">
     <span>{searching?'Searching…':isPending?'Loading bookings…':

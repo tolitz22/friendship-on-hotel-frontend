@@ -26,3 +26,13 @@ export async function recordSupplierBill(hotel:string,input:BillInput){
 export async function recordSupplierPayment(hotel:string,billId:string,input:BillPaymentInput){
  check(hotel);const result=z.object({data:z.object({billId:id,paymentId:id,journalId:id,paidMinor:amount,outstandingMinor:amount,paymentStatus:z.enum(['paid','partially_paid']),replayed:z.boolean()})}).parse(await requestJson<unknown>(hotelPath('/supplier-bills/'+encodeURIComponent(billId)+'/payments'),{method:'POST',body:input})).data;check(hotel);if(result.billId!==billId)throw new Error('Unexpected payment returned.');return result;
 }
+
+const agingBuckets=z.object({current:amount,days1To30:amount,days31To60:amount,days61To90:amount,over90:amount});
+const aging=z.object({asOf:z.iso.date(),buckets:agingBuckets,outstandingMinor:amount,outstandingCount:amount,overdueMinor:amount,inconsistentCount:amount,signedSubledgerMinor:signed,ledgerBalanceMinor:signed,differenceMinor:signed,reconciled:z.boolean(),suppliers:z.array(z.object({supplierId:id,supplierName:z.string(),outstandingMinor:amount,invoiceCount:amount,buckets:agingBuckets}))});
+export type SupplierAging=z.infer<typeof aging>;
+export function useSupplierAging(hotel:string,date:string,enabled:boolean){
+ return useQuery({queryKey:['live','supplier-aging',hotel,date],enabled:enabled&&!!hotel&&!!date,retry:false,queryFn:async()=>{
+  check(hotel);const report=z.object({data:aging}).parse(await getJson<unknown>(hotelPath('/supplier-bills/aging'),{date})).data;
+  check(hotel);if(report.asOf!==date)throw new Error('Unexpected report date returned.');return report;
+ }});
+}

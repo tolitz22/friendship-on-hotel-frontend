@@ -10,6 +10,7 @@ function money(amount:number|null,currency:string){
  if(amount===null)return 'Not verified';
  return new Intl.NumberFormat('en-PH',{style:'currency',currency}).format(amount/100);
 }
+const departments:Record<string,string>={rooms:'Rooms',maintenance:'Property operations & maintenance',administration:'Administration',utilities:'Energy, water & waste',food_beverage:'Food & beverage'};
 function csv(value:string|number|null){
  const text=value===null?'UNVERIFIED':String(value);
  return '"'+text.replaceAll('"','""')+'"';
@@ -50,6 +51,7 @@ export function NightAuditReconciliationPanel({selectedDate}:{selectedDate?:stri
     ['Net clearing balance through date (minor units)',data.expenses.clearingBalanceMinor??null],
     ['Expense closed ledger verified',data.expenses.closedLedgerVerified?'YES':'NO'],
    ]:[]),
+   ...(data.expenses?.breakdown?.available?data.expenses.breakdown.departments.map(d=>['Department: '+(departments[d.department]??d.department),d.grossMinor,d.adjustmentMinor,d.refundMinor,d.netMinor]):[]),
    ...data.blockers.map(b=>['BLOCKER',b]),
    ...data.limitations.map(l=>['LIMITATION',l]),
   ];
@@ -92,7 +94,7 @@ export function NightAuditReconciliationPanel({selectedDate}:{selectedDate?:stri
       data.kpis.inspectionOccupancyPercent.toFixed(2)+'%'}</strong></div>
    </div>
    {data.expenses?<section className="expense-correction-history" aria-label="Daily operating expenses">
-    <div className="desk-tools"><h4>Operating expenses</h4><Link to="/expenses">Open expense register</Link></div>
+    <div className="desk-tools"><h4>Operating expenses</h4><Link to="/expenses" search={{date:data.businessDate,hotel:data.hotelId}}>Open dated expense register</Link></div>
     <p className="desk-muted">{data.expenses.closedLedgerVerified?'Closed ledger totals verified.':'Recorded journal movements — not yet verified against a closed ledger.'}</p>
     <div className="night-audit-metrics">
      <div className="night-audit-metric"><small>Gross expenses</small><strong>{money(data.expenses.grossExpenseMinor??null,data.currency)}</strong></div>
@@ -103,6 +105,20 @@ export function NightAuditReconciliationPanel({selectedDate}:{selectedDate?:stri
      <div className="night-audit-metric"><small>Net clearing balance through date</small><strong>{money(data.expenses.clearingBalanceMinor??null,data.currency)}</strong></div>
     </div>
     {!!data.expenses.clearingBalanceMinor&&<p className="notice">Net clearing balance requires investigation. A zero net balance alone does not establish that every voucher has been resolved.</p>}
+    {data.expenses.breakdown?.available&&<>
+     <h4>Expenses by original department</h4>
+     <p className="desk-muted">Movements posted on this date, attributed to the original voucher classification. Later reclassifications do not rewrite historical reports.</p>
+     {data.expenses.breakdown.departments.length===0?<p>No attributed expense movements on this date.</p>:<div className="table-scroll"><table><thead><tr><th>Department</th><th>Gross</th><th>Adjustments</th><th>Refunds</th><th>Net expense</th></tr></thead><tbody>
+      {data.expenses.breakdown.departments.map(d=><tr key={d.department}><td>{departments[d.department]??d.department}</td><td>{money(d.grossMinor,data.currency)}</td><td>{money(d.adjustmentMinor,data.currency)}</td><td>{money(d.refundMinor,data.currency)}</td><td><strong>{money(d.netMinor,data.currency)}</strong></td></tr>)}
+     </tbody></table></div>}
+     {data.expenses.breakdown.unattributedNetMinor!==0&&<p role="alert" className="notice">Unattributed net journal movement: {money(data.expenses.breakdown.unattributedNetMinor,data.currency)}. Investigate before relying on department totals.</p>}
+     <details><summary>Inspect voucher movements ({data.expenses.breakdown.movementCount})</summary>
+      {data.expenses.breakdown.movementCount>data.expenses.breakdown.voucherMovements.length&&<p className="desk-muted">Showing the first {data.expenses.breakdown.voucherMovements.length} movements. Department totals include all attributed movements.</p>}
+      <div className="table-scroll"><table><thead><tr><th>Voucher</th><th>Movement</th><th>Original date</th><th>Net amount</th></tr></thead><tbody>
+       {data.expenses.breakdown.voucherMovements.map(v=><tr key={v.kind+':'+v.journalId}><td><Link to="/expenses" search={{expense:v.expenseId,date:v.originalBusinessDate,hotel:data.hotelId}}>#{v.expenseId} · {v.description}</Link></td><td>{v.kind==='expense'?'Original expense':v.kind==='adjustment'?'Accounting adjustment':'Supplier refund'}</td><td>{v.originalBusinessDate}</td><td>{money(v.netMinor,data.currency)}</td></tr>)}
+      </tbody></table></div>
+     </details>
+    </>}
     <p className="desk-muted">Clearing cash returns settle previous adjustments; they do not reduce expenses again. This is not a complete profit and loss statement.</p>
    </section>:<p className="desk-muted">Expense accounting totals are unavailable from this API version.</p>}
    <div className="night-audit-metrics">

@@ -38,7 +38,10 @@ function TaskLink({item,hotelId}:{item:OperationalException;hotelId:string}){
  if(item.type==='room_inspection_review')return <Link to="/rooms" search={{room:item.roomNumber||undefined}}>Review room readiness <ArrowRight size={15}/></Link>;
  if(item.type==='occupancy_review'||item.type==='occupancy_investigation')
   return <Link to="/occupancy-verification" search={{room:item.roomId||undefined,date:item.checkDate||undefined}}>Open room check <ArrowRight size={15}/></Link>;
- if(item.type==='maintenance_blocker')return <Link to="/maintenance">Open maintenance <ArrowRight size={15}/></Link>;
+ if(item.type==='maintenance_blocker'){
+  const order=/^maintenance:([1-9]\d*)$/.exec(item.id)?.[1];
+  return order?<Link to="/maintenance" search={{order}}>Open work order WO-{order} <ArrowRight size={15}/></Link>:null;
+ }
  if(item.type==='cashier_shift_review'||item.type==='cashier_shift_discrepancy')return <Link to="/cashier-shifts">Review cashier shifts <ArrowRight size={15}/></Link>;
  if(item.type==='payment_pending_review'&&item.bookingId)return <Link to="/billing" search={{hotel:hotelId,booking:item.bookingId,payment:item.paymentId}}>{item.paymentId?'Review payment #'+item.paymentId:'Open guest bill'} <ArrowRight size={15}/></Link>;
  if(item.type==='assigned_room_overlap')return <Link to="/room-calendar">Inspect room calendar <ArrowRight size={15}/></Link>;

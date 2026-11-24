@@ -1,8 +1,8 @@
 import {RoomOutOfOrderForm} from '../components/RoomOutOfOrderForm';
 import {hotelToday} from '../features/reservations/calendarDate';
-import {useEffect,useState,type FormEvent} from 'react';
+import {useEffect,useRef,useState,type FormEvent} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
-import {Link,useSearch} from '@tanstack/react-router';
+import {Link,useNavigate,useSearch} from '@tanstack/react-router';
 import {ArrowRight,CheckCircle2,ClipboardList,Clock3,History,Info,Plus,RefreshCcw,Search,ShieldAlert,UserRound,Wrench,X} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {useLiveProperty,useLiveRooms} from '../api/liveCatalogQueries';
@@ -35,6 +35,8 @@ const fromOrder=(order:LiveWorkOrder):Draft=>({
 });
 
 export function LiveMaintenance(){
+ const navigate=useNavigate();
+ const openedLink=useRef<string|null>(null);
  const {order:linkedOrder}=useSearch({from:'/maintenance'});
  const {hotelId,user}=useHotelAuth();
  const role=user?.hotels.find(h=>h.id===hotelId)?.role;
@@ -93,17 +95,23 @@ export function LiveMaintenance(){
   setStatusFilter('');setPriorityFilter('');setSearch('');setMineOnly(false);setHistoryPage(1);
  },[hotelId]);
  useEffect(()=>{
-  if(!linked.data||linked.data.hotelId!==hotelId)return;
+  if(!linkedOrder){openedLink.current=null;return;}
+  const key=hotelId+'-'+linkedOrder;
+  if(openedLink.current===key||linked.data?.id!==linkedOrder||linked.data.hotelId!==hotelId)return;
+  openedLink.current=key;
   setSelected(linked.data);setDraft(fromOrder(linked.data));
   setHistoryVisible(false);setError('');setFieldErrors({});setHistoryPage(1);
- },[hotelId,linked.data]);
+ },[hotelId,linkedOrder,linked.data]);
  const openCreate=()=>{
   setSelected(null);setDraft(newDraft());setHistoryVisible(false);setError('');setFieldErrors({});setHistoryPage(1);
  };
  const openEdit=(order:LiveWorkOrder)=>{
   setSelected(order);setDraft(fromOrder(order));setHistoryVisible(false);setError('');setFieldErrors({});setHistoryPage(1);
  };
- const close=()=>{setDraft(null);setSelected(null);setError('');setHistoryVisible(false);};
+ const close=()=>{
+  setDraft(null);setSelected(null);setError('');setHistoryVisible(false);
+  if(linkedOrder)void navigate({to:'/maintenance',search:{},replace:true});
+ };
  const change=<K extends keyof Draft>(field:K,value:Draft[K])=>
   setDraft(current=>current?{...current,[field]:value}:current);
  async function submit(e:FormEvent<HTMLFormElement>){
@@ -204,6 +212,7 @@ export function LiveMaintenance(){
      {hasFilters&&<button type="button" className="mnt-clear-filters" onClick={clearFilters}><X size={15}/> Clear filters</button>}
     </div>
    </div>
+   {linkedOrder&&<QueryFeedback loading={linked.isPending} error={linked.error} onRetry={()=>void linked.refetch()}/>}
    <QueryFeedback loading={orders.isPending} error={orders.error} onRetry={()=>void orders.refetch()}
     empty={orders.isSuccess&&visible.length===0}
     emptyMessage={hasFilters?'No work orders match these filters.':'No work orders have been recorded. An administrator can create the first one.'}/>
@@ -240,7 +249,7 @@ export function LiveMaintenance(){
   </section>
   {draft&&<div className="guest-modal-backdrop" role="presentation">
    <section className="guest-modal" role="dialog" aria-modal="true" aria-labelledby="maintenance-title">
-    <div className="catalog-modal-heading"><h3 id="maintenance-title">{selected?'Work order WO-'+selected.id:'Create work order'}</h3>
+    <div className="catalog-modal-heading"><h3 id="maintenance-title">{selected?'Work order WO-'+selected.id+' · Room '+selected.roomNumber:'Create work order'}</h3>
      <button className="icon-btn" type="button" disabled={saving} onClick={close} aria-label="Close"><X size={19}/></button></div>
     <div className="mnt-editor-guide"><Info size={17}/><p><strong>Repair record only.</strong>
      {selected?' Update progress and handover notes here. Changes are recorded in work history.':' Describe the issue, priority and responsible staff.'}
@@ -271,6 +280,8 @@ export function LiveMaintenance(){
      <div className="guest-modal-actions"><button type="button" className="btn-inline" disabled={saving} onClick={close}>Close</button>
       {maySave&&<button type="submit" className="btn-primary" disabled={saving}>{saving?'Saving…':selected?'Save work order':'Create work order'}</button>}</div>
     </form>
+    {admin&&hotelId&&selected&&(selected.status==='open'||selected.status==='in_progress')&&
+     <RoomOutOfOrderForm key={hotelId+'-'+selected.id} order={selected} hotelId={hotelId} today={today}/>}
     {selected&&<div className="catalog-audit-section">
      <button className="btn-inline" type="button" onClick={()=>setHistoryVisible(value=>!value)}><History size={15}/>{historyVisible?'Hide':'View'} recorded history</button>
      {historyVisible&&<><QueryFeedback loading={history.isPending} error={history.error}/>

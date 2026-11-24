@@ -131,7 +131,7 @@ const functionalRoutes=[
   }),component:dataMode==='api'?LiveHousekeeping:Housekeeping}),
  createRoute({getParentRoute:()=>root,path:'/maintenance',
   validateSearch:(value:Record<string,unknown>):{order?:string}=>({
-   order:typeof value.order==='string'&&/^[1-9][0-9]*$/.test(value.order)?value.order:undefined,
+   order:normalizeBillingBookingId(value.order),
   }),component:dataMode==='api'?LiveMaintenance:Maintenance}),
  createRoute({getParentRoute:()=>root,path:'/reports',component:Reports}),
  createRoute({getParentRoute:()=>root,path:'/settings',component:dataMode==='api'?LiveSettings:Settings}),

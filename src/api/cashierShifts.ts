@@ -18,7 +18,11 @@ const payout=z.object({
 const cashReturn=z.object({
  id,expenseId:id,amountMinor:z.number().int().positive(),payee:z.string(),evidenceReference:z.string(),reviewStatus:z.enum(['approved','pending','flagged']),createdAt:z.string(),
 });
+const supplierPayment=z.object({id,billId:id,amountMinor:z.number().int().positive(),supplierName:z.string(),invoiceReference:z.string(),evidenceReference:z.string(),createdAt:z.string()});
 const shift=z.object({
+ supplierPaymentTotalMinor:z.number().int().nonnegative().optional(),
+ supplierPaymentCount:z.number().int().nonnegative().optional(),
+ supplierPayments:z.array(supplierPayment).optional(),
  id,hotelId:id,cashierId:id,currency:z.string(),status:z.enum(['open','submitted','reconciled','flagged']),
  cashTenderTrackingSupported:z.boolean().optional().default(false),
  expensePostingEnabled:z.boolean().optional(),

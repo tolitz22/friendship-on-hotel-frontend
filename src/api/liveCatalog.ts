@@ -17,6 +17,12 @@ export type LiveCatalogSummaryResponse={data:LiveCatalogSummary;meta:{isAvailabi
 export type LiveRoomFilters={page?:number;perPage?:number;floor?:number;search?:string};
 
 export const getLiveProperty=()=>getJson<ItemResponse<LiveProperty>>(hotelPath(''));
+export interface UpdateHotelProfileInput{
+ name:string;address:string|null;contactEmail:string|null;contactPhone:string|null;
+}
+export const updateLiveProperty=(body:UpdateHotelProfileInput)=>
+ requestJson<ItemResponse<LiveProperty>>(hotelPath(''),{method:'PATCH',body});
+
 export const getLiveRoomTypes=()=>getJson<{data:LiveRoomType[]}>(hotelPath('/room-types'));
 export const getLiveRooms=(filters:LiveRoomFilters={})=>getJson<CollectionResponse<LiveRoom>>(
  hotelPath('/rooms'),{page:filters.page,per_page:filters.perPage,floor:filters.floor,search:filters.search});

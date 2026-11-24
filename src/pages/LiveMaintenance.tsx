@@ -97,7 +97,7 @@ export function LiveMaintenance(){
  useEffect(()=>{
   if(!linkedOrder){openedLink.current=null;return;}
   const key=hotelId+'-'+linkedOrder;
-  if(openedLink.current===key||linked.data?.id!==linkedOrder||linked.data.hotelId!==hotelId)return;
+  if(!linked.data||openedLink.current===key||linked.data.id!==linkedOrder||linked.data.hotelId!==hotelId)return;
   openedLink.current=key;
   setSelected(linked.data);setDraft(fromOrder(linked.data));
   setHistoryVisible(false);setError('');setFieldErrors({});setHistoryPage(1);

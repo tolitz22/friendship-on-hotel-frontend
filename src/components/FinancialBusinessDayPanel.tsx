@@ -112,7 +112,7 @@ export function FinancialBusinessDayPanel({selectedDate}:{selectedDate:string}){
  return <section className="night-review-panel" aria-label="Financial business-date close">
   <div className="night-review-header"><LockKeyhole size={18}/>
    <div><h3>Financial business-date close</h3>
-    <p>Separate from the manager's operational night-audit review. Closing advances the accounting business date and locks past journal posting dates.</p>
+    <p>Separate from the manager's daily operational review. Closing advances the accounting business date and locks past journal posting dates.</p>
    </div>
   </div>
   <div className="desk-tools">
@@ -128,7 +128,7 @@ export function FinancialBusinessDayPanel({selectedDate}:{selectedDate:string}){
     <button type="button" className="btn-inline" disabled={busy} onClick={()=>setSetupDate('')}>Cancel</button></>
     :<button type="button" className="btn-primary" disabled={busy} onClick={()=>setSetupDate(selectedDate)}>Set up business date</button>}
   </div>}
-  {query.error instanceof ApiError&&query.error.status===403&&<p>Ask an active administrator for this hotel to set up the business date in Night Audit.</p>}
+  {query.error instanceof ApiError&&query.error.status===403&&<p>Ask an active administrator for this hotel to set up the business date in Daily Closing.</p>}
   <QueryFeedback loading={query.isPending} error={configurationError?null:query.error} onRetry={()=>void query.refetch()}/>
   {data&&<>
    <div className="night-audit-metrics">
@@ -141,7 +141,7 @@ export function FinancialBusinessDayPanel({selectedDate}:{selectedDate:string}){
    {ready?<p className="night-audit-clean"><CheckCircle2 size={17}/> Listed readiness checks passed. Final validation is repeated during the database transaction.</p>
     :<div className="night-audit-issues" role="status"><h4><AlertTriangle size={17}/> Closing blocked</h4>
      <ul>
-      {!dateMatches&&<li>Select {data.businessDate} in preflight to close the current financial business date.</li>}
+      {!dateMatches&&<li>Select {data.businessDate} in the daily checks to close the current financial business date.</li>}
       {data.blockers.map(item=><li key={item}>{item}</li>)}
       {data.openShiftIds?.map(shift=><li key={shift}><Link to="/cashier-shifts" search={{hotel:hotelId??undefined,shift}}>Open cashier shift #{shift}</Link></li>)}
      </ul></div>}

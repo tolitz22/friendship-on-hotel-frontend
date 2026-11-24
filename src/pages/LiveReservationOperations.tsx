@@ -81,7 +81,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const financialBlock=checkoutStatement.isSuccess?financialCheckoutBlock(checkoutStatement.data):null;
  const guestBillSettled=checkoutStatement.isSuccess&&isGuestBillSettled(checkoutStatement.data);
 
- const canCheckOut=!financialBlock&&canDo('booking.check_out')&&allowedOperation(record,'check-out',hotelDate)&&acknowledged&&!busy;
+ const canCheckOut=checkoutStatement.isSuccess&&!financialBlock&&canDo('booking.check_out')&&allowedOperation(record,'check-out',hotelDate)&&acknowledged&&!busy;
 
  useEffect(()=>{
   setRoomPage(1);setHistoryPage(1);setRoomId('');setAcknowledged(false);
@@ -190,6 +190,8 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
    ?'Check-in is not available for this stay date.'
   :isInHouse&&!allowedOperation(record,'check-out',hotelDate)
    ?'Scheduled checkout has not arrived. Use Request early checkout below for an authorized exception.'
+  :isInHouse&&checkoutStatement.isPending?'Checking the guest bill before checkout…'
+  :isInHouse&&checkoutStatement.isError?'Could not load guest billing. Retry before checking out.'
   :isInHouse&&financialBlock?financialBlock
   :!acknowledged?'Confirm the guest’s identity to continue.'
   :null;

@@ -10,6 +10,7 @@ import {getCashShiftHistory,openCashierShift,reconcileCashShift,submitCashCount,
 import type {CashierShift} from '../api/cashierShifts';
 import {readableDateTime} from '../lib/format';
 import {listHotelStaff} from '../api/liveStaff';
+import {ExpenseCashReturnModal} from '../components/ExpenseCashReturnModal';
 import {ExpensePayoutModal} from '../components/ExpensePayoutModal';
 import {ReadableCashAuditEvent,auditActorName} from '../components/ReadableAuditEvent';
 
@@ -24,6 +25,8 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:manager&&!!hotelId});
  const cashierName=auditActorName(shift.cashierId,staff.data?.data.find(member=>member.userId===shift.cashierId)?.name,user?.id,user?.name);
  const [payoutOpen,setPayoutOpen]=useState(false);
+ const [returnOpen,setReturnOpen]=useState(false);
+ const [returnDetailsOpen,setReturnDetailsOpen]=useState(false);
  const [payoutDetailsOpen,setPayoutDetailsOpen]=useState(false);
  const permissions=user?.hotels.find(h=>h.id===hotelId)?.permissions;
  const canRecord=manager||!!permissions?.includes('expense.record')&&permissions.includes('cashier.write');
@@ -35,7 +38,7 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
  const [historyOpen,setHistoryOpen]=useState(false);
  const [closingOpen,setClosingOpen]=useState(false);
  const [countConfirmed,setCountConfirmed]=useState(false);
- const detail=useCashierShiftDetails((manager&&shift.status==='submitted')||payoutDetailsOpen,shift.id);
+ const detail=useCashierShiftDetails((manager&&shift.status==='submitted')||payoutDetailsOpen||returnDetailsOpen,shift.id);
  const log=useQuery({
   queryKey:['live','cashier-shift-history',hotelId,shift.id],
   enabled:historyOpen&&!!hotelId,
@@ -68,6 +71,7 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
    <div><small>Opening cash</small><strong>{money(shift.openingFloatMinor,shift.currency)}</strong></div>
    <div><small>Cash receipts recorded</small><strong>{shift.receiptCount}</strong></div>
    {shift.expensePayoutTotalMinor!==undefined&&<div><small>Expense payouts</small><strong>{money(shift.expensePayoutTotalMinor,shift.currency)}</strong></div>}
+   {shift.expenseCashReturnTotalMinor!==undefined&&<div><small>Supplier cash returns</small><strong>{money(shift.expenseCashReturnTotalMinor,shift.currency)}</strong></div>}
    <div><small>Needs payment review</small><strong>{shift.unconfirmedReceiptCount}</strong></div>
   </div>
   {shift.status==='open'&&<p className="cash-shift-explainer"><Info size={15}/>
@@ -84,7 +88,16 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
    {payoutDetailsOpen&&<><QueryFeedback loading={detail.isPending} error={detail.error} onRetry={()=>void detail.refetch()}/>
    {detail.data&&<div className="table-scroll"><table><thead><tr><th>Purpose / payee</th><th>Amount</th><th>Review</th><th>Date</th></tr></thead><tbody>{detail.data.expensePayouts?.map(p=><tr key={p.id}><td><strong>{p.description}</strong><small className="expense-payee">{p.payee}</small></td><td>{money(p.amountMinor,shift.currency)}</td><td>{p.reviewStatus==='not_required'?'No review required':p.reviewStatus==='pending'?'Needs review':p.reviewStatus}</td><td>{readableDateTime(p.createdAt)}</td></tr>)}</tbody></table></div>}</>}
   </div>}
+  {shift.expectedCashMinor!==null&&shift.expectedCashMinor<0&&<p role="alert" className="cash-shift-alert"><AlertTriangle size={16}/> Recorded payouts exceed available recorded cash. Investigate missing cash movements or incorrect entries.</p>}
+  {!!shift.unreviewedExpenseCashReturnCount&&<p className="cash-shift-alert"><AlertTriangle size={16}/> {shift.unreviewedExpenseCashReturnCount} supplier cash return(s) require independent review or investigation before reconciliation.</p>}
+  {!!shift.expenseCashReturnCount&&<div>
+   <button type="button" className="btn-inline" aria-expanded={returnDetailsOpen} onClick={()=>setReturnDetailsOpen(v=>!v)}>{returnDetailsOpen?'Hide':'View'} supplier cash returns ({shift.expenseCashReturnCount})</button>
+   {returnDetailsOpen&&<><QueryFeedback loading={detail.isPending} error={detail.error} onRetry={()=>void detail.refetch()}/>
+   {detail.data&&<div className="table-scroll"><table><thead><tr><th>Voucher / payee</th><th>Amount received</th><th>Evidence</th><th>Review</th><th>Date</th></tr></thead><tbody>{detail.data.expenseCashReturns?.map(r=><tr key={r.id}><td>#{r.expenseId} · {r.payee}</td><td>{money(r.amountMinor,shift.currency)}</td><td>{r.evidenceReference}</td><td>{r.reviewStatus==='pending'?'Needs review':r.reviewStatus==='approved'?'Approved':'Flagged'}</td><td>{readableDateTime(r.createdAt)}</td></tr>)}</tbody></table></div>}</>}
+  </div>}
   {ownShift&&shift.status==='open'&&<>
+   {shift.expenseCorrectionsEnabled&&canRecord&&hotelId&&user?.id&&<button type="button" className="cash-shift-close-toggle" onClick={()=>setReturnOpen(true)}><span><strong>Record supplier cash return</strong><small>Record money physically received from a supplier</small></span><ArrowRight size={17}/></button>}
+   {returnOpen&&shift.expenseCorrectionsEnabled&&hotelId===shift.hotelId&&user?.id&&<ExpenseCashReturnModal key={hotelId+':'+shift.id+':'+user.id} hotel={shift.hotelId} shift={shift.id} userId={user.id} onClose={()=>setReturnOpen(false)} onSaved={id=>{setReturnOpen(false);setResult('Supplier cash return #'+id+' recorded.');onChange();}}/>}
    {shift.expensePostingEnabled&&canRecord&&hotelId&&user?.id&&<button type="button" className="cash-shift-close-toggle" onClick={()=>setPayoutOpen(true)}><span><strong>Record cash paid out</strong><small>Record a hotel purchase from your drawer</small></span><ArrowRight size={17}/></button>}
    {payoutOpen&&hotelId===shift.hotelId&&user?.id&&<ExpensePayoutModal key={hotelId+':'+shift.id+':'+user.id} hotel={shift.hotelId} shift={shift.id} userId={user.id} onClose={()=>setPayoutOpen(false)} onSuccess={id=>{setPayoutOpen(false);setResult('Expense voucher #'+id+' recorded.');onChange();}}/>}
    <button type="button" className="cash-shift-close-toggle cash-shift-end-action"
@@ -144,7 +157,7 @@ function ShiftRow({shift,manager,ownShift,onChange}:{shift:CashierShift;manager:
     <textarea className="wizard-input" rows={2} value={note} maxLength={1000}
      onChange={e=>setNote(e.target.value)} placeholder="Explain physical count and evidence checked"/></label>
    <div className="desk-tools">
-    <button type="button" className="btn-primary" disabled={busy||!detail.isSuccess||note.trim().length<5||shift.varianceMinor!==0||shift.unconfirmedReceiptCount>0}
+    <button type="button" className="btn-primary" disabled={busy||!detail.isSuccess||note.trim().length<5||shift.varianceMinor!==0||shift.unconfirmedReceiptCount>0||(shift.expectedCashMinor??0)<0||(detail.data?.unreviewedExpenseCashReturnCount??shift.unreviewedExpenseCashReturnCount??0)>0}
      onClick={()=>void run('reconcile')}><CheckCircle2 size={16}/> Reconcile balanced shift</button>
     <button type="button" className="btn-inline" disabled={busy||!detail.isSuccess||note.trim().length<5}
      onClick={()=>void run('flag')}><AlertTriangle size={16}/> Flag discrepancy</button>
@@ -195,6 +208,8 @@ export function CashierShifts(){
   client.invalidateQueries({queryKey:['live','cashier-shift-detail',hotelId]}),
   client.invalidateQueries({queryKey:['live','cashier-shift-history',hotelId]}),
   client.invalidateQueries({queryKey:['live','expenses',hotelId]}),
+  client.invalidateQueries({queryKey:['live','expense-history',hotelId]}),
+  client.invalidateQueries({queryKey:['live','expense-detail',hotelId]}),
  ]);
  async function start(){
   if(!hotelId||openBusy||ownOpenShift.isFetching||!ownOpenShift.isSuccess||active||!validMoney(float))return;
@@ -342,6 +357,6 @@ export function CashierShifts(){
     </div></div>}
    </Panel>
   </details>
-  <p className="desk-preview-note"><AlertTriangle size={17}/> Only registered cash payments are included in reconciliation. Always record every stay and guest payment in the hotel system.</p>
+  <p className="desk-preview-note"><AlertTriangle size={17}/> Reconciliation includes recorded guest cash payments, expense payouts and supplier cash returns. Record all physical cash movements.</p>
  </>;
 }

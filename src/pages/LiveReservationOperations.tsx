@@ -368,7 +368,6 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
        <div className="stay-facts-item"><small>Recorded payments</small><strong>{billMoney(recordedPayments)}</strong></div>
        {bill.verifiedRefundsMinor>0&&<div className="stay-facts-item"><small>Verified refunds</small><strong>{billMoney(bill.verifiedRefundsMinor)}</strong></div>}
        <div className="stay-facts-item"><small>{recordedBalance<0?'Recorded credit':'Recorded balance'}</small><strong>{billMoney(Math.abs(recordedBalance))}</strong></div>
-       <div className="stay-facts-item"><small>Verified payments applied</small><strong>{billMoney(bill.verifiedAllocatedMinor)}</strong></div>
        {activePayments.length>0&&<ul>{activePayments.map(p=><li key={p.id}>{statusLabel(p.method)} · {billMoney(p.amountMinor)} · {p.status==='pending_review'?'Review pending':p.verificationStatus==='verified'?'Verified':'Recorded / staff confirmed'}</li>)}</ul>}
        {financialBlock&&<p className="stay-blocked-hint" role="status">{financialBlock}{recordedBalance<=0?' Do not collect the recorded payment again.':''}</p>}
        {checkoutStatement.isFetching&&<small role="status">Refreshing bill…</small>}

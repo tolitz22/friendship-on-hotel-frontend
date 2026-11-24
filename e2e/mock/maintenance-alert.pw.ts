@@ -45,6 +45,6 @@ test('a Room 303 maintenance alert opens WO-1 ahead of the Room 201 queue entry'
  const block=dialog.getByRole('link',{name:'View room block'});
  await expect(block).toBeVisible();
  await block.click();
- await expect.poll(()=>new URL(page.url()).searchParams.get('room')).toBe('303');
+ await expect(page.getByRole('textbox',{name:'Search room number'})).toHaveValue('303');
  await expect(page).toHaveURL(/\/room-calendar\?/);
 });

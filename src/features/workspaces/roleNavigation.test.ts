@@ -77,3 +77,12 @@ describe('Phase 49 hotel role workspaces',()=>{
   expect(navigationForRole(null).daily).toEqual(['/']);
  });
 });
+
+it('restricts the management expense register to administrators',()=>{
+ expect(navigationForRole('admin').management).toContain('/expenses');
+ expect(canViewWorkspacePath('admin','/expenses')).toBe(true);
+ for(const role of ['front_desk','housekeeping','maintenance'] as const){
+  expect(navigationForRole(role).management).not.toContain('/expenses');
+  expect(canViewWorkspacePath(role,'/expenses',['expense.record'])).toBe(false);
+ }
+});

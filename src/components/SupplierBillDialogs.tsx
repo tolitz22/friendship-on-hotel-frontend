@@ -1,4 +1,4 @@
-import {useRef,useState} from 'react';
+import {useId,useRef,useState} from 'react';
 import {useSuppliers} from '../api/suppliers';
 import {useCurrentCashierShift} from '../api/cashierShifts';
 import {recordSupplierBill,recordSupplierPayment} from '../api/supplierBills';
@@ -31,6 +31,7 @@ function usePending<T>(key:string){
  return {pending,busy,error,send};
 }
 export function SupplierInvoiceDialog({hotel,userId,businessDate,onClose,onSaved}:{hotel:string;userId:string;businessDate:string;onClose:()=>void;onSaved:(id:string)=>void}){
+ const supplierSelectId=useId();
  const tx=usePending<BillInput>('foh.supplier-invoice.pending.'+hotel+'.'+userId);
  const [search,setSearch]=useState('');
  const [page,setPage]=useState(1);
@@ -57,7 +58,8 @@ export function SupplierInvoiceDialog({hotel,userId,businessDate,onClose,onSaved
    {tx.pending?<div className="notice">Earlier submission needs confirmation. Retry original invoice {tx.pending.invoiceReference} · {money(tx.pending.amountMinor)} · Supplier #{tx.pending.supplierId}.</div>:<>
    <label>Find supplier<input className="wizard-input" value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} disabled={tx.busy}/></label>
    <QueryFeedback loading={suppliers.isPending} error={suppliers.error} onRetry={()=>void suppliers.refetch()}/>
-   <label>Supplier<select className="wizard-input" required disabled={tx.busy} value={supplier?.id??''} onChange={e=>{const s=suppliers.data?.data.find(x=>x.id===e.target.value);if(s){setSupplier(s);setDueDate(due(invoiceDate,s.paymentTermsDays));}else setSupplier(null);}}><option value="">Select active supplier</option>{supplier&&!suppliers.data?.data.some(s=>s.id===supplier.id)&&<option value={supplier.id}>{supplier.name}</option>}{suppliers.data?.data.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+   <label htmlFor={supplierSelectId}>Supplier</label>
+   <select id={supplierSelectId} className="wizard-input" required disabled={tx.busy} value={supplier?.id??''} onChange={e=>{const s=suppliers.data?.data.find(x=>x.id===e.target.value);if(s){setSupplier(s);setDueDate(due(invoiceDate,s.paymentTermsDays));}else setSupplier(null);}}><option value="">Select active supplier</option>{supplier&&!suppliers.data?.data.some(s=>s.id===supplier.id)&&<option value={supplier.id}>{supplier.name}</option>}{suppliers.data?.data.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select>
    {suppliers.data&&suppliers.data.meta.totalPages>1&&<div className="desk-tools"><button type="button" className="btn-inline" disabled={page<=1||tx.busy} onClick={()=>setPage(p=>p-1)}>Previous suppliers</button><span>Page {page}</span><button type="button" className="btn-inline" disabled={page>=suppliers.data.meta.totalPages||tx.busy} onClick={()=>setPage(p=>p+1)}>Next suppliers</button></div>}
    <label>Invoice reference<input className="wizard-input" required maxLength={120} value={reference} disabled={tx.busy} onChange={e=>setReference(e.target.value)}/></label>
    <label>Description<input className="wizard-input" required maxLength={255} value={description} disabled={tx.busy} onChange={e=>setDescription(e.target.value)}/></label>

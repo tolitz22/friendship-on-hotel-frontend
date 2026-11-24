@@ -77,9 +77,9 @@ function Register({hotel,date,expense}:{hotel:string;date?:string;expense?:strin
     {detail.data.shiftId&&<Link to="/cashier-shifts" search={{shift:detail.data.shiftId,hotel}}>View cashier shift</Link>}
     {detail.data.reviewStatus==='pending'&&<div className="notice"><strong>Independent review required.</strong> {detail.data.reviewReason==='above_limit'?'This payout exceeded the routine limit.':'Review is required by the expense policy.'} {detail.data.recordedBy===user?.id?'Another administrator must review your own expense.':''}
     {detail.data.recordedBy!==user?.id&&!!user?.id&&<button type="button" className="btn-primary" onClick={()=>setReviewOpen(true)}>Review expense</button>}</div>}
-    {reviewOpen&&detail.data.reviewStatus==='pending'&&detail.data.recordedBy!==user?.id&&!!user?.id&&<ExpenseReviewDialog key={detail.data.id} hotel={hotel} expense={detail.data} onClose={()=>setReviewOpen(false)} onSaved={()=>{setReviewOpen(false);setMessage('Expense review recorded.');refresh();}}/>}
+    {reviewOpen&&detail.data.reviewStatus==='pending'&&detail.data.recordedBy!==user?.id&&!!user?.id&&<ExpenseReviewDialog key={'review-'+detail.data.id} hotel={hotel} expense={detail.data} onClose={()=>setReviewOpen(false)} onSaved={()=>{setReviewOpen(false);setMessage('Expense review recorded.');refresh();}}/>}
     {detail.data.review&&<p><strong>{detail.data.review.reviewedByName??'Manager'} · {statusLabel(detail.data.review.decision)}</strong> — {detail.data.review.note} ({readableDateTime(detail.data.review.createdAt)})</p>}
-    {user?.id&&<ExpenseCorrectionHistory key={detail.data.id} hotel={hotel} expense={detail.data} userId={user.id}/>}
+    {user?.id&&<ExpenseCorrectionHistory key={'history-'+detail.data.id} hotel={hotel} expense={detail.data} userId={user.id}/>}
    </>}
   </Panel>}
  </>;

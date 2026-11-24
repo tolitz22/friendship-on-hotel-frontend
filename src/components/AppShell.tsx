@@ -30,7 +30,7 @@ const primaryDaily=daily.filter(item=>primaryPaths.includes(item.to));
 const secondaryDaily=daily.filter(item=>!primaryPaths.includes(item.to));
 const administration=[
  {to:'/expenses' as const,label:'Expenses',icon:Receipt},
- {to:'/night-audit' as const,label:'Night audit preflight',icon:ClipboardCheck},
+ {to:'/night-audit' as const,label:'Daily Closing',icon:ClipboardCheck},
  {to:'/tax-policies' as const,label:'Tax configuration',icon:Wallet},
  {to:'/folio-night-accounting' as const,label:'Folio-night accounting',icon:ClipboardList},
  {to:'/reports' as const,label:'Reports',icon:ChartNoAxesCombined},
@@ -53,7 +53,7 @@ export function experienceForPath(pathname:string,mode:typeof dataMode){
  if(pathname==='/reservation-policy')return 'POLICY DRAFT';
  if(pathname==='/reservation-demand')return 'DIAGNOSTIC';
  if(pathname==='/reports')return 'PREVIEW REPORT';
- if(pathname==='/night-audit')return 'PREFLIGHT + CONTROLLED CLOSE';
+ if(pathname==='/night-audit')return 'DAILY OPERATIONS & FINANCE';
  if(pathname==='/billing')return 'PARTIAL LIVE · REVIEW';
  return 'LIVE HOTEL DATA';
 }

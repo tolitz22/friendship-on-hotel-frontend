@@ -20,6 +20,7 @@ const record=z.object({
  assignedRoomNumber:z.string().nullable().optional(),
  assignedRoomId:id.nullable(),
  checkIn:day,checkOut:day,
+ createdAt:z.string().nullable().optional(),updatedAt:z.string().nullable().optional(),createdDate:day.nullable().optional(),
  lifecycleState:z.string().nullable(),
  earlyCheckIn:z.object({
   scheduledCheckIn:day,actualCheckInDate:day,actualCheckedInAt:z.string(),
@@ -110,13 +111,15 @@ export function parseQuote(value:unknown,stay:LiveStay,ratePlanId:string){
 }
 
 export type ReservationListFilter='all'|'needs_room'|'arrivals'|'in_house'|'completed'|'checked_out'|'cancelled';
-export function useLiveReservationRecords(page:number,search='',filter:ReservationListFilter='all'){
+export type BookingDateOptions={field:'created_at'|'updated_at'|'check_in'|'check_out'|'stay';from:string;to:string;sortBy:'created_at'|'updated_at'|'check_in'|'check_out';direction:'asc'|'desc'};
+export const defaultBookingDates:BookingDateOptions={field:'created_at',from:'',to:'',sortBy:'created_at',direction:'desc'};
+export function useLiveReservationRecords(page:number,search='',filter:ReservationListFilter='all',dates:BookingDateOptions=defaultBookingDates){
  const {hotelId}=readSession();
  return useQuery({
-  queryKey:['live','reservation-records',hotelId,page,search,filter],
+  queryKey:['live','reservation-records',hotelId,page,search,filter,dates],
   enabled:!!hotelId,
   queryFn:async()=>parseRecords(await getJson<unknown>(
-   hotelPath('/reservation-records'),{page,per_page:20,search:search||undefined,filter}
+   hotelPath('/reservation-records'),{page,per_page:20,search:search||undefined,filter,date_field:dates.field,date_from:dates.from||undefined,date_to:dates.to||undefined,sort_by:dates.sortBy,sort_dir:dates.direction}
   ),hotelId!),
   retry:false,
  });

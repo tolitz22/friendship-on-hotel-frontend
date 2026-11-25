@@ -15,7 +15,7 @@ import {addDays} from '../features/reservations/calendarDate';
 import {ApiError} from '../api/http';
 import {financialCheckoutBlock,useSettlementStatement} from '../components/SettlementPanel';
 import {isGuestBillSettled} from '../features/billing/reviewedPaymentSettlement';
-import {previewStayAmendment,type AmendmentPreview} from '../api/stayAmendmentPreview';
+import {previewStayAmendment,canSavePricedAmendment,savePricedAmendment,type AmendmentPreview} from '../api/stayAmendmentPreview';
 import {StayExtensionModal} from '../components/StayExtensionModal';
 import {useReadinessPolicy} from '../api/readinessEnforcementPolicy';
 import {useLiveReadiness} from '../api/liveRoomReadiness';
@@ -150,13 +150,14 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  },[showRoomPicker]);
  async function amendDates(event:FormEvent){
   event.preventDefault();
-  if(!hotelId||!manager||amendPreview||inFlight.current||newArrival<hotelDate||newDeparture<=newArrival||readSession().hotelId!==hotelId)return;
+  if(!hotelId||!manager||(amendPreview&&!canSavePricedAmendment(amendPreview))||inFlight.current||newArrival<hotelDate||newDeparture<=newArrival||readSession().hotelId!==hotelId)return;
   inFlight.current=true;setBusy(true);setAmendError('');
   try{
-   await requestJson(hotelPath('/bookings/'+record.id+'/dates'),{method:'PATCH',body:{checkIn:newArrival,checkOut:newDeparture}});
+   if(amendPreview)await savePricedAmendment(hotelId,record.id,newArrival,newDeparture,amendPreview);
+   else await requestJson(hotelPath('/bookings/'+record.id+'/dates'),{method:'PATCH',body:{checkIn:newArrival,checkOut:newDeparture}});
    if(readSession().hotelId!==hotelId)return;
-   amendDialog.current?.close();setAcknowledged(false);void refresh(hotelId).catch(()=>{});
-  }catch(cause){setAmendError(cause instanceof Error?cause.message:'Could not update stay dates.');}
+   amendDialog.current?.close();setAcknowledged(false);setAmendPreview(null);setSuccess('Stay dates updated.');void refresh(hotelId).catch(()=>{});
+  }catch(cause){setAmendPreview(null);setAmendError((cause instanceof Error?cause.message:'Could not update stay dates.')+' Review the dates again before retrying.');void refresh(hotelId).catch(()=>{});}
   finally{inFlight.current=false;setBusy(false);}
  }
  async function markNoShow(event:FormEvent){
@@ -374,10 +375,12 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
          {([['Original room charges',amendPreview.originalRoomSubtotalMinor],['Proposed room charges',amendPreview.proposedRoomSubtotalMinor],['Difference',amendPreview.differenceMinor]] as const).map(([label,amount])=><div className="rb-summary-row" key={label}><span>{label}</span><strong>{new Intl.NumberFormat('en-PH',{style:'currency',currency:amendPreview.currency}).format(amount/100)}</strong></div>)}
          <details><summary>Proposed nightly rates</summary>{amendPreview.nightlyRates.map(night=><div className="rb-summary-row" key={night.date}><span>{dateLabel(night.date)} · {night.source.replaceAll('_',' ')}</span><strong>{new Intl.NumberFormat('en-PH',{style:'currency',currency:amendPreview.currency}).format(night.amountMinor/100)}</strong></div>)}</details>
          {amendPreview.closedPeriodAffected&&<p role="alert" className="stay-feedback-error">This change affects a closed financial period. An audited financial correction is required.</p>}
-         <p className="desk-muted">Preview only. Dates and charges have not changed. This is a room subtotal comparison, not a final bill or refund. Saving a priced stay change is not available yet.</p>
+         {!amendPreview.closedPeriodAffected&&amendPreview.requiresFinancialCorrection&&<p role="alert" className="stay-feedback-error">Existing accounting requires a reviewed financial correction.</p>}
+         {!canSavePricedAmendment(amendPreview)&&!amendPreview.requiresFinancialCorrection&&!amendPreview.closedPeriodAffected&&<p className="desk-muted">Priced saving is unavailable for this booking.</p>}
+         <p className="desk-muted">Dates and charges have not changed yet. This comparison covers room charges, not the final bill or refund. Existing payments are not changed.</p>
         </section>}
         {amendError&&<p role="alert" className="stay-feedback-error">{amendError}</p>}
-        <button type="submit" className="btn-primary" disabled={busy||!!amendPreview||newArrival<hotelDate||newDeparture<=newArrival}>{busy?'Saving…':'Save unpriced stay dates'}</button>
+        <button type="submit" className="btn-primary" disabled={busy||!!(amendPreview&&!canSavePricedAmendment(amendPreview))||newArrival<hotelDate||newDeparture<=newArrival}>{busy?'Saving…':amendPreview?'Confirm priced stay changes':'Save unpriced stay dates'}</button>
         <button type="button" className="btn-inline" disabled={busy} onClick={()=>amendDialog.current?.close()}>Cancel</button>
        </form>
       </dialog>

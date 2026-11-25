@@ -32,6 +32,12 @@ const schema=z.object({
   varianceMinor:z.number().int(),reconciledCountedCashMinor:z.number().int(),
   scope:z.string(),
  }),
+ noShow:z.object({
+  postedRevenueMinor:z.number().int(),postedVatMinor:z.number().int(),
+  postedReceivableMovementMinor:z.number().int(),recognizedRevenueMinor:nullableInt,
+  closedLedgerVerified:z.boolean(),clearancesRecordedCount:z.number().int().nonnegative(),
+  currentlyUnresolvedCount:z.number().int().nonnegative(),scope:z.string(),
+ }).optional(),
  expenses:z.object({
   employeeClaimExpenseMinor:z.number().int().optional(),employeeReimbursementMinor:z.number().int().optional(),
   employeeDrawerReimbursementMinor:z.number().int().optional(),employeeBankReimbursementMinor:z.number().int().optional(),

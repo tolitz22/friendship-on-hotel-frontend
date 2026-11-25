@@ -11,6 +11,7 @@ import {QueryFeedback} from './QueryFeedback';
 import {RecordGuestPayment} from './RecordGuestPayment';
 import {GuestIncidentalChargeForm} from './GuestIncidentalChargeForm';
 import {BillingActions} from './BillingActions';
+import {NoShowFinancialReview} from './NoShowFinancialReview';
 import {parseBillingAmount} from '../api/billing';
 import {isGuestBillSettled} from '../features/billing/reviewedPaymentSettlement';
 import {readableDate,readableDateTime,statusLabel} from '../lib/format';
@@ -415,6 +416,8 @@ export function SettlementPanel({bookingId,requestedAction,requestedPayment}:{bo
        simplifiedCash?'Cash on file':'Settlement not final'}</span>
     </div>
    </div>
+   {data.status==='no_show'&&manager&&hotelId&&user?.id&&<NoShowFinancialReview key={hotelId+':'+bookingId} hotelId={hotelId} bookingId={bookingId} userId={user.id} verifiedMinor={data.verifiedPaymentsMinor}/>}
+   {data.status==='no_show'&&!manager&&<p role="status">No-show financial reconciliation requires an authorized hotel administrator.</p>}
    {data.status==='checked_in'&&<div className="stay-operation-impact" aria-label="Checkout financial requirements">
     <strong>{checkoutBlock?'Checkout blocked — financial action required':'Billing checks clear for checkout'}</strong>
     {guestBillSettled&&<p><strong>{money(0,data.currency)} due</strong> · Reviewed payments cover the bill. Do not collect again.</p>}

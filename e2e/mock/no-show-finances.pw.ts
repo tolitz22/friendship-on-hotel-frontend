@@ -12,6 +12,10 @@ async function mockNoShow(page:Page, role:'admin'|'front_desk'){
   if(path.endsWith('/auth/me'))return route.fulfill({json:{data:{
    id:'1',name:'Demo staff',email:'staff@example.test',hotels:[{id:'1',name:'Demo hotel',role}],
   }}});
+  if(path.endsWith('/reservation-records/2'))return route.fulfill({json:{data:{
+   id:'2',hotelId:'1',reference:'DEMO-NO-SHOW',guestName:'Demo guest',roomTypeId:'1',assignedRoomId:null,
+   checkIn:'2026-11-24',checkOut:'2026-11-27',lifecycleState:'no_show',noShowReviewRequired:true,
+  }}});
   if(path.endsWith('/bookings/2/settlement-statement'))return route.fulfill({json:{data:{
    hotelId:'1',bookingId:'2',folioId:'2',reservationReference:'DEMO-NO-SHOW',
    checkIn:'2026-11-24',checkOut:'2026-11-27',status:'no_show',currency:'PHP',
@@ -49,7 +53,9 @@ async function mockNoShow(page:Page, role:'admin'|'front_desk'){
 
 test('opens the direct no-show review link and recovers a failed load before recording a review',async({page})=>{
  await mockNoShow(page,'admin');
- await page.goto('http://127.0.0.1:5174/billing?booking=2&action=no-show');
+ await page.goto('http://127.0.0.1:5174/reservations?booking=2');
+ await page.getByRole('link',{name:'Review no-show finances'}).click();
+ await expect(page).toHaveURL(/\/billing\?.*action=no-show/);
  const dialog=page.getByRole('dialog',{name:'No-show financial review'});
  await expect(dialog).toBeVisible();
  await expect(dialog.getByRole('alert')).toContainText('Unable to load financial review');

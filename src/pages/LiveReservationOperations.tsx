@@ -581,7 +581,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
      <div><h3>{record.lifecycleState==='checked_out'?'Stay checked out':record.lifecycleState==='no_show'?'Guest marked as no-show':'Reservation cancelled'}</h3>
       <p>{record.lifecycleState==='checked_out'?'No more guest stay actions are available. Review the housekeeping handoff below.':'This reservation is no longer active. See recorded history for changes.'}</p>
       {record.noShowReviewRequired&&manager&&canDo('finance.read')&&
-       <Link to="/billing" search={{booking:record.id,action:'no-show'}}>Review no-show finances <ArrowRight size={15}/></Link>}
+       <Link to="/billing" search={{booking:record.id,action:'no-show'}} className="stay-text-button">Review no-show finances <ArrowRight size={15}/></Link>}
      </div>
     </section>}
     {!canOperate&&<p className="stay-readonly">You have read-only access. Room and check-in/out actions require front-desk or manager permissions.</p>}

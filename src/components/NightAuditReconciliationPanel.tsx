@@ -42,6 +42,15 @@ export function NightAuditReconciliationPanel({selectedDate}:{selectedDate?:stri
    ['Cashier shifts pending',data.cashier.pendingCount],
    ['Cashier shifts flagged',data.cashier.flaggedCount],
    ['Cashier variance (minor units)',data.cashier.varianceMinor],
+   ...(data.noShow?[
+    ['No-show posted revenue (minor units)',data.noShow.postedRevenueMinor],
+    ['No-show recognized revenue (minor units)',data.noShow.recognizedRevenueMinor],
+    ['No-show VAT movement (minor units)',data.noShow.postedVatMinor],
+    ['No-show receivable movement (minor units)',data.noShow.postedReceivableMovementMinor],
+    ['No-show clearances recorded',data.noShow.clearancesRecordedCount],
+    ['Currently unresolved no-show reviews through date',data.noShow.currentlyUnresolvedCount],
+    ['No-show closed ledger verified',data.noShow.closedLedgerVerified?'YES':'NO'],
+   ]:[]),
    ...(data.expenses?[
     ['Approved employee expenses (minor units)',data.expenses.employeeClaimExpenseMinor??null],
     ['Employee reimbursements (minor units)',data.expenses.employeeReimbursementMinor??null],
@@ -103,6 +112,18 @@ export function NightAuditReconciliationPanel({selectedDate}:{selectedDate?:stri
      <strong>{data.kpis.inspectionOccupancyPercent===null?'Incomplete':
       data.kpis.inspectionOccupancyPercent.toFixed(2)+'%'}</strong></div>
    </div>
+   {data.noShow&&<section className="expense-correction-history" aria-label="No-show financial activity">
+    <h4>No-show financial activity</h4>
+    <p className="desk-muted">{data.noShow.closedLedgerVerified?'Closed ledger totals verified.':'Posted journal movements — not yet verified against a closed ledger.'} No-show fees are separate from room revenue and are not proof of cash collection.</p>
+    <div className="night-audit-metrics">
+     <div className="night-audit-metric"><small>Posted no-show revenue</small><strong>{money(data.noShow.postedRevenueMinor,data.currency)}</strong></div>
+     <div className="night-audit-metric"><small>No-show VAT movement</small><strong>{money(data.noShow.postedVatMinor,data.currency)}</strong></div>
+     <div className="night-audit-metric"><small>Receivable movement</small><strong>{money(data.noShow.postedReceivableMovementMinor,data.currency)}</strong></div>
+     <div className="night-audit-metric"><small>Clearances recorded</small><strong>{data.noShow.clearancesRecordedCount}</strong></div>
+     <div className="night-audit-metric"><small>Currently unresolved through selected date</small><strong>{data.noShow.currentlyUnresolvedCount}</strong></div>
+    </div>
+    {data.noShow.currentlyUnresolvedCount>0&&<div className="night-audit-issues"><p>Review unresolved no-show bookings before closing.</p><Link to="/reservations">Open bookings</Link></div>}
+   </section>}
    {data.expenses?<section className="expense-correction-history" aria-label="Daily operating expenses">
     <div className="desk-tools"><h4>Operating expenses</h4><Link to="/expenses" search={{date:data.businessDate,hotel:data.hotelId}}>Open dated expense register</Link></div>
     <p className="desk-muted">{data.expenses.closedLedgerVerified?'Closed ledger totals verified.':'Recorded journal movements — not yet verified against a closed ledger.'}</p>

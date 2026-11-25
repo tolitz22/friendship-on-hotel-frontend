@@ -17,6 +17,7 @@ const dataSchema=z.object({
   status:z.string(),reviewedBy:z.string(),reviewedAt:z.string(),
  }).nullable(),
  openShiftIds:z.array(z.string()).optional(),
+ unresolvedNoShowCount:z.number().int().nonnegative().optional(),
  blockers:z.array(z.string()),canClose:z.boolean(),
  readinessIsAdvisory:z.literal(true),
 });
@@ -149,6 +150,7 @@ export function FinancialBusinessDayPanel({selectedDate,query,onSelectDate}:{sel
     :dateMatches&&<div className="night-audit-issues" role="status"><h4><AlertTriangle size={17}/> Complete these items before closing</h4>
      <ul>
       {data.blockers.map(item=><li key={item}>{item}</li>)}
+      {(data.unresolvedNoShowCount??0)>0&&<li><Link to="/reservations">Review no-show bookings ({data.unresolvedNoShowCount})</Link></li>}
       {data.openShiftIds?.map(shift=><li key={shift}><Link to="/cashier-shifts" search={{hotel:hotelId??undefined,shift}}>Open cashier shift #{shift}</Link></li>)}
      </ul></div>}
    {!dateMatches&&<div className="desk-tools">

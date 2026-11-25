@@ -15,6 +15,7 @@ import {addDays} from '../features/reservations/calendarDate';
 import {ApiError} from '../api/http';
 import {financialCheckoutBlock,useSettlementStatement} from '../components/SettlementPanel';
 import {isGuestBillSettled} from '../features/billing/reviewedPaymentSettlement';
+import {previewStayAmendment,type AmendmentPreview} from '../api/stayAmendmentPreview';
 import {StayExtensionModal} from '../components/StayExtensionModal';
 import {useReadinessPolicy} from '../api/readinessEnforcementPolicy';
 import {useLiveReadiness} from '../api/liveRoomReadiness';
@@ -80,6 +81,14 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  const [newDeparture,setNewDeparture]=useState(addDays(hotelDate,1));
  const amendDialog=useRef<HTMLDialogElement>(null);
  const [amendError,setAmendError]=useState('');
+ const [amendPreview,setAmendPreview]=useState<AmendmentPreview|null>(null);
+ async function reviewAmendment(){
+  if(!hotelId||!manager||inFlight.current)return;
+  inFlight.current=true;setBusy(true);setAmendError('');setAmendPreview(null);
+  try{setAmendPreview(await previewStayAmendment(hotelId,record.id,newArrival,newDeparture));}
+  catch(cause){setAmendError(cause instanceof Error?cause.message:'Could not review these dates.');}
+  finally{inFlight.current=false;setBusy(false);}
+ }
  const noShowDialog=useRef<HTMLDialogElement>(null);
  const [noShowError,setNoShowError]=useState('');
  const roomRestricted=readiness.isSuccess&&(readiness.data.blockers.activeInventoryBlockToday||readiness.data.blockers.activeRoomImpactMaintenance);
@@ -113,7 +122,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
 
  useEffect(()=>{
   setRoomPage(1);setHistoryPage(1);setRoomId('');setAcknowledged(false);setConfirmedDepartureAt('');
-  setShowRoomPicker(false);
+  setShowRoomPicker(false);setAmendPreview(null);
   setSuccess('');setError('');
  },[hotelId,record.id,record.lifecycleState]);
  useEffect(()=>{
@@ -141,7 +150,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  },[showRoomPicker]);
  async function amendDates(event:FormEvent){
   event.preventDefault();
-  if(!hotelId||!manager||inFlight.current||newArrival<hotelDate||newDeparture<=newArrival||readSession().hotelId!==hotelId)return;
+  if(!hotelId||!manager||amendPreview||inFlight.current||newArrival<hotelDate||newDeparture<=newArrival||readSession().hotelId!==hotelId)return;
   inFlight.current=true;setBusy(true);setAmendError('');
   try{
    await requestJson(hotelPath('/bookings/'+record.id+'/dates'),{method:'PATCH',body:{checkIn:newArrival,checkOut:newDeparture}});
@@ -341,7 +350,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
       <strong>{dateLabel(record.checkIn)} – {dateLabel(record.checkOut)}</strong>
       <p>Hotel date: {dateLabel(hotelDate)}. {manager?'Modify dates if the guest still intends to stay. Review cancellation and deposit obligations before resolving a missed arrival.':'Ask a manager to resolve the expired booking.'}</p>
       {manager&&<div style={{display:'grid',gap:10,marginTop:16}}>
-       <button type="button" className="btn-primary" disabled={busy} onClick={()=>{setNewArrival(hotelDate);setNewDeparture(addDays(hotelDate,1));setAmendError('');amendDialog.current?.showModal();}}>Modify stay dates <ArrowRight size={16}/></button>
+       <button type="button" className="btn-primary" disabled={busy} onClick={()=>{setNewArrival(hotelDate);setNewDeparture(addDays(hotelDate,1));setAmendError('');setAmendPreview(null);amendDialog.current?.showModal();}}>Modify stay dates <ArrowRight size={16}/></button>
        <button type="button" className="btn-inline" disabled={busy} onClick={()=>{setNoShowError('');noShowDialog.current?.showModal();}}>Mark as no-show</button>
       </div>}
       <dialog ref={noShowDialog} className="billing-action-modal" style={{position:'fixed',inset:0,margin:'auto',width:'min(480px, calc(100% - 32px))',maxHeight:'calc(100dvh - 32px)',overflowY:'auto',color:'var(--text)'}} aria-label="Confirm no-show" onCancel={event=>{if(busy)event.preventDefault();}}>
@@ -356,10 +365,19 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
       <dialog ref={amendDialog} className="billing-action-modal" style={{position:'fixed',inset:0,margin:'auto',width:'min(480px, calc(100% - 32px))',maxHeight:'calc(100dvh - 32px)',overflowY:'auto',color:'var(--text)'}} aria-label="Modify stay dates" onCancel={event=>{if(busy)event.preventDefault();}}>
        <form className="billing-payment-fields" onSubmit={amendDates}>
         <header className="billing-action-modal-header"><div><h3>Modify stay dates</h3><p>{record.reference} · {record.guestName}</p></div></header><p>Choose a new arrival and departure. Room availability is checked when saving. Bookings with existing folios require financial review.</p>
-        <label className="night-audit-date">Arrival<input type="date" className="wizard-input" required min={hotelDate} value={newArrival} disabled={busy} onChange={event=>{setNewArrival(event.target.value);if(newDeparture<=event.target.value)setNewDeparture(addDays(event.target.value,1));}}/></label>
-        <label className="night-audit-date">Departure<input type="date" className="wizard-input" required min={addDays(newArrival||hotelDate,1)} value={newDeparture} disabled={busy} onChange={event=>setNewDeparture(event.target.value)}/></label>
+        <label className="night-audit-date">Arrival<input type="date" className="wizard-input" required min={hotelDate} value={newArrival} disabled={busy} onChange={event=>{setAmendPreview(null);setAmendError('');setNewArrival(event.target.value);if(newDeparture<=event.target.value)setNewDeparture(addDays(event.target.value,1));}}/></label>
+        <label className="night-audit-date">Departure<input type="date" className="wizard-input" required min={addDays(newArrival||hotelDate,1)} value={newDeparture} disabled={busy} onChange={event=>{setAmendPreview(null);setAmendError('');setNewDeparture(event.target.value);}}/></label>
+        <button type="button" className="btn-inline" disabled={busy||newArrival<hotelDate||newDeparture<=newArrival} onClick={()=>void reviewAmendment()}>{busy?'Working…':'Preview priced stay change'}</button>
+        {amendPreview&&<section aria-label="Stay change price comparison" aria-live="polite">
+         <h4>Room charge comparison</h4>
+         <p>{dateLabel(amendPreview.oldCheckIn)} – {dateLabel(amendPreview.oldCheckOut)} → {dateLabel(amendPreview.checkIn)} – {dateLabel(amendPreview.checkOut)}</p>
+         {([['Original room charges',amendPreview.originalRoomSubtotalMinor],['Proposed room charges',amendPreview.proposedRoomSubtotalMinor],['Difference',amendPreview.differenceMinor]] as const).map(([label,amount])=><div className="rb-summary-row" key={label}><span>{label}</span><strong>{new Intl.NumberFormat('en-PH',{style:'currency',currency:amendPreview.currency}).format(amount/100)}</strong></div>)}
+         <details><summary>Proposed nightly rates</summary>{amendPreview.nightlyRates.map(night=><div className="rb-summary-row" key={night.date}><span>{dateLabel(night.date)} · {night.source.replaceAll('_',' ')}</span><strong>{new Intl.NumberFormat('en-PH',{style:'currency',currency:amendPreview.currency}).format(night.amountMinor/100)}</strong></div>)}</details>
+         {amendPreview.closedPeriodAffected&&<p role="alert" className="stay-feedback-error">This change affects a closed financial period. An audited financial correction is required.</p>}
+         <p className="desk-muted">Preview only. Dates and charges have not changed. This is a room subtotal comparison, not a final bill or refund. Saving a priced stay change is not available yet.</p>
+        </section>}
         {amendError&&<p role="alert" className="stay-feedback-error">{amendError}</p>}
-        <button type="submit" className="btn-primary" disabled={busy||newArrival<hotelDate||newDeparture<=newArrival}>{busy?'Saving…':'Save stay dates'}</button>
+        <button type="submit" className="btn-primary" disabled={busy||!!amendPreview||newArrival<hotelDate||newDeparture<=newArrival}>{busy?'Saving…':'Save unpriced stay dates'}</button>
         <button type="button" className="btn-inline" disabled={busy} onClick={()=>amendDialog.current?.close()}>Cancel</button>
        </form>
       </dialog>

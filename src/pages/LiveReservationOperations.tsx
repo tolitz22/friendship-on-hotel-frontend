@@ -165,9 +165,9 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
   if(!hotelId||!manager||!expiredStay||inFlight.current||readSession().hotelId!==hotelId)return;
   inFlight.current=true;setBusy(true);setNoShowError('');
   try{
-   await requestJson(hotelPath('/bookings/'+record.id+'/no-show'),{method:'POST'});
+   const result=await requestJson<{data:{status:string;financialReviewRequired?:boolean}}>(hotelPath('/bookings/'+record.id+'/no-show'),{method:'POST'});
    if(readSession().hotelId!==hotelId)return;
-   noShowDialog.current?.close();void refresh(hotelId).catch(()=>{});
+   noShowDialog.current?.close();setSuccess(result.data.financialReviewRequired?'Guest marked as no-show. Review charges and deposits in Billing.':'Guest marked as no-show.');void refresh(hotelId).catch(()=>{});
   }catch(cause){setNoShowError(cause instanceof Error?cause.message:'Could not mark this booking as no-show.');}
   finally{inFlight.current=false;setBusy(false);}
  }
@@ -357,7 +357,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
       <dialog ref={noShowDialog} className="billing-action-modal" style={{position:'fixed',inset:0,margin:'auto',width:'min(480px, calc(100% - 32px))',maxHeight:'calc(100dvh - 32px)',overflowY:'auto',color:'var(--text)'}} aria-label="Confirm no-show" onCancel={event=>{if(busy)event.preventDefault();}}>
        <header className="billing-action-modal-header"><div><h3>Mark as no-show?</h3><p>{record.reference} · {record.guestName}</p></div></header>
        <form className="billing-payment-fields" onSubmit={markNoShow}>
-        <p>Confirm that the guest never arrived. This releases the booking inventory and records the action in history. Bookings with existing folios require financial review.</p>
+        <p>Confirm that the guest never arrived. This releases the booking inventory and records the action in history. Existing charges and deposits are retained for financial review. No automatic refund or fee adjustment will be made.</p>
         {noShowError&&<p role="alert" className="stay-feedback-error">{noShowError}</p>}
         <button type="submit" className="btn-primary" disabled={busy}>{busy?'Saving…':'Confirm no-show'}</button>
         <button type="button" className="btn-inline" disabled={busy} onClick={()=>noShowDialog.current?.close()}>Keep booking</button>

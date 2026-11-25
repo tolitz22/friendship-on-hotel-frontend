@@ -18,6 +18,7 @@ const dataSchema=z.object({
  }).nullable(),
  openShiftIds:z.array(z.string()).optional(),
  unresolvedNoShowCount:z.number().int().nonnegative().optional(),
+ unresolvedNoShowBookings:z.array(z.object({id:z.string(),reference:z.string(),arrival:z.iso.date()})).optional(),
  blockers:z.array(z.string()),canClose:z.boolean(),
  readinessIsAdvisory:z.literal(true),
 });
@@ -150,9 +151,16 @@ export function FinancialBusinessDayPanel({selectedDate,query,onSelectDate}:{sel
     :dateMatches&&<div className="night-audit-issues" role="status"><h4><AlertTriangle size={17}/> Complete these items before closing</h4>
      <ul>
       {data.blockers.map(item=><li key={item}>{item}</li>)}
-      {(data.unresolvedNoShowCount??0)>0&&<li><Link to="/reservations">Review no-show bookings ({data.unresolvedNoShowCount})</Link></li>}
       {data.openShiftIds?.map(shift=><li key={shift}><Link to="/cashier-shifts" search={{hotel:hotelId??undefined,shift}}>Open cashier shift #{shift}</Link></li>)}
      </ul></div>}
+      {dateMatches&&(data.unresolvedNoShowCount??0)>0&&<div className="night-audit-issues">
+       <strong>No-show financial reviews ({data.unresolvedNoShowCount})</strong>
+       {data.unresolvedNoShowBookings?.length
+        ?<ul>{data.unresolvedNoShowBookings.map(booking=><li key={booking.id}>
+         <Link to="/billing" search={{booking:booking.id,action:'no-show'}}>{booking.reference} · {readableDay(booking.arrival)}</Link>
+        </li>)}</ul>
+        :<p>Open the No-show filter in Bookings to find the guest account.</p>}
+      </div>}
    {!dateMatches&&<div className="desk-tools">
     <p>Closing is available for the current financial business date.</p>
     <button type="button" className="btn-inline" disabled={busy} onClick={()=>onSelectDate(data.businessDate)}>Review current business date</button>

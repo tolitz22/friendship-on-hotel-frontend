@@ -76,6 +76,9 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
   :'Select an available room to proceed.';
  const hotelDate=hotelToday();
  const expiredStay=record.lifecycleState==='confirmed'&&hotelDate>=record.checkOut;
+ const noShowDate=record.noShowEligibleAt?new Date(record.noShowEligibleAt):null;
+ const canMarkNoShow=record.lifecycleState==='confirmed'&&canDo('booking.check_in')
+  &&(noShowDate?Date.now()>=noShowDate.getTime():expiredStay&&manager);
  const lateArrival=record.lifecycleState==='confirmed'&&record.checkIn<hotelDate&&hotelDate<record.checkOut;
  const [newArrival,setNewArrival]=useState(hotelDate);
  const [newDeparture,setNewDeparture]=useState(addDays(hotelDate,1));
@@ -162,7 +165,7 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
  }
  async function markNoShow(event:FormEvent){
   event.preventDefault();
-  if(!hotelId||!manager||!expiredStay||inFlight.current||readSession().hotelId!==hotelId)return;
+  if(!hotelId||!canMarkNoShow||inFlight.current||readSession().hotelId!==hotelId)return;
   inFlight.current=true;setBusy(true);setNoShowError('');
   try{
    const result=await requestJson<{data:{status:string;financialReviewRequired?:boolean}}>(hotelPath('/bookings/'+record.id+'/no-show'),{method:'POST'});
@@ -190,6 +193,9 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
    client.invalidateQueries({queryKey:['live','readiness-dashboard',hotel]}),
    client.invalidateQueries({queryKey:['live','reservation-history',hotel,record.id]}),
    client.invalidateQueries({queryKey:['live','billing-folios',hotel]}),
+   client.invalidateQueries({queryKey:['live','financial-business-day',hotel]}),
+   client.invalidateQueries({queryKey:['live','night-audit-preview',hotel]}),
+   client.invalidateQueries({queryKey:['live','night-audit-reconciliation',hotel]}),
    client.invalidateQueries({queryKey:['live','folio-ledger',hotel,record.id]}),
    client.invalidateQueries({queryKey:['live','settlement-statement',hotel,record.id]}),
    client.invalidateQueries({queryKey:['live','booking-forecast',hotel]}),
@@ -352,17 +358,8 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
       <p>Hotel date: {dateLabel(hotelDate)}. {manager?'Modify dates if the guest still intends to stay. Review cancellation and deposit obligations before resolving a missed arrival.':'Ask a manager to resolve the expired booking.'}</p>
       {manager&&<div style={{display:'grid',gap:10,marginTop:16}}>
        <button type="button" className="btn-primary" disabled={busy} onClick={()=>{setNewArrival(hotelDate);setNewDeparture(addDays(hotelDate,1));setAmendError('');setAmendPreview(null);amendDialog.current?.showModal();}}>Modify stay dates <ArrowRight size={16}/></button>
-       <button type="button" className="btn-inline" disabled={busy} onClick={()=>{setNoShowError('');noShowDialog.current?.showModal();}}>Mark as no-show</button>
       </div>}
-      <dialog ref={noShowDialog} className="billing-action-modal" style={{position:'fixed',inset:0,margin:'auto',width:'min(480px, calc(100% - 32px))',maxHeight:'calc(100dvh - 32px)',overflowY:'auto',color:'var(--text)'}} aria-label="Confirm no-show" onCancel={event=>{if(busy)event.preventDefault();}}>
-       <header className="billing-action-modal-header"><div><h3>Mark as no-show?</h3><p>{record.reference} · {record.guestName}</p></div></header>
-       <form className="billing-payment-fields" onSubmit={markNoShow}>
-        <p>Confirm that the guest never arrived. This releases the booking inventory and records the action in history. Existing charges and deposits are retained for financial review. No automatic refund or fee adjustment will be made.</p>
-        {noShowError&&<p role="alert" className="stay-feedback-error">{noShowError}</p>}
-        <button type="submit" className="btn-primary" disabled={busy}>{busy?'Saving…':'Confirm no-show'}</button>
-        <button type="button" className="btn-inline" disabled={busy} onClick={()=>noShowDialog.current?.close()}>Keep booking</button>
-       </form>
-      </dialog>
+
       <dialog ref={amendDialog} className="billing-action-modal" style={{position:'fixed',inset:0,margin:'auto',width:'min(480px, calc(100% - 32px))',maxHeight:'calc(100dvh - 32px)',overflowY:'auto',color:'var(--text)'}} aria-label="Modify stay dates" onCancel={event=>{if(busy)event.preventDefault();}}>
        <form className="billing-payment-fields" onSubmit={amendDates}>
         <header className="billing-action-modal-header"><div><h3>Modify stay dates</h3><p>{record.reference} · {record.guestName}</p></div></header><p>Choose a new arrival and departure. Room availability is checked when saving. Bookings with existing folios require financial review.</p>
@@ -386,6 +383,17 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
       </dialog>
      </div>}
      {lateArrival&&<p className="stay-blocked-hint" role="status">Late arrival: scheduled arrival was {dateLabel(record.checkIn)}. Check-in is available for the remaining stay, subject to room availability.</p>}
+     {canMarkNoShow&&<button type="button" className="btn-inline" disabled={busy}
+      onClick={()=>{setNoShowError('');noShowDialog.current?.showModal();}}>Mark as no-show</button>}
+      <dialog ref={noShowDialog} className="billing-action-modal no-show-dialog" aria-label="Confirm no-show" onCancel={event=>{if(busy)event.preventDefault();}}>
+       <header className="billing-action-modal-header"><div><h3>Mark as no-show?</h3><p>{record.reference} · {record.guestName}</p></div></header>
+       <form className="billing-payment-fields" onSubmit={markNoShow}>
+        <p>Use this when the guest never checked in. The room becomes available and the change is saved in booking history. Billing handles any penalty or deposit separately.</p>
+        {noShowError&&<p role="alert" className="stay-feedback-error">{noShowError}</p>}
+        <button type="submit" className="btn-primary" disabled={busy}>{busy?'Saving…':'Confirm no-show'}</button>
+        <button type="button" className="btn-inline" disabled={busy} onClick={()=>noShowDialog.current?.close()}>Keep booking</button>
+       </form>
+      </dialog>
      {isConfirmed&&!expiredStay&&<div className="stay-requirement">
       <span className={roomAssigned?'stay-requirement-mark done':'stay-requirement-mark'}>
        {roomAssigned?<CheckCircle2 size={17}/>:<BedDouble size={17}/>}
@@ -570,8 +578,10 @@ export function LiveReservationOperations({record,onClose,preferredRoomId,prefer
 
     {isFinished&&<section className="stay-completed-card">
      <CheckCircle2 size={23}/>
-     <div><h3>{record.lifecycleState==='checked_out'?'Stay checked out':'Reservation cancelled'}</h3>
+     <div><h3>{record.lifecycleState==='checked_out'?'Stay checked out':record.lifecycleState==='no_show'?'Guest marked as no-show':'Reservation cancelled'}</h3>
       <p>{record.lifecycleState==='checked_out'?'No more guest stay actions are available. Review the housekeeping handoff below.':'This reservation is no longer active. See recorded history for changes.'}</p>
+      {record.noShowReviewRequired&&manager&&canDo('finance.read')&&
+       <Link to="/billing" search={{booking:record.id,action:'no-show'}}>Review no-show finances <ArrowRight size={15}/></Link>}
      </div>
     </section>}
     {!canOperate&&<p className="stay-readonly">You have read-only access. Room and check-in/out actions require front-desk or manager permissions.</p>}

@@ -20,7 +20,7 @@ type Props={
 };
 const filters:[ReservationListFilter,string][]=[
  ['all','All bookings'],['arrivals','Confirmed'],['in_house','Checked in'],
- ['checked_out','Checked out'],['cancelled','Cancelled'],['needs_room','Needs room'],
+ ['checked_out','Checked out'],['cancelled','Cancelled'],['no_show','No-show'],['needs_room','Needs room'],
 ];
 const lifecycleName=(value:string|null)=>{
  switch(value){
@@ -28,6 +28,7 @@ const lifecycleName=(value:string|null)=>{
   case 'checked_in':return 'Checked in';
   case 'checked_out':return 'Checked out';
   case 'cancelled':return 'Cancelled';
+  case 'no_show':return 'No-show';
   case 'pending':return 'Pending';
   default:return value?.replaceAll('_',' ')??'Unknown';
  }

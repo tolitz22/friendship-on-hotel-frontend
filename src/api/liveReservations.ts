@@ -22,6 +22,8 @@ const record=z.object({
  checkIn:day,checkOut:day,
  createdAt:z.string().nullable().optional(),updatedAt:z.string().nullable().optional(),createdDate:day.nullable().optional(),
  lifecycleState:z.string().nullable(),
+ noShowEligibleAt:z.iso.datetime({offset:true}).nullable().optional(),
+ noShowReviewRequired:z.boolean().optional(),
  earlyCheckIn:z.object({
   scheduledCheckIn:day,actualCheckInDate:day,actualCheckedInAt:z.string(),
   approvalRequestId:id,requestedBy:id,approvedBy:id,checkedInBy:id,
@@ -110,7 +112,7 @@ export function parseQuote(value:unknown,stay:LiveStay,ratePlanId:string){
  return result;
 }
 
-export type ReservationListFilter='all'|'needs_room'|'arrivals'|'in_house'|'completed'|'checked_out'|'cancelled';
+export type ReservationListFilter='all'|'needs_room'|'arrivals'|'in_house'|'completed'|'checked_out'|'cancelled'|'no_show';
 export type BookingDateOptions={field:'created_at'|'updated_at'|'check_in'|'check_out'|'stay';from:string;to:string;sortBy:'created_at'|'updated_at'|'check_in'|'check_out';direction:'asc'|'desc'};
 export const defaultBookingDates:BookingDateOptions={field:'created_at',from:'',to:'',sortBy:'created_at',direction:'desc'};
 export function useLiveReservationRecords(page:number,search='',filter:ReservationListFilter='all',dates:BookingDateOptions=defaultBookingDates){

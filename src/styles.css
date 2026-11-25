@@ -3595,3 +3595,15 @@
  .expense-workspace-nav .btn-inline{justify-content:center;text-align:center;}
  .expense-register-summary{grid-template-columns:1fr;}
 }
+
+dialog.no-show-dialog {
+ position: fixed;
+ inset: 0;
+ margin: auto;
+ width: min(36rem, calc(100% - 2rem));
+ max-height: calc(100dvh - 2rem);
+ color: var(--text);
+}
+dialog.no-show-dialog::backdrop { background: rgb(0 0 0 / 45%); }
+.no-show-dialog .billing-payment-fields { margin-block: 1rem; }
+.no-show-dialog-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }

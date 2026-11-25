@@ -129,7 +129,7 @@ export function financialCheckoutBlock(data:Statement):string|null{
  return null;
 }
 
-export function SettlementPanel({bookingId,requestedAction,requestedPayment}:{bookingId:string;requestedAction?:'signoff';requestedPayment?:string}){
+export function SettlementPanel({bookingId,requestedAction,requestedPayment}:{bookingId:string;requestedAction?:'signoff'|'no-show';requestedPayment?:string}){
  const {hotelId,user}=useHotelAuth();
  const client=useQueryClient();
  const manager=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
@@ -380,6 +380,7 @@ export function SettlementPanel({bookingId,requestedAction,requestedPayment}:{bo
    // make a committed action appear unsaved or invite duplicate submission.
    void Promise.all([
     client.invalidateQueries({queryKey:['live','settlement-statement',hotelId,bookingId]}),
+    client.invalidateQueries({queryKey:['live','no-show-financial-review',hotelId,bookingId]}),
     client.invalidateQueries({queryKey:['live','folio-ledger',hotelId]}),
     client.invalidateQueries({queryKey:['live','billing-folios',hotelId]}),
     client.invalidateQueries({queryKey:['live','payment-safety',hotelId,bookingId]}),
@@ -406,6 +407,8 @@ export function SettlementPanel({bookingId,requestedAction,requestedPayment}:{bo
    <BillingActions key={requestedPayment} bookingId={bookingId} signed={false} mode="target" targetPayment={requestedPayment}/>}
   {requestedPayment&&query.data&&(query.data.signed||!manager)&&<p role="status">
    {query.data.signed?'This folio has been signed.':'An authorized hotel administrator can review this payment.'}</p>}
+   {query.data?.status==='no_show'&&manager&&hotelId&&user?.id&&<NoShowFinancialReview key={hotelId+':'+bookingId} hotelId={hotelId} bookingId={bookingId} userId={user.id} verifiedMinor={query.data.verifiedPaymentsMinor} openOnLoad={requestedAction==='no-show'}/>}
+   {query.data?.status==='no_show'&&!manager&&<p role="status">No-show financial reconciliation requires an authorized hotel administrator.</p>}
   {data&&<>
    <div className="billing-account-overview billing-account-compact" aria-label="Guest account overview">
     <div className="billing-account-overview-head">
@@ -416,8 +419,6 @@ export function SettlementPanel({bookingId,requestedAction,requestedPayment}:{bo
        simplifiedCash?'Cash on file':'Settlement not final'}</span>
     </div>
    </div>
-   {data.status==='no_show'&&manager&&hotelId&&user?.id&&<NoShowFinancialReview key={hotelId+':'+bookingId} hotelId={hotelId} bookingId={bookingId} userId={user.id} verifiedMinor={data.verifiedPaymentsMinor}/>}
-   {data.status==='no_show'&&!manager&&<p role="status">No-show financial reconciliation requires an authorized hotel administrator.</p>}
    {data.status==='checked_in'&&<div className="stay-operation-impact" aria-label="Checkout financial requirements">
     <strong>{checkoutBlock?'Checkout blocked — financial action required':'Billing checks clear for checkout'}</strong>
     {guestBillSettled&&<p><strong>{money(0,data.currency)} due</strong> · Reviewed payments cover the bill. Do not collect again.</p>}

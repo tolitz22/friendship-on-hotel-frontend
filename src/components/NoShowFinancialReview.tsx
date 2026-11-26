@@ -4,6 +4,7 @@ import {z} from 'zod';
 import {getJson,requestJson} from '../api/http';
 import {hotelPath,readSession} from '../api/session';
 import './NoShowFinancialOverview.css';
+import {NoShowRefundPanel} from './NoShowRefundPanel';
 import {NoShowAllocationPanel} from './NoShowAllocationPanel';
 import {NoShowDepositPanel} from './NoShowDepositPanel';
 import {NoShowLedgerPanel} from './NoShowLedgerPanel';
@@ -83,7 +84,7 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
   pendingPayments>0?{title:'Review pending payment evidence',detail:'Return to the guest bill to verify recorded payments before relying on settlement balances.',target:null}:
   !eligibility?.financialClearanceValid?{title:'Check financial reconciliation',detail:'The current clearance or settlement balances require review.',target:'no-show-accounting-details'}:
   eligibility.settled?{title:'Settlement recorded',detail:'Check matched accounting entries before treating the account as fully reconciled.',target:'no-show-accounting-details'}:
-  (eligibility.maximumRefundRequestMinor>0)?{title:'Review eligible refund',detail:'Return to the guest bill to review refund eligibility. No funds are sent from this overview.',target:null}:
+  (eligibility.maximumRefundRequestMinor>0)?{title:'Review eligible refund',detail:'Review refund eligibility and approval below. No funds are sent by the PMS.',target:'no-show-refund-details'}:
   (eligibility.remainingCollectionMinor??0)>0?{title:'Review outstanding collection',detail:'Return to the guest bill to review the remaining amount and payment evidence.',target:null}:
   {title:'Review allocation and settlement',detail:'Check unapplied deposits and remaining settlement steps below.',target:'no-show-allocation-details'};
 
@@ -195,6 +196,7 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
    </>}
    {opened&&data&&<NoShowDepositPanel hotelId={hotelId} bookingId={bookingId}/>}
    {opened&&data?.clearance&&<div id="no-show-allocation-details"><NoShowAllocationPanel hotelId={hotelId} bookingId={bookingId}/></div>}
+   {opened&&data?.clearance&&<div id="no-show-refund-details"><NoShowRefundPanel hotelId={hotelId} bookingId={bookingId} userId={userId}/></div>}
    {opened&&data?.clearance&&<div id="no-show-accounting-details"><NoShowLedgerPanel hotelId={hotelId} bookingId={bookingId} userId={userId}/></div>}
    {notice&&<p role="status">{notice}</p>}
    {error&&<p role="alert">{error}</p>}

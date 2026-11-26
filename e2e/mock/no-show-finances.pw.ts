@@ -161,3 +161,26 @@ test('keeps ledger comparison inside the mobile review dialog',async({page})=>{
  expect(await ledger.evaluate(node=>node.scrollWidth<=node.clientWidth+1)).toBe(true);
  await expect(ledger.getByRole('button',{name:'Refresh'})).toBeEnabled();
 });
+
+test('shows the financial overview and directs administrators to the independent review step',async({page})=>{
+ await mockNoShow(page,'admin');
+ await page.goto('http://127.0.0.1:5174/billing?booking=2&action=no-show');
+ const dialog=page.getByRole('dialog',{name:'No-show financial review'});
+ await dialog.getByRole('button',{name:'Retry'}).click();
+ const overview=dialog.getByRole('region',{name:'Financial overview'});
+ await expect(overview.getByText('Record financial adjustments',{exact:true})).toBeVisible();
+ await expect(overview.getByText('To collect',{exact:true})).toBeVisible();
+ await expect(overview.getByText('—',{exact:true})).toHaveCount(2);
+ await overview.getByRole('button',{name:'Go to details'}).click();
+ await dialog.getByLabel('Review reason').fill('Confirmed original booking agreement.');
+ await dialog.getByRole('button',{name:'Record financial adjustments'}).click();
+ await expect(overview.getByText('Waiting for another administrator')).toBeVisible();
+});
+
+test('shows settlement as recorded without claiming ledger certification',async({page})=>{
+ await mockNoShow(page,'admin',{cleared:true});
+ await page.goto('http://127.0.0.1:5174/billing?booking=2&action=no-show');
+ const overview=page.getByRole('region',{name:'Financial overview'});
+ await expect(overview.getByText('Settlement recorded',{exact:true})).toBeVisible();
+ await expect(overview.getByText(/Check matched accounting entries/)).toBeVisible();
+});

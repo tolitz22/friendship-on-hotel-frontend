@@ -3664,3 +3664,114 @@ dialog.no-show-dialog::backdrop { background: rgb(0 0 0 / 45%); }
 @media(max-width:760px) and (prefers-reduced-motion:reduce){
  .sidebar{transition:none}
 }
+
+
+/* Mobile usability phase 2: overview, role workspaces and front desk.
+   Preserve all queue states, operational warnings, and guarded actions. */
+@media(max-width:760px){
+ .ov-page{gap:20px}
+ .ov-hero{padding:16px;gap:12px;border-radius:15px}
+ .ov-hero-main{min-width:0}
+ .ov-hero-tag{flex-wrap:wrap;gap:6px;font-size:10px}
+ .ov-hero h2{font-size:23px;margin:10px 0 6px;overflow-wrap:anywhere}
+ .ov-hero p{font-size:12px;line-height:1.5}
+ .ov-hero-actions{margin-top:12px;gap:8px}
+ .ov-hero-actions>a{min-height:44px;flex:1 1 135px;width:auto;text-align:center;padding:9px 10px}
+ .ov-hero-aside{min-width:0;padding:10px;gap:6px}
+ .ov-section-heading{gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+ .ov-section-heading>div{flex:1 1 160px;min-width:0}
+ .ov-section-heading h3{font-size:17px}
+ .ov-icon-button{width:44px;height:44px}
+ .ov-text-button{min-height:44px;white-space:normal;text-align:left}
+ .ov-queue-grid,.ov-inventory-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .ov-queue-card{min-height:116px;padding:12px;gap:6px;border-radius:11px}
+ .ov-queue-icon{width:30px;height:30px;border-radius:8px}
+ .ov-queue-icon svg{width:17px;height:17px}
+ .ov-queue-arrow{right:10px;top:16px;width:14px}
+ .ov-queue-card>span:nth-child(2){font-size:12px;line-height:1.35;overflow-wrap:anywhere}
+ .ov-queue-card>strong{font-size:clamp(15px,6vw,27px);overflow-wrap:anywhere;max-width:100%}
+ .ov-queue-card>small{font-size:11px;line-height:1.35}
+ .ov-overdue-priority{padding:12px;gap:10px;margin-bottom:10px}
+ .ov-overdue-priority-action{min-height:44px;width:100%;margin-left:0;white-space:normal}
+ .ov-data-note{align-items:flex-start;line-height:1.5}
+ .ov-data-note svg{flex-shrink:0}
+ .ov-actions-grid{grid-template-columns:1fr;gap:8px}
+ .ov-action-card{min-height:64px;padding:10px;gap:10px}
+ .ov-action-content strong{font-size:14px;overflow-wrap:anywhere}
+ .ov-action-content small{font-size:12px}
+ .ov-inventory-stat{padding:12px;gap:6px;overflow-wrap:anywhere}
+ .ov-inventory-stat>small{line-height:1.4}
+ .ov-inventory-stat:last-child:nth-child(odd){grid-column:1/-1}
+ .ov-bottom-card{padding:12px}
+ .ov-room-table td,.ov-room-table th{padding:10px 6px}
+ .role-summary{gap:8px;margin:12px 0}
+ .role-summary>div{padding:12px;gap:6px}
+ .role-summary small,.role-summary span{overflow-wrap:anywhere}
+ .role-tasks{grid-template-columns:1fr;gap:8px;margin:12px 0}
+ .role-task{grid-template-columns:32px minmax(0,1fr) 20px;align-items:center;align-content:center;min-height:76px;gap:5px 10px;padding:12px}
+ .role-task>svg:first-child{grid-column:1;grid-row:1/3}
+ .role-task>strong{grid-column:2;grid-row:1;overflow-wrap:anywhere}
+ .role-task>span{grid-column:2;grid-row:2;padding:0;overflow-wrap:anywhere}
+ .role-task>svg:last-child{position:static;grid-column:3;grid-row:1/3}
+ .role-note{padding:12px}
+ .fdc-heading{gap:6px;margin-bottom:12px}
+ .fdc-heading .heading{margin-bottom:0}
+ .fdc-heading-actions{width:100%;display:flex;gap:8px}
+ .fdc-heading-actions .btn-primary,.fdc-heading-actions .btn-inline{min-height:44px;flex:1 1 auto;justify-content:center}
+ .fdc-date-strip{padding:10px;gap:8px;margin-bottom:12px}
+ .fdc-date-strip .desk-date-nav,.desk-tools .desk-date-nav{width:100%;display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:8px}
+ .desk-date-nav>button{min-height:44px;justify-content:center}
+ .desk-date-nav>label{grid-column:1/-1;min-width:0;min-height:44px;padding:6px 10px}
+ .desk-date-nav input{flex:1;min-width:0;width:100%;font-size:16px;min-height:32px}
+ .fdc-date-strip>span{font-size:11px;line-height:1.4}
+ .fdc-stats,.desk-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}
+ .fdc-stat,.desk-stat{padding:12px;gap:5px;min-width:0}
+ .fdc-stat>span,.desk-stat>span{overflow-wrap:anywhere;line-height:1.35}
+ .fdc-stat>strong,.desk-stat>strong{font-size:25px}
+ .fdc-stat>small{font-size:11px;line-height:1.35}
+ .fdc-overdue-alert{padding:12px;gap:10px;margin-bottom:12px}
+ .fdc-overdue-alert-action{width:100%;margin:0;min-height:44px;white-space:normal;text-align:center}
+ .fdc-assign-hint{gap:6px;padding:6px 0 12px}
+ .fdc-assign-hint button{min-height:44px}
+ .fdc-workspace{min-width:0}
+ .fdc-workspace-heading{padding:12px;gap:8px}
+ .fdc-workspace-heading>div{min-width:0}
+ .fdc-secondary-link{min-height:44px;justify-content:center}
+ .fdc-controls{padding:10px;gap:8px;display:grid;grid-template-columns:minmax(0,1fr)}
+ .fdc-controls .view-switch,.desk-tab-row .view-switch{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;min-width:0;overflow:visible;gap:4px}
+ .fdc-controls .view-switch button,.desk-tab-row .view-switch button{min-width:0;min-height:44px;white-space:normal;justify-content:space-between;text-align:left;gap:4px;padding:8px;font-size:12px;line-height:1.3;overflow-wrap:anywhere}
+ .desk-tab-count{flex-shrink:0}
+ .fdc-controls .search-box,.desk-tab-row .search-box{max-width:none;width:100%}
+ .fdc-controls>.btn-inline{justify-self:start}
+ .fdc-room-notice{margin:8px 10px;padding:10px;gap:8px}
+ .fdc-room-notice p{font-size:12px}
+ .fdc-queue{gap:10px;padding:10px;background:var(--canvas)}
+ .fdc-guest-row.fdc-guest-row-v2{grid-template-columns:minmax(0,1fr);padding:12px;gap:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface);min-height:0}
+ .fdc-guest-row.fdc-guest-row-v2.is-overdue{border-left:4px solid #ce4141;background:color-mix(in srgb,#dc2626 3%,var(--surface))}
+ .fdc-v2-guest-details{gap:4px}
+ .fdc-v2-details{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:10px;border-top:1px solid var(--border);padding-top:10px}
+ .fdc-v2-detail>small{font-size:12px}
+ .fdc-v2-detail>strong{font-size:13px}
+ .fdc-v2-actions{grid-column:1;display:grid;grid-template-columns:minmax(0,1fr);max-width:none;width:100%;gap:8px}
+ .fdc-v2-actions>*{min-width:0;width:100%;min-height:46px;font-size:13px;justify-content:center;text-align:center}
+ .fdc-v2-actions svg{flex-shrink:0}
+ .fdc-v2-room-alert,.fdc-v2-overdue-followup,.fdc-v2-handoff{grid-column:1;min-width:0;overflow-wrap:anywhere}
+ .fdc-v2-room-alert{flex-wrap:wrap;align-items:flex-start}
+ .fdc-v2-room-alert a{min-height:44px;width:100%;justify-content:center;margin:0;white-space:normal;border:1px solid var(--border);border-radius:8px}
+ .fdc-v2-overdue-followup>span{font-size:12px;align-items:flex-start}
+ .fdc-v2-overdue-followup>span svg{flex-shrink:0}
+ .fdc-v2-overdue-followup details{width:100%;min-width:0}
+ .fdc-v2-overdue-followup summary{min-height:44px;padding:12px 0;cursor:pointer;font-size:13px;font-weight:650}
+ .fdc-v2-overdue-followup form{display:grid;gap:10px;min-width:0}
+ .fdc-v2-overdue-followup textarea{width:100%;min-height:90px}
+ .fdc-pagination{padding:10px;gap:8px}
+ .fdc-pagination>div{width:100%}
+ .fdc-pagination>div>button{flex:1}
+ .fdc-safety-note{padding:10px;font-size:12px}
+}
+@media(max-width:360px){
+ .ov-hero{padding:12px}
+ .ov-queue-card,.fdc-stat,.desk-stat{padding:9px}
+ .ov-queue-card>strong{font-size:clamp(15px,6vw,24px)}
+ .fdc-controls .view-switch button,.desk-tab-row .view-switch button{font-size:11px}
+}

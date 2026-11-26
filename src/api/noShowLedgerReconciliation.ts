@@ -14,7 +14,8 @@ const schema=z.object({
  scope:z.literal('current_no_show_matched_journals_only'),
  expectedMinor:movements,matchedJournalMinor:movements,
  expectedBalances:balances,matchedJournalBalances:balances,
- issues:z.array(z.object({kind:z.string(),reference:z.string(),reason:z.string()})),
+ issues:z.array(z.object({kind:z.string(),reference:z.string(),reason:z.string(),journalIds:z.array(z.string()).optional()})),
+ journalTrace:z.array(z.object({kind:z.string(),reference:z.string(),amountMinor:minor,journalIds:z.array(z.string()),status:z.string()})).optional(),
  reconciled:z.boolean(),settled:z.boolean(),readOnly:z.literal(true),closingCertified:z.literal(false),
 }).superRefine((data,ctx)=>{
  const keys=['deposits','fees','allocations','refunds'] as const;

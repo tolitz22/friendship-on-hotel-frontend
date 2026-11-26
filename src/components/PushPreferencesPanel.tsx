@@ -6,7 +6,7 @@ import {getJson,requestJson} from '../api/http';
 import {registeredDevice} from '../features/notifications/pushDevice';
 import './PushPreferencesPanel.css';
 
-const schema=z.object({enabled:z.boolean(),new_booking:z.boolean(),checkout_due:z.boolean(),checkout_overdue:z.boolean(),room_assignment:z.boolean(),guest_check_in:z.boolean().default(true),guest_check_out:z.boolean().default(true),booking_cancelled:z.boolean().default(true),booking_no_show:z.boolean().default(true),stay_extended:z.boolean().default(true),payment_recorded:z.boolean().default(true),payment_pending_review:z.boolean().default(true),payment_verified:z.boolean().default(true),payment_rejected:z.boolean().default(true),payment_voided:z.boolean().default(true),refund_requested:z.boolean().default(true),refund_verified:z.boolean().default(true),expense_recorded:z.boolean().default(true),expense_correction_requested:z.boolean().default(true),cashier_discrepancy:z.boolean().default(true),housekeeping_completed:z.boolean().default(true),room_inspection_approved:z.boolean().default(true),room_inspection_rejected:z.boolean().default(true),maintenance_created:z.boolean().default(true),maintenance_urgent:z.boolean().default(true),maintenance_resolved:z.boolean().default(true),room_blocked:z.boolean().default(true),room_unblocked:z.boolean().default(true),approval_requested:z.boolean().default(true),approval_approved:z.boolean().default(true),approval_rejected:z.boolean().default(true),staff_message:z.boolean().default(true),staff_announcement:z.boolean().default(true),staff_handover:z.boolean().default(true),staff_acknowledged:z.boolean().default(true)});
+const schema=z.object({enabled:z.boolean(),new_booking:z.boolean(),checkout_due:z.boolean(),checkout_overdue:z.boolean(),room_assignment:z.boolean(),guest_check_in:z.boolean().default(true),guest_check_out:z.boolean().default(true),booking_cancelled:z.boolean().default(true),booking_no_show:z.boolean().default(true),stay_extended:z.boolean().default(true),payment_recorded:z.boolean().default(true),payment_pending_review:z.boolean().default(true),payment_verified:z.boolean().default(true),payment_rejected:z.boolean().default(true),payment_voided:z.boolean().default(true),refund_requested:z.boolean().default(true),refund_verified:z.boolean().default(true),expense_recorded:z.boolean().default(true),expense_correction_requested:z.boolean().default(true),cashier_discrepancy:z.boolean().default(true),housekeeping_completed:z.boolean().default(true),room_inspection_approved:z.boolean().default(true),room_inspection_rejected:z.boolean().default(true),maintenance_created:z.boolean().default(true),maintenance_urgent:z.boolean().default(true),maintenance_resolved:z.boolean().default(true),room_blocked:z.boolean().default(true),room_unblocked:z.boolean().default(true),approval_requested:z.boolean().default(true),approval_approved:z.boolean().default(true),approval_rejected:z.boolean().default(true),staff_message:z.boolean().default(true),staff_announcement:z.boolean().default(true),staff_handover:z.boolean().default(true),staff_acknowledged:z.boolean().default(true),daily_close_completed:z.boolean().default(true),daily_close_blocked:z.boolean().default(true),closing_cashier_unreconciled:z.boolean().default(true),closing_payment_pending:z.boolean().default(true),closing_journal_integrity:z.boolean().default(true),closing_no_show_unresolved:z.boolean().default(true),closing_room_night_issue:z.boolean().default(true)});
 type Preferences=z.infer<typeof schema>;
 const deviceSchema=z.object({id:z.string(),deviceName:z.string(),updatedAt:z.string()});
 const categories=[
@@ -44,6 +44,13 @@ const categories=[
  ['staff_announcement','Staff announcement'],
  ['staff_handover','Shift handover'],
  ['staff_acknowledged','Staff update acknowledged'],
+ ['daily_close_completed','Daily closing completed'],
+ ['daily_close_blocked','Daily closing blocked'],
+ ['closing_cashier_unreconciled','Cashier reconciliation outstanding'],
+ ['closing_payment_pending','Payment evidence outstanding'],
+ ['closing_journal_integrity','Journal integrity issue'],
+ ['closing_no_show_unresolved','No-show financial review outstanding'],
+ ['closing_room_night_issue','Nightly room accounting issue'],
 ] as const;
 
 export function PushPreferencesPanel({userId,hotelId,onRemoveCurrent}:{userId:string;hotelId:string;onRemoveCurrent:()=>Promise<void>}){

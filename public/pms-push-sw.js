@@ -3,12 +3,13 @@ function safeDestination(value){
  if(typeof value!=='string')return '/front-desk';
  try{
   const url=new URL(value,self.location.origin);
-  const keys={'/reservations':'booking','/billing':'booking','/expenses':'expense','/cashier-shifts':'shift','/housekeeping':'task','/maintenance':'order','/rooms':'room','/room-calendar':'room','/manager-approvals':'approval','/messages':'conversation'};
+  const keys={'/reservations':'booking','/billing':'booking','/expenses':'expense','/cashier-shifts':'shift','/housekeeping':'task','/maintenance':'order','/rooms':'room','/room-calendar':'room','/manager-approvals':'approval','/messages':'conversation','/night-audit':'date'};
   const key=keys[url.pathname];
   if(url.origin!==self.location.origin||!key)return '/front-desk';
   const hotel=url.searchParams.get('hotel'),id=url.searchParams.get(key);
   const numeric=value=>/^[1-9][0-9]*$/.test(value||'');
-  if(!numeric(hotel)||!(key==='room'?/^[A-Za-z0-9_-]{1,32}$/.test(id||''):numeric(id)))return '/front-desk';
+  const validDate=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&!Number.isNaN(Date.parse(value+'T00:00:00Z'))&&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value;
+  if(!numeric(hotel)||!(key==='date'?validDate(id):key==='room'?/^[A-Za-z0-9_-]{1,32}$/.test(id||''):numeric(id)))return '/front-desk';
   const params=new URLSearchParams({hotel,[key]:id,push:'1'});
   const action=url.searchParams.get('deskAction');
   if(url.pathname==='/reservations'&&(action==='assign'||action==='check-out'))params.set('deskAction',action);

@@ -44,16 +44,24 @@ const notificationKinds={
  staff_announcement:{label:'Staff announcement',icon:Megaphone,action:'Read announcement'},
  staff_handover:{label:'Shift handover',icon:ClipboardList,action:'Read handover'},
  staff_acknowledged:{label:'Staff update acknowledged',icon:ClipboardCheck,action:'Open conversation'},
+ daily_close_completed:{label:'Daily closing completed',icon:ClipboardCheck,action:'Open Daily Closing'},
+ daily_close_blocked:{label:'Daily closing blocked',icon:AlertTriangle,action:'Open Daily Closing'},
+ closing_cashier_unreconciled:{label:'Cashier reconciliation outstanding',icon:Wallet,action:'Open Daily Closing'},
+ closing_payment_pending:{label:'Payment evidence outstanding',icon:CreditCard,action:'Open Daily Closing'},
+ closing_journal_integrity:{label:'Journal integrity issue',icon:AlertTriangle,action:'Open Daily Closing'},
+ closing_no_show_unresolved:{label:'No-show financial review outstanding',icon:AlertTriangle,action:'Open Daily Closing'},
+ closing_room_night_issue:{label:'Nightly room accounting issue',icon:BedDouble,action:'Open Daily Closing'},
 } as const;
 const responseSchema=z.object({data:z.object({
  hotelId:z.string(),
  notifications:z.array(z.object({
   id:z.string(),kind:z.enum(Object.keys(notificationKinds) as (keyof typeof notificationKinds)[]),bookingId:z.string().regex(/^[1-9]\d*$/).optional(),
-  target:z.enum(['billing','expenses','cashier-shifts','housekeeping','maintenance','rooms','room-calendar','manager-approvals','messages']).optional(),paymentId:z.string().regex(/^[1-9]\d*$/).nullish(),expenseId:z.string().regex(/^[1-9]\d*$/).optional(),shiftId:z.string().regex(/^[1-9]\d*$/).optional(),
+  target:z.enum(['billing','expenses','cashier-shifts','housekeeping','maintenance','rooms','room-calendar','manager-approvals','messages','night-audit']).optional(),paymentId:z.string().regex(/^[1-9]\d*$/).nullish(),expenseId:z.string().regex(/^[1-9]\d*$/).optional(),shiftId:z.string().regex(/^[1-9]\d*$/).optional(),
   taskId:z.string().regex(/^[1-9]\d*$/).optional(),orderId:z.string().regex(/^[1-9]\d*$/).optional(),room:z.string().min(1).max(50).optional(),calendarDate:z.iso.date().optional(),approvalId:z.string().regex(/^[1-9]\d*$/).optional(),
   conversationId:z.string().regex(/^[1-9]\d*$/).optional(),
+  closingDate:z.iso.date().optional(),
   reference:z.string(),date:z.iso.date(),
- }).refine(item=>item.target==='expenses'?!!item.expenseId:item.target==='cashier-shifts'?!!item.shiftId:item.target==='housekeeping'?!!item.taskId:item.target==='maintenance'?!!item.orderId:item.target==='rooms'||item.target==='room-calendar'?!!item.room:item.target==='manager-approvals'?!!item.approvalId:item.target==='messages'?!!item.conversationId:!!item.bookingId)),
+ }).refine(item=>item.target==='expenses'?!!item.expenseId:item.target==='cashier-shifts'?!!item.shiftId:item.target==='housekeeping'?!!item.taskId:item.target==='maintenance'?!!item.orderId:item.target==='rooms'||item.target==='room-calendar'?!!item.room:item.target==='manager-approvals'?!!item.approvalId:item.target==='messages'?!!item.conversationId:item.target==='night-audit'?!!item.closingDate:!!item.bookingId)),
  hasMore:z.boolean(),
 })});
 
@@ -119,6 +127,7 @@ export function StaffNotifications({hotelId,userId,canPush=false}:{hotelId:strin
       :item.target==='room-calendar'?<Link to="/room-calendar" search={{room:item.room,date:item.calendarDate,hotel:hotelId}} onClick={close}>{content}</Link>
       :item.target==='manager-approvals'?<Link to="/manager-approvals" search={{approval:item.approvalId,hotel:hotelId}} onClick={close}>{content}</Link>
       :item.target==='messages'?<Link to="/messages" search={{conversation:item.conversationId,hotel:hotelId}} onClick={close}>{content}</Link>
+      :item.target==='night-audit'?<Link to="/night-audit" search={{date:item.closingDate,hotel:hotelId}} onClick={close}>{content}</Link>
       :<Link to="/reservations" search={{booking:item.bookingId,deskAction}} onClick={close}>{content}</Link>}
      </li>;
     })}

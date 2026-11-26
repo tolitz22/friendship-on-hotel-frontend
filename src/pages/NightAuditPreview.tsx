@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react';
-import {Link} from '@tanstack/react-router';
+import {Link,useSearch} from '@tanstack/react-router';
 import {CalendarDays,ClipboardCheck,RefreshCw,ShieldAlert,Wallet} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
@@ -30,17 +30,18 @@ function Exceptions({label,items}:{label:string;items:Preview['missingNightEntri
 }
 export function NightAuditPreview(){
  const {user,hotelId}=useHotelAuth();
+ const {date:linkedDate,hotel:linkedHotel}=useSearch({from:'/night-audit'});
  if(!hotelId||!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin'))return <>
   <Heading title="Daily Closing" description="Manager-only operational and financial review."/>
   <Panel title="Restricted"><p>Ask an active administrator for this hotel to open Daily Closing and set up the business date.</p></Panel>
  </>;
- return <DailyClosing key={hotelId} hotelId={hotelId}/>;
+ return <DailyClosing key={hotelId+':'+(linkedDate??'current')} hotelId={hotelId} linkedDate={!linkedHotel||linkedHotel===hotelId?linkedDate:undefined}/>;
 }
 
-function DailyClosing({hotelId}:{hotelId:string}){
+function DailyClosing({hotelId,linkedDate}:{hotelId:string;linkedDate?:string}){
  const financialDay=useFinancialBusinessDay(hotelId);
  const currentDate=financialDay.data?.businessDate;
- const [selectedDate,setDate]=useState<string|null>(null);
+ const [selectedDate,setDate]=useState<string|null>(linkedDate??null);
  const date=selectedDate??currentDate??hotelToday();
  const [showReport,setShowReport]=useState(false);
  useEffect(()=>{

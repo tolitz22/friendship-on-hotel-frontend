@@ -31,3 +31,10 @@ it('scopes message notification links to the intended administrator property',()
  expect(requestedNotificationHotel('/messages','?hotel=2&conversation=9&push=1',hotels)).toBeNull();
  expect(requestedNotificationHotel('/messages','?hotel=1&conversation=invalid&push=1',hotels)).toBeNull();
 });
+
+it('validates financial closing dates and property access',()=>{
+ const hotels=[{id:'1',role:'admin'},{id:'2',role:'front_desk'}];
+ expect(requestedNotificationHotel('/night-audit','?hotel=1&date=2026-11-26&push=1',hotels)).toBe('1');
+ expect(requestedNotificationHotel('/night-audit','?hotel=2&date=2026-11-26&push=1',hotels)).toBeNull();
+ expect(requestedNotificationHotel('/night-audit','?hotel=1&date=2026-02-30&push=1',hotels)).toBeNull();
+});

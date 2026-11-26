@@ -128,7 +128,7 @@ const functionalRoutes=[
    date:typeof value.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.date)?value.date:undefined,
   }),component:OccupancyVerification}),
  createRoute({getParentRoute:()=>root,path:'/occupancy-coverage',component:OccupancyCoverageReport}),
- createRoute({getParentRoute:()=>root,path:'/night-audit',component:NightAuditPreview}),
+ createRoute({getParentRoute:()=>root,path:'/night-audit',validateSearch:(value:Record<string,unknown>):{date?:string;hotel?:string;push?:string}=>({date:typeof value.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.date)&&!Number.isNaN(Date.parse(value.date+'T00:00:00Z'))&&new Date(value.date+'T00:00:00Z').toISOString().slice(0,10)===value.date?value.date:undefined,hotel:normalizeBillingBookingId(value.hotel),push:String(value.push)==='1'?'1':undefined}),component:NightAuditPreview}),
  createRoute({getParentRoute:()=>root,path:'/rate-calendar',component:RateCalendar}),
  createRoute({getParentRoute:()=>root,path:'/tax-policies',component:TaxPolicies}),
  createRoute({getParentRoute:()=>root,path:'/folio-night-accounting',component:FolioNightAccounting}),

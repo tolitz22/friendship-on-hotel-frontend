@@ -1,0 +1,11 @@
+.floating-messages{position:fixed;right:max(24px,env(safe-area-inset-right));bottom:calc(24px + env(safe-area-inset-bottom,0px));z-index:40;display:flex;align-items:center;justify-content:center;gap:9px;min-width:58px;height:58px;padding:0 17px;border:2px solid #fff;border-radius:999px;background:#1d4ed8;color:#fff;text-decoration:none;box-shadow:0 6px 22px #0f172a33;transition:transform .16s,background .16s,box-shadow .16s}
+.floating-messages:hover{transform:translateY(-2px);background:#1e40af;color:#fff;text-decoration:none}
+.floating-messages:focus-visible{outline:3px solid #60a5fa;outline-offset:4px}
+.floating-messages.has-unread{background:#1d4ed8;box-shadow:0 0 0 5px #60a5fa55,0 8px 28px #1d4ed84d}
+.floating-messages-count{position:absolute;right:-5px;top:-7px;min-width:24px;height:24px;display:grid;place-items:center;padding:0 5px;border:2px solid #fff;border-radius:999px;background:#b91c1c;color:#fff;font-size:12px;font-weight:750;line-height:1}
+.floating-messages-label{font-size:13px;font-weight:650;white-space:nowrap}
+.floating-messages.has-unread.is-new{animation:message-attention .65s ease-in-out 3}
+@keyframes message-attention{0%,100%{transform:scale(1)}50%{transform:scale(1.09)}}
+.main-area.has-message-shortcut .page-content{padding-bottom:max(90px,calc(76px + env(safe-area-inset-bottom,0px)))}
+@media(max-width:760px){.floating-messages{right:max(16px,env(safe-area-inset-right));bottom:calc(16px + env(safe-area-inset-bottom,0px));height:54px;min-width:54px;padding:0 14px}.floating-messages-label{display:none}}
+@media(prefers-reduced-motion:reduce){.floating-messages{transition:none}.floating-messages.has-unread.is-new{animation:none}}

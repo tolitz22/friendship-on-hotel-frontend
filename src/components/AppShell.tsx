@@ -1,3 +1,4 @@
+import {useStaffRealtime} from '../features/messages/useStaffRealtime';
 import {useMessageInbox} from '../pages/Messages';
 import {MessageCircle} from 'lucide-react';
 import {StaffNotifications} from './StaffNotifications';
@@ -65,6 +66,7 @@ export function experienceForPath(pathname:string,mode:typeof dataMode){
 export function AppShell(){
  const {theme,toggle}=useTheme();
  const {user,hotelId,selectHotel,signOut,pending}=useHotelAuth();
+ useStaffRealtime(dataMode==='api'&&!user?.mustChangePassword?hotelId:null,user?.id);
  const messageInbox=useMessageInbox(hotelId,user?.id);
  const unreadMessages=messageInbox.data?.data.reduce((sum,c)=>sum+Number(c.unread),0)??0;
  const [open,setOpen]=useState(false);

@@ -3,6 +3,7 @@ import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 import {getJson,requestJson} from '../api/http';
 import {hotelPath,readSession} from '../api/session';
+import {NoShowLedgerPanel} from './NoShowLedgerPanel';
 
 const reviewSchema=z.object({
  bookingId:z.string(),currency:z.string(),noShowKind:z.string().nullable(),
@@ -129,7 +130,7 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
      <span>{label}</span><strong>{money(value)}</strong>
     </div>)}
     {data.clearance?<p role="status">
-     {data.refundEligibility?.settled?'Financially settled.':'Accounting clearance recorded.'} VAT {money(data.clearance.vatMinor)}.
+     {data.refundEligibility?.settled?'Folio settlement complete.':'Accounting clearance recorded.'} VAT {money(data.clearance.vatMinor)}.
     </p>:data.recordedReviewId?<>
      <p>Folio adjustments recorded. A second administrator must review the fee and tax treatment.</p>
      {data.recordedReason&&<p>{data.recordedReason}</p>}
@@ -160,6 +161,7 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
      </form>:<p>Financial adjustments are unavailable for this booking.</p>}
     </>}
    </>}
+   {opened&&data?.clearance&&<NoShowLedgerPanel hotelId={hotelId} bookingId={bookingId} userId={userId}/>}
    {notice&&<p role="status">{notice}</p>}
    {error&&<p role="alert">{error}</p>}
    <div className="no-show-dialog-actions">

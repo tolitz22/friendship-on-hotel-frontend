@@ -3775,3 +3775,107 @@ dialog.no-show-dialog::backdrop { background: rgb(0 0 0 / 45%); }
  .ov-queue-card>strong{font-size:clamp(15px,6vw,24px)}
  .fdc-controls .view-switch button,.desk-tab-row .view-switch button{font-size:11px}
 }
+
+
+/* Mobile usability phase 3: booking and guest workflows. */
+.bk-mobile-cards,.guest-mobile-cards,.bk-snapshot-toggle{display:none}
+@media(max-width:760px){
+ .bk-workspace,.bk-overview{gap:10px}
+ .bk-room-panel,.bk-list-panel{padding:12px}
+ .bk-section-heading{gap:8px;margin-bottom:10px}
+ .bk-section-heading>div{min-width:0}
+ .bk-section-heading .btn-primary{width:100%;min-height:44px}
+ .bk-snapshot-toggle{display:flex;width:100%;min-height:44px;align-items:center;justify-content:space-between}
+ .bk-room-panel:not(.bk-snapshot-expanded) .bk-snapshot-content{display:none}
+ .bk-room-toolbar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px;gap:6px}
+ .bk-room-toolbar label{min-width:0}
+ .bk-room-toolbar input,.bk-room-toolbar select{width:100%;min-width:0;max-width:none;min-height:44px;font-size:16px;padding:6px}
+ .bk-room-toolbar>.btn-inline{width:44px;height:44px}
+ .bk-room-grid{max-height:200px;overscroll-behavior:contain}
+ .bk-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .bk-kpi{padding:10px;gap:4px}
+ .bk-kpi span{font-size:12px;overflow-wrap:anywhere}
+ .bk-kpi strong{font-size:23px}
+ .bk-kpi small{font-size:11px}
+ .bk-filter-tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;padding:3px;gap:6px}
+ .bk-filter-tabs button{flex-shrink:0;min-height:44px;white-space:nowrap;font-size:12px}
+ .bk-search{min-width:0;height:46px}
+ .bk-search input{font-size:16px}
+ .bk-search button{min-width:44px;min-height:44px}
+ .bk-filter-tools>div:first-child{flex-basis:100%!important}
+ .bk-filter-tools>label{flex:1 1 100%!important;justify-content:space-between}
+ .bk-filter-tools>label select{flex:1;min-width:0}
+ #booking-date-filters .wizard-input{width:100%;min-width:0}
+ .bk-results-bar button{min-height:44px}
+ .bk-table-scroll,.guest-directory-table{display:none}
+ .bk-mobile-cards,.guest-mobile-cards{display:grid;gap:10px;min-width:0}
+ .bk-mobile-card,.guest-mobile-card{min-width:0;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface);display:grid;gap:10px}
+ .bk-mobile-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap}
+ .bk-mobile-card-head>div{flex:1 1 110px;min-width:0;display:grid;gap:4px}
+ .bk-mobile-card .bk-guest-link{font-size:15px;min-height:44px;overflow-wrap:anywhere}
+ .bk-mobile-card .bk-state{white-space:normal;max-width:100%}
+ .bk-mobile-card .bk-ref,.bk-mobile-card .bk-early{font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+ .bk-mobile-card .bk-early{color:var(--accent)}
+ .bk-mobile-facts,.guest-mobile-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0;padding-top:10px;border-top:1px solid var(--border)}
+ .bk-mobile-facts>div,.guest-mobile-facts>div{min-width:0}
+ .bk-mobile-facts dt,.guest-mobile-facts dt{font-size:11px;color:var(--muted)}
+ .bk-mobile-facts dd,.guest-mobile-facts dd{font-size:13px;line-height:1.45;margin:4px 0 0;overflow-wrap:anywhere}
+ .bk-mobile-facts dd small{display:block;font-size:11px;color:var(--muted)}
+ .bk-mobile-actions,.guest-mobile-actions{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+ .bk-mobile-actions>* ,.guest-mobile-actions>*{display:flex;align-items:center;justify-content:center;min-height:44px;white-space:normal;text-align:center;font-size:13px;gap:6px}
+ .bk-mobile-actions .bk-folio-link,.guest-mobile-actions .inline-task-link{border:1px solid var(--border);border-radius:8px}
+ .bk-list-footer .bk-pager{width:100%;justify-content:space-between;white-space:normal}
+ .bk-list-footer .bk-pager>button{flex:1;min-width:0}
+ .guest-mobile-card>strong{font-size:15px;overflow-wrap:anywhere}
+ .guest-mobile-facts>div:first-child{grid-column:1/-1}
+ .guest-pagination{flex-wrap:wrap}
+ .guest-pagination>div{width:100%}
+ .guest-pagination button{flex:1}
+ .guest-modal-backdrop{padding:8px}
+ .guest-modal{max-height:calc(100dvh - 16px);padding:16px;overscroll-behavior:contain}
+ .guest-fields{grid-template-columns:1fr;gap:12px}
+ .guest-fields input,.guest-fields select,.guest-fields textarea{font-size:16px;min-width:0;width:100%;min-height:44px}
+ .guest-modal-actions>button{flex:1;min-height:44px}
+ .guest-history-panel{padding:12px;gap:10px}
+ .guest-history-row{grid-template-columns:minmax(0,1fr);gap:8px;padding:12px;overflow-wrap:anywhere}
+ .guest-history-row a{display:flex;align-items:center;justify-content:center;min-height:44px;border:1px solid var(--border);border-radius:8px}
+ .guest-history-panel .desk-date-nav{width:100%}
+ .guest-history-panel .desk-date-nav button{flex:1}
+ .rb-top,.rb-layout{padding:12px}
+ .rb-top>div{min-width:0}
+ .rb-calendar-link{min-height:44px;display:inline-flex;align-items:center}
+ .rb-steps{padding:10px;gap:6px;flex-wrap:wrap}
+ .rb-step{min-width:0;font-size:11px}
+ .rb-grid,.rb-review-grid,.reservation-booking-panel .wizard-fields,.gb-page .wizard-fields{grid-template-columns:minmax(0,1fr)}
+ .rb-section .wizard-input,.booking-guest-search input{font-size:16px}
+ .rb-section-heading{flex-wrap:wrap;gap:8px}
+ .rb-main,.rb-summary,.rb-fieldset{min-width:0}
+ .rb-review{margin:12px;padding:12px}
+ .rb-review-actions>button,.rb-complete-actions>*{width:100%;min-height:44px}
+ .booking-guest-popover{min-width:0}
+ .booking-guest-results{max-height:min(240px,35dvh);overscroll-behavior:contain}
+ .booking-guest-option{min-height:56px}
+ .booking-guest-option-info strong{overflow-wrap:anywhere}
+ .booking-guest-clear{min-width:44px;min-height:44px}
+ .stay-next-strip-action{width:100%;padding:0}
+ .stay-next-strip-button{width:100%;white-space:normal;min-height:44px}
+ .stay-detail-grid{grid-template-columns:minmax(0,1fr)}
+ .stay-primary-column,.stay-side-column{min-width:0}
+ .stay-detail-header{flex-wrap:wrap;gap:10px}
+ .stay-close-btn,.stay-text-button,.stay-inline-link{min-height:44px}
+ .stay-room-choices{grid-template-columns:minmax(0,1fr);max-height:45dvh;overscroll-behavior:contain}
+ .stay-room-choice{min-height:64px;min-width:0}
+ .stay-room-choice>span,.stay-room-choice em{overflow-wrap:anywhere}
+ .stay-room-save .btn-primary{width:100%;min-height:44px}
+ .stay-room-pagination{flex-wrap:wrap;gap:8px}
+ .stay-confirm-check{min-height:44px;align-items:flex-start}
+ .gb-page .gb-table-search,.gb-page .gb-status-filter{min-width:0;max-width:100%;flex:1 1 100%}
+ .gb-page .gb-table-search input,.gb-page .gb-status-filter select{font-size:16px;min-width:0;max-width:100%}
+ .gb-page .gb-wizard-nav button,.gb-page .gb-detail-tabs button,.gb-page .gb-tabs button{min-height:44px}
+ .gb-page .gb-table-scroll{max-width:100%;overscroll-behavior-x:contain}
+}
+@media(max-width:360px){
+ .bk-room-toolbar{grid-template-columns:minmax(0,1fr) 44px}
+ .bk-room-toolbar label:first-child{grid-column:1/-1}
+ .bk-mobile-facts,.guest-mobile-facts{gap:8px}
+}

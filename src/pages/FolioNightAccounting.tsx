@@ -50,6 +50,7 @@ export function FolioNightAccounting(){
  const [booking,setBooking]=useState('');
  const [search,setSearch]=useState('');
  const [searchPage,setSearchPage]=useState(1);
+ const [chargeFilter,setChargeFilter]=useState('all');
  const [showPicker,setShowPicker]=useState(true);
  const [showCorrection,setShowCorrection]=useState(false);
  const [correctionAck,setCorrectionAck]=useState<number|null>(null);
@@ -118,7 +119,7 @@ export function FolioNightAccounting(){
  const eligibleAmount=pesosToMinor(eligibleMinor);
  const assessmentStatus=(status:string|undefined)=>status==='approved'?'Approved':status==='pending'?'Awaiting review':status??'Needs assessment';
  function resetInputs(){setBenefitKind('none');setEligibleMinor('0');setReference('');setReason('');setAck(false);setCorrectionAck(null);setShowCorrection(false);}
- function chooseBooking(next:string){setBooking(next);setDraftBooking(next);setEntryId('');setAssessmentId('');setPolicyId('');setError('');setSuccess('');resetInputs();setShowPicker(false);}
+ function chooseBooking(next:string){setChargeFilter('all');setBooking(next);setDraftBooking(next);setEntryId('');setAssessmentId('');setPolicyId('');setError('');setSuccess('');resetInputs();setShowPicker(false);}
  function selectCharge(n:z.infer<typeof night>){setEntryId(n.id);setAssessmentId(assessments.data?.find(a=>a.folioEntryId===n.id)?.id??'');setPolicyId('');setError('');setSuccess('');resetInputs();}
  function active(){return !!hotelId&&readSession().hotelId===hotelId;}
  async function refresh(){
@@ -150,7 +151,7 @@ export function FolioNightAccounting(){
  </>;
  return <>
   <Heading title="Nightly Room Charges"
-   description="Review accommodation charges by stay date, verify taxes and recognize earned room revenue."/>
+   description="Select a booking to review each night's room charge, tax allocation and earned revenue."/>
   <QueryFeedback loading={business.isPending} error={business.error} onRetry={()=>void business.refetch()}/>
   {business.data&&<p className="desk-muted">Business date: <strong>{readableDate(business.data.businessDate)}</strong> · {business.data.status==='open'?'Open':business.data.status}</p>}
   {business.isSuccess&&!enabled&&<Panel title="Finance activation required">
@@ -161,7 +162,7 @@ export function FolioNightAccounting(){
   </Panel>}
   {success&&<p className="stay-feedback-success" role="status">{success}</p>}
   {error&&<p className="stay-feedback-error" role="alert">{error}</p>}
-  <Panel title="1. Choose a booking">
+  <Panel title="Choose a booking">
    {validBooking&&<div className="desk-tools"><strong>{bookingDetail.data?.guestName??'Booking'} · {bookingDetail.data?.reference??'#'+booking}</strong>
     {bookingDetail.data&&<span>{readableDate(bookingDetail.data.checkIn)} – {readableDate(bookingDetail.data.checkOut)} · Room {bookingDetail.data.assignedRoomNumber??'Not assigned'}</span>}
     <button type="button" className="btn-inline" disabled={busy} aria-expanded={showPicker} onClick={()=>setShowPicker(v=>!v)}>{showPicker?'Hide booking search':'Change booking'}</button>
@@ -194,30 +195,47 @@ export function FolioNightAccounting(){
     </div>
    </form></details></>}
   </Panel>
-  {validBooking&&<Panel title="2. Accommodation charges">
+  {validBooking&&<Panel title="Nightly charge register">
    <QueryFeedback loading={assessments.isPending} error={assessments.error} onRetry={()=>void assessments.refetch()}/>
    {nights.isSuccess&&<div className="night-audit-metrics">
     <div className="night-audit-metric"><small>Stay dates charged</small><strong>{nights.data.length}</strong></div>
     <div className="night-audit-metric"><small>Total room charges</small><strong>{peso(nights.data.reduce((sum,n)=>sum+n.amountMinor,0))}</strong></div>
+    <div className="night-audit-metric"><small>Approved nights</small><strong>{assessments.isSuccess?nights.data.filter(n=>assessments.data.some(a=>a.folioEntryId===n.id&&a.status==='approved')).length:'—'}</strong></div>
+    <div className="night-audit-metric"><small>Needs assessment</small><strong>{assessments.isSuccess?nights.data.filter(n=>!assessments.data.some(a=>a.folioEntryId===n.id)).length:'—'}</strong></div>
     <div className="night-audit-metric"><small>Awaiting review</small><strong>{assessments.isSuccess?assessments.data.filter(a=>a.status==='pending').length:'—'}</strong></div>
    </div>}
    {booking&&!validBooking&&<p role="alert">Enter a valid numeric reservation ID.</p>}
    <QueryFeedback loading={nights.isPending&&validBooking} error={nights.error}
     onRetry={()=>void nights.refetch()}/>
    {validBooking&&nights.data?.length===0&&<p>This reservation has no nightly room charges.</p>}
-   {nights.data&&<div className="occupancy-coverage-rows">
-    {[...nights.data].sort((a,b)=>a.stayDate.localeCompare(b.stayDate)).map(n=><article key={n.id} className="ex-record">
-     <div className="desk-tools">
-      <strong>{readableDate(n.stayDate)} · Room charge #{n.id}</strong>
-      <span>{peso(n.amountMinor)}</span>
-     </div>
-     <p>Tax review: <strong>{assessments.isSuccess?assessmentStatus(assessments.data.find(a=>a.folioEntryId===n.id)?.status):'Unavailable'}</strong></p>
-     <button type="button" className="btn-inline" disabled={busy||!assessments.isSuccess} aria-pressed={entryId===n.id}
-      onClick={()=>selectCharge(n)}>{entryId===n.id?'Selected':assessments.data?.some(a=>a.folioEntryId===n.id)?'Review details':'Review tax treatment'}</button>
-    </article>)}
-   </div>}
+   {nights.data&&nights.data.length>0&&<>
+    <div className="flex flex-wrap items-end justify-between gap-3 py-3">
+     <label className="text-sm font-medium">Review status
+      <select className="wizard-input" value={chargeFilter} onChange={e=>setChargeFilter(e.target.value)}>
+       <option value="all">All charges</option><option value="unassessed" disabled={!assessments.isSuccess}>Needs assessment</option><option value="pending" disabled={!assessments.isSuccess}>Awaiting review</option><option value="approved" disabled={!assessments.isSuccess}>Approved</option>
+      </select>
+     </label>
+     <button type="button" className="btn-inline" disabled={busy||nights.isFetching||assessments.isFetching} onClick={()=>void refresh()}><RefreshCw size={15}/> Refresh charges</button>
+    </div>
+    <div className="overflow-x-auto">
+     <table className="w-full text-left text-sm">
+      <caption className="sr-only">Nightly accommodation charges and tax review status</caption>
+      <thead className="border-b"><tr><th scope="col" className="p-3">Stay date</th><th scope="col" className="p-3 text-right">Room charge</th><th scope="col" className="p-3">Tax review</th><th scope="col" className="p-3">Action</th></tr></thead>
+      <tbody>{[...nights.data].filter(n=>chargeFilter==='all'||(assessments.isSuccess&&(assessments.data.find(a=>a.folioEntryId===n.id)?.status??'unassessed')===chargeFilter)).sort((a,b)=>a.stayDate.localeCompare(b.stayDate)).map(n=>{
+       const a=assessments.data?.find(a=>a.folioEntryId===n.id);
+       return <tr key={n.id} className={entryId===n.id?'border-b bg-slate-100 dark:bg-slate-800':'border-b'}>
+        <td className="p-3"><strong className="whitespace-nowrap">{readableDate(n.stayDate)}</strong><div className="desk-muted text-xs">Charge #{n.id}</div></td>
+        <td className="p-3 text-right font-semibold tabular-nums whitespace-nowrap">{peso(n.amountMinor)}</td>
+        <td className="p-3"><span className={'inline-flex rounded-full px-2 py-1 text-xs font-medium '+(!assessments.isSuccess?'bg-slate-100 text-slate-700':a?.status==='approved'?'bg-emerald-100 text-emerald-800':a?.status==='pending'?'bg-amber-100 text-amber-900':'bg-slate-100 text-slate-700')}>{assessments.isSuccess?assessmentStatus(a?.status):'Unavailable'}</span></td>
+        <td className="p-3"><button type="button" className={entryId===n.id?'btn-primary':'btn-inline'} disabled={busy||!assessments.isSuccess} aria-pressed={entryId===n.id} onClick={()=>selectCharge(n)}>{entryId===n.id?'Selected':a?'View details':'Review tax'}</button></td>
+       </tr>;
+      })}</tbody>
+     </table>
+    </div>
+    {chargeFilter!=='all'&&assessments.isSuccess&&!nights.data.some(n=>(assessments.data.find(a=>a.folioEntryId===n.id)?.status??'unassessed')===chargeFilter)&&<p className="desk-muted py-4">No charges match this status. <button type="button" className="btn-inline" onClick={()=>setChargeFilter('all')}>Show all charges</button></p>}
+   </>}
   </Panel>}
-  {currentNight&&!selectedChargeAssessment&&assessments.isSuccess&&<Panel title={'3. Review tax treatment · '+readableDate(currentNight.stayDate)}>
+  {currentNight&&!selectedChargeAssessment&&assessments.isSuccess&&<Panel title={'Review tax treatment · '+readableDate(currentNight.stayDate)}>
    <p className="desk-muted">Existing folio charge: <strong>{peso(currentNight.amountMinor)}</strong>.
     Approval does not add another nightly room charge. VAT is posted as a separate liability.</p>
    <>
@@ -263,7 +281,7 @@ export function FolioNightAccounting(){
      </button>
     </>
   </Panel>}
-  {selectedChargeAssessment&&<Panel title="3. Accounting details">
+  {selectedChargeAssessment&&<Panel title="Accounting details">
    {[selectedChargeAssessment].map(a=><article key={a.id} className="ex-record">
     <div className="desk-tools"><strong>{readableDate(a.stayDate)} · Assessment #{a.id}</strong>
      <span>{assessmentStatus(a.status)}</span></div>
@@ -287,7 +305,7 @@ export function FolioNightAccounting(){
     </div>
    </article>)}
   </Panel>}
-  {selectedAssessment&&<Panel title={selectedAssessment.status==='pending'?'4. Independent review':'4. Corrections and review history'}>
+  {selectedAssessment&&<Panel title={selectedAssessment.status==='pending'?'Independent review':'Corrections and review history'}>
    {selectedAssessment.status==='pending'&&<>
     <p>This approval posts the accounting source and VAT liability, and applies a folio credit only for verified eligible benefits. The original room charge is not duplicated.</p>
     {selectedAssessment.preparedBy===String(userId)&&<p role="alert">You prepared this assessment. A different administrator must approve it.</p>}

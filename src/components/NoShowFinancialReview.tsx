@@ -193,7 +193,7 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
     </div>
    </>}
    {opened&&data&&<NoShowDepositPanel hotelId={hotelId} bookingId={bookingId}/>}
-   {opened&&data?.clearance&&<div id="no-show-accounting-details"><NoShowLedgerPanel hotelId={hotelId} bookingId={bookingId} userId={userId}/></div>
+   {opened&&data?.clearance&&<div id="no-show-accounting-details"><NoShowLedgerPanel hotelId={hotelId} bookingId={bookingId} userId={userId}/></div>}
    {notice&&<p role="status">{notice}</p>}
    {error&&<p role="alert">{error}</p>}
    <div className="no-show-dialog-actions">

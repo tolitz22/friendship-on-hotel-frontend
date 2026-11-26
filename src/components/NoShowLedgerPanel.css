@@ -1,0 +1,22 @@
+.no-show-ledger{border:1px solid var(--border,#d5dbe2);border-radius:12px;padding:16px;display:grid;gap:14px;margin-block:16px;min-width:0}
+.no-show-ledger-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.no-show-ledger h4,.no-show-ledger h5,.no-show-ledger p{margin:0}
+.no-show-ledger-header p,.no-show-ledger-note{font-size:.82rem;opacity:.8;margin-top:4px}
+.no-show-ledger-status{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:8px;border:1px solid currentColor;font-size:.85rem}
+.no-show-ledger-status[data-state=matched]{color:var(--success,#15803d)}
+.no-show-ledger-status[data-state=review]{color:var(--warning,#a16207)}
+.no-show-ledger-balances{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0}
+.no-show-ledger-balances>div{border:1px solid var(--border,#d5dbe2);border-radius:8px;padding:12px;min-width:0}
+.no-show-ledger-balances dt,.no-show-ledger-balances small{font-size:.8rem;overflow-wrap:anywhere}
+.no-show-ledger-balances dd{margin:6px 0;font-size:1.25rem;font-weight:700;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.no-show-ledger-table-wrap{overflow-x:auto;max-width:100%}
+.no-show-ledger-table{width:100%;border-collapse:collapse;font-size:.85rem}
+.no-show-ledger-table caption{text-align:left;font-weight:600;margin-bottom:8px}
+.no-show-ledger-table th,.no-show-ledger-table td{padding:9px 6px;border-bottom:1px solid var(--border,#d5dbe2);text-align:right;font-variant-numeric:tabular-nums}
+.no-show-ledger-table th:first-child{text-align:left}
+.no-show-ledger-table td small{display:block;font-weight:600}
+.no-show-ledger-table tr[data-mismatch=true] td:last-child{color:var(--warning,#a16207)}
+.no-show-ledger-issues{border:1px solid var(--border,#d5dbe2);border-radius:8px;padding:12px;display:grid;gap:8px}
+.no-show-ledger-issues ul{margin:0;padding-left:18px;display:grid;gap:8px}
+.no-show-ledger-issues li span{display:block;font-size:.8rem;overflow-wrap:anywhere}
+@media(max-width:480px){.no-show-ledger{padding:12px}.no-show-ledger-balances{grid-template-columns:1fr}.no-show-ledger-table{font-size:.78rem}}

@@ -1,5 +1,6 @@
 import {ApiError,requestJson} from '../../api/http';
 import {z} from 'zod';
+import {resetPushPrompt,suppressPushPrompt} from './pushPrompt';
 
 export const pushKey=import.meta.env.VITE_PUSH_PUBLIC_KEY?.trim()??'';
 export const pushSupported=()=>typeof window!=='undefined'&&window.isSecureContext&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
@@ -80,6 +81,7 @@ export async function enablePush(userId:string,hotelId:string){
   try{save([...records().filter(r=>r.userId!==userId||r.hotelId!==hotelId),{userId,hotelId,id:data.id,endpointDigest}]);}
   catch(e){await requestJson(path(hotelId)+'/'+encodeURIComponent(data.id),{method:'DELETE'}).catch(()=>{});throw e;}
   if(old&&old.id!==data.id)await requestJson(path(hotelId)+'/'+encodeURIComponent(old.id),{method:'DELETE'}).catch(()=>{});
+  resetPushPrompt(userId,hotelId);
  }catch(e){if(created)await sub.unsubscribe().catch(()=>{});throw e;}
 }
 export async function disablePush(userId:string,hotelId:string){
@@ -90,6 +92,7 @@ export async function disablePush(userId:string,hotelId:string){
  const remaining=records().filter(r=>r.userId!==userId||r.hotelId!==hotelId);
  save(remaining);
  if(!remaining.length)await unsubscribeBrowser();
+ suppressPushPrompt(userId,hotelId);
 }
 function isPushWorker(reg:ServiceWorkerRegistration):boolean{
  const worker=reg.active??reg.waiting??reg.installing;

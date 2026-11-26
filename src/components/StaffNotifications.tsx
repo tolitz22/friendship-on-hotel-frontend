@@ -7,6 +7,7 @@ import {getJson} from '../api/http';
 import {dateLabel} from '../lib/format';
 import {QueryFeedback} from './QueryFeedback';
 import {PushDeviceControl} from './PushDeviceControl';
+import {PushPermissionPrompt} from './PushPermissionPrompt';
 import {groupFor,notificationGroups,priorityFor,visibleNotifications,type NotificationFilter,type NotificationGroup} from '../features/notifications/notificationView';
 import './StaffNotifications.css';
 
@@ -104,6 +105,7 @@ export function StaffNotifications({hotelId,userId,canPush=false}:{hotelId:strin
   try{localStorage.setItem(storageKey,JSON.stringify(updated));}catch{/* Remain usable in memory. */}
  }
  return <>
+  {canPush&&<PushPermissionPrompt userId={userId} hotelId={hotelId} active={!open} onSettings={()=>{dialog.current?.showModal();setSettings(true);setOpen(true);}}/>}
   <button ref={bell} type="button" className={'icon-btn topbar-action-notifications'+(urgent?' has-urgent':'')}
    aria-label={unread?`Notifications, ${unread} unread`:'Notifications'} aria-haspopup="dialog"
    onClick={()=>{dialog.current?.showModal();setOpen(true);void feed.refetch();}}>

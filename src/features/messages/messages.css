@@ -36,3 +36,30 @@
 .messenger-error{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:9px;margin-bottom:12px}
 .messenger-jump{display:flex;align-items:center;gap:6px;margin:8px auto 0;border:1px solid #bfdbfe;border-radius:20px;padding:6px 12px;background:#eff6ff;color:#1d4ed8;font-size:.8rem}
 @media(max-width:767px){.staff-messenger{padding:12px}.messenger-layout{display:block}.messenger-inbox{border-right:0;max-height:none}.messenger-thread{padding:10px}.messenger-history{height:42vh;padding:9px}.messenger-bubble{max-width:92%}.messenger-composer{grid-template-columns:auto auto minmax(0,1fr);gap:6px}.messenger-draft{grid-column:1/-1;grid-row:1}.messenger-composer .btn-primary{justify-self:end}.messenger-heading{margin-bottom:12px}}
+
+/* Compact operational workspace: keep conversation controls close to the composer. */
+.messenger-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 12px;flex-wrap:wrap}
+.messenger-filter{display:flex;gap:4px;padding:3px;border:1px solid #dbe2ea;border-radius:9px}
+.messenger-filter button{padding:6px 10px;border-radius:6px;font-size:.78rem;font-weight:600;background:transparent}
+.messenger-filter button[aria-pressed=true]{background:#e0ecff;color:#1e40af}
+.messenger-mode-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:12px}
+.messenger-mode-row label{display:flex;align-items:center;gap:6px;border:1px solid #cbd5e1;border-radius:8px;padding:8px 10px;font-size:.8rem;cursor:pointer}
+.messenger-mode-row label:has(input:checked){background:#eff6ff;color:#1e3a8a;border-color:#93c5fd}
+.messenger-mode-row label svg{flex:none}
+.messenger-mode-note{font-size:.75rem;opacity:.78;margin:6px 0}
+.messenger-recipient{display:flex;align-items:center;gap:12px;padding:10px;border:1px solid #dbe2ea;border-radius:10px;margin:6px 0;cursor:pointer}
+.messenger-recipient:has(input:checked){background:#eff6ff;color:#1e3a8a;border-color:#93c5fd}
+.messenger-recipient small{display:block;text-transform:capitalize;opacity:.8}
+.messenger-recipient input{margin-left:auto}
+.messenger-directory{max-height:42vh;overflow-y:auto;margin:12px 0}
+.messenger-meta{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.75rem;opacity:.8;margin-top:6px}
+.messenger-bubble button:focus-visible,.messenger-conversation:focus-visible,.messenger-filter button:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+.messenger-thread-heading{border-bottom:1px solid #e2e8f0;padding-bottom:12px}
+.messenger-thread-heading .messenger-avatar{border-radius:50%}
+.messenger-history>p:only-child{margin:auto;text-align:center;color:#64748b}
+.messenger-composer .btn-primary{min-height:40px;white-space:normal}
+.messenger-composer .icon-btn{min-width:40px;min-height:40px}
+.messenger-search input::placeholder{color:#64748b}
+.messenger-back{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:8px;margin-bottom:10px}
+@media(min-width:768px){.messenger-back{display:none}}
+@media(max-width:767px){.messenger-mode-row label{flex:1 1 135px}.messenger-recipient{min-height:52px}.messenger-filter button{min-height:36px}.messenger-heading h2{font-size:1.2rem}}

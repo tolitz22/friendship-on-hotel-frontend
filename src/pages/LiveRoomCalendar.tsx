@@ -16,7 +16,7 @@ import {Heading} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {useHotelAuth} from '../components/AuthProvider';
 
-type Mode='week'|'month';
+type Mode='day'|'week'|'month';
 type Selection={room:RoomCalendarData['rooms'][number];day:string;bookingId?:string};
 type RackEntry={
  id:string;roomId:string;checkIn:string;checkOut:string;
@@ -30,11 +30,12 @@ const shift=(day:string,n:number)=>{const d=parse(day);d.setUTCDate(d.getUTCDate
 const monthStart=(day:string)=>day.slice(0,7)+'-01';
 const weekStart=(day:string)=>shift(day,-parse(day).getUTCDay());
 const period=(anchor:string,mode:Mode)=>{
- const start=mode==='week'?weekStart(anchor):monthStart(anchor);
- const count=mode==='week'?7:new Date(Date.UTC(Number(start.slice(0,4)),Number(start.slice(5,7)),0)).getUTCDate();
+ const start=mode==='day'?anchor:mode==='week'?weekStart(anchor):monthStart(anchor);
+ const count=mode==='day'?1:mode==='week'?7:new Date(Date.UTC(Number(start.slice(0,4)),Number(start.slice(5,7)),0)).getUTCDate();
  return {start,end:shift(start,count),days:Array.from({length:count},(_,n)=>shift(start,n))};
 };
 const navigate=(day:string,mode:Mode,delta:number)=>{
+ if(mode==='day')return shift(day,delta);
  if(mode==='week')return shift(day,delta*7);
  const d=parse(monthStart(day));d.setUTCMonth(d.getUTCMonth()+delta);
  return format(d);
@@ -47,7 +48,7 @@ export function LiveRoomCalendar(){
  const focus=useSearch({from:'/room-calendar'});
  const contextMatches=!focus.hotel||focus.hotel===hotelId;
  const focusGroupId=contextMatches?focus.group:undefined;
- const [mode,setMode]=useState<Mode>('week');
+ const [mode,setMode]=useState<Mode>(()=>!focus.group&&typeof window!=='undefined'&&window.matchMedia('(max-width: 760px)').matches?'day':'week');
  const [anchor,setAnchor]=useState(()=>focus.date??hotelToday());
  const property=useLiveProperty();
  const today=hotelToday(new Date(),property.data?.data.timeZone??'Asia/Manila');
@@ -56,6 +57,7 @@ export function LiveRoomCalendar(){
  const [roomTypeId,setRoomTypeId]=useState('');
  const [search,setSearch]=useState('');
  const [showCheckedOut,setShowCheckedOut]=useState(true);
+ const [filtersExpanded,setFiltersExpanded]=useState(false);
  const [selected,setSelected]=useState<Selection|null>(null);
  const [departure,setDeparture]=useState('');
  const [dragPreview,setDragPreview]=useState<{roomId:string;start:string;end:string}|null>(null);
@@ -123,8 +125,8 @@ export function LiveRoomCalendar(){
   selected.room.id,selected.day,departure,data.bookings,data.blocks
  );
  const extendsOutsideVisible=!!selected&&departure>dates.end;
- const canStartBooking=!!selected&&selected.day>=today&&rangeValid&&!rangeConflict;
- const periodLabel=mode==='week'
+ const canStartBooking=!!selected&&selected.day>=today&&selectedBookings.length===0&&selectedBlocks.length===0&&rangeValid&&!rangeConflict;
+ const periodLabel=mode==='day'?dayText(anchor,{weekday:'short',month:'short',day:'numeric',year:'numeric'}):mode==='week'
   ?dayText(dates.start,{month:'short',day:'numeric',year:'numeric'})+' – '+dayText(shift(dates.end,-1),{month:'short',day:'numeric',year:'numeric'})
   :dayText(dates.start,{month:'long',year:'numeric'});
  return <>
@@ -151,12 +153,14 @@ export function LiveRoomCalendar(){
      <label className="lrc-jump-date">Jump to date <input type="date" aria-label="Jump to calendar date"
       value={anchor} onChange={e=>{if(e.target.value)setAnchor(e.target.value);}}/></label>
      <div className="view-switch" role="group" aria-label="Calendar period">
+     <button type="button" aria-pressed={mode==='day'} className={mode==='day'?'selected':''} onClick={()=>{setMode('day');setPage(1);}}>Day</button>
      <button type="button" aria-pressed={mode==='week'} className={mode==='week'?'selected':''} onClick={()=>{setMode('week');setPage(1);}}>Week</button>
      <button type="button" aria-pressed={mode==='month'} className={mode==='month'?'selected':''} onClick={()=>{setMode('month');setPage(1);}}>Month</button>
      </div>
     </div>
    </div>
-   <div className="lrc-filters">
+   <button type="button" className="btn-inline lrc-filter-toggle" aria-expanded={filtersExpanded} aria-controls="room-calendar-filters" onClick={()=>setFiltersExpanded(v=>!v)}>{filtersExpanded?'Hide filters':'Room filters'}{hasFilters?' · Active':''}</button>
+   <div id="room-calendar-filters" className={'lrc-filters'+(filtersExpanded?' lrc-filters-expanded':'')}>
     <label>Room type
      <select value={roomTypeId} onChange={e=>{setRoomTypeId(e.target.value);setPage(1);}}>
       <option value="">All room types</option>
@@ -184,7 +188,8 @@ export function LiveRoomCalendar(){
     <span><i className="lrc-dot lrc-maintenance"/> Maintenance block</span>
     <span><i className="lrc-dot lrc-conflict"/> Overlap / inspect</span>
     <span><i className="lrc-dot lrc-free"/> No assigned booking</span>
-    <span>Tip: drag across open dates to select a stay</span>
+    <span className="lrc-desktop-tip">Tip: drag across open dates to select a stay</span>
+    <span className="lrc-touch-tip">Tap a room or empty date, then choose check-out.</span>
    </div>
    {calendar.isSuccess&&data&&<div className="lrc-operations-summary" aria-label="Room schedule overview">
     <div><small>Rooms on this page</small><strong>{data.rooms.length}</strong></div>
@@ -225,8 +230,35 @@ export function LiveRoomCalendar(){
     :hasFilters?'No rooms match these filters. Clear filters to show the full rack.'
      :'No rooms are registered yet. Add rooms in Rooms & readiness.'}/>
    {calendar.isSuccess&&data?.rooms.length===0&&hasFilters&&<div className="lrc-empty-action"><button type="button" className="btn-inline" onClick={clearFilters}>Clear filters</button></div>}
-   {calendar.isSuccess&&data&&data.rooms.length>0&&<p className="lrc-scroll-hint"><Info size={14}/> Scroll horizontally to see more dates. Room labels and dates stay visible while browsing.</p>}
-   {calendar.isSuccess&&data&&data.rooms.length>0&&<div className="lrc-scroll rack-scroll" role="region" aria-label="Scrollable room rack" tabIndex={0}>
+   {mode!=='day'&&calendar.isSuccess&&data&&data.rooms.length>0&&<p className="lrc-scroll-hint"><Info size={14}/> Scroll horizontally to see more dates. Room labels and dates stay visible while browsing.</p>}
+   {mode==='day'&&calendar.isSuccess&&data&&data.rooms.length>0&&<section className="lrc-day-list" aria-label="Daily room schedule">
+    <p className="lrc-day-help"><Info size={16}/> Tap a room to view its schedule or select a check-out date. No assignment does not mean available or ready.</p>
+    {data.rooms.map(room=>{
+     const bookings=data.bookings.filter(b=>b.roomId===room.id&&(showCheckedOut||b.status!=='checked_out')&&b.checkIn<=anchor&&anchor<b.checkOut);
+     const blocks=data.blocks.filter(b=>b.roomId===room.id&&b.checkIn<=anchor&&anchor<b.checkOut);
+     const overlap=bookings.length+blocks.length>1;
+     const state=blocks.length?'Blocked':bookings.length?'Assigned booking':'No assigned booking';
+     return <article key={room.id} className={'lrc-day-card'+(overlap?' lrc-day-overlap':'')}>
+      <div className="lrc-day-card-head">
+       <div><strong>Room {room.number}</strong><small>{room.roomTypeName}{room.floor===null?'':' · Floor '+room.floor}</small></div>
+       <span className={'lrc-day-status'+(blocks.length?' is-blocked':'')}>{state}</span>
+      </div>
+      {overlap&&<p className="lrc-day-warning"><AlertTriangle size={15}/> Overlapping records · review required</p>}
+      {bookings.map(b=><div key={b.id} className="lrc-day-record">
+       <strong>{b.guestName??b.reference}</strong>
+       <small>{b.reference} · {b.status?.replaceAll('_',' ')??'Unknown status'}</small>
+       {b.groupName&&<small>Group: {b.groupName} · {b.groupReference}</small>}
+       <small>{dayText(b.checkIn,{month:'short',day:'numeric'})} – {dayText(b.checkOut,{month:'short',day:'numeric'})}</small>
+      </div>)}
+      {blocks.map(b=><div key={b.id} className="lrc-day-record lrc-day-block"><strong>{b.reason}</strong><small>Maintenance block · {dayText(b.checkIn,{month:'short',day:'numeric'})} – {dayText(b.checkOut,{month:'short',day:'numeric'})}</small></div>)}
+      <button type="button" className={bookings.length||blocks.length||anchor<today?'btn-inline':'btn-primary'}
+       onClick={event=>{lastTriggerRef.current=event.currentTarget;openCell(room,anchor);}}>
+       {bookings.length||blocks.length||anchor<today?'View room schedule':'Choose stay dates'} <ArrowUpRight size={16}/>
+      </button>
+     </article>;
+    })}
+   </section>}
+   {mode!=='day'&&calendar.isSuccess&&data&&data.rooms.length>0&&<div className="lrc-scroll rack-scroll" role="region" aria-label="Scrollable room rack" tabIndex={0}>
     <div className={'rack-timeline '+(mode==='month'?'rack-month':'rack-week')}
      style={{'--rack-days':dates.days.length,'--rack-day-width':mode==='week'?'116px':'49px'} as CSSProperties}>
      <div className="rack-header">
@@ -247,7 +279,8 @@ export function LiveRoomCalendar(){
        })),
       ];
       const bars=projectRackBars(entries,{start:dates.start,end:dates.end});
-      const rowHeight=Math.max(60,12+(Math.max(0,...bars.map(b=>b.lane))+1)*33);
+      const lanes=Math.max(0,...bars.map(b=>b.lane))+1;
+      const rowHeight='max(60px, calc(12px + '+lanes+' * var(--rack-lane-height, 33px)))';
       return <div className="rack-room-row" key={room.id} aria-label={'Room '+room.number}>
        <div className="rack-room-name rack-sticky" style={{gridColumn:1,gridRow:1,minHeight:rowHeight}}>
         <strong>Room {room.number}</strong>
@@ -305,7 +338,7 @@ export function LiveRoomCalendar(){
          className={'rack-booking-bar '+(booking?(bar.item.status==='checked_out'?'rack-bar-history':bar.item.status==='checked_in'?'rack-bar-inhouse':'rack-bar-reserved'):'rack-bar-block')
           +(bar.overlap?' rack-bar-conflict':'')+(booking&&focusGroupId&&bar.item.groupId===focusGroupId?' rack-bar-group-focused':'')
           +(booking&&focusGroupId&&bar.item.groupId!==focusGroupId?' rack-bar-group-muted':'')}
-         style={{gridColumn:bar.startColumn+' / span '+bar.span,gridRow:1,alignSelf:'start',marginTop:7+bar.lane*33}}
+         style={{gridColumn:bar.startColumn+' / span '+bar.span,gridRow:1,alignSelf:'start',marginTop:'calc(7px + '+bar.lane+' * var(--rack-lane-height, 33px))'}}
          title={label+' · '+bar.item.checkIn+' to '+bar.item.checkOut+(bar.overlap?' · Overlapping records!':'')}
          aria-label={(booking?'Open booking ':'Inspect maintenance ')+label+' in room '+room.number+' from '+bar.item.checkIn+' to '+bar.item.checkOut}
          onClick={event=>{
@@ -325,7 +358,7 @@ export function LiveRoomCalendar(){
     <button className="btn-inline" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>Previous rooms</button>
     <button className="btn-inline" disabled={page>=meta.totalPages} onClick={()=>setPage(p=>p+1)}>Next rooms</button>
    </div>}
-   <p className="lrc-note"><CalendarDays size={14}/> Click a reservation bar to open the booking drawer. Drag across empty dates for a multi-night stay. Read-only schedule of assigned reservations and maintenance blocks. Checkout dates are exclusive. Empty cells do not prove room readiness, physical occupancy, or sellable availability. Use Bookings for booking changes and Rooms & readiness for inspections.</p>
+   <p className="lrc-note"><CalendarDays size={14}/> Select a reservation or room to open its details. Choose a check-out date for a multi-night stay, or drag across empty dates with a mouse. Read-only schedule of assigned reservations and maintenance blocks. Checkout dates are exclusive. Empty cells do not prove room readiness, physical occupancy, or sellable availability. Use Bookings for booking changes and Rooms & readiness for inspections.</p>
   </section>
    {selected&&createPortal(
     <div className="lrc-modal-backdrop" style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(8,12,22,.76)',display:'flex',alignItems:'stretch',justifyContent:'flex-end',padding:0,backdropFilter:'blur(3px)'}}
@@ -413,7 +446,10 @@ export function LiveRoomCalendar(){
          min={addDays(selected.day,1)} max={addDays(selected.day,31)}
          onChange={event=>setDeparture(event.target.value)}/>
         <small>{rangeValid?(Date.parse(departure+'T00:00:00Z')-Date.parse(selected.day+'T00:00:00Z'))/86400000+' night(s)':'Choose 1–31 nights after arrival'}</small>
-        {rangeConflict&&<p role="alert" className="lrc-modal-warning">This room already has a booking or maintenance block overlapping your chosen dates. Choose another range.</p>}
+         <div className="lrc-stay-presets" role="group" aria-label="Stay length">
+         {[1,2,3,7].map(n=><button type="button" className="btn-inline" key={n} aria-pressed={departure===addDays(selected.day,n)} onClick={()=>setDeparture(addDays(selected.day,n))}>{n} {n===1?'night':'nights'}</button>)}
+        </div>
+       {rangeConflict&&<p role="alert" className="lrc-modal-warning">This room already has a booking or maintenance block overlapping your chosen dates. Choose another range.</p>}
         {extendsOutsideVisible&&<p className="help-copy">Part of this stay is outside the displayed calendar. Final availability must be checked when booking.</p>}
        </div>}
        {canStartBooking&&<div className="lrc-modal-tip">

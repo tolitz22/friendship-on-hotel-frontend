@@ -63,8 +63,8 @@ export function PushPreferencesPanel({userId,hotelId,onRemoveCurrent}:{userId:st
  const root='/hotels/'+encodeURIComponent(hotelId);
  const key=['push-preferences',hotelId,userId];
  const deviceKey=['push-devices',hotelId,userId];
- const prefs=useQuery({queryKey:key,enabled:open,queryFn:async()=>z.object({data:schema}).parse(await getJson<unknown>(root+'/push-preferences')).data,retry:false});
- const devices=useQuery({queryKey:deviceKey,enabled:open,queryFn:async()=>z.object({data:z.array(deviceSchema)}).parse(await getJson<unknown>(root+'/push-subscriptions')).data,retry:false});
+ const prefs=useQuery({queryKey:key,enabled:open,staleTime:30_000,refetchOnWindowFocus:false,queryFn:async()=>z.object({data:schema}).parse(await getJson<unknown>(root+'/push-preferences')).data,retry:false});
+ const devices=useQuery({queryKey:deviceKey,enabled:open,staleTime:30_000,refetchOnWindowFocus:false,queryFn:async()=>z.object({data:z.array(deviceSchema)}).parse(await getJson<unknown>(root+'/push-subscriptions')).data,retry:false});
  const value=draft??prefs.data;
  const current=registeredDevice(userId,hotelId)?.id;
  async function save(){

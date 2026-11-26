@@ -4,7 +4,6 @@ import {useQuery} from '@tanstack/react-query';
 import {AlertTriangle,ArrowRight,BedDouble,Bell,CalendarPlus,ClipboardCheck,ClipboardList,CreditCard,LogOut,Megaphone,MessageCircle,Receipt,Wallet,Wrench,X} from 'lucide-react';
 import {z} from 'zod';
 import {getJson} from '../api/http';
-import {hotelPath} from '../api/session';
 import {dateLabel} from '../lib/format';
 import {QueryFeedback} from './QueryFeedback';
 import {PushDeviceControl} from './PushDeviceControl';
@@ -72,17 +71,20 @@ export function StaffNotifications({hotelId,userId,canPush=false}:{hotelId:strin
    return z.array(z.string()).parse(JSON.parse(localStorage.getItem(storageKey)??'[]'));
   }catch{return [];}
  });
+ const [open,setOpen]=useState(false);
  const dialog=useRef<HTMLDialogElement>(null);
  const bell=useRef<HTMLButtonElement>(null);
  const feed=useQuery({
   queryKey:['live','front-desk','manifest',hotelId,'notifications',userId,canPush],
   queryFn:async()=>{
-   const {data}=responseSchema.parse(await getJson<unknown>(hotelPath('/front-desk/notifications'),canPush?{expanded:1}:{}));
+   const {data}=responseSchema.parse(await getJson<unknown>('/hotels/'+encodeURIComponent(hotelId)+'/front-desk/notifications',canPush?{expanded:1}:{}));
    if(data.hotelId!==hotelId)throw new Error('Notifications belong to another hotel.');
    return data;
   },
   retry:false,
-  refetchInterval:30_000,
+  staleTime:15_000,
+  refetchInterval:open?30_000:60_000,
+  refetchIntervalInBackground:false,
  });
  const items=feed.data?.notifications??[];
  const unread=items.filter(item=>!read.includes(item.id)).length;
@@ -94,11 +96,11 @@ export function StaffNotifications({hotelId,userId,canPush=false}:{hotelId:strin
  return <>
   <button ref={bell} type="button" className="icon-btn topbar-action-notifications"
    aria-label={unread?`Notifications, ${unread} unread`:'Notifications'} aria-haspopup="dialog"
-   onClick={()=>{dialog.current?.showModal();void feed.refetch();}}>
+   onClick={()=>{dialog.current?.showModal();setOpen(true);void feed.refetch();}}>
    <Bell size={19}/>{unread>0&&<span className="staff-notifications-badge" aria-hidden="true">{unread}</span>}
   </button>
   <dialog ref={dialog} className="staff-notifications-dialog" aria-labelledby="staff-notifications-title"
-   onClose={()=>bell.current?.focus()}>
+   onClose={()=>{setOpen(false);bell.current?.focus();}}>
    <header className="staff-notifications-heading">
     <div><h2 id="staff-notifications-title">Notifications</h2>
      <p>{unread?`${unread} unread`:'Front desk updates'}</p></div>

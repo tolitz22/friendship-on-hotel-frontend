@@ -1,7 +1,7 @@
 import {useRef,useState} from 'react';
 import {Link} from '@tanstack/react-router';
 import {useQuery} from '@tanstack/react-query';
-import {AlertTriangle,ArrowRight,BedDouble,Bell,CalendarPlus,ClipboardCheck,CreditCard,LogOut,Receipt,Wallet,Wrench,X} from 'lucide-react';
+import {AlertTriangle,ArrowRight,BedDouble,Bell,CalendarPlus,ClipboardCheck,ClipboardList,CreditCard,LogOut,Megaphone,MessageCircle,Receipt,Wallet,Wrench,X} from 'lucide-react';
 import {z} from 'zod';
 import {getJson} from '../api/http';
 import {hotelPath} from '../api/session';
@@ -40,15 +40,20 @@ const notificationKinds={
  approval_requested:{label:'Manager approval requested',icon:AlertTriangle,action:'Review approvals'},
  approval_approved:{label:'Manager approval granted',icon:ClipboardCheck,action:'Open approvals'},
  approval_rejected:{label:'Manager approval rejected',icon:AlertTriangle,action:'Open approvals'},
+ staff_message:{label:'New staff message',icon:MessageCircle,action:'Open conversation'},
+ staff_announcement:{label:'Staff announcement',icon:Megaphone,action:'Read announcement'},
+ staff_handover:{label:'Shift handover',icon:ClipboardList,action:'Read handover'},
+ staff_acknowledged:{label:'Staff update acknowledged',icon:ClipboardCheck,action:'Open conversation'},
 } as const;
 const responseSchema=z.object({data:z.object({
  hotelId:z.string(),
  notifications:z.array(z.object({
   id:z.string(),kind:z.enum(Object.keys(notificationKinds) as (keyof typeof notificationKinds)[]),bookingId:z.string().regex(/^[1-9]\d*$/).optional(),
-  target:z.enum(['billing','expenses','cashier-shifts','housekeeping','maintenance','rooms','room-calendar','manager-approvals']).optional(),paymentId:z.string().regex(/^[1-9]\d*$/).nullish(),expenseId:z.string().regex(/^[1-9]\d*$/).optional(),shiftId:z.string().regex(/^[1-9]\d*$/).optional(),
+  target:z.enum(['billing','expenses','cashier-shifts','housekeeping','maintenance','rooms','room-calendar','manager-approvals','messages']).optional(),paymentId:z.string().regex(/^[1-9]\d*$/).nullish(),expenseId:z.string().regex(/^[1-9]\d*$/).optional(),shiftId:z.string().regex(/^[1-9]\d*$/).optional(),
   taskId:z.string().regex(/^[1-9]\d*$/).optional(),orderId:z.string().regex(/^[1-9]\d*$/).optional(),room:z.string().min(1).max(50).optional(),calendarDate:z.iso.date().optional(),approvalId:z.string().regex(/^[1-9]\d*$/).optional(),
+  conversationId:z.string().regex(/^[1-9]\d*$/).optional(),
   reference:z.string(),date:z.iso.date(),
- }).refine(item=>item.target==='expenses'?!!item.expenseId:item.target==='cashier-shifts'?!!item.shiftId:item.target==='housekeeping'?!!item.taskId:item.target==='maintenance'?!!item.orderId:item.target==='rooms'||item.target==='room-calendar'?!!item.room:item.target==='manager-approvals'?!!item.approvalId:!!item.bookingId)),
+ }).refine(item=>item.target==='expenses'?!!item.expenseId:item.target==='cashier-shifts'?!!item.shiftId:item.target==='housekeeping'?!!item.taskId:item.target==='maintenance'?!!item.orderId:item.target==='rooms'||item.target==='room-calendar'?!!item.room:item.target==='manager-approvals'?!!item.approvalId:item.target==='messages'?!!item.conversationId:!!item.bookingId)),
  hasMore:z.boolean(),
 })});
 
@@ -113,6 +118,7 @@ export function StaffNotifications({hotelId,userId,canPush=false}:{hotelId:strin
       :item.target==='rooms'?<Link to="/rooms" search={{room:item.room}} onClick={close}>{content}</Link>
       :item.target==='room-calendar'?<Link to="/room-calendar" search={{room:item.room,date:item.calendarDate,hotel:hotelId}} onClick={close}>{content}</Link>
       :item.target==='manager-approvals'?<Link to="/manager-approvals" search={{approval:item.approvalId,hotel:hotelId}} onClick={close}>{content}</Link>
+      :item.target==='messages'?<Link to="/messages" search={{conversation:item.conversationId,hotel:hotelId}} onClick={close}>{content}</Link>
       :<Link to="/reservations" search={{booking:item.bookingId,deskAction}} onClick={close}>{content}</Link>}
      </li>;
     })}

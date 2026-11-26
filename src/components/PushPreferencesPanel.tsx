@@ -6,7 +6,7 @@ import {getJson,requestJson} from '../api/http';
 import {registeredDevice} from '../features/notifications/pushDevice';
 import './PushPreferencesPanel.css';
 
-const schema=z.object({enabled:z.boolean(),new_booking:z.boolean(),checkout_due:z.boolean(),checkout_overdue:z.boolean(),room_assignment:z.boolean(),guest_check_in:z.boolean().default(true),guest_check_out:z.boolean().default(true),booking_cancelled:z.boolean().default(true),booking_no_show:z.boolean().default(true),stay_extended:z.boolean().default(true),payment_recorded:z.boolean().default(true),payment_pending_review:z.boolean().default(true),payment_verified:z.boolean().default(true),payment_rejected:z.boolean().default(true),payment_voided:z.boolean().default(true),refund_requested:z.boolean().default(true),refund_verified:z.boolean().default(true),expense_recorded:z.boolean().default(true),expense_correction_requested:z.boolean().default(true),cashier_discrepancy:z.boolean().default(true),housekeeping_completed:z.boolean().default(true),room_inspection_approved:z.boolean().default(true),room_inspection_rejected:z.boolean().default(true),maintenance_created:z.boolean().default(true),maintenance_urgent:z.boolean().default(true),maintenance_resolved:z.boolean().default(true),room_blocked:z.boolean().default(true),room_unblocked:z.boolean().default(true),approval_requested:z.boolean().default(true),approval_approved:z.boolean().default(true),approval_rejected:z.boolean().default(true)});
+const schema=z.object({enabled:z.boolean(),new_booking:z.boolean(),checkout_due:z.boolean(),checkout_overdue:z.boolean(),room_assignment:z.boolean(),guest_check_in:z.boolean().default(true),guest_check_out:z.boolean().default(true),booking_cancelled:z.boolean().default(true),booking_no_show:z.boolean().default(true),stay_extended:z.boolean().default(true),payment_recorded:z.boolean().default(true),payment_pending_review:z.boolean().default(true),payment_verified:z.boolean().default(true),payment_rejected:z.boolean().default(true),payment_voided:z.boolean().default(true),refund_requested:z.boolean().default(true),refund_verified:z.boolean().default(true),expense_recorded:z.boolean().default(true),expense_correction_requested:z.boolean().default(true),cashier_discrepancy:z.boolean().default(true),housekeeping_completed:z.boolean().default(true),room_inspection_approved:z.boolean().default(true),room_inspection_rejected:z.boolean().default(true),maintenance_created:z.boolean().default(true),maintenance_urgent:z.boolean().default(true),maintenance_resolved:z.boolean().default(true),room_blocked:z.boolean().default(true),room_unblocked:z.boolean().default(true),approval_requested:z.boolean().default(true),approval_approved:z.boolean().default(true),approval_rejected:z.boolean().default(true),staff_message:z.boolean().default(true),staff_announcement:z.boolean().default(true),staff_handover:z.boolean().default(true),staff_acknowledged:z.boolean().default(true)});
 type Preferences=z.infer<typeof schema>;
 const deviceSchema=z.object({id:z.string(),deviceName:z.string(),updatedAt:z.string()});
 const categories=[
@@ -40,6 +40,10 @@ const categories=[
  ['approval_requested','Manager approval requested'],
  ['approval_approved','Manager approval granted'],
  ['approval_rejected','Manager approval rejected'],
+ ['staff_message','New staff message'],
+ ['staff_announcement','Staff announcement'],
+ ['staff_handover','Shift handover'],
+ ['staff_acknowledged','Staff update acknowledged'],
 ] as const;
 
 export function PushPreferencesPanel({userId,hotelId,onRemoveCurrent}:{userId:string;hotelId:string;onRemoveCurrent:()=>Promise<void>}){

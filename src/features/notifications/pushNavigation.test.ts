@@ -24,3 +24,10 @@ it('validates operational push destinations and administrator access',()=>{
  expect(requestedNotificationHotel('/room-calendar','?hotel=1&room=101-A&push=1',hotels)).toBe('1');
  expect(requestedNotificationHotel('/manager-approvals','?hotel=1&approval=3&push=1',hotels)).toBe('1');
 });
+
+it('scopes message notification links to the intended administrator property',()=>{
+ const hotels=[{id:'1',role:'admin'},{id:'2',role:'front_desk'}];
+ expect(requestedNotificationHotel('/messages','?hotel=1&conversation=9&push=1',hotels)).toBe('1');
+ expect(requestedNotificationHotel('/messages','?hotel=2&conversation=9&push=1',hotels)).toBeNull();
+ expect(requestedNotificationHotel('/messages','?hotel=1&conversation=invalid&push=1',hotels)).toBeNull();
+});

@@ -3,7 +3,7 @@ function safeDestination(value){
  if(typeof value!=='string')return '/front-desk';
  try{
   const url=new URL(value,self.location.origin);
-  const keys={'/reservations':'booking','/billing':'booking','/expenses':'expense','/cashier-shifts':'shift','/housekeeping':'task','/maintenance':'order','/rooms':'room','/room-calendar':'room','/manager-approvals':'approval'};
+  const keys={'/reservations':'booking','/billing':'booking','/expenses':'expense','/cashier-shifts':'shift','/housekeeping':'task','/maintenance':'order','/rooms':'room','/room-calendar':'room','/manager-approvals':'approval','/messages':'conversation'};
   const key=keys[url.pathname];
   if(url.origin!==self.location.origin||!key)return '/front-desk';
   const hotel=url.searchParams.get('hotel'),id=url.searchParams.get(key);

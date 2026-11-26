@@ -1,5 +1,5 @@
 import {useEffect,useState,useRef,useLayoutEffect} from 'react';
-import {Link} from '@tanstack/react-router';
+import {Link,useSearch} from '@tanstack/react-router';
 import {selectedRole,canViewWorkspacePath} from '../features/workspaces/roleNavigation';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {MessageCircle,Send,Plus,ArrowLeft,Hash,Paperclip,Download,FileText,Link2,ArrowUpRight,Megaphone,CheckCircle2,ClipboardList,Search,Users,ArrowDown} from 'lucide-react';
@@ -36,10 +36,11 @@ export function useMessageInbox(hotel:string|null,user:string|undefined){
 }
 export function Messages(){
  const {hotelId,user}=useHotelAuth();
+ const {conversation,hotel:linkedHotel}=useSearch({from:'/messages'});
  if(!hotelId||!user||dataMode!=='api')return <section className="panel">Sign in to a hotel to use staff messaging.</section>;
- return <Inbox key={hotelId+':'+user.id} hotel={hotelId} user={user.id}/>;
+ return <Inbox key={hotelId+':'+user.id} hotel={hotelId} user={user.id} linkedConversation={!linkedHotel||linkedHotel===hotelId?conversation:undefined}/>;
 }
-function Inbox({hotel,user}:{hotel:string;user:string}){
+function Inbox({hotel,user,linkedConversation}:{hotel:string;user:string;linkedConversation?:string}){
  const client=useQueryClient(),base=path(hotel);
  const inbox=useMessageInbox(hotel,user);
  const directory=useQuery({queryKey:['message-directory',hotel,user],queryFn:()=>getJson<{data:Staff[]}>(base+'/directory')});
@@ -82,6 +83,15 @@ function Inbox({hotel,user}:{hotel:string;user:string}){
  const unreadTotal=(inbox.data?.data??[]).reduce((sum,c)=>sum+Number(c.unread||0),0);
  const filteredStaff=(directory.data?.data??[]).filter(s=>(s.name+' '+s.role.replaceAll('_',' ')).toLowerCase().includes(staffSearch.trim().toLowerCase()));
  const open=(id:number|null)=>{if(id!==null&&id===selected&&!compose)return;setPeople([]);setTitle('');setStaffSearch('');setSelected(id);setCompose(false);setSearch('');setOlder([]);setBody('');setReply(null);setFile(null);setRecord(null);setPicker(false);setAnnouncement(false);setHandoverMode(false);setHandover(emptyHandover());setError('');};
+ const handledLink=useRef<string|undefined>(undefined);
+ useEffect(()=>{
+  if(!linkedConversation){handledLink.current=undefined;return;}
+  if(handledLink.current===linkedConversation||!inbox.isSuccess||busy)return;
+  handledLink.current=linkedConversation;
+  const match=inbox.data.data.find(c=>String(c.id)===linkedConversation);
+  if(match){open(match.id);}
+  else{open(null);setError('This conversation is unavailable or you no longer have access.');}
+ },[linkedConversation,inbox.isSuccess,inbox.data,busy]);
  async function create(){
   if(lock.current||!people.length)return;
   lock.current=true;setBusy(true);setError('');

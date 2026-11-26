@@ -11,11 +11,14 @@ import {readableDate,readableDateTime,statusLabel} from '../lib/format';
 import {auditActorName} from '../components/ReadableAuditEvent';
 import {listHotelStaff} from '../api/liveStaff';
 
+const filters: {value:'history'|ApprovalStatus;label:string}[]=[{value:'pending',label:'Pending review'},{value:'executed',label:'Executed'},{value:'rejected',label:'Rejected'},{value:'expired',label:'Expired'},{value:'history',label:'All history'}];
+
 function ApprovalCard({item,hotelId}:{item:Approval;hotelId:string}){
  const client=useQueryClient();
  const {user}=useHotelAuth();
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:!!hotelId});
  const actor=(id:string,serverName?:string|null)=>auditActorName(id,serverName??staff.data?.data.find(m=>m.userId===id)?.name,user?.id,user?.name);
+ const [expanded,setExpanded]=useState(false);
  const [note,setNote]=useState('');
  const [confirmed,setConfirmed]=useState(false);
  const [busy,setBusy]=useState(false);
@@ -49,17 +52,22 @@ function ApprovalCard({item,hotelId}:{item:Approval;hotelId:string}){
   }catch(cause){setError(cause instanceof Error?cause.message:'Review result unknown. Refresh before retrying.');}
   finally{setBusy(false);}
  }
- return <article className={'stay-review-card'+(item.action==='early_check_in'?' stay-review-early':'')}>
+ return <article className="stay-review-card rounded-xl border border-slate-200 p-4 sm:p-5">
   <div className="desk-tools"><strong>{item.action==='cancel_booking'?'Cancel reservation':item.action==='early_check_in'?'Early check-in · Manager review':item.action==='early_check_out'?'Early checkout · Manager review':'Change stay dates'} <small>#{item.id}</small></strong>
-   <span className="table-count">{statusLabel(item.status)}</span></div>
+   <span className={'rounded-full px-3 py-1 text-xs font-medium '+(item.status==='pending'?'bg-amber-50 text-amber-800':item.status==='executed'?'bg-emerald-50 text-emerald-800':'bg-slate-100 text-slate-700')}>{statusLabel(item.status)}</span></div>
   <p><Link to="/reservations" search={{booking:item.bookingId}}>Reservation #{item.bookingId}</Link>
    {' · '}Requested by {actor(item.requestedBy)} · {readableDateTime(item.createdAt)}</p>
-  <p><strong>Reason:</strong> {item.reason}</p>
+  <div className="my-3 rounded-lg bg-slate-50 p-3"><p className="text-xs font-medium text-slate-600">Request reason</p><p className="mt-1 whitespace-pre-wrap break-words text-sm">{item.reason}</p></div>
   <p><strong>Recorded booking:</strong> {readableDate(item.snapshot.checkIn)} → {readableDate(item.snapshot.checkOut)}
    {' · '}{item.snapshot.status} · Room {item.snapshot.assignedRoomId??'unassigned'}</p>
   {item.action==='amend_dates'&&<p><strong>Requested dates:</strong> {readableDate(item.payload.checkIn)} → {readableDate(item.payload.checkOut)}</p>}
-  <p className="desk-muted">Expires: {readableDateTime(item.expiresAt)}. For early arrivals or departures, approval immediately performs the applicable guarded stay transition and records an audit event. Early checkout creates a housekeeping turnover task and still enforces financial checkout rules. Neither operation automatically refunds or changes charges.</p>
-  {item.status==='pending'&&<>
+  <p className="desk-muted">Expires: {readableDateTime(item.expiresAt)}</p>
+  {item.status==='pending'&&<div className="mt-4 border-t border-slate-200 pt-3">
+   <button type="button" className="btn-inline" aria-expanded={expanded} disabled={busy} onClick={()=>setExpanded(v=>!v)}>{expanded?'Hide decision form':'Review request'}</button>
+   {expanded&&<div className="mt-3 space-y-3">
+   <h4 className="font-semibold">Make a decision</h4>
+   <p className="text-sm">Approval attempts to execute the requested change immediately. Existing booking and financial safeguards still apply.</p>
+   <p className="text-xs text-slate-600">{item.action==='early_check_in'||item.action==='early_check_out'?'Approval requires a note of at least 10 characters.':'Approval requires confirmation.'} Rejection requires a reason.</p>
    <label className="wizard-label" htmlFor={'review-note-'+item.id}>Manager decision note</label>
    <textarea id={'review-note-'+item.id} className="wizard-input" rows={2} maxLength={1000}
     value={note} onChange={e=>setNote(e.target.value)} disabled={busy} placeholder={item.action==='early_check_in'?'Describe verified guest arrival, room readiness and pricing follow-up':item.action==='early_check_out'?'Confirm actual departure, guest request and financial follow-up':'Reason for decision (required for rejection)'}/>
@@ -78,7 +86,8 @@ function ApprovalCard({item,hotelId}:{item:Approval;hotelId:string}){
     <button type="button" className="btn-inline" disabled={busy||!note.trim()}
      onClick={()=>void decide('reject')}>Reject request</button>
    </div>
-  </>}
+   </div>}
+  </div>}
   {item.status==='expired'&&<p>Open the booking to submit a fresh request if the guest still needs this exception.</p>}
   {(item.status==='executed'||item.status==='rejected')&&<p><CheckCircle2 size={16}/> Reviewed by {item.reviewedBy?actor(item.reviewedBy):'Manager name unavailable'} · {item.reviewNote||'No additional note'}</p>}
   {error&&<p role="alert" className="auth-error"><AlertTriangle size={16}/>{error} Check booking history before retrying.</p>}
@@ -117,21 +126,20 @@ export function ManagerApprovals(){
  if(!manager)return <><Heading title="Manager approvals" description="Only authorized hotel managers can review staff exceptions."/>
   <Panel title="Restricted"><p role="status"><ShieldCheck size={18}/> Only authorized managers can access this page.</p></Panel></>;
  return <>
-  <div className="ex-heading"><Heading title="Manager approvals" description="Independently review and execute narrow reservation exceptions with an audit trail."/>
-   <button className="btn-inline" type="button" onClick={()=>void approvals.refetch()}><RefreshCw size={15}/> Refresh</button></div>
+  <div className="ex-heading"><Heading title="Manager approvals" description="Review booking exceptions, confirm decisions, and track their audit history."/>
+   <button className="btn-inline" type="button" disabled={approvals.isFetching} onClick={()=>void approvals.refetch()}><RefreshCw size={15} className={approvals.isFetching?'animate-spin':''}/> {approvals.isFetching?'Refreshing…':'Refresh'}</button></div>
   <Panel title={filter==='pending'?'Approval inbox':'Approval history'}>
-   <div className="desk-tools">
-    <label>Request status{' '}<select className="wizard-input" value={filter}
-     onChange={e=>{setFilter(e.target.value as typeof filter);setPage(1);}}>
-     <option value="pending">Pending</option><option value="executed">Executed</option>
-     <option value="rejected">Rejected</option><option value="expired">Expired</option><option value="history">All history</option>
-    </select></label>
-    <span>Review may fail if the booking changed, funds were recorded, the requester was deactivated, or hotel inventory is no longer eligible.</span>
+   <div className="mb-4 flex flex-wrap items-center gap-2" role="group" aria-label="Filter approval requests">
+    {filters.map(option=><button key={option.value} type="button" aria-pressed={filter===option.value}
+     className={'rounded-lg border px-3 py-2 text-sm font-medium '+(filter===option.value?'border-slate-900 bg-slate-900 text-white':'border-slate-200 bg-white text-slate-700 hover:bg-slate-50')}
+     onClick={()=>{setFilter(option.value);setPage(1);}}>{option.label}</button>)}
    </div>
-   <QueryFeedback loading={approvals.isPending} error={approvals.error}
-    onRetry={()=>void approvals.refetch()}
-    empty={approvals.isSuccess&&approvals.data.data.length===0}/>
+   {approvals.isSuccess&&<div className="mb-4 flex items-baseline gap-2"><strong className="text-2xl tabular-nums">{approvals.data.meta.total}</strong><span className="text-sm text-slate-600">{filter==='pending'?'requests awaiting review':'matching requests'}</span></div>}
+   <QueryFeedback loading={approvals.isPending} error={approvals.error} onRetry={()=>void approvals.refetch()}/>
+   {approvals.isSuccess&&approvals.data.data.length===0&&<div role="status" className="rounded-xl border border-dashed border-slate-300 p-8 text-center"><ShieldCheck className="mx-auto mb-2 text-slate-500" size={28}/><h3 className="font-semibold">{filter==='pending'?'No pending approvals':'No matching requests'}</h3><p className="mt-1 text-sm text-slate-500">{filter==='pending'?'New exception requests will appear here.':'Choose another status to view more requests.'}</p></div>}
+   <div className="space-y-3">
    {approvals.data?.data.map(item=><ApprovalCard key={hotelId+'-'+item.id} item={item} hotelId={hotelId!}/>)}
+   </div>
    {approvals.data&&<div className="desk-tools">
     <span>Page {approvals.data.meta.page} of {Math.max(1,approvals.data.meta.totalPages)}
      {' · '}{approvals.data.meta.total} requests</span>

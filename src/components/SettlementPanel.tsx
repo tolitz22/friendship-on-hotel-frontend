@@ -226,6 +226,8 @@ export function SettlementPanel({bookingId,requestedAction,requestedPayment}:{bo
  const extraBalanceMinor=Math.max(0,(data?.netRecordedChargesMinor??0)-recordedTotal);
  const canCollectExtra=extraBalanceMinor>0&&!data?.signed&&
   ['confirmed','checked_in'].includes(data?.status??'');
+ const canReviewPendingTransfer=manager&&unconfirmed.some(payment=>payment.method==='bank_transfer'&&
+  data?.cashShiftContexts.find(row=>row.paymentId===payment.id)?.recordedBy!==user?.id);
  // Operational handoff: a payment is already recorded; the question is WHO
  // can complete the next control. Never confuse staff confirmation with
  // independently verified funds or a completed checkout.
@@ -465,6 +467,13 @@ export function SettlementPanel({bookingId,requestedAction,requestedPayment}:{bo
       {!checkoutBlock&&data.status==='checked_in'
        ?<Link to="/reservations" search={{booking:bookingId,deskAction:'check-out'}}
          className="btn-primary">Continue guest checkout <ArrowRight size={16}/></Link>
+       :canCollectExtra&&canReviewPendingTransfer
+       ?<>
+         <button type="button" className="btn-primary" disabled={busy} onClick={openPaymentReview}>
+          <ShieldCheck size={16}/> Confirm recorded payment</button>
+         <button type="button" className="rr-secondary-action" disabled={busy} onClick={()=>openDialog('payment')}>
+          <Banknote size={16}/> Record additional payment · {money(extraBalanceMinor,data.currency)}</button>
+        </>
        :canCollectExtra&&hasExistingMoney
        ?<button type="button" className={requestedPayment?'rr-secondary-action':'btn-primary'} disabled={busy}
          onClick={()=>openDialog('payment')}><Banknote size={16}/>

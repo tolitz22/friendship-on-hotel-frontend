@@ -26,6 +26,9 @@ test('guest statement shows the pending transfer and applied amount on screen an
   await route.fulfill({status:404,json:{message:'Outside statement fixture'}});
  });
  await page.goto('http://127.0.0.1:5174/billing?booking=2');
+ const paymentHub=page.getByRole('region',{name:'Front desk payment and checkout'});
+ await expect(paymentHub.getByRole('button',{name:'Confirm recorded payment'})).toHaveClass('btn-primary');
+ await expect(paymentHub.getByRole('button',{name:/Record additional payment/})).toHaveClass('rr-secondary-action');
  await page.getByText('View itemized bill and payment history',{exact:true}).click();
  const statement=page.getByLabel('Printable guest checkout statement');
  for(const media of ['screen','print'] as const){

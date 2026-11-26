@@ -1,7 +1,7 @@
 import {StaffNotifications} from './StaffNotifications';
 import {Link,Outlet,useRouterState} from '@tanstack/react-router';
 import {LayoutDashboard,CalendarDays,CalendarRange,BedDouble,Users,Wallet,ClipboardCheck,Wrench,ChartNoAxesCombined,Settings,Sun,Moon,Menu,X,Hotel,LogOut,ArrowRight,ChevronDown,ShieldCheck,ShieldAlert,ClipboardList,Receipt} from 'lucide-react';
-import {Suspense,useEffect,useState} from 'react';
+import {Suspense,useEffect,useRef,useState,type KeyboardEvent} from 'react';
 import {useTheme} from './ThemeProvider';
 import {dataMode} from '../api';
 import {useHotelAuth} from './AuthProvider';
@@ -63,6 +63,9 @@ export function AppShell(){
  const {theme,toggle}=useTheme();
  const {user,hotelId,selectHotel,signOut,pending}=useHotelAuth();
  const [open,setOpen]=useState(false);
+ const menuButton=useRef<HTMLButtonElement>(null);
+ const closeButton=useRef<HTMLButtonElement>(null);
+ const restoreMenuFocus=useRef(false);
  const [showAdvanced,setShowAdvanced]=useState(false);
  const [showMoreOperations,setShowMoreOperations]=useState(false);
  const pathname=useRouterState({select:s=>s.location.pathname});
@@ -72,6 +75,40 @@ export function AppShell(){
  const workspace=navigationForRole(role);
  const admin=role==='admin';
  useEffect(()=>{setOpen(false);},[pathname,hotelId]);
+ useEffect(()=>{
+  if(!open){
+   if(restoreMenuFocus.current)menuButton.current?.focus();
+   restoreMenuFocus.current=false;
+   return;
+  }
+  closeButton.current?.focus();
+  const mobile=window.matchMedia('(max-width: 760px)');
+  const closeOnDesktop=(event:MediaQueryListEvent)=>{if(!event.matches)setOpen(false);};
+  mobile.addEventListener('change',closeOnDesktop);
+  return ()=>mobile.removeEventListener('change',closeOnDesktop);
+ },[open]);
+
+ const closeNavigation=()=>{
+  restoreMenuFocus.current=true;
+  setOpen(false);
+ };
+ const handleNavigationKey=(event:KeyboardEvent<HTMLElement>)=>{
+  if(!open)return;
+  if(event.key==='Escape'){
+   event.preventDefault();
+   closeNavigation();
+  }
+  if(event.key==='Tab'){
+   const controls=event.currentTarget.querySelectorAll<HTMLElement>('button, a[href]');
+   const first=controls[0];
+   const last=controls[controls.length-1];
+   const boundary=event.shiftKey?first:last;
+   if(document.activeElement===boundary){
+    event.preventDefault();
+    (event.shiftKey?last:first)?.focus();
+   }
+  }
+ };
  if(dataMode==='api'&&!user&&['/forgot-password','/reset-password','/accept-invitation'].includes(pathname))return <Outlet/>;
  if(dataMode==='api'&&pending&&!user)
   return <div className="auth-shell"><div className="auth-card"><p role="status">Checking your staff session…</p></div></div>;
@@ -94,18 +131,20 @@ export function AppShell(){
    section==='daily'?workspace.daily.includes(item.to):
    section==='management'?workspace.management.includes(item.to):
    workspace.advanced.includes(item.to))))
-  .map(({to,label,icon:Icon})=><Link key={to} to={to} activeOptions={{exact:true}}
+  .map(({to,label,icon:Icon})=><Link key={to} to={to} activeOptions={{exact:true}} onClick={open?closeNavigation:undefined}
    aria-current={pathname===to?'page':undefined}
    className={'nav-link'+(pathname===to||to==='/expenses'&&pathname.startsWith('/expenses/')?' active':'')}>
    <Icon size={18} aria-hidden="true"/><span>{label}</span>
   </Link>);
 
  return <div className="app-layout">
-  {open&&<button className="mobile-overlay" aria-label="Close navigation" onClick={()=>setOpen(false)}/>}
-  <aside className={'sidebar'+(open?' sidebar-open':'')}>
+  {open&&<div className="mobile-overlay" aria-hidden="true" onClick={closeNavigation}/>}
+  <aside id="workspace-sidebar" className={'sidebar'+(open?' sidebar-open':'')}
+   role={open?'dialog':undefined} aria-modal={open||undefined}
+   aria-label={open?'Workspace navigation':undefined} onKeyDown={handleNavigationKey}>
    <div className="brand"><div className="brand-mark">FO</div>
     <div><strong>FRIENDSHIP</strong><span>ON HOTEL · PMS</span></div>
-    <button className="close-mobile" aria-label="Close menu" onClick={()=>setOpen(false)}><X size={20}/></button>
+    <button ref={closeButton} type="button" className="close-mobile" aria-label="Close menu" onClick={closeNavigation}><X size={20}/></button>
    </div>
    <nav aria-label="Hotel workspace navigation" className="workspace-nav">
     <p className="nav-heading">{dataMode==='api'?workspace.label.toUpperCase()+' WORKSPACE':'DAILY OPERATIONS'}</p>
@@ -139,10 +178,11 @@ export function AppShell(){
     </div>
    </div>
   </aside>
-  <main className="main-area">
+  <main className="main-area" inert={open}>
    <header className="topbar">
     <div className="topbar-left">
-     <button className="icon-btn mobile-menu" type="button" onClick={()=>setOpen(true)} aria-label="Open navigation"><Menu size={20}/></button>
+     <button ref={menuButton} className="icon-btn mobile-menu" type="button" onClick={()=>setOpen(true)}
+      aria-label="Open navigation" aria-haspopup="dialog" aria-expanded={open} aria-controls="workspace-sidebar"><Menu size={20}/></button>
      <div className="topbar-heading"><span className="eyebrow">FRIENDSHIP ON HOTEL</span><h1>{current}</h1></div>
     </div>
     <div className="topbar-actions">

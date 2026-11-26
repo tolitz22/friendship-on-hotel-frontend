@@ -3,9 +3,10 @@ import {test,expect} from '@playwright/test';
 test.describe('staff workspace navigation in mock preview',()=>{
  test('exposes honest preview labels and daily operations navigation',async({page,isMobile})=>{
   await page.goto('/');
-  await expect(page.getByText('DESIGN PREVIEW').first()).toBeVisible();
   const nav=page.getByRole('navigation',{name:'Hotel workspace navigation'});
-  if(isMobile)await page.getByRole('button',{name:'Open navigation'}).click();
+  const menu=page.getByRole('button',{name:'Open navigation'});
+  if(isMobile)await menu.click();
+  await expect(page.getByText('Design preview only',{exact:true})).toBeVisible();
   await expect(nav.getByRole('link',{name:'Front desk'})).toBeVisible();
   await expect(nav.getByRole('link',{name:'Bookings',exact:true})).toBeVisible();
   await expect(nav.getByRole('link',{name:'Rooms & readiness'})).toBeVisible();
@@ -13,7 +14,13 @@ test.describe('staff workspace navigation in mock preview',()=>{
   await expect(nav.getByRole('link',{name:'Housekeeping'})).toBeVisible();
   await nav.getByRole('link',{name:'Bookings',exact:true}).click();
   await expect(page).toHaveURL(/\/reservations(?:\?|$)/);
-  await expect(page.getByText('DESIGN PREVIEW').first()).toBeVisible();
+  if(isMobile){
+   await menu.click();
+   await expect(page.getByText('Design preview only',{exact:true})).toBeVisible();
+   await page.getByRole('button',{name:'Close menu'}).click();
+  }else{
+   await expect(page.getByText('DESIGN PREVIEW',{exact:true})).toBeVisible();
+  }
   await expect(page.getByRole('button',{name:'Preview new booking'})).toBeVisible();
  });
  test('renders route-specific preview controls without relying on backend credentials',async({page})=>{
@@ -52,13 +59,37 @@ test.describe('staff workspace navigation in mock preview',()=>{
   await page.getByRole('button',{name:'Close menu'}).click();
   await expect(menu).toBeVisible();
  });
+ test('keeps keyboard focus in mobile navigation and returns it on Escape',async({page,isMobile})=>{
+  test.skip(!isMobile,'Mobile navigation behavior is validated on the narrow viewport.');
+  await page.goto('/front-desk');
+  const menu=page.getByRole('button',{name:'Open navigation'});
+  const nav=page.getByRole('navigation',{name:'Hotel workspace navigation'});
+  await expect(nav).toBeHidden();
+  await page.keyboard.press('Tab');
+  await expect(menu).toBeFocused();
+  await page.keyboard.press('Enter');
+  const drawer=page.getByRole('dialog',{name:'Workspace navigation'});
+  const close=drawer.getByRole('button',{name:'Close menu'});
+  await expect(close).toBeFocused();
+  await expect(page.locator('main')).toHaveAttribute('inert','');
+  await page.keyboard.press('Shift+Tab');
+  await expect(nav.getByRole('link').last()).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(close).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(nav.getByRole('link',{name:'Overview'})).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(nav).toBeHidden();
+  await expect(menu).toBeFocused();
+ });
  test('does not throw browser runtime errors while navigating daily previews',async({page})=>{
   const errors:string[]=[];
   page.on('pageerror',error=>errors.push(error.message));
   await page.goto('/');
-  for(const route of ['/front-desk','/reservations','/rooms','/guests','/housekeeping']){
+  for(const [route,title] of [['/front-desk','Front desk'],['/reservations','Bookings'],
+   ['/rooms','Rooms & readiness'],['/guests','Guests'],['/housekeeping','Housekeeping']]){
    await page.goto(route);
-   await expect(page.getByText('DESIGN PREVIEW').first()).toBeVisible();
+   await expect(page.getByRole('heading',{name:title,level:1,exact:true})).toBeVisible();
   }
   expect(errors).toEqual([]);
  });

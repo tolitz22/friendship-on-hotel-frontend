@@ -2995,6 +2995,7 @@
 /* Mobile header: one stable controls row and a separate title row.
    No wrapping action cluster, truncated property names, or hidden logout. */
 @media(max-width:760px){
+ .sidebar:not(.sidebar-open){visibility:hidden}
  .topbar{
   display:grid;
   grid-template-columns:44px minmax(0,1fr) 44px 44px;

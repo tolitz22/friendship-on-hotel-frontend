@@ -3879,3 +3879,85 @@ dialog.no-show-dialog::backdrop { background: rgb(0 0 0 / 45%); }
  .bk-room-toolbar label:first-child{grid-column:1/-1}
  .bk-mobile-facts,.guest-mobile-facts{gap:8px}
 }
+
+
+/* Mobile usability phase 4: daily room schedule and touch-friendly tape chart. */
+.lrc-filter-toggle,.lrc-touch-tip{display:none}
+.lrc-day-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;padding:16px;background:var(--canvas)}
+.lrc-day-help{grid-column:1/-1;display:flex;align-items:flex-start;gap:8px;margin:0;color:var(--muted);font-size:12px;line-height:1.5}
+.lrc-day-help svg,.lrc-day-warning svg{flex-shrink:0;color:var(--accent)}
+.lrc-day-card{display:grid;gap:10px;align-content:start;min-width:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px}
+.lrc-day-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap}
+.lrc-day-card-head>div{flex:1 1 95px;min-width:0;display:grid;gap:4px}
+.lrc-day-card-head strong{font-size:15px;overflow-wrap:anywhere}
+.lrc-day-card-head small,.lrc-day-record small{font-size:12px;color:var(--muted);line-height:1.4;overflow-wrap:anywhere}
+.lrc-day-status{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:8px;background:var(--canvas);font-size:11px;font-weight:650;padding:6px 8px;max-width:100%}
+.lrc-day-status.is-blocked,.lrc-day-overlap{border-color:color-mix(in srgb,#c93434 55%,var(--border))}
+.lrc-day-warning{display:flex;gap:6px;align-items:flex-start;font-size:12px;font-weight:650;color:var(--text);margin:0}
+.lrc-day-record{display:grid;gap:4px;min-width:0;padding:10px;background:var(--canvas);border:1px solid var(--border);border-radius:9px}
+.lrc-day-record strong{font-size:13px;overflow-wrap:anywhere}
+.lrc-day-block{border-left:3px solid #c93434}
+.lrc-day-card>button{display:flex;justify-content:center;align-items:center;gap:8px;min-height:44px;width:100%;text-align:center;white-space:normal}
+.lrc-stay-presets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.lrc-stay-presets button{min-height:44px;padding:7px 5px;white-space:normal}
+.lrc-stay-presets button[aria-pressed=true]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,var(--surface));font-weight:750}
+.rack-room-name{z-index:5}
+.rack-header{z-index:6}
+.rack-room-head{z-index:7}
+@media(max-width:760px){
+ .live-room-calendar{min-width:0;max-width:100%}
+ .lrc-toolbar{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;padding:10px}
+ .lrc-navigation{display:grid;grid-template-columns:minmax(0,1fr) 44px 44px;gap:6px}
+ .lrc-navigation strong{grid-column:1/-1;margin:0;font-size:14px;overflow-wrap:anywhere}
+ .lrc-navigation .btn-inline{min-height:44px;justify-content:center}
+ .lrc-period-controls{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+ .lrc-period-controls .view-switch{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));min-width:0}
+ .lrc-period-controls .view-switch button{min-height:44px;justify-content:center}
+ .lrc-jump-date{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;width:100%;align-items:center}
+ .lrc-jump-date input{width:100%;min-width:0;max-width:none;min-height:44px;font-size:16px}
+ .lrc-filter-toggle{display:flex;width:calc(100% - 20px);margin:10px;min-height:44px}
+ .lrc-filters:not(.lrc-filters-expanded){display:none}
+ .lrc-filters.lrc-filters-expanded{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px}
+ .lrc-filters label:not(.lrc-search){min-width:0;display:grid;gap:4px}
+ .lrc-filters label.lrc-history-toggle{display:flex;align-items:center;min-height:44px}
+ .lrc-filters .lrc-search,.lrc-filters .lrc-history-toggle{grid-column:1/-1}
+ .lrc-filters select,.lrc-filters input:not([type=checkbox]){min-width:0;max-width:none;width:100%;min-height:44px;font-size:16px}
+ .lrc-filters .btn-inline{min-height:44px;justify-content:center}
+ .lrc-legend{gap:8px;padding:10px;line-height:1.4}
+ .lrc-legend .lrc-desktop-tip{display:none}
+ .lrc-legend .lrc-touch-tip{display:inline-flex;width:100%}
+ .lrc-operations-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:10px}
+ .lrc-operations-summary>div{padding:9px}
+ .lrc-operations-summary>div:last-child{grid-column:1/-1}
+ .lrc-operations-summary small{font-size:11px;overflow-wrap:anywhere}
+ .lrc-operations-summary a,.lrc-group-item>a{min-height:44px}
+ .lrc-group-item>a{width:100%;justify-content:center;border:1px solid var(--border);border-radius:8px;white-space:normal}
+ .lrc-day-list{grid-template-columns:1fr;padding:10px;gap:8px}
+ .lrc-day-card{padding:12px}
+ .rack-scroll{max-height:65dvh;overscroll-behavior:contain;touch-action:pan-x pan-y}
+ .rack-timeline{--rack-room-width:108px;--rack-lane-height:50px}
+ .rack-room-head,.rack-room-name{padding:8px;min-width:0}
+ .rack-room-name small{white-space:normal;overflow-wrap:anywhere}
+ .rack-day.rack-empty span{opacity:.7}
+ .rack-booking-bar{height:44px;font-size:12px}
+ .rack-month .rack-booking-bar{font-size:11px}
+ .rack-booking-bar.rack-bar-group-focused{z-index:4}
+ .lrc-pagination{padding:10px;gap:6px}
+ .lrc-pagination>span{width:100%}
+ .lrc-pagination>button{flex:1;min-height:44px}
+ .lrc-modal-backdrop .lrc-modal{width:100%!important;height:100dvh!important;max-height:100dvh!important;border-radius:0!important;display:flex;flex-direction:column;overflow:hidden;scrollbar-gutter:auto}
+ .lrc-modal .lrc-modal-header{padding:12px!important;flex-shrink:0}
+ .lrc-modal .lrc-modal-header>div{min-width:0;overflow-wrap:anywhere}
+ .lrc-modal-close{width:44px;height:44px;min-width:44px;justify-content:center}
+ .lrc-modal .lrc-modal-body{display:grid;align-content:start;min-height:0;flex:1;overflow:auto;overscroll-behavior:contain;padding:12px!important}
+ .lrc-modal .lrc-modal-footer{flex-shrink:0;padding:10px 12px max(10px,env(safe-area-inset-bottom,0px))!important;gap:8px!important}
+ .lrc-modal .lrc-modal-footer>*{flex:1;min-height:44px!important;text-align:center;justify-content:center}
+ .lrc-modal .lrc-modal-action{display:flex;min-height:44px;justify-content:center;border:1px solid var(--border);border-radius:8px;margin-top:6px}
+ .lrc-stay-picker{padding:12px}
+ .lrc-stay-picker input{min-width:0;min-height:44px;font-size:16px}
+ .lrc-stay-presets{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(min-width:761px) and (pointer:coarse){
+ .rack-timeline{--rack-lane-height:50px}
+ .rack-booking-bar{height:44px}
+}

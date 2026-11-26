@@ -94,6 +94,7 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
   }finally{
    await Promise.allSettled([
     query.refetch(),
+    client.invalidateQueries({queryKey:['live','no-show-ledger-reconciliation',hotelId,bookingId]}),
     ...['settlement-statement','folio-ledger','billing-folios','financial-business-day','night-audit-reconciliation']
      .map(key=>client.invalidateQueries({queryKey:['live',key,hotelId]})),
    ]);

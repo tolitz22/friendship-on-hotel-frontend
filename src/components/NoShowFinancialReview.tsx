@@ -50,7 +50,7 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
  const [notice,setNotice]=useState('');
  const path='/bookings/'+bookingId+'/no-show-financial-review';
  const query=useQuery({
-  queryKey:['live','no-show-financial-review',hotelId,bookingId],enabled:opened,retry:false,staleTime:0,
+  queryKey:['live','no-show-financial-review',hotelId,bookingId,userId],enabled:opened,retry:false,staleTime:0,
   queryFn:async()=>{
    if(readSession().hotelId!==hotelId)throw new Error('Hotel context changed.');
    const data=z.object({data:reviewSchema}).parse(await getJson<unknown>(hotelPath(path))).data;
@@ -64,7 +64,18 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
    setOpened(true);
   }
  },[openOnLoad]);
+ useEffect(()=>{setExpanded(['ledger']);setReason('');setManualFee('');setTaxBasis('');setTaxClassification('');setError('');setNotice('');},[hotelId,bookingId,userId]);
  const data=query.isFetching||query.isError?undefined:query.data;
+ const visibleData=query.data;
+ const [expanded,setExpanded]=useState<string[]>(['ledger']);
+ const [childBusy,setChildBusy]=useState(false);
+ const locked=busy||childBusy;
+ function jump(target:string){
+  const section=dialog.current?.querySelector<HTMLElement>('#'+target);
+  if(section instanceof HTMLDetailsElement){section.open=true;}
+  section?.scrollIntoView({block:'start'});
+  section?.focus({preventScroll:true});
+ }
  const money=(amount:number|null|undefined)=>amount==null?'—':
   new Intl.NumberFormat('en-PH',{style:'currency',currency:data?.currency??'PHP'}).format(amount/100);
  const manualFeeMinor=/^\d+(\.\d{1,2})?$/.test(manualFee)?Math.round(Number(manualFee)*100):NaN;
@@ -90,7 +101,7 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
   {title:'Review allocation and settlement',detail:'Check unapplied deposits and remaining settlement steps below.',target:'no-show-allocation-details'};
 
  async function submit(approve:boolean){
-  if(lock.current||!data||readSession().hotelId!==hotelId||!(approve?canApprove:canApply))return;
+  if(lock.current||childBusy||!data||readSession().hotelId!==hotelId||!(approve?canApprove:canApply))return;
   lock.current=true;
   setBusy(true);
   setError('');
@@ -129,8 +140,8 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
    dialog.current?.showModal();
   }}>Review no-show finances</button>
   <dialog ref={dialog} className="billing-action-modal no-show-dialog" aria-labelledby="no-show-review-title"
-   onCancel={event=>{if(busy)event.preventDefault();}} onClose={()=>setOpened(false)}>
-   <header className="billing-action-modal-header"><h3 id="no-show-review-title">No-show financial review</h3></header>
+   onCancel={event=>{if(locked)event.preventDefault();}} onClose={()=>setOpened(false)}>
+   <header className="billing-action-modal-header no-show-sticky-header"><h3 id="no-show-review-title">No-show financial review</h3><button type="button" className="btn-inline" aria-label="Close financial review" disabled={locked} onClick={()=>dialog.current?.close()}>Close</button></header>
    {query.isFetching&&<p role="status">Loading current financial review…</p>}
    {query.isError&&<p role="alert">Unable to load financial review. <button type="button" onClick={()=>void query.refetch()}>Retry</button></p>}
    {data&&<>
@@ -144,8 +155,8 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
       <div><span>Eligible refund limit</span><strong>{money(eligibility?.financialClearanceValid?eligibility.maximumRefundRequestMinor:null)}</strong></div>
      </div>
      {nextStep&&<div className="no-show-next-step"><div><span>Recommended next step</span><h5>{nextStep.title}</h5><p>{nextStep.detail}</p></div>
-      {nextStep.target?<button type="button" className="btn-inline" onClick={()=>document.getElementById(nextStep.target!)?.scrollIntoView({block:'nearest'})}>Go to details</button>:
-       <button type="button" className="btn-inline" disabled={busy} onClick={()=>dialog.current?.close()}>Return to guest bill</button>}</div>}
+      {nextStep.target?<button type="button" className="btn-inline" onClick={()=>jump(nextStep.target!)}>Go to details</button>:
+       <button type="button" className="btn-inline" disabled={locked} onClick={()=>dialog.current?.close()}>Return to guest bill</button>}</div>}
     </section>
     <div id="no-show-review-details">
     <p>{data.noShowKind&&policyLabels[data.noShowKind]?policyLabels[data.noShowKind]:'No saved penalty policy. Document the basis for any fee.'}</p>
@@ -178,7 +189,7 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
       </select></label>
       <label>Tax policy reference and justification<textarea value={taxBasis} disabled={busy} maxLength={1000}
        onChange={event=>setTaxBasis(event.target.value)}/></label>
-      <button type="submit" className="btn-primary" disabled={busy||!canApprove}>Approve accounting clearance</button>
+      <button type="submit" className="btn-primary" disabled={locked||!canApprove}>Approve accounting clearance</button>
      </form>}
     </>:<>
      {data.blockers.map(message=><p role="alert" key={message}>{message}</p>)}
@@ -190,16 +201,25 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
        value={manualFee} disabled={busy} onChange={event=>setManualFee(event.target.value)}/></label>}
       <label>Review reason<textarea value={reason} disabled={busy} maxLength={500}
        onChange={event=>setReason(event.target.value)}/></label>
-      <button type="submit" className="btn-primary" disabled={busy||!canApply}>Record financial adjustments</button>
+      <button type="submit" className="btn-primary" disabled={locked||!canApply}>Record financial adjustments</button>
      </form>:<p>Financial adjustments are unavailable for this booking.</p>}
     </>}
     </div>
    </>}
-   {opened&&data&&<NoShowCorrectionPanel hotelId={hotelId} bookingId={bookingId} userId={userId}/>}
-   {opened&&data&&<NoShowDepositPanel hotelId={hotelId} bookingId={bookingId}/>}
-   {opened&&data?.clearance&&<div id="no-show-allocation-details"><NoShowAllocationPanel hotelId={hotelId} bookingId={bookingId}/></div>}
-   {opened&&data?.clearance&&<div id="no-show-refund-details"><NoShowRefundPanel hotelId={hotelId} bookingId={bookingId} userId={userId}/></div>}
-   {opened&&data?.clearance&&<div id="no-show-accounting-details"><NoShowLedgerPanel hotelId={hotelId} bookingId={bookingId} userId={userId}/></div>}
+   {opened&&visibleData&&<div className="no-show-workflow-sections" inert={busy}>
+    {([
+     ['corrections','no-show-correction-details','Room and fee corrections',<NoShowCorrectionPanel hotelId={hotelId} bookingId={bookingId} userId={userId} onBusyChange={setChildBusy}/>],
+     ['deposits','no-show-deposit-details','Guest deposit accounting',<NoShowDepositPanel hotelId={hotelId} bookingId={bookingId} onBusyChange={setChildBusy}/>],
+     ...(visibleData.clearance?[
+      ['allocation','no-show-allocation-details','Deposit allocation and settlement',<NoShowAllocationPanel hotelId={hotelId} bookingId={bookingId} onBusyChange={setChildBusy}/>],
+      ['refunds','no-show-refund-details','Refund processing and verification',<NoShowRefundPanel hotelId={hotelId} bookingId={bookingId} userId={userId} onBusyChange={setChildBusy}/>],
+      ['ledger','no-show-accounting-details','Accounting ledger',<NoShowLedgerPanel hotelId={hotelId} bookingId={bookingId} userId={userId}/>],
+     ]:[]),
+    ] as [string,string,string,React.ReactNode][]).map(([key,id,label,content])=><details key={key} id={id} tabIndex={-1} className="no-show-workflow-section"
+      open={expanded.includes(key)} onToggle={event=>{const open=event.currentTarget.open;setExpanded(previous=>open?(previous.includes(key)?previous:[...previous,key]):previous.filter(k=>k!==key));}}>
+      <summary>{label}</summary>{expanded.includes(key)&&content}
+     </details>)}
+   </div>}
    {notice&&<p role="status">{notice}</p>}
    {error&&<p role="alert">{error}</p>}
    <div className="no-show-dialog-actions">

@@ -4063,3 +4063,79 @@ dialog.no-show-dialog::backdrop { background: rgb(0 0 0 / 45%); }
  .rack-metric>span{font-size:11px}
  .rh-simple-summary button{padding:7px}
 }
+
+
+/* Mobile usability phase 6: housekeeping and maintenance. */
+.ops-filter-toggle,.ops-quick-progress{display:none}
+@media(max-width:760px){
+ .hk-page-intro,.mnt-page-intro{gap:10px;margin-bottom:12px}
+ .hk-page-intro>.btn-primary,.mnt-page-intro>.btn-primary{width:100%;min-height:44px;justify-content:center}
+ .hk-work-summary,.mnt-work-summary{margin-bottom:14px}
+ .hk-work-heading,.mnt-work-heading{gap:8px;margin-bottom:10px}
+ .hk-work-heading>button,.mnt-work-heading>button{min-height:44px}
+ .hk-work-metrics,.mnt-work-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .hk-work-metrics>div,.mnt-work-metrics>div{min-width:0;gap:5px;padding:10px}
+ .hk-work-metrics span,.mnt-work-metrics span{font-size:12px;overflow-wrap:anywhere}
+ .hk-work-metrics strong,.mnt-work-metrics strong{font-size:24px}
+ .hk-queue-section,.mnt-queue-section{padding:10px}
+ .hk-queue-head,.mnt-queue-head{gap:6px;margin-bottom:10px}
+ .hk-queue-tabs,.mnt-queue-tabs{display:flex;width:100%;min-width:0;overflow-x:auto;overscroll-behavior-x:contain;gap:5px;margin-bottom:10px}
+ .hk-queue-tabs button,.mnt-queue-tabs button{flex:0 0 auto;min-height:44px;padding:8px 10px;font-size:12px}
+ .hk-filter-controls,.mnt-filter-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .hk-search-field,.mnt-search-field{grid-column:1/-1;max-width:none;min-width:0;min-height:46px}
+ .hk-search-field input,.mnt-search-field input{font-size:16px}
+ .ops-filter-toggle{display:flex;min-height:44px;justify-content:center;align-items:center;white-space:normal}
+ .hk-filter-controls:not(.ops-filters-expanded) .hk-type-filter,.mnt-filter-controls:not(.ops-filters-expanded) .mnt-priority-field{display:none}
+ .hk-type-filter,.mnt-priority-field{grid-column:1/-1;min-width:0;min-height:44px;justify-content:space-between}
+ .hk-type-filter select,.mnt-priority-field select{min-width:0;max-width:none;flex:1;font-size:16px;min-height:44px}
+ .hk-mine-filter,.mnt-mine-filter{min-height:44px;padding:8px;line-height:1.4}
+ .hk-mine-filter input,.mnt-mine-filter input{width:20px;height:20px;flex-shrink:0}
+ .hk-clear,.mnt-clear-filters{grid-column:1/-1;min-height:44px}
+ .hk-cleaning-grid,.mnt-work-grid{grid-template-columns:minmax(0,1fr);gap:10px;padding-top:12px}
+ .hk-cleaning-card,.mnt-work-card{padding:12px;gap:10px}
+ .hk-cleaning-card-head>div,.mnt-work-card-head>div{min-width:0;flex:1 1 110px}
+ .hk-cleaning-card-head small,.mnt-work-card-head small{font-size:12px;overflow-wrap:anywhere}
+ .hk-cleaning-card h4{font-size:21px}
+ .mnt-work-card h4{font-size:18px}
+ .hk-cleaning-card-detail{gap:7px;padding-top:9px}
+ .hk-cleaning-card-detail>span,.mnt-work-state,.mnt-work-description{font-size:13px;overflow-wrap:anywhere}
+ .hk-cleaning-card .ops-room-link,.mnt-work-card .ops-room-link{width:100%;min-height:44px;justify-content:center;align-items:center;border:1px solid var(--border);border-radius:9px;font-size:13px;text-align:center}
+ .hk-open-task,.mnt-work-action{min-height:48px;font-size:14px;text-align:left}
+ .hk-cleaning-overdue,.mnt-urgent-card{border-left:4px solid var(--accent)}
+ .hk-handoff-row{flex-direction:column;align-items:stretch;padding:10px}
+ .hk-handoff-row>button{width:100%;min-height:44px;justify-content:center;white-space:normal}
+ .hk-queue-pagination,.mnt-queue-pagination{gap:8px}
+ .hk-queue-pagination>div,.mnt-queue-pagination>div{width:100%}
+ .hk-queue-pagination button,.mnt-queue-pagination button{flex:1;min-height:44px}
+ .guest-modal-backdrop:has(.ops-mobile-editor){padding:0;align-items:stretch}
+ .guest-modal.ops-mobile-editor{width:100%;height:100dvh;max-height:100dvh;border-radius:0;padding:12px 12px max(16px,env(safe-area-inset-bottom,0px));overscroll-behavior:contain}
+ .ops-mobile-editor .catalog-modal-heading{position:sticky;top:-12px;z-index:2;background:var(--surface);padding:10px 0;gap:8px}
+ .ops-mobile-editor .catalog-modal-heading h3{font-size:17px;overflow-wrap:anywhere;min-width:0}
+ .ops-mobile-editor .catalog-modal-heading button{min-width:44px;height:44px}
+ .ops-mobile-editor .guest-fields{grid-template-columns:minmax(0,1fr);gap:12px}
+ .ops-mobile-editor .guest-fields label{min-width:0}
+ .ops-mobile-editor .guest-fields input:not([type=checkbox]),.ops-mobile-editor .guest-fields select,.ops-mobile-editor .guest-fields textarea{font-size:16px;min-height:44px;max-width:100%;width:100%}
+ .ops-quick-progress{display:grid;gap:8px;border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;background:var(--canvas)}
+ .ops-quick-progress strong{font-size:14px}
+ .ops-quick-progress small{font-size:12px;color:var(--muted);line-height:1.4}
+ .ops-quick-progress>div{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}
+ .ops-quick-progress button{min-height:44px;text-align:left;white-space:normal}
+ .ops-quick-progress button[aria-pressed=true]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--surface));font-weight:750}
+ .ops-mobile-editor .guest-modal-actions{display:flex;flex-wrap:wrap;gap:8px}
+ .ops-mobile-editor .guest-modal-actions>button{flex:1 1 110px;min-height:48px}
+ .ops-mobile-editor .maintenance-checkbox{min-height:48px;padding:10px;border:1px solid var(--border);border-radius:8px}
+ .ops-mobile-editor .maintenance-checkbox input{width:22px;height:22px}
+ .hk-final-inspection{scroll-margin-top:76px;min-width:0;padding:12px}
+ .hk-final-inspection .stay-confirm-check{display:flex;align-items:flex-start;gap:10px;border:1px solid var(--border);border-radius:9px;padding:10px;min-height:48px;font-size:14px;line-height:1.4}
+ .hk-final-inspection .stay-confirm-check input{width:22px;height:22px;flex-shrink:0;accent-color:var(--accent)}
+ .hk-final-inspection textarea{width:100%;min-height:88px;font-size:16px}
+ .hk-final-inspection .btn-primary{width:100%;min-height:48px}
+ .ops-mobile-editor .catalog-audit-section>button{min-height:44px;width:100%}
+ .hk-headline,.mnt-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .hk-board,.mnt-order-grid{grid-template-columns:minmax(0,1fr)}
+ .hk-toolbar,.mnt-toolbar{flex-wrap:wrap;gap:8px}
+ .hk-toolbar .search-box,.mnt-toolbar .search-box{width:100%;flex:1 1 100%;max-width:none}
+ .hk-toolbar select,.mnt-toolbar select{font-size:16px;min-height:44px}
+ .hk-task-actions button,.mnt-review{min-height:44px}
+ .hk-drawer,.mnt-drawer{width:100%;max-width:100%;max-height:100dvh;overflow:auto}
+}

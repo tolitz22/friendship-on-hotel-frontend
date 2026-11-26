@@ -4,7 +4,7 @@ import {dataMode} from '../api';
 import {fetchStaffProfile,loginStaff,logoutStaff,type StaffProfile} from '../api/auth';
 import {isCookieAuth,onSpaSessionExpired} from '../api/http';
 import {requestedNotificationHotel,hasScopedBookingLink} from '../features/notifications/pushNavigation';
-import {revokeLocalPush} from '../features/notifications/pushDevice';
+import {resetPushForDifferentAccount} from '../features/notifications/pushDevice';
 import {clearSession,readSession,setSessionHotel,setSessionToken} from '../api/session';
 
 interface AuthContextValue{
@@ -41,6 +41,8 @@ export function AuthProvider({children}:{children:ReactNode}){
   const restore=async()=>{
    try{
     const profile=(await fetchStaffProfile()).data;
+    if(cancelled)return;
+    await resetPushForDifferentAccount(profile.id);
     if(cancelled)return;
     setUser(profile);
     const previousHotel=readSession().hotelId;
@@ -96,6 +98,7 @@ export function AuthProvider({children}:{children:ReactNode}){
    }
    loggedIn=true;
    const profile=(await fetchStaffProfile()).data;
+   await resetPushForDifferentAccount(profile.id);
    setUser(profile);
    const linked=requestedNotificationHotel(window.location.pathname,window.location.search,profile.hotels);
    const scoped=hasScopedBookingLink(window.location.pathname,window.location.search);
@@ -116,7 +119,8 @@ export function AuthProvider({children}:{children:ReactNode}){
  };
  const signOut=async()=>{
   setPending(true);
-  try{if(user){await revokeLocalPush(user.id).catch(()=>{});await logoutStaff();}}
+  // Ordinary logout preserves explicit device notification consent.
+  try{if(user)await logoutStaff();}
   catch{/* Clear client state even if logout fails; server session may persist until expiry. */}
   finally{clearSession();setUser(null);setHotelId(null);queryClient.clear();setPending(false);}
  };

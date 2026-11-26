@@ -66,3 +66,11 @@ export async function revokeLocalPush(userId:string){
   save(records().filter(r=>r.userId!==userId));
  }
 }
+
+/** A different account on the same browser must not inherit the previous owner's alerts. */
+export async function resetPushForDifferentAccount(userId:string){
+ const rows=records();
+ if(!rows.some(row=>row.userId!==userId))return;
+ await unsubscribeBrowser();
+ save([]);
+}

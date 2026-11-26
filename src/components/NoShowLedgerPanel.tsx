@@ -8,6 +8,7 @@ const reasonLabels:Record<string,string>={
  missing_journal:'Missing accounting journal',duplicate_journal:'Duplicate accounting journals',
  reversed_journal:'Journal was reversed',journal_mismatch:'Journal amount or account mismatch',
  invalid_clearance:'Financial clearance needs review',
+ payment_evidence_unresolved:'Payment evidence needs resolution',
 };
 const reasonGuidance:Record<string,string>={
  missing_journal:'Check the original verified transaction and ask a finance administrator to reconcile its accounting entry. Do not record the payment or refund again.',
@@ -15,8 +16,9 @@ const reasonGuidance:Record<string,string>={
  reversed_journal:'Review the reversal and its documented reason. Confirm whether a replacement journal is required before treating this item as settled.',
  journal_mismatch:'Compare the original amount, currency and account codes with the journal. Escalate the difference for an approved correction.',
  invalid_clearance:'Review the no-show fee, booking policy and tax treatment. Resolve the accounting clearance before relying on these balances.',
+ payment_evidence_unresolved:'Review the listed payment record. An erroneous entry may require an audited void or an approved finance correction.',
 };
-const kindLabels:Record<string,string>={deposit:'Guest deposit',fee:'No-show fee',allocation:'Payment allocation',refund:'Refund evidence'};
+const kindLabels:Record<string,string>={deposit:'Guest deposit',fee:'No-show fee',allocation:'Payment allocation',refund:'Refund evidence',payment_evidence:'Payment evidence'};
 const money=(minor:number)=>new Intl.NumberFormat('en-PH',{style:'currency',currency:'PHP'}).format(minor/100);
 
 export function NoShowLedgerPanel({hotelId,bookingId,userId}:Props){

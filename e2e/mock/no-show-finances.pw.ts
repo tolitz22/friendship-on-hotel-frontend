@@ -8,7 +8,7 @@ async function mockNoShow(page:Page, role:'admin'|'front_desk', options:{cleared
  let failRead=!options.cleared;
  let applied=!!options.cleared;
  let ledgerReads=0;
- let ledgerState:'settled'|'partial'|'mismatch'|'unavailable'|'forbidden'='settled';
+ let ledgerState:'settled'|'partial'|'mismatch'|'unresolved-evidence'|'unavailable'|'forbidden'='settled';
  await page.route('**/api/v1/**',async route=>{
   const path=new URL(route.request().url()).pathname;
   if(path.endsWith('/auth/me'))return route.fulfill({json:{data:{
@@ -35,7 +35,7 @@ async function mockNoShow(page:Page, role:'admin'|'front_desk', options:{cleared
    if(ledgerState==='unavailable'||ledgerState==='forbidden')return route.fulfill({
     status:ledgerState==='forbidden'?403:503,json:{message:'Synthetic ledger unavailable'},
    });
-   const partial=ledgerState==='partial', mismatch=ledgerState==='mismatch';
+   const partial=ledgerState==='partial', mismatch=ledgerState==='mismatch', unresolvedEvidence=ledgerState==='unresolved-evidence';
    const expectedMinor={deposits:300000,fees:200000,allocations:partial?120000:200000,refunds:100000};
    const matchedJournalMinor={...expectedMinor,refunds:mismatch?0:100000};
    const expectedBalances={depositLiabilityMinor:partial?80000:0,receivableMinor:partial?80000:0};
@@ -43,8 +43,9 @@ async function mockNoShow(page:Page, role:'admin'|'front_desk', options:{cleared
     bookingId:'2',currency:'PHP',businessDate:'2026-11-26',scope:'current_no_show_matched_journals_only',
     expectedMinor,matchedJournalMinor,expectedBalances,
     matchedJournalBalances:{...expectedBalances,depositLiabilityMinor:mismatch?100000:expectedBalances.depositLiabilityMinor},
-    issues:mismatch?[{kind:'refund',reference:'refund-evidence-42',reason:'missing_journal'}]:[],
-    reconciled:!mismatch,settled:!partial&&!mismatch,readOnly:true,closingCertified:false,
+    issues:mismatch?[{kind:'refund',reference:'refund-evidence-42',reason:'missing_journal'}]:
+     unresolvedEvidence?[{kind:'payment_evidence',reference:'folio-payment-7',reason:'payment_evidence_unresolved'}]:[],
+    reconciled:!mismatch&&!unresolvedEvidence,settled:!partial&&!mismatch&&!unresolvedEvidence,readOnly:true,closingCertified:false,
    }}});
   }
   if(path.endsWith('/bookings/2/no-show-financial-review')){
@@ -125,6 +126,12 @@ test('renders settled, partial and mismatched ledger balances and recovers a fai
  await expect(ledger.getByText('Refund evidence · refund-evidence-42')).toBeVisible();
  await expect(ledger.getByText(/Do not record the payment or refund again/)).toBeVisible();
  await expect(ledger.getByRole('row',{name:/Verified refunds/})).toContainText('Mismatch');
+ await expect(ledger.getByText('Ledger reconciled and settled',{exact:true})).toHaveCount(0);
+ fixture.setLedgerState('unresolved-evidence');
+ await ledger.getByRole('button',{name:'Refresh'}).click();
+ await expect(ledger.getByText('Payment evidence needs resolution',{exact:true})).toBeVisible();
+ await expect(ledger.getByText('Payment evidence · folio-payment-7',{exact:true})).toBeVisible();
+ await expect(ledger.getByText(/audited void or an approved finance correction/)).toBeVisible();
  await expect(ledger.getByText('Ledger reconciled and settled',{exact:true})).toHaveCount(0);
  fixture.setLedgerState('unavailable');
  await ledger.getByRole('button',{name:'Refresh'}).click();

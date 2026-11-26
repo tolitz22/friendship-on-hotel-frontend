@@ -7,8 +7,23 @@ import {ApiError,getJson,requestJson} from '../api/http';
 import {hotelPath,readSession} from '../api/session';
 import {useHotelAuth} from './AuthProvider';
 import {QueryFeedback} from './QueryFeedback';
+import {NoShowClosingIntegrity} from './NoShowClosingIntegrity';
 
+const integrityIssue=z.object({
+ reason:z.string(),bookingId:z.string().optional(),journalId:z.string().optional(),firstJournalId:z.string().optional(),
+ sourceType:z.string().optional(),sourceReference:z.string().optional(),proposalId:z.string().optional(),
+ kind:z.string().optional(),status:z.string().optional(),
+ details:z.array(z.object({reason:z.string(),kind:z.string(),reference:z.string(),journalIds:z.array(z.string()).optional()})).optional(),
+});
+const integritySchema=z.object({
+ scope:z.literal('current_no_show_carry_forward'),businessDate:z.iso.date(),
+ scannedBookingCount:z.number().int().nonnegative(),scannedJournalCount:z.number().int().nonnegative(),
+ issues:z.array(integrityIssue),integrityValid:z.boolean(),readOnly:z.literal(true),
+}).superRefine((data,ctx)=>{
+ if(data.integrityValid!==(data.issues.length===0))ctx.addIssue({code:'custom',message:'Inconsistent integrity result'});
+});
 const dataSchema=z.object({
+ noShowIntegrity:integritySchema.nullable().optional(),
  businessDate:z.iso.date(),nextBusinessDate:z.iso.date(),
  status:z.string(),version:z.number().int().nonnegative(),
  journalCount:z.number().int().nonnegative(),
@@ -21,7 +36,11 @@ const dataSchema=z.object({
  unresolvedNoShowBookings:z.array(z.object({id:z.string(),reference:z.string(),arrival:z.iso.date()})).optional(),
  blockers:z.array(z.string()),canClose:z.boolean(),
  readinessIsAdvisory:z.literal(true),
+}).superRefine((data,ctx)=>{
+ if(data.noShowIntegrity&&(data.noShowIntegrity.businessDate!==data.businessDate||
+  (!data.noShowIntegrity.integrityValid&&data.canClose)))ctx.addIssue({code:'custom',message:'Inconsistent closing integrity readiness'});
 });
+export type NoShowClosingIntegrityReport=z.infer<typeof integritySchema>;
 type CloseReadiness=z.infer<typeof dataSchema>;
 const closeResponse=z.object({data:z.object({
  closedBusinessDate:z.iso.date(),nextBusinessDate:z.iso.date(),
@@ -56,9 +75,9 @@ export function FinancialBusinessDayPanel({selectedDate,query,onSelectDate}:{sel
  const [error,setError]=useState('');
  const [success,setSuccess]=useState('');
  useEffect(()=>{setSetupDate('');setTypedDate('');setAck(false);setError('');setSuccess('');},[hotelId,selectedDate]);
- const data=query.data;
+ const data=query.isError?undefined:query.data;
  const dateMatches=data?.businessDate===selectedDate;
- const ready=!!data?.canClose&&dateMatches&&data.blockers.length===0;
+ const ready=!!data?.canClose&&dateMatches&&data.blockers.length===0&&data.noShowIntegrity?.integrityValid!==false;
  const configurationError=query.error instanceof ApiError&&query.error.code==='BUSINESS_DATE_NOT_CONFIGURED'?query.error.message:null;
  const confirmed=ready&&typedDate===data?.businessDate&&ack&&!busy&&!query.isFetching;
 
@@ -92,7 +111,7 @@ export function FinancialBusinessDayPanel({selectedDate,query,onSelectDate}:{sel
    if(current.businessDate!==selectedDate){
     throw new Error('The financial business date has changed. Select the current date before closing.');
    }
-   if(!current.canClose||current.blockers.length>0){
+   if(!current.canClose||current.blockers.length>0||current.noShowIntegrity?.integrityValid===false){
     throw new Error('Closing is blocked. Review the updated checklist.');
    }
    if(readSession().hotelId!==hotelId)throw new Error('Hotel selection changed.');
@@ -161,6 +180,7 @@ export function FinancialBusinessDayPanel({selectedDate,query,onSelectDate}:{sel
         </li>)}</ul>
         :<p>Open the No-show filter in Bookings to find the guest account.</p>}
       </div>}
+   {dateMatches&&<NoShowClosingIntegrity report={data.noShowIntegrity} refreshing={query.isFetching}/>}
    {!dateMatches&&<div className="desk-tools">
     <p>Closing is available for the current financial business date.</p>
     <button type="button" className="btn-inline" disabled={busy} onClick={()=>onSelectDate(data.businessDate)}>Review current business date</button>

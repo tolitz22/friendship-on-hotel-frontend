@@ -133,6 +133,7 @@ export function SettlementPanel({bookingId,requestedAction,requestedPayment}:{bo
  const {hotelId,user}=useHotelAuth();
  const client=useQueryClient();
  const manager=!!hotelId&&!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
+ const canReviewNoShow=manager&&user?.hotels.some(h=>h.id===hotelId&&(h.permissions===undefined||h.permissions.includes('finance.read')));
  const [selected,setSelected]=useState('');
  const [reviewStage,setReviewStage]=useState<'confirmation'|'allocation'>('confirmation');
  const [activeDialog,setActiveDialog]=useState<'payment'|'charges'|'correction'|'review'|'refunds'|'signoff'|null>(null);
@@ -381,6 +382,7 @@ export function SettlementPanel({bookingId,requestedAction,requestedPayment}:{bo
    void Promise.all([
     client.invalidateQueries({queryKey:['live','settlement-statement',hotelId,bookingId]}),
     client.invalidateQueries({queryKey:['live','no-show-financial-review',hotelId,bookingId]}),
+    client.invalidateQueries({queryKey:['live','no-show-ledger-reconciliation',hotelId,bookingId]}),
     client.invalidateQueries({queryKey:['live','folio-ledger',hotelId]}),
     client.invalidateQueries({queryKey:['live','billing-folios',hotelId]}),
     client.invalidateQueries({queryKey:['live','payment-safety',hotelId,bookingId]}),
@@ -407,8 +409,8 @@ export function SettlementPanel({bookingId,requestedAction,requestedPayment}:{bo
    <BillingActions key={requestedPayment} bookingId={bookingId} signed={false} mode="target" targetPayment={requestedPayment}/>}
   {requestedPayment&&query.data&&(query.data.signed||!manager)&&<p role="status">
    {query.data.signed?'This folio has been signed.':'An authorized hotel administrator can review this payment.'}</p>}
-   {query.data?.status==='no_show'&&manager&&hotelId&&user?.id&&<NoShowFinancialReview key={hotelId+':'+bookingId} hotelId={hotelId} bookingId={bookingId} userId={user.id} verifiedMinor={query.data.verifiedPaymentsMinor} openOnLoad={requestedAction==='no-show'}/>}
-   {query.data?.status==='no_show'&&!manager&&<p role="status">No-show financial reconciliation requires an authorized hotel administrator.</p>}
+   {query.data?.status==='no_show'&&canReviewNoShow&&hotelId&&user?.id&&<NoShowFinancialReview key={hotelId+':'+bookingId} hotelId={hotelId} bookingId={bookingId} userId={user.id} verifiedMinor={query.data.verifiedPaymentsMinor} openOnLoad={requestedAction==='no-show'}/>}
+   {query.data?.status==='no_show'&&!canReviewNoShow&&<p role="status">No-show financial reconciliation requires an authorized hotel administrator.</p>}
   {data&&<>
    <div className="billing-account-overview billing-account-compact" aria-label="Guest account overview">
     <div className="billing-account-overview-head">

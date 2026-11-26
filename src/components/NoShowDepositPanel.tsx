@@ -11,8 +11,8 @@ const schema=z.object({data:z.object({
 })});
 const labels={ready:'Ready for accounting',recognized:'Recognized',historical:'Historical review required',blocked:'Not ready',reconcile:'Reconciliation required'};
 const money=(minor:number)=>new Intl.NumberFormat('en-PH',{style:'currency',currency:'PHP'}).format(minor/100);
-type Props={hotelId:string;bookingId:string};
-export function NoShowDepositPanel({hotelId,bookingId}:Props){
+type Props={hotelId:string;bookingId:string;onBusyChange?:(busy:boolean)=>void};
+export function NoShowDepositPanel({hotelId,bookingId,onBusyChange}:Props){
  const client=useQueryClient();
  const [selected,setSelected]=useState<string|null>(null);
  const [busy,setBusy]=useState(false);
@@ -29,14 +29,14 @@ export function NoShowDepositPanel({hotelId,bookingId}:Props){
  const item=data?.payments.find(p=>p.paymentId===selected&&p.canRecognize&&p.status==='ready');
  async function recognize(){
   if(!item||lock.current||readSession().hotelId!==hotelId)return;
-  lock.current=true;setBusy(true);setError('');
+  lock.current=true;setBusy(true);onBusyChange?.(true);setError('');
   try{
    await requestJson(hotelPath(path+'/'+item.paymentId+'/recognize'),{method:'POST',body:{acknowledged:true}});
   }catch(cause){setError(cause instanceof Error?cause.message:'Recognition unavailable. Refresh before retrying.');}
   finally{
    setSelected(null);
    await Promise.allSettled([query.refetch(),...['no-show-ledger-reconciliation','no-show-financial-review','settlement-statement','folio-ledger','billing-folios','financial-business-day'].map(key=>client.invalidateQueries({queryKey:['live',key,hotelId]}))]);
-   lock.current=false;setBusy(false);
+   lock.current=false;setBusy(false);onBusyChange?.(false);
   }
  }
  return <section className="no-show-overview" aria-label="Guest deposit accounting">

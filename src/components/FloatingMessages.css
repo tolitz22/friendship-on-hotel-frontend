@@ -9,3 +9,10 @@
 .main-area.has-message-shortcut .page-content{padding-bottom:max(90px,calc(76px + env(safe-area-inset-bottom,0px)))}
 @media(max-width:760px){.floating-messages{right:max(16px,env(safe-area-inset-right));bottom:calc(16px + env(safe-area-inset-bottom,0px));height:54px;min-width:54px;padding:0 14px}.floating-messages-label{display:none}}
 @media(prefers-reduced-motion:reduce){.floating-messages{transition:none}.floating-messages.has-unread.is-new{animation:none}}
+
+.message-arrival-alert{position:fixed;top:calc(76px + env(safe-area-inset-top,0px));right:max(24px,env(safe-area-inset-right));z-index:45;display:flex;align-items:center;gap:12px;width:min(360px,calc(100vw - 32px));box-sizing:border-box;padding:14px 12px;border:1px solid #93c5fd;border-radius:14px;background:#eff6ff;color:#172554;box-shadow:0 8px 28px #0f172a33}
+.message-arrival-alert .message-arrival-copy{flex:1;min-width:0;display:grid;gap:4px}
+.message-arrival-alert strong{font-size:14px}.message-arrival-alert a{color:#1d4ed8;font-size:13px;font-weight:650;text-decoration:underline}
+.message-arrival-alert button{border:0;background:transparent;color:#172554;padding:6px;cursor:pointer;border-radius:6px;display:grid;place-items:center}
+.message-arrival-alert button:focus-visible,.message-arrival-alert a:focus-visible{outline:2px solid #1d4ed8;outline-offset:3px}
+@media(max-width:760px){.message-arrival-alert{right:16px;top:calc(70px + env(safe-area-inset-top,0px))}}

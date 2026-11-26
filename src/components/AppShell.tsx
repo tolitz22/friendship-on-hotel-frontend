@@ -1,5 +1,6 @@
 import {useStaffRealtime} from '../features/messages/useStaffRealtime';
 import {useMessageInbox} from '../pages/Messages';
+import {MessageArrivalAlert} from './MessageArrivalAlert';
 import {MessageCircle} from 'lucide-react';
 import './FloatingMessages.css';
 import {requestedNotificationHotel} from '../features/notifications/pushNavigation';
@@ -270,6 +271,7 @@ export function AppShell(){
       </section>
      :<Suspense fallback={<div role="status" className="workspace-loading">Loading hotel workspace…</div>}><Outlet/></Suspense>}
    </div>
+   {canMessage&&<MessageArrivalAlert key={messageScope} conversations={messageInbox.isSuccess?messageInbox.data.data:undefined} userId={user.id}/>}
    {showMessageShortcut&&<Link key={messageScope+':'+attention} to="/messages" className={'floating-messages'+(unreadMessages>0?' has-unread is-new':'')}
     aria-label={unreadMessages>0?'Open messages, '+unreadMessages+' unread messages':'Open messages'} title={unreadMessages>0?unreadMessages+' unread messages':'Open messages'}>
     <MessageCircle size={26} aria-hidden="true"/>

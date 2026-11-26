@@ -32,7 +32,7 @@ type Message={id:number;sender_id:number|string|null;sender_name?:string;body:st
 type Conversation={id:number;kind:'channel'|'direct'|'group';title:string|null;members:(Staff & {last_read_message_id:number})[];latest:Message|null;unread:number};
 const path=(hotel:string)=>'/hotels/'+encodeURIComponent(hotel)+'/staff-messaging';
 export function useMessageInbox(hotel:string|null,user:string|undefined){
- return useQuery({queryKey:['staff-messages',hotel,user],queryFn:()=>getJson<{data:Conversation[]}>(path(hotel!)+'/conversations'),enabled:!!hotel&&!!user&&dataMode==='api',refetchInterval:5000,refetchIntervalInBackground:false,refetchOnReconnect:true,retry:false});
+ return useQuery({queryKey:['staff-messages',hotel,user],queryFn:()=>getJson<{data:Conversation[]}>(path(hotel!)+'/conversations'),enabled:!!hotel&&!!user&&dataMode==='api',refetchInterval:()=>document.visibilityState==='visible'?5000:15000,refetchIntervalInBackground:true,refetchOnReconnect:true,retry:false});
 }
 export function Messages(){
  const {hotelId,user}=useHotelAuth();
@@ -71,13 +71,20 @@ function Inbox({hotel,user,linkedConversation}:{hotel:string;user:string;linkedC
  const thread=useQuery({queryKey:['staff-thread',hotel,user,selected,search],queryFn:()=>getJson<{data:Message[]}>(base+'/conversations/'+selected,{q:search}),enabled:selected!==null,refetchInterval:3000,refetchIntervalInBackground:false,refetchOnReconnect:true,retry:false});
  const latest=thread.data?.data.at(-1)?.id;
  const readKey=useRef('');
+ const [reading,setReading]=useState(()=>document.visibilityState==='visible'&&document.hasFocus());
  useEffect(()=>{
-  if(!selected||!latest||search||document.visibilityState!=='visible'||thread.isError)return;
+  const update=()=>setReading(document.visibilityState==='visible'&&document.hasFocus());
+  window.addEventListener('focus',update);window.addEventListener('blur',update);
+  document.addEventListener('visibilitychange',update);update();
+  return ()=>{window.removeEventListener('focus',update);window.removeEventListener('blur',update);document.removeEventListener('visibilitychange',update);};
+ },[]);
+ useEffect(()=>{
+  if(!selected||!latest||search||!reading||document.visibilityState!=='visible'||!document.hasFocus()||thread.isError)return;
   const key=selected+':'+latest;
   if(readKey.current===key)return;
   readKey.current=key;
   void requestJson(base+'/conversations/'+selected+'/read',{method:'POST',body:{message_id:latest}}).then(()=>client.invalidateQueries({queryKey:['staff-messages',hotel,user]})).catch(()=>{readKey.current='';});
- },[selected,latest,search,thread.isError,thread.dataUpdatedAt,base,client,hotel,user]);
+ },[selected,latest,search,reading,thread.isError,thread.dataUpdatedAt,base,client,hotel,user]);
  const name=(c:Conversation)=>c.title??c.members.filter(m=>String(m.id)!==user).map(m=>m.name).join(', ');
  const visible=(inbox.data?.data??[]).filter(c=>(!unreadOnly||c.unread>0)&&name(c).toLowerCase().includes(filter.trim().toLowerCase())).sort((a,b)=>Number(b.latest?.id??0)-Number(a.latest?.id??0)||Number(b.id)-Number(a.id));
  const unreadTotal=(inbox.data?.data??[]).reduce((sum,c)=>sum+Number(c.unread||0),0);

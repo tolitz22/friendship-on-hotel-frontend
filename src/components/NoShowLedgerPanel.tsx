@@ -9,6 +9,14 @@ const reasonLabels:Record<string,string>={
  reversed_journal:'Journal was reversed',journal_mismatch:'Journal amount or account mismatch',
  invalid_clearance:'Financial clearance needs review',
 };
+const reasonGuidance:Record<string,string>={
+ missing_journal:'Check the original verified transaction and ask a finance administrator to reconcile its accounting entry. Do not record the payment or refund again.',
+ duplicate_journal:'Compare both journal references with the original transaction. Request an approved accounting correction; do not delete either entry.',
+ reversed_journal:'Review the reversal and its documented reason. Confirm whether a replacement journal is required before treating this item as settled.',
+ journal_mismatch:'Compare the original amount, currency and account codes with the journal. Escalate the difference for an approved correction.',
+ invalid_clearance:'Review the no-show fee, booking policy and tax treatment. Resolve the accounting clearance before relying on these balances.',
+};
+const kindLabels:Record<string,string>={deposit:'Guest deposit',fee:'No-show fee',allocation:'Payment allocation',refund:'Refund evidence'};
 const money=(minor:number)=>new Intl.NumberFormat('en-PH',{style:'currency',currency:'PHP'}).format(minor/100);
 
 export function NoShowLedgerPanel({hotelId,bookingId,userId}:Props){
@@ -42,9 +50,10 @@ export function NoShowLedgerPanel({hotelId,bookingId,userId}:Props){
    {!data.reconciled&&<div className="no-show-ledger-issues">
     <h5>Items to review</h5>
     {data.issues.length>0?<ul>{data.issues.map((issue,index)=><li key={issue.kind+issue.reference+index}>
-     <strong>{reasonLabels[issue.reason]??'Accounting discrepancy'}</strong><span>{issue.reference}</span>
+     <strong>{reasonLabels[issue.reason]??'Accounting discrepancy'}</strong><span>{kindLabels[issue.kind]??'Transaction'} · {issue.reference}</span>
+     <p>{reasonGuidance[issue.reason]??'Ask a finance administrator to review the original transaction and its journal before making corrections.'}</p>
     </li>)}</ul>:<p>Folio balances or payment evidence need further review.</p>}
-    <p>Review the original payment evidence and accounting records before making corrections.</p>
+    <p>After the authorized correction is complete, select Refresh to check the updated ledger. This report cannot post or reverse entries.</p>
    </div>}
    <p className="no-show-ledger-note">Read-only booking report. Matched entries only; not a complete general ledger or Daily Closing certification.</p>
   </>:<p role="status">No accounting report available.</p>}

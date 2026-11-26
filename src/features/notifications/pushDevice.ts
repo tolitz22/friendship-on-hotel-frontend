@@ -1,4 +1,4 @@
-import {requestJson} from '../../api/http';
+import {ApiError,requestJson} from '../../api/http';
 import {z} from 'zod';
 
 export const pushKey=import.meta.env.VITE_PUSH_PUBLIC_KEY?.trim()??'';
@@ -45,16 +45,28 @@ export async function enablePush(userId:string,hotelId:string){
 export async function disablePush(userId:string,hotelId:string){
  const row=registeredDevice(userId,hotelId);
  if(!row)return;
- await requestJson(path(hotelId)+'/'+encodeURIComponent(row.id),{method:'DELETE'});
+ try{await requestJson(path(hotelId)+'/'+encodeURIComponent(row.id),{method:'DELETE'});}
+ catch(e){if(!(e instanceof ApiError)||e.status!==404)throw e;}
  const remaining=records().filter(r=>r.userId!==userId||r.hotelId!==hotelId);
  save(remaining);
  if(!remaining.length)await unsubscribeBrowser();
 }
+function isPushWorker(reg:ServiceWorkerRegistration):boolean{
+ const worker=reg.active??reg.waiting??reg.installing;
+ if(!worker)return false;
+ try{return new URL(worker.scriptURL).origin===location.origin&&new URL(worker.scriptURL).pathname==='/pms-push-sw.js';}
+ catch{return false;}
+}
 export async function unsubscribeBrowser(){
- if(!pushSupported())return;
+ if(typeof navigator==='undefined'||!('serviceWorker' in navigator))return;
  const reg=await navigator.serviceWorker.getRegistration('/');
- const sub=await reg?.pushManager.getSubscription();
- if(sub)await sub.unsubscribe();
+ if(!reg||!isPushWorker(reg))return;
+ const sub=await reg.pushManager.getSubscription();
+ if(sub){
+  await sub.unsubscribe();
+  if(await reg.pushManager.getSubscription())throw new Error('Unable to remove the previous browser push subscription. Reset notification permissions and try again.');
+ }
+ for(const notification of await reg.getNotifications())notification.close();
 }
 export async function revokeLocalPush(userId:string){
  try{
@@ -70,7 +82,9 @@ export async function revokeLocalPush(userId:string){
 /** A different account on the same browser must not inherit the previous owner's alerts. */
 export async function resetPushForDifferentAccount(userId:string){
  const rows=records();
- if(!rows.some(row=>row.userId!==userId))return;
+ // If storage was cleared, the surviving service worker has unknown ownership.
+ // Never allow a new session to silently inherit an orphaned subscription.
+ if(rows.length>0&&rows.every(row=>row.userId===userId))return;
  await unsubscribeBrowser();
- save([]);
+ if(rows.length>0)save([]);
 }

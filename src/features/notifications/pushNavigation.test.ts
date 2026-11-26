@@ -16,3 +16,11 @@ describe('notification hotel routing',()=>{
   expect(requestedNotificationHotel('/reservations','?hotel=1&booking=abc',hotels)).toBeNull();
  });
 });
+
+it('validates operational push destinations and administrator access',()=>{
+ const hotels=[{id:'1',role:'admin'},{id:'2',role:'front_desk'}];
+ expect(requestedNotificationHotel('/maintenance','?hotel=1&order=8&push=1',hotels)).toBe('1');
+ expect(requestedNotificationHotel('/housekeeping','?hotel=2&task=8&push=1',hotels)).toBeNull();
+ expect(requestedNotificationHotel('/room-calendar','?hotel=1&room=101-A&push=1',hotels)).toBe('1');
+ expect(requestedNotificationHotel('/manager-approvals','?hotel=1&approval=3&push=1',hotels)).toBe('1');
+});

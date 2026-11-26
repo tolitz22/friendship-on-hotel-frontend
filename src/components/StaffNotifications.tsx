@@ -1,7 +1,7 @@
 import {useRef,useState} from 'react';
 import {Link} from '@tanstack/react-router';
 import {useQuery} from '@tanstack/react-query';
-import {AlertTriangle,ArrowRight,BedDouble,Bell,CalendarPlus,CreditCard,LogOut,Receipt,Wallet,X} from 'lucide-react';
+import {AlertTriangle,ArrowRight,BedDouble,Bell,CalendarPlus,ClipboardCheck,CreditCard,LogOut,Receipt,Wallet,Wrench,X} from 'lucide-react';
 import {z} from 'zod';
 import {getJson} from '../api/http';
 import {hotelPath} from '../api/session';
@@ -29,14 +29,26 @@ const notificationKinds={
  expense_recorded:{label:'Expense recorded',icon:Receipt,action:'Open expense'},
  expense_correction_requested:{label:'Expense correction requested',icon:AlertTriangle,action:'Review expense'},
  cashier_discrepancy:{label:'Cashier cash-count discrepancy',icon:AlertTriangle,action:'Review cashier shift'},
+ housekeeping_completed:{label:'Housekeeping completed',icon:ClipboardCheck,action:'Open task'},
+ room_inspection_approved:{label:'Room inspection approved',icon:ClipboardCheck,action:'Open room'},
+ room_inspection_rejected:{label:'Room inspection rejected',icon:AlertTriangle,action:'Review room'},
+ maintenance_created:{label:'Maintenance work order created',icon:Wrench,action:'Open work order'},
+ maintenance_urgent:{label:'Urgent maintenance',icon:AlertTriangle,action:'Review work order'},
+ maintenance_resolved:{label:'Maintenance resolved',icon:Wrench,action:'Open work order'},
+ room_blocked:{label:'Room blocked',icon:BedDouble,action:'Open calendar'},
+ room_unblocked:{label:'Room unblocked',icon:BedDouble,action:'Open calendar'},
+ approval_requested:{label:'Manager approval requested',icon:AlertTriangle,action:'Review approvals'},
+ approval_approved:{label:'Manager approval granted',icon:ClipboardCheck,action:'Open approvals'},
+ approval_rejected:{label:'Manager approval rejected',icon:AlertTriangle,action:'Open approvals'},
 } as const;
 const responseSchema=z.object({data:z.object({
  hotelId:z.string(),
  notifications:z.array(z.object({
   id:z.string(),kind:z.enum(Object.keys(notificationKinds) as (keyof typeof notificationKinds)[]),bookingId:z.string().regex(/^[1-9]\d*$/).optional(),
-  target:z.enum(['billing','expenses','cashier-shifts']).optional(),paymentId:z.string().regex(/^[1-9]\d*$/).nullish(),expenseId:z.string().regex(/^[1-9]\d*$/).optional(),shiftId:z.string().regex(/^[1-9]\d*$/).optional(),
+  target:z.enum(['billing','expenses','cashier-shifts','housekeeping','maintenance','rooms','room-calendar','manager-approvals']).optional(),paymentId:z.string().regex(/^[1-9]\d*$/).nullish(),expenseId:z.string().regex(/^[1-9]\d*$/).optional(),shiftId:z.string().regex(/^[1-9]\d*$/).optional(),
+  taskId:z.string().regex(/^[1-9]\d*$/).optional(),orderId:z.string().regex(/^[1-9]\d*$/).optional(),room:z.string().min(1).max(50).optional(),calendarDate:z.iso.date().optional(),approvalId:z.string().regex(/^[1-9]\d*$/).optional(),
   reference:z.string(),date:z.iso.date(),
- }).refine(item=>item.target==='expenses'?!!item.expenseId:item.target==='cashier-shifts'?!!item.shiftId:!!item.bookingId)),
+ }).refine(item=>item.target==='expenses'?!!item.expenseId:item.target==='cashier-shifts'?!!item.shiftId:item.target==='housekeeping'?!!item.taskId:item.target==='maintenance'?!!item.orderId:item.target==='rooms'||item.target==='room-calendar'?!!item.room:item.target==='manager-approvals'?!!item.approvalId:!!item.bookingId)),
  hasMore:z.boolean(),
 })});
 
@@ -96,6 +108,11 @@ export function StaffNotifications({hotelId,userId,canPush=false}:{hotelId:strin
       {item.target==='billing'?<Link to="/billing" search={{booking:item.bookingId,payment:item.paymentId??undefined,hotel:hotelId}} onClick={close}>{content}</Link>
       :item.target==='expenses'?<Link to="/expenses" search={{expense:item.expenseId,hotel:hotelId}} onClick={close}>{content}</Link>
       :item.target==='cashier-shifts'?<Link to="/cashier-shifts" search={{shift:item.shiftId,hotel:hotelId}} onClick={close}>{content}</Link>
+      :item.target==='housekeeping'?<Link to="/housekeeping" search={{task:item.taskId}} onClick={close}>{content}</Link>
+      :item.target==='maintenance'?<Link to="/maintenance" search={{order:item.orderId}} onClick={close}>{content}</Link>
+      :item.target==='rooms'?<Link to="/rooms" search={{room:item.room}} onClick={close}>{content}</Link>
+      :item.target==='room-calendar'?<Link to="/room-calendar" search={{room:item.room,date:item.calendarDate,hotel:hotelId}} onClick={close}>{content}</Link>
+      :item.target==='manager-approvals'?<Link to="/manager-approvals" search={{approval:item.approvalId,hotel:hotelId}} onClick={close}>{content}</Link>
       :<Link to="/reservations" search={{booking:item.bookingId,deskAction}} onClick={close}>{content}</Link>}
      </li>;
     })}

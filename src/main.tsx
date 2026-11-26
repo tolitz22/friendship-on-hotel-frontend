@@ -73,7 +73,8 @@ const groupReservations=createRoute({getParentRoute:()=>root,path:'/group-reserv
   hotel:typeof value.hotel==='string'&&/^[1-9][0-9]*$/.test(value.hotel)?value.hotel:undefined,
  }),component:GroupReservations});
 const rooms=createRoute({getParentRoute:()=>root,path:'/rooms',
- validateSearch:(value:Record<string,unknown>):{room?:string;inspect?:boolean}=>({
+ validateSearch:(value:Record<string,unknown>):{room?:string;inspect?:boolean;hotel?:string;push?:string}=>({
+  hotel:normalizeBillingBookingId(value.hotel),push:String(value.push)==='1'?'1':undefined,
   inspect:value.inspect===true?true:undefined,
   room:typeof value.room==='string'&&value.room.trim().length<=50
    ?value.room.trim()||undefined:undefined,
@@ -114,7 +115,7 @@ const functionalRoutes=[
   }),
   component:FrontDesk}),
  createRoute({getParentRoute:()=>root,path:'/operational-exceptions',component:OperationalExceptions}),
- createRoute({getParentRoute:()=>root,path:'/manager-approvals',component:ManagerApprovals}),
+ createRoute({getParentRoute:()=>root,path:'/manager-approvals',validateSearch:(value:Record<string,unknown>):{approval?:string;hotel?:string;push?:string}=>({approval:normalizeBillingBookingId(value.approval),hotel:normalizeBillingBookingId(value.hotel),push:String(value.push)==='1'?'1':undefined}),component:ManagerApprovals}),
  createRoute({getParentRoute:()=>root,path:'/cashier-shifts',
   validateSearch:(value:Record<string,unknown>):{booking?:string;hotel?:string;shift?:string}=>({
    booking:normalizeBillingBookingId(value.booking),
@@ -147,11 +148,13 @@ const functionalRoutes=[
    checkOut:typeof value.checkOut==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.checkOut)?value.checkOut:undefined,
   }),component:Billing}),
  createRoute({getParentRoute:()=>root,path:'/housekeeping',
-  validateSearch:(value:Record<string,unknown>):{task?:string}=>({
+  validateSearch:(value:Record<string,unknown>):{task?:string;hotel?:string;push?:string}=>({
+   hotel:normalizeBillingBookingId(value.hotel),push:String(value.push)==='1'?'1':undefined,
    task:typeof value.task==='string'&&/^[1-9][0-9]*$/.test(value.task)?value.task:undefined,
   }),component:dataMode==='api'?LiveHousekeeping:Housekeeping}),
  createRoute({getParentRoute:()=>root,path:'/maintenance',
-  validateSearch:(value:Record<string,unknown>):{order?:string}=>({
+  validateSearch:(value:Record<string,unknown>):{order?:string;hotel?:string;push?:string}=>({
+   hotel:normalizeBillingBookingId(value.hotel),push:String(value.push)==='1'?'1':undefined,
    order:normalizeBillingBookingId(value.order),
   }),component:dataMode==='api'?LiveMaintenance:Maintenance}),
  createRoute({getParentRoute:()=>root,path:'/reports',component:Reports}),

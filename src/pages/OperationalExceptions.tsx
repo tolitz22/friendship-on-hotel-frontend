@@ -10,10 +10,10 @@ import {auditActorName} from '../components/ReadableAuditEvent';
 
 type Filter='all'|'critical'|'attention'|'review';
 const filters:{value:Filter;title:string;caption:string}[]=[
- {value:'all',title:'All tasks',caption:'Everything requiring a look'},
+ {value:'all',title:'All exceptions',caption:'Total items requiring review'},
  {value:'critical',title:'Urgent',caption:'Resolve operational risks first'},
  {value:'attention',title:'Needs action',caption:'Assignments and decisions'},
- {value:'review',title:'Finance review',caption:'Independent cash/payment review'},
+ {value:'review',title:'Review required',caption:'Items requiring verification'},
 ];
 const types:Record<OperationalException['type'],{title:string;area:string;next:string}>={
  unassigned_arrival:{title:'Assign an arrival room',area:'Front desk',next:'Check readiness before assigning a room'},
@@ -55,14 +55,16 @@ export function OperationalExceptions(){
  const [filter,setFilter]=useState<Filter>('all');
  const [search,setSearch]=useState('');
  const [showActivity,setShowActivity]=useState(false);
+ const [area,setArea]=useState('all');
  const report=useOperationalExceptions(days,admin);
  const data=report.data?.data;
  const matching=useMemo(()=>{
   const keyword=search.trim().toLocaleLowerCase();
   return (data?.items??[]).filter(item=>(filter==='all'||item.severity===filter)
-   &&(!keyword||[item.reference,item.reason,item.type,item.ownerName??'']
+   &&(area==='all'||types[item.type].area===area)
+   &&(!keyword||[item.reference,item.reason,item.type,item.ownerName??'',item.roomNumber??'',types[item.type].title,types[item.type].area]
     .some(value=>value.toLocaleLowerCase().includes(keyword))));
- },[data,filter,search]);
+ },[data,filter,search,area]);
  if(!admin)return <>
   <Heading title="Manager action center" description="Only authorized hotel managers can view operational exceptions."/>
   <div className="exception-access" role="status"><ShieldCheck size={21}/> You do not have permission to review management exceptions for this property.</div>
@@ -84,12 +86,11 @@ export function OperationalExceptions(){
  return <div className="ops-workspace">
   <div className="ops-heading">
    <div><span className="rr-eyebrow">MANAGER WORKSPACE</span>
-    <Heading title="What needs your attention?" description="Review important hotel issues, identify the next action, and open the right workflow."/></div>
+    <Heading title="Exceptions & audit" description="Prioritize hotel issues, open the affected records, and review reservation activity."/></div>
    <button type="button" className="rr-secondary-action" disabled={report.isFetching}
     onClick={()=>void report.refetch()}><RefreshCw size={16}/> {report.isFetching?'Refreshing…':'Refresh'}</button>
   </div>
-  <div className="ops-note"><AlertTriangle size={18}/><p>These are records requiring review—not proof of employee misconduct.
-   The dashboard does not automatically make payments, resolve investigations or change room assignments.</p></div>
+
   <div className="ops-toolbar">
    <div><strong>Hotel activity · {readableDate(data?.asOfHotelDate)}</strong>
     <span>Reservation alerts for the next {days} days; operational review queues are current</span></div>
@@ -103,22 +104,30 @@ export function OperationalExceptions(){
    <div className="ops-summary" aria-label="Management work queues">
     {filters.map(entry=><button type="button" key={entry.value} aria-pressed={filter===entry.value}
      className={'ops-summary-card '+(filter===entry.value?'selected':'')}
-     onClick={()=>setFilter(entry.value)}>
+     onClick={()=>{setFilter(entry.value);setShowActivity(false);}}>
       <span>{entry.title}</span><strong>{entry.value==='all'?data.summary.total:
        data.summary[entry.value]}</strong><small>{entry.caption}</small>
     </button>)}
    </div>
-   <section className="ops-task-section">
+   <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-2" role="group" aria-label="Workspace view">
+    <button type="button" className={"rr-secondary-action "+(!showActivity?"font-bold":"")} aria-pressed={!showActivity} onClick={()=>setShowActivity(false)}><ClipboardList size={16}/> Exceptions ({data.summary.total})</button>
+    <button type="button" className={"rr-secondary-action "+(showActivity?"font-bold":"")} aria-pressed={showActivity} onClick={()=>setShowActivity(true)}><Clock3 size={16}/> Audit history ({data.activity.length})</button>
+   </div>
+   {!showActivity&&<section className="ops-task-section">
     <div className="ops-task-heading">
      <div><h3>{filters.find(entry=>entry.value===filter)?.title}</h3>
       <p>{matching.length} matching item{matching.length===1?'':'s'} · Assigned actions remain in their original modules</p></div>
+     <div className="flex flex-wrap items-center gap-2">
      <label className="ops-search"><Search size={17}/>
       <input aria-label="Search management tasks" type="search" value={search}
        placeholder="Search room, booking or issue" onChange={event=>setSearch(event.target.value)}/>
      </label>
+     <select aria-label="Filter by department" className="wizard-input" value={area} onChange={event=>setArea(event.target.value)}><option value="all">All departments</option>{Array.from(new Set(Object.values(types).map(type=>type.area))).sort().map(name=><option key={name} value={name}>{name}</option>)}</select>
+     {(search||area!=='all'||filter!=='all')&&<button type="button" className="rr-secondary-action" onClick={()=>{setSearch('');setArea('all');setFilter('all');}}>Clear filters</button>}
+     </div>
     </div>
     {matching.length===0?<div className="ops-no-tasks"><ShieldCheck size={25}/>
-     <strong>No matching items</strong><p>Try another filter or arrival window. This does not guarantee that every physical or off-system issue has been detected.</p>
+     <strong>{data.summary.total===0?'No open exceptions reported':'No matching exceptions'}</strong><p>{data.summary.total===0?'No issues were detected by the current checks. Continue routine hotel monitoring.':'Try clearing filters or changing the arrival window.'}</p>
     </div>:<>
      {urgent.length>0&&<div className="ops-list">
       <h4><AlertTriangle size={17}/> Urgent follow-up ({urgent.length})</h4>
@@ -129,11 +138,9 @@ export function OperationalExceptions(){
       {ordinary.map(row)}
      </div>}
     </>}
-   </section>
-   <section className="ops-history"><button type="button" aria-expanded={showActivity}
-    onClick={()=>setShowActivity(x=>!x)}><span><Clock3 size={17}/> Recent reservation activity ({data.activity.length})</span>
-     <span>{showActivity?'Hide':'View'} history</span></button>
-    {showActivity&&<div>
+   </section>}
+   {showActivity&&<section className="ops-history"><div>
+     <h3 className="font-semibold">Recent reservation activity</h3>
      <p>Activity history is not itself an alert. Open a reservation to review what was recorded.</p>
      {data.activity.length===0&&<p>No reservation changes recorded in the selected period.</p>}
      {data.activity.map(entry=><article key={entry.id} className="ops-history-row">
@@ -142,8 +149,9 @@ export function OperationalExceptions(){
         {' · '}{readableDateTime(entry.createdAt)}</small></div>
       <Link to="/reservations" search={{booking:entry.bookingId}}>View <ArrowRight size={14}/></Link>
      </article>)}
-    </div>}
-   </section>
+    </div>
+   </section>}
+   <details className="ops-note"><summary className="cursor-pointer font-medium">About these checks</summary><p>Exceptions indicate records requiring review, not proof of misconduct. Review and resolution remain in the original authorized workflows.</p></details>
   </>}
  </div>;
 }

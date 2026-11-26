@@ -3,6 +3,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {dataMode} from '../api';
 import {fetchStaffProfile,loginStaff,logoutStaff,type StaffProfile} from '../api/auth';
 import {isCookieAuth,onSpaSessionExpired} from '../api/http';
+import {requestedNotificationHotel,hasScopedBookingLink} from '../features/notifications/pushNavigation';
 import {revokeLocalPush} from '../features/notifications/pushDevice';
 import {clearSession,readSession,setSessionHotel,setSessionToken} from '../api/session';
 
@@ -44,7 +45,10 @@ export function AuthProvider({children}:{children:ReactNode}){
     setUser(profile);
     const previousHotel=readSession().hotelId;
     const authorized=profile.hotels.find(h=>h.id===previousHotel);
-    const selected=authorized?.id??(profile.hotels.length===1?profile.hotels[0].id:null);
+    const linked=requestedNotificationHotel(window.location.pathname,window.location.search,profile.hotels);
+    const scoped=hasScopedBookingLink(window.location.pathname,window.location.search);
+    if(scoped&&!linked)window.history.replaceState(window.history.state,'','/reservations');
+    const selected=linked??authorized?.id??(profile.hotels.length===1?profile.hotels[0].id:null);
     setSessionHotel(selected);
     setHotelId(selected);
    }catch{
@@ -93,9 +97,11 @@ export function AuthProvider({children}:{children:ReactNode}){
    loggedIn=true;
    const profile=(await fetchStaffProfile()).data;
    setUser(profile);
-   if(profile.hotels.length===1){
-    setSessionHotel(profile.hotels[0].id);setHotelId(profile.hotels[0].id);
-   }
+   const linked=requestedNotificationHotel(window.location.pathname,window.location.search,profile.hotels);
+   const scoped=hasScopedBookingLink(window.location.pathname,window.location.search);
+   if(scoped&&!linked)window.history.replaceState(window.history.state,'','/reservations');
+   const selected=linked??(profile.hotels.length===1?profile.hotels[0].id:null);
+   setSessionHotel(selected);setHotelId(selected);
   }catch(e){
    if(loggedIn||readSession().token){
     try{await logoutStaff();}catch{/* Session may expire on the server. */}

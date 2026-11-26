@@ -28,7 +28,7 @@ type Message={id:number;sender_id:number|string|null;sender_name?:string;body:st
 type Conversation={id:number;kind:'channel'|'direct'|'group';title:string|null;members:(Staff & {last_read_message_id:number})[];latest:Message|null;unread:number};
 const path=(hotel:string)=>'/hotels/'+encodeURIComponent(hotel)+'/staff-messaging';
 export function useMessageInbox(hotel:string|null,user:string|undefined){
- return useQuery({queryKey:['staff-messages',hotel,user],queryFn:()=>getJson<{data:Conversation[]}>(path(hotel!)+'/conversations'),enabled:!!hotel&&!!user&&dataMode==='api',refetchInterval:5000,retry:false});
+ return useQuery({queryKey:['staff-messages',hotel,user],queryFn:()=>getJson<{data:Conversation[]}>(path(hotel!)+'/conversations'),enabled:!!hotel&&!!user&&dataMode==='api',refetchInterval:5000,refetchIntervalInBackground:false,refetchOnReconnect:true,retry:false});
 }
 export function Messages(){
  const {hotelId,user}=useHotelAuth();
@@ -59,7 +59,7 @@ function Inbox({hotel,user}:{hotel:string;user:string}){
  const canAnnounce=role==='admin'&&canHandover;
  const handoverValid=!!handover.incoming_shift.trim()&&!!handover.outstanding.trim()&&('Shift handover: '+handover.incoming_shift.trim()+'\nOutstanding work: '+handover.outstanding.trim()+(handover.reminders.trim()?'\nReminders: '+handover.reminders.trim():'')+(body.trim()?'\nNotes: '+body.trim():'')).length<=4000;
  const cannotSend=handoverMode?(!canHandover||!handoverValid):announcement?(!canAnnounce||!body.trim()):(!body.trim()&&!file&&!record);
- const thread=useQuery({queryKey:['staff-thread',hotel,user,selected,search],queryFn:()=>getJson<{data:Message[]}>(base+'/conversations/'+selected,{q:search}),enabled:selected!==null,refetchInterval:3000,retry:false});
+ const thread=useQuery({queryKey:['staff-thread',hotel,user,selected,search],queryFn:()=>getJson<{data:Message[]}>(base+'/conversations/'+selected,{q:search}),enabled:selected!==null,refetchInterval:3000,refetchIntervalInBackground:false,refetchOnReconnect:true,retry:false});
  const latest=thread.data?.data.at(-1)?.id;
  const readKey=useRef('');
  useEffect(()=>{

@@ -1,4 +1,5 @@
 import {parseGroupDetailTab} from './features/groups/groupNavigation';
+import {Messages} from './pages/Messages';
 import React from 'react';import ReactDOM from 'react-dom/client';
 import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
 import {createRootRoute,createRoute,createRouter,RouterProvider} from '@tanstack/react-router';
@@ -93,6 +94,7 @@ const roomCalendar=createRoute({getParentRoute:()=>root,path:'/room-calendar',
   hotel:typeof value.hotel==='string'&&/^[1-9][0-9]*$/.test(value.hotel)?value.hotel:undefined,
  }),component:LiveRoomCalendar});
 const functionalRoutes=[
+ createRoute({getParentRoute:()=>root,path:'/messages',component:Messages}),
  createRoute({getParentRoute:()=>root,path:'/my-expense-claims',component:MyExpenseClaims}),
  createRoute({getParentRoute:()=>root,path:'/expenses',component:Expenses,
  validateSearch:(value:Record<string,unknown>):{expense?:string;date?:string;hotel?:string;tab?:ExpenseView}=>({

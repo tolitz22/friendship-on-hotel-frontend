@@ -1,12 +1,14 @@
 import {useRef,useState} from 'react';
 import {Link} from '@tanstack/react-router';
 import {useQuery} from '@tanstack/react-query';
-import {AlertTriangle,ArrowRight,BedDouble,Bell,CalendarPlus,ClipboardCheck,ClipboardList,CreditCard,LogOut,Megaphone,MessageCircle,Receipt,Wallet,Wrench,X} from 'lucide-react';
+import {AlertTriangle,ArrowRight,BedDouble,Bell,CalendarPlus,ClipboardCheck,ClipboardList,CreditCard,LogOut,Megaphone,MessageCircle,Receipt,RefreshCw,Settings2,Wallet,Wrench,X} from 'lucide-react';
 import {z} from 'zod';
 import {getJson} from '../api/http';
 import {dateLabel} from '../lib/format';
 import {QueryFeedback} from './QueryFeedback';
 import {PushDeviceControl} from './PushDeviceControl';
+import {groupFor,notificationGroups,priorityFor,visibleNotifications,type NotificationFilter,type NotificationGroup} from '../features/notifications/notificationView';
+import './StaffNotifications.css';
 
 const notificationKinds={
  checkout_overdue:{label:'Checkout overdue',icon:AlertTriangle,action:'Review checkout'},
@@ -72,6 +74,9 @@ export function StaffNotifications({hotelId,userId,canPush=false}:{hotelId:strin
   }catch{return [];}
  });
  const [open,setOpen]=useState(false);
+ const [settings,setSettings]=useState(false);
+ const [filter,setFilter]=useState<NotificationFilter>('all');
+ const [group,setGroup]=useState<NotificationGroup|'all'>('all');
  const dialog=useRef<HTMLDialogElement>(null);
  const bell=useRef<HTMLButtonElement>(null);
  const feed=useQuery({
@@ -87,39 +92,59 @@ export function StaffNotifications({hotelId,userId,canPush=false}:{hotelId:strin
   refetchIntervalInBackground:false,
  });
  const items=feed.data?.notifications??[];
- const unread=items.filter(item=>!read.includes(item.id)).length;
+ const readSet=new Set(read);
+ const unread=items.filter(item=>!readSet.has(item.id)).length;
+ const attention=items.filter(item=>priorityFor(item.kind)>0).length;
+ const urgent=items.filter(item=>priorityFor(item.kind)===2).length;
+ const visible=visibleNotifications(items,readSet,filter,group);
+ const groups=notificationGroups.filter(name=>items.some(item=>groupFor(item.kind)===name));
  function markRead(ids:string[]){
   const updated=[...new Set([...ids,...read])].slice(0,500);
   setRead(updated);
   try{localStorage.setItem(storageKey,JSON.stringify(updated));}catch{/* Remain usable in memory. */}
  }
  return <>
-  <button ref={bell} type="button" className="icon-btn topbar-action-notifications"
+  <button ref={bell} type="button" className={'icon-btn topbar-action-notifications'+(urgent?' has-urgent':'')}
    aria-label={unread?`Notifications, ${unread} unread`:'Notifications'} aria-haspopup="dialog"
    onClick={()=>{dialog.current?.showModal();setOpen(true);void feed.refetch();}}>
    <Bell size={19}/>{unread>0&&<span className="staff-notifications-badge" aria-hidden="true">{unread}</span>}
   </button>
   <dialog ref={dialog} className="staff-notifications-dialog" aria-labelledby="staff-notifications-title"
-   onClose={()=>{setOpen(false);bell.current?.focus();}}>
+   onClose={()=>{setOpen(false);setSettings(false);bell.current?.focus();}}>
    <header className="staff-notifications-heading">
     <div><h2 id="staff-notifications-title">Notifications</h2>
-     <p>{unread?`${unread} unread`:'Front desk updates'}</p></div>
-    <button type="button" className="icon-btn" onClick={()=>dialog.current?.close()} aria-label="Close notifications"><X size={20}/></button>
+     <p>{unread} unread · {attention} require attention{feed.data?.hasMore?' · partial feed':''}</p></div>
+    <div className="notification-header-actions">
+     {canPush&&<button type="button" className="icon-btn" aria-label="Push notification settings" aria-pressed={settings} onClick={()=>setSettings(v=>!v)}><Settings2 size={18}/></button>}
+     <button type="button" className="icon-btn" onClick={()=>dialog.current?.close()} aria-label="Close notifications"><X size={20}/></button>
+    </div>
    </header>
-   {canPush&&<PushDeviceControl hotelId={hotelId} userId={userId}/>}
-   {unread>0&&<button type="button" className="btn-inline" onClick={()=>markRead(items.map(item=>item.id))}>Mark all as read</button>}
+   {canPush&&<div hidden={!settings}><PushDeviceControl hotelId={hotelId} userId={userId} active={open&&settings}/><button type="button" className="btn-inline notification-back" onClick={()=>setSettings(false)}>Back to notifications</button></div>}
+   <div hidden={settings}>
+   <div className="notification-toolbar">
+    <div className="notification-filters" role="group" aria-label="Filter notifications">
+     {([['all','All',items.length],['unread','Unread',unread],['attention','Requires attention',attention]] as const).map(([key,label,count])=><button type="button" key={key} aria-pressed={filter===key} onClick={()=>setFilter(key)}>{label} <span>{count}</span></button>)}
+    </div>
+    <div className="notification-tools">
+     <label>Module <select value={group} onChange={e=>setGroup(e.target.value as NotificationGroup|'all')}><option value="all">All modules</option>{groups.map(name=><option key={name}>{name}</option>)}</select></label>
+     <button type="button" className="btn-inline" onClick={()=>void feed.refetch()} disabled={feed.isFetching} aria-label="Refresh notifications"><RefreshCw size={14} aria-hidden="true"/> Refresh</button>
+    </div>
+    {unread>0&&<button type="button" className="btn-inline notification-mark" onClick={()=>markRead(items.map(item=>item.id))}>Mark all as read</button>}
+   </div>
+   {urgent>0&&<p className="notification-urgent-summary"><AlertTriangle size={16} aria-hidden="true"/> {urgent} urgent {urgent===1?'alert':'alerts'} need attention.</p>}
    <QueryFeedback loading={feed.isPending} error={feed.error} onRetry={()=>void feed.refetch()}
-    empty={feed.isSuccess&&items.length===0} emptyMessage="You’re caught up. New bookings and hotel activity alerts will appear here."/>
-   {items.length>0&&<ul className="staff-notifications-list">
-    {items.map(item=>{
+    empty={feed.isSuccess&&visible.length===0} emptyMessage={filter==='attention'?'No alerts require attention in this view.':filter==='unread'?'No unread alerts in this view.':'No notifications in this view.'}/>
+   {visible.length>0&&<ul className="staff-notifications-list">
+    {visible.map(item=>{
      const {label,icon:Icon,action}=notificationKinds[item.kind];
      const deskAction=item.kind==='room_assignment'?'assign':item.kind.startsWith('checkout_')?'check-out':undefined;
      const close=()=>{markRead([item.id]);dialog.current?.close();};
-     const content=<><Icon size={19} aria-hidden="true"/>
-       <span><strong>{label}{!read.includes(item.id)&&<span className="staff-notifications-unread"> · Unread</span>}</strong>
-        <small>{item.reference} · {dateLabel(item.date)}</small><small>{action}</small></span>
+     const priority=priorityFor(item.kind);
+     const content=<><span className="notification-icon"><Icon size={19} aria-hidden="true"/></span>
+       <span className="notification-copy"><small className="notification-category">{groupFor(item.kind)}{priority===2?' · Urgent':priority===1?' · Requires attention':''}</small><strong>{label}{!readSet.has(item.id)&&<span className="staff-notifications-unread"> · Unread</span>}</strong>
+        <small>{item.reference} · {dateLabel(item.date)}</small><small className="notification-action">{action}</small></span>
        <ArrowRight size={16} aria-hidden="true"/></>;
-     return <li key={item.id}>
+     return <li key={item.id} className={'notification-row priority-'+priority+(!readSet.has(item.id)?' is-unread':'')}>
       {item.target==='billing'?<Link to="/billing" search={{booking:item.bookingId,payment:item.paymentId??undefined,hotel:hotelId}} onClick={close}>{content}</Link>
       :item.target==='expenses'?<Link to="/expenses" search={{expense:item.expenseId,hotel:hotelId}} onClick={close}>{content}</Link>
       :item.target==='cashier-shifts'?<Link to="/cashier-shifts" search={{shift:item.shiftId,hotel:hotelId}} onClick={close}>{content}</Link>
@@ -136,6 +161,7 @@ export function StaffNotifications({hotelId,userId,canPush=false}:{hotelId:strin
    </ul>}
    {feed.data?.hasMore&&<p>Showing up to eight per alert type.</p>}
    <Link to="/front-desk" search={{queue:items.some(item=>item.kind==='checkout_overdue')?'overdue':undefined}} onClick={()=>dialog.current?.close()} className="btn-inline">Open Front Desk <ArrowRight size={15}/></Link>
+   </div>
   </dialog>
  </>;
 }

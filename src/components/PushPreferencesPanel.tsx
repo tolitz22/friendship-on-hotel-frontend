@@ -4,6 +4,7 @@ import {Settings2,Trash2} from 'lucide-react';
 import {z} from 'zod';
 import {getJson,requestJson} from '../api/http';
 import {registeredDevice} from '../features/notifications/pushDevice';
+import {groupFor,notificationGroups} from '../features/notifications/notificationView';
 import './PushPreferencesPanel.css';
 
 const schema=z.object({enabled:z.boolean(),new_booking:z.boolean(),checkout_due:z.boolean(),checkout_overdue:z.boolean(),room_assignment:z.boolean(),guest_check_in:z.boolean().default(true),guest_check_out:z.boolean().default(true),booking_cancelled:z.boolean().default(true),booking_no_show:z.boolean().default(true),stay_extended:z.boolean().default(true),payment_recorded:z.boolean().default(true),payment_pending_review:z.boolean().default(true),payment_verified:z.boolean().default(true),payment_rejected:z.boolean().default(true),payment_voided:z.boolean().default(true),refund_requested:z.boolean().default(true),refund_verified:z.boolean().default(true),expense_recorded:z.boolean().default(true),expense_correction_requested:z.boolean().default(true),cashier_discrepancy:z.boolean().default(true),housekeeping_completed:z.boolean().default(true),room_inspection_approved:z.boolean().default(true),room_inspection_rejected:z.boolean().default(true),maintenance_created:z.boolean().default(true),maintenance_urgent:z.boolean().default(true),maintenance_resolved:z.boolean().default(true),room_blocked:z.boolean().default(true),room_unblocked:z.boolean().default(true),approval_requested:z.boolean().default(true),approval_approved:z.boolean().default(true),approval_rejected:z.boolean().default(true),staff_message:z.boolean().default(true),staff_announcement:z.boolean().default(true),staff_handover:z.boolean().default(true),staff_acknowledged:z.boolean().default(true),daily_close_completed:z.boolean().default(true),daily_close_blocked:z.boolean().default(true),closing_cashier_unreconciled:z.boolean().default(true),closing_payment_pending:z.boolean().default(true),closing_journal_integrity:z.boolean().default(true),closing_no_show_unresolved:z.boolean().default(true),closing_room_night_issue:z.boolean().default(true)});
@@ -53,8 +54,8 @@ const categories=[
  ['closing_room_night_issue','Nightly room accounting issue'],
 ] as const;
 
-export function PushPreferencesPanel({userId,hotelId,onRemoveCurrent}:{userId:string;hotelId:string;onRemoveCurrent:()=>Promise<void>}){
- const [open,setOpen]=useState(false);
+export function PushPreferencesPanel({userId,hotelId,onRemoveCurrent,active=true}:{userId:string;hotelId:string;onRemoveCurrent:()=>Promise<void>;active?:boolean}){
+ const [open,setOpen]=useState(true);
  const [draft,setDraft]=useState<Preferences|null>(null);
  const [busy,setBusy]=useState(false);
  const [message,setMessage]=useState('');
@@ -63,8 +64,8 @@ export function PushPreferencesPanel({userId,hotelId,onRemoveCurrent}:{userId:st
  const root='/hotels/'+encodeURIComponent(hotelId);
  const key=['push-preferences',hotelId,userId];
  const deviceKey=['push-devices',hotelId,userId];
- const prefs=useQuery({queryKey:key,enabled:open,staleTime:30_000,refetchOnWindowFocus:false,queryFn:async()=>z.object({data:schema}).parse(await getJson<unknown>(root+'/push-preferences')).data,retry:false});
- const devices=useQuery({queryKey:deviceKey,enabled:open,staleTime:30_000,refetchOnWindowFocus:false,queryFn:async()=>z.object({data:z.array(deviceSchema)}).parse(await getJson<unknown>(root+'/push-subscriptions')).data,retry:false});
+ const prefs=useQuery({queryKey:key,enabled:open&&active,staleTime:30_000,refetchOnWindowFocus:false,queryFn:async()=>z.object({data:schema}).parse(await getJson<unknown>(root+'/push-preferences')).data,retry:false});
+ const devices=useQuery({queryKey:deviceKey,enabled:open&&active,staleTime:30_000,refetchOnWindowFocus:false,queryFn:async()=>z.object({data:z.array(deviceSchema)}).parse(await getJson<unknown>(root+'/push-subscriptions')).data,retry:false});
  const value=draft??prefs.data;
  const current=registeredDevice(userId,hotelId)?.id;
  async function save(){
@@ -95,17 +96,24 @@ export function PushPreferencesPanel({userId,hotelId,onRemoveCurrent}:{userId:st
    {value&&<>
     <label className="push-setting"><span>All push notifications</span><input type="checkbox" checked={value.enabled} disabled={busy} onChange={e=>setDraft({...value,enabled:e.target.checked})}/></label>
     <fieldset disabled={!value.enabled||busy}><legend>Alert categories</legend>
-     {categories.map(([kind,label])=><label key={kind} className="push-setting"><span>{label}</span><input type="checkbox" checked={value[kind]} onChange={e=>setDraft({...value,[kind]:e.target.checked})}/></label>)}
+     {notificationGroups.map(group=>{
+      const entries=categories.filter(([kind])=>groupFor(kind)===group);
+      const enabledCount=entries.filter(([kind])=>value[kind]).length;
+      return <details className="push-category" key={group}><summary>{group}<span>{enabledCount}/{entries.length} enabled</span></summary>
+       <button type="button" className="btn-inline" onClick={()=>setDraft({...value,...Object.fromEntries(entries.map(([kind])=>[kind,enabledCount!==entries.length]))})}>{enabledCount===entries.length?'Disable':'Enable'} all {group.toLowerCase()} alerts</button>
+       {entries.map(([kind,label])=><label key={kind} className="push-setting"><span>{label}</span><input type="checkbox" checked={value[kind]} onChange={e=>setDraft({...value,[kind]:e.target.checked})}/></label>)}
+      </details>;
+     })}
     </fieldset>
     <div className="push-setting-actions"><button type="button" className="btn-primary" disabled={!draft||busy} onClick={()=>void save()}>Save preferences</button>{draft&&<button type="button" className="btn-inline" disabled={busy} onClick={()=>setDraft(null)}>Cancel</button>}</div>
    </>}
-   <h3>Registered devices</h3>
+   <h3>Registered devices</h3><p>Removing a device stops future push delivery for this property. Other devices stay registered.</p>
    {devices.isPending&&<p role="status">Loading devices…</p>}
    {devices.isError&&<p role="alert">Devices unavailable. <button type="button" onClick={()=>void devices.refetch()}>Retry</button></p>}
    {devices.data?.length===0&&<p>No registered devices.</p>}
    {devices.data?.map(device=><div className="push-device-row" key={device.id}>
-    <div><strong>{device.deviceName}</strong>{device.id===current&&<small> · This browser</small>}<small className="push-device-date">Updated {new Date(device.updatedAt).toLocaleDateString()}</small></div>
-    {confirmId===device.id?<div className="push-setting-actions"><button type="button" disabled={busy} onClick={()=>void remove(device.id)}>Confirm removal</button><button type="button" disabled={busy} onClick={()=>setConfirmId(null)}>Cancel</button></div>:<button type="button" className="icon-btn" disabled={busy} aria-label={'Remove '+device.deviceName} onClick={()=>setConfirmId(device.id)}><Trash2 size={17}/></button>}
+    <div><strong>{device.deviceName}</strong>{device.id===current&&<small> · This browser</small>}<small className="push-device-date">Registration updated {new Date(device.updatedAt).toLocaleDateString()}</small></div>
+    {confirmId===device.id?<div className="push-setting-actions"><button type="button" disabled={busy} onClick={()=>void remove(device.id)}>Remove device</button><button type="button" disabled={busy} onClick={()=>setConfirmId(null)}>Cancel</button></div>:<button type="button" className="icon-btn" disabled={busy} aria-label={'Remove '+device.deviceName} onClick={()=>setConfirmId(device.id)}><Trash2 size={17}/></button>}
    </div>)}
    {message&&<p role="status">{message}</p>}
   </div>}

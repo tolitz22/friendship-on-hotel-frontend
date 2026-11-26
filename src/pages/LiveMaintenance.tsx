@@ -51,6 +51,7 @@ export function LiveMaintenance(){
  const [priorityFilter,setPriorityFilter]=useState<MaintenancePriority|''>('');
  const [search,setSearch]=useState('');
  const [mineOnly,setMineOnly]=useState(false);
+ const [moreFilters,setMoreFilters]=useState(false);
  const filters:MaintenanceFilters={...(statusFilter?{status:statusFilter}:{}),...(priorityFilter?{priority:priorityFilter}:{}),q:search.trim()||undefined,mine:mineOnly?1:undefined};
  const orders=useQuery({
   queryKey:['live-maintenance',hotelId,page,filters],
@@ -92,7 +93,7 @@ export function LiveMaintenance(){
  });
  useEffect(()=>{
   setSelected(null);setDraft(null);setHistoryVisible(false);setError('');setPage(1);
-  setStatusFilter('');setPriorityFilter('');setSearch('');setMineOnly(false);setHistoryPage(1);
+  setStatusFilter('');setPriorityFilter('');setSearch('');setMineOnly(false);setHistoryPage(1);setMoreFilters(false);
  },[hotelId]);
  useEffect(()=>{
   if(!linkedOrder){openedLink.current=null;return;}
@@ -199,10 +200,11 @@ export function LiveMaintenance(){
        aria-pressed={statusFilter===value} onClick={()=>{setStatusFilter(value);setPage(1);}}>
        {label}</button>)}
     </div>
-    <div className="mnt-filter-controls">
+    <div className={'mnt-filter-controls'+(moreFilters?' ops-filters-expanded':'')}>
      <label className="mnt-search-field"><Search size={17}/><input type="search" maxLength={120} aria-label="Search work orders"
       placeholder="Room, issue or technician…" value={search} onChange={event=>{setPage(1);setSearch(event.target.value);}}/></label>
-     <label className="mnt-priority-field">Priority <select aria-label="Filter maintenance priority" value={priorityFilter}
+     <button type="button" className="btn-inline ops-filter-toggle" aria-expanded={moreFilters} aria-controls="mnt-priority-filter" onClick={()=>setMoreFilters(v=>!v)}>{moreFilters?'Hide priority':'Priority filter'}{priorityFilter?' · Active':''}</button>
+     <label id="mnt-priority-filter" className="mnt-priority-field">Priority <select aria-label="Filter maintenance priority" value={priorityFilter}
       onChange={event=>{setPriorityFilter(event.target.value as MaintenancePriority|'');setPage(1);}}>
       <option value="">All priorities</option>
       {priorities.map(priority=><option value={priority} key={priority}>{priorityLabels[priority]}</option>)}
@@ -248,7 +250,7 @@ export function LiveMaintenance(){
    </div>}
   </section>
   {draft&&<div className="guest-modal-backdrop" role="presentation">
-   <section className="guest-modal" role="dialog" aria-modal="true" aria-labelledby="maintenance-title">
+   <section className="guest-modal ops-mobile-editor" role="dialog" aria-modal="true" aria-labelledby="maintenance-title">
     <div className="catalog-modal-heading"><h3 id="maintenance-title">{selected?'Work order WO-'+selected.id+' · Room '+selected.roomNumber:'Create work order'}</h3>
      <button className="icon-btn" type="button" disabled={saving} onClick={close} aria-label="Close"><X size={19}/></button></div>
     <div className="mnt-editor-guide"><Info size={17}/><p><strong>Repair record only.</strong>
@@ -256,6 +258,11 @@ export function LiveMaintenance(){
      Room-impact reports alone do not block reservations or approve readiness.</p></div>
     {rooms.data&&rooms.data.meta.total>100&&!selected&&<p className="guest-info">This room selector shows only the first 100 registered rooms. A searchable picker is planned.</p>}
     <form onSubmit={e=>void submit(e)}>
+     {selected&&maySave&&transitions[selected.status].length>0&&<div className="ops-quick-progress" role="group" aria-label="Quick repair progress">
+      <strong>Repair progress</strong>
+      <small>Choose a status, then save the work order. This does not release room restrictions.</small>
+      <div>{[selected.status,...transitions[selected.status]].map(status=><button key={status} type="button" className="btn-inline" disabled={saving} aria-pressed={draft.status===status} onClick={()=>change('status',status)}>{statusLabels[status]}</button>)}</div>
+     </div>}
      <div className="guest-fields">
       <label>Room<select required disabled={!!selected||!admin||saving} value={draft.roomId} onChange={e=>change('roomId',e.target.value)}>
        <option value="">Choose a room</option>

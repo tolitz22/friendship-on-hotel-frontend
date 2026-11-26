@@ -184,3 +184,99 @@ test('shows settlement as recorded without claiming ledger certification',async(
  await expect(overview.getByText('Settlement recorded',{exact:true})).toBeVisible();
  await expect(overview.getByText(/Check matched accounting entries/)).toBeVisible();
 });
+
+
+test('recognizes deposits, locks the financial dialog during writes, and applies partial and full allocations',async({page})=>{
+ await mockNoShow(page,'admin',{cleared:true,permissions:['finance.read']});
+ let recognized=false,allocated=0,recognitionWrites=0;
+ let release:()=>void=()=>{};
+ const gate=new Promise<void>(resolve=>{release=resolve;});
+ const requests:Record<string,unknown>[]=[];
+ await page.route('**/bookings/2/no-show-deposits',route=>route.fulfill({json:{data:{
+  bookingId:'2',currency:'PHP',businessDate:'2026-11-26',postingEnabled:true,
+  payments:[{paymentId:'42',method:'bank_transfer',amountMinor:300000,verified:true,
+   status:recognized?'recognized':'ready',reason:'Verified bank receipt',journalId:recognized?'105':null,canRecognize:!recognized}],
+ }}}));
+ await page.route('**/bookings/2/no-show-deposits/42/recognize',async route=>{
+  recognitionWrites++;
+  expect(route.request().postDataJSON()).toEqual({acknowledged:true});
+  await gate;recognized=true;
+  await route.fulfill({status:201,json:{data:{journalId:'105'}}});
+ });
+ await page.route('**/bookings/2/no-show-allocations',route=>route.fulfill({json:{data:{
+  bookingId:'2',currency:'PHP',postingEnabled:true,reconciled:recognized,settled:false,
+  remainingFeeMinor:200000-allocated,availableDepositMinor:300000-allocated,maximumRefundMinor:100000,
+  blocker:recognized?null:'Recognize deposit first.',
+  payments:[{paymentId:'42',method:'bank_transfer',availableMinor:300000-allocated,maximumMinor:recognized?200000-allocated:0}],
+ }}}));
+ await page.route('**/bookings/2/no-show-allocations/42',async route=>{
+  const body=route.request().postDataJSON();requests.push(body);
+  expect(body.requestKey).toMatch(/^no-show-ui-/);
+  expect(body.acknowledged).toBe(true);
+  allocated+=body.amountMinor;
+  await route.fulfill({status:201,json:{data:{replayed:false}}});
+ });
+ await page.goto('http://127.0.0.1:5174/billing?booking=2&action=no-show');
+ const dialog=page.getByRole('dialog',{name:'No-show financial review'});
+ await dialog.locator('#no-show-deposit-details > summary').click();
+ const deposit=dialog.getByRole('region',{name:'Guest deposit accounting'});
+ await deposit.getByRole('button',{name:'Recognize deposit #42'}).click();
+ await deposit.getByRole('button',{name:'Confirm recognition'}).click();
+ try{
+  await expect.poll(()=>recognitionWrites).toBe(1);
+  await expect(dialog.getByRole('button',{name:'Close financial review'})).toBeDisabled();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeVisible();
+ }finally{release();}
+ await expect(deposit.getByText('Recognized',{exact:true})).toBeVisible();
+ await expect(dialog.getByRole('button',{name:'Close financial review'})).toBeEnabled();
+ await dialog.locator('#no-show-allocation-details > summary').click();
+ const allocation=dialog.getByRole('region',{name:'Deposit allocation and settlement'});
+ for(const amount of ['1200','800']){
+  await allocation.getByLabel('Verified deposit').selectOption('42');
+  await allocation.getByLabel('Amount to apply (PHP)').fill(amount);
+  await allocation.getByLabel('Payer name or reference').fill('Demo guest');
+  await expect(allocation.getByRole('button',{name:'Apply deposit'})).toBeDisabled();
+  await allocation.getByRole('checkbox').check();
+  await allocation.getByRole('button',{name:'Apply deposit'}).click();
+  await expect.poll(()=>requests.length).toBe(amount==='1200'?1:2);
+  await expect(dialog.getByRole('button',{name:'Close financial review'})).toBeEnabled();
+ }
+ expect(requests.map(x=>x.amountMinor)).toEqual([120000,80000]);
+ expect(requests[0].requestKey).not.toBe(requests[1].requestKey);
+ await expect(allocation.getByText(/No eligible deposit allocation remains/)).toBeVisible();
+});
+
+test('validates refund limit and hides self approval after submitting a refund request',async({page})=>{
+ await mockNoShow(page,'admin',{cleared:true,permissions:['finance.read']});
+ let requested=false;
+ let writes=0;
+ await page.route('**/bookings/2/no-show-refunds',route=>route.fulfill({json:{data:{
+  bookingId:'2',currency:'PHP',workflowEnabled:true,postingEnabled:true,reconciliationValid:true,
+  maximumRefundMinor:requested?0:100000,payments:[{paymentId:'42',maximumRequestMinor:requested?0:100000}],
+  refunds:requested?[{id:'9',paymentId:'42',amountMinor:100000,reason:'Return excess deposit',status:'requested',
+   requestedBy:'1',reviewedBy:null,evidenceRecordedBy:null,evidenceId:null,evidenceStatus:null,externalReference:null}]:[],
+ }}}));
+ await page.route('**/bookings/2/refund-requests',async route=>{
+  writes++;
+  const body=route.request().postDataJSON();
+  expect(body).toMatchObject({paymentRecordId:'42',amountMinor:100000,reason:'Return excess deposit'});
+  expect(body.requestKey).toMatch(/^no-show-refund-/);
+  requested=true;
+  await route.fulfill({status:201,json:{data:{id:'9'}}});
+ });
+ await page.goto('http://127.0.0.1:5174/billing?booking=2&action=no-show');
+ const dialog=page.getByRole('dialog',{name:'No-show financial review'});
+ await dialog.locator('#no-show-refund-details > summary').click();
+ const refund=dialog.getByRole('region',{name:'Refund processing and verification'});
+ await refund.getByLabel('Original bank deposit').selectOption('42');
+ await refund.getByLabel('Refund reason').fill('Return excess deposit');
+ await refund.getByLabel('Refund amount (PHP)').fill('1000.01');
+ await expect(refund.getByRole('button',{name:'Request refund'})).toBeDisabled();
+ await refund.getByLabel('Refund amount (PHP)').fill('1000');
+ await refund.getByRole('checkbox').check();
+ await refund.getByRole('button',{name:'Request refund'}).click();
+ await expect(refund.getByText('A different administrator must approve this request.')).toBeVisible();
+ await expect(refund.getByRole('button',{name:'Review refund #9'})).toHaveCount(0);
+ expect(writes).toBe(1);
+});

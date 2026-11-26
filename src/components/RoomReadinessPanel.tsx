@@ -94,14 +94,14 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
     <small>Inspected by {nameOf(latest.inspectedBy)}{latest.reviewedBy?' · Reviewed by '+nameOf(latest.reviewedBy):''}</small>
    </div>:<p className="rr-latest-inspection">No inspection has been submitted for this room.</p>}
    {approvedCurrent&&<p role="status" className="rr-valid-approval"><CheckCircle2 size={17}/> Inspection is current. Another routine inspection is not needed unless new turnover, maintenance, or other work invalidates it.</p>}
-   {admin&&needsNewInspection&&<section>
+   {admin&&needsNewInspection&&<section className="rr-mobile-checklist">
     <h4>{latest?'Reinspect this room':'Record the first room inspection'}</h4>
     <p>Inspect the actual room before confirming the checklist. Active housekeeping, maintenance and inventory blockers must be resolved first.</p>
     {([
      ['cleaningVerified','Cleanliness physically checked'],
      ['safetyVerified','Safety items physically checked'],
      ['amenitiesVerified','Amenities physically checked'],
-    ] as const).map(([key,label])=><label key={key} className="wizard-label">
+    ] as const).map(([key,label])=><label key={key} className="wizard-label rr-inspection-check">
      <input type="checkbox" checked={form[key]} disabled={busy}
       onChange={e=>setForm(old=>({...old,[key]:e.target.checked}))}/> {label}
     </label>)}
@@ -115,8 +115,8 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
   </>}
   {error&&<p role="alert">{error}</p>}
   {message&&<p role="status"><CheckCircle2 size={16}/> {message}</p>}
-  <section className="rr-audit-section">
-   <h4>Inspection history</h4>
+  <details className="rr-audit-section rr-inspection-history" open={typeof window==='undefined'||!window.matchMedia('(max-width: 760px)').matches}>
+   <summary>Inspection history</summary>
    <QueryFeedback loading={history.isPending} error={history.error}
     empty={history.isSuccess&&history.data.data.length===0}/>
    {history.data?.data.map(e=><ReadableInspectionAuditEvent key={e.id} event={{
@@ -132,6 +132,6 @@ export function RoomReadinessPanel({room,onClose}:{room:LiveRoom;onClose:()=>voi
       onClick={()=>setHistoryPage(p=>p+1)}>Next</button>
     </div>
    </div>}
-  </section>
+  </details>
  </Panel>;
 }

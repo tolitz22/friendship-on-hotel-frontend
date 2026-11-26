@@ -1,12 +1,13 @@
 import {useEffect,useState,useRef} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
-import {MessageCircle,Send,Plus,ArrowLeft,Hash} from 'lucide-react';
-import {getJson,requestJson} from '../api/http';
+import {MessageCircle,Send,Plus,ArrowLeft,Hash,Paperclip,Download,FileText} from 'lucide-react';
+import {getJson,requestJson,downloadPrivateFile} from '../api/http';
 import {useHotelAuth} from '../components/AuthProvider';
 import {dataMode} from '../api';
 
 type Staff={id:number|string;name:string;role:string};
-type Message={id:number;sender_id:number|string|null;sender_name?:string;body:string;created_at:string;reply_to_id?:number|null;reply_body?:string|null};
+type Attachment={id:number;filename:string;mime:string;size:number};
+type Message={id:number;sender_id:number|string|null;sender_name?:string;body:string;created_at:string;reply_to_id?:number|null;reply_body?:string|null;attachment?:Attachment|null};
 type Conversation={id:number;kind:'channel'|'direct'|'group';title:string|null;members:(Staff & {last_read_message_id:number})[];latest:Message|null;unread:number};
 const path=(hotel:string)=>'/hotels/'+encodeURIComponent(hotel)+'/staff-messaging';
 export function useMessageInbox(hotel:string|null,user:string|undefined){
@@ -23,7 +24,9 @@ function Inbox({hotel,user}:{hotel:string;user:string}){
  const directory=useQuery({queryKey:['message-directory',hotel,user],queryFn:()=>getJson<{data:Staff[]}>(base+'/directory')});
  const [selected,setSelected]=useState<number|null>(null),[compose,setCompose]=useState(false),[people,setPeople]=useState<string[]>([]),[title,setTitle]=useState(''),[filter,setFilter]=useState(''),[search,setSearch]=useState(''),[body,setBody]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[older,setOlder]=useState<Message[]>([]);
  const [reply,setReply]=useState<Message|null>(null);
- const pending=useRef<{conversation:number;body:string;id:string;replyId:number|null}|null>(null);
+ const [file,setFile]=useState<File|null>(null);
+ const fileInput=useRef<HTMLInputElement>(null);
+ const pending=useRef<{conversation:number;body:string;id:string;replyId:number|null;file:File|null}|null>(null);
  const lock=useRef(false);
  const conversation=inbox.data?.data.find(c=>c.id===selected);
  const thread=useQuery({queryKey:['staff-thread',hotel,user,selected,search],queryFn:()=>getJson<{data:Message[]}>(base+'/conversations/'+selected,{q:search}),enabled:selected!==null,refetchInterval:3000,retry:false});
@@ -38,7 +41,7 @@ function Inbox({hotel,user}:{hotel:string;user:string}){
  },[selected,latest,search,thread.isError,thread.dataUpdatedAt,base,client,hotel,user]);
  const name=(c:Conversation)=>c.title??c.members.filter(m=>String(m.id)!==user).map(m=>m.name).join(', ');
  const visible=(inbox.data?.data??[]).filter(c=>name(c).toLowerCase().includes(filter.trim().toLowerCase()));
- const open=(id:number|null)=>{setSelected(id);setCompose(false);setSearch('');setOlder([]);setBody('');setReply(null);setError('');};
+ const open=(id:number|null)=>{setSelected(id);setCompose(false);setSearch('');setOlder([]);setBody('');setReply(null);setFile(null);setError('');};
  async function create(){
   if(lock.current||!people.length)return;
   lock.current=true;setBusy(true);setError('');
@@ -47,11 +50,13 @@ function Inbox({hotel,user}:{hotel:string;user:string}){
   finally{lock.current=false;setBusy(false);}
  }
  async function send(){
-  if(lock.current||!selected||!body.trim())return;
+  if(lock.current||!selected||(!body.trim()&&!file))return;
   lock.current=true;setBusy(true);setError('');
   const text=body.trim(),id=selected;
-  if(pending.current?.conversation!==id||pending.current.body!==text||pending.current.replyId!==(reply?.id??null))pending.current={conversation:id,body:text,id:crypto.randomUUID(),replyId:reply?.id??null};
-  try{await requestJson(base+'/conversations/'+id+'/messages',{method:'POST',body:{body:text,client_id:pending.current.id,reply_to_id:pending.current.replyId}});pending.current=null;setBody('');setReply(null);await Promise.all([thread.refetch(),inbox.refetch()]);}
+  if(pending.current?.conversation!==id||pending.current.body!==text||pending.current.replyId!==(reply?.id??null)||pending.current.file!==file)pending.current={conversation:id,body:text,id:crypto.randomUUID(),replyId:reply?.id??null,file};
+  try{let attachment: {filename:string;content:string}|undefined;
+   if(file){const bytes=new Uint8Array(await file.arrayBuffer());let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));attachment={filename:file.name,content:btoa(binary)};}
+   await requestJson(base+'/conversations/'+id+'/messages',{method:'POST',body:{body:text,client_id:pending.current.id,reply_to_id:pending.current.replyId,attachment}});pending.current=null;setBody('');setReply(null);setFile(null);await Promise.all([thread.refetch(),inbox.refetch()]);}
   catch(e){setError(e instanceof Error?e.message:'Message not sent. Retry to continue.');}
   finally{lock.current=false;setBusy(false);}
  }
@@ -75,10 +80,11 @@ function Inbox({hotel,user}:{hotel:string;user:string}){
     {(selected||compose)&&<button className="md:hidden mb-3" disabled={busy} onClick={()=>open(null)}><ArrowLeft size={16}/> Inbox</button>}
     {compose?<><h3>New conversation</h3><p>Select one or more active staff members.</p>{directory.isError?<p role="alert">Could not load staff directory.</p>:directory.isPending?<p>Loading staff…</p>:directory.data?.data.map(s=><label key={s.id} className="flex gap-2 p-2"><input type="checkbox" checked={people.includes(String(s.id))} disabled={busy} onChange={e=>setPeople(p=>e.target.checked?[...p,String(s.id)]:p.filter(id=>id!==String(s.id)))}/>{s.name} · {s.role.replaceAll('_',' ')}</label>)}{people.length>1&&<input className="border rounded p-2 w-full" placeholder="Group name" aria-label="Group name" value={title} maxLength={120} onChange={e=>setTitle(e.target.value)}/>}<button className="btn-primary mt-3" disabled={busy||!people.length||people.length>1&&!title.trim()} onClick={()=>void create()}>Start conversation</button></>:selected?<><h3>{conversation?name(conversation):'Conversation'}</h3>{conversation?.kind==='channel'&&<p className="text-sm mb-2">Hotel channel · {conversation.members.length} eligible staff · Membership follows staff roles</p>}<input className="border rounded p-2 w-full my-2" aria-label="Search messages" placeholder="Search messages" value={search} onChange={e=>{setSearch(e.target.value);setOlder([]);}}/>
     <div className="overflow-y-auto h-[50vh] flex flex-col gap-3" aria-label="Message history">
-     {thread.isError?<p role="alert">Unable to load messages. <button onClick={()=>void thread.refetch()}>Retry</button></p>:thread.isPending?<p>Loading messages…</p>:<>{messages.length>=100&&<button disabled={busy} onClick={()=>void loadOlder()}>Load earlier messages</button>}{!messages.length&&<p>{search?'No matching messages.':'Say hello!'}</p>}{messages.map(m=>{const own=String(m.sender_id)===user;return <div key={m.id} className={'rounded-lg border p-3 max-w-[85%] break-words '+(own?'self-end bg-blue-700 text-white':'self-start')}><small>{own?'You':m.sender_name??'Former staff'}</small>{m.reply_body&&<blockquote className="border-l-2 pl-2 text-sm opacity-80 whitespace-pre-wrap">{m.reply_body}</blockquote>}<p className="whitespace-pre-wrap">{m.body}</p><button type="button" disabled={busy} className="text-xs underline mr-2" onClick={()=>setReply(m)}>Reply</button><small>{m.created_at}{own&&conversation?.members.some(p=>String(p.id)!==user&&Number(p.last_read_message_id)>=m.id)?' · Read':''}</small></div>})}</>}
+     {thread.isError?<p role="alert">Unable to load messages. <button onClick={()=>void thread.refetch()}>Retry</button></p>:thread.isPending?<p>Loading messages…</p>:<>{messages.length>=100&&<button disabled={busy} onClick={()=>void loadOlder()}>Load earlier messages</button>}{!messages.length&&<p>{search?'No matching messages.':'Say hello!'}</p>}{messages.map(m=>{const own=String(m.sender_id)===user;return <div key={m.id} className={'rounded-lg border p-3 max-w-[85%] break-words '+(own?'self-end bg-blue-700 text-white':'self-start')}><small>{own?'You':m.sender_name??'Former staff'}</small>{m.reply_body&&<blockquote className="border-l-2 pl-2 text-sm opacity-80 whitespace-pre-wrap">{m.reply_body}</blockquote>}<p className="whitespace-pre-wrap">{m.body}</p>{m.attachment&&<button type="button" className="flex items-center gap-2 border rounded p-2 my-2 text-left max-w-full" onClick={()=>{const a=m.attachment;if(!a)return;setError('');void downloadPrivateFile(base+'/conversations/'+selected+'/attachments/'+a.id,a.filename).catch(e=>setError(e instanceof Error?e.message:'Download failed.'));}}><FileText size={18}/><span className="min-w-0 break-all">{m.attachment.filename}<br/><small>{Math.ceil(m.attachment.size/1024)} KB</small></span><Download size={16}/></button>}<button type="button" disabled={busy} className="text-xs underline mr-2" onClick={()=>setReply(m)}>Reply</button><small>{m.created_at}{own&&conversation?.members.some(p=>String(p.id)!==user&&Number(p.last_read_message_id)>=m.id)?' · Read':''}</small></div>})}</>}
     </div>
     {reply&&<div className="border rounded p-2 mt-3 flex justify-between gap-2"><div className="min-w-0"><small>Replying to {String(reply.sender_id)===user?'yourself':reply.sender_name??'staff'}</small><p className="truncate">{reply.body}</p></div><button type="button" aria-label="Cancel reply" disabled={busy} onClick={()=>setReply(null)}>Cancel</button></div>}
-    <form className="flex gap-2 mt-3 items-end" onSubmit={e=>{e.preventDefault();void send();}}><textarea className="border rounded p-2 flex-1 min-w-0" aria-label="Write a message" placeholder="Write a message…" maxLength={4000} value={body} disabled={busy} onChange={e=>setBody(e.target.value)}/><button className="btn-primary" disabled={busy||!body.trim()||thread.isError} type="submit"><Send size={16}/> Send</button></form>
+    {file&&<div className="flex items-center gap-2 border rounded p-2 mt-3"><FileText size={18}/><span className="flex-1 min-w-0 break-all">{file.name} · {Math.ceil(file.size/1024)} KB</span><button type="button" disabled={busy} onClick={()=>setFile(null)}>Remove</button></div>}
+    <form className="flex gap-2 mt-3 items-end" onSubmit={e=>{e.preventDefault();void send();}}><input ref={fileInput} type="file" hidden accept="image/jpeg,image/png,image/webp,application/pdf" onChange={e=>{const f=e.target.files?.[0];e.target.value='';if(!f)return;if(f.size===0||f.size>2097152||f.name.length>200||!['image/jpeg','image/png','image/webp','application/pdf'].includes(f.type)){setError('Choose a JPEG, PNG, WebP or PDF file up to 2 MB with a name up to 200 characters.');return;}setError('');setFile(f);}}/><button type="button" className="icon-btn" aria-label="Attach a file" title="Attach photo or PDF (up to 2 MB)" disabled={busy||thread.isError} onClick={()=>fileInput.current?.click()}><Paperclip size={20}/></button><textarea className="border rounded p-2 flex-1 min-w-0" aria-label="Write a message" placeholder="Write a message…" maxLength={4000} value={body} disabled={busy} onChange={e=>setBody(e.target.value)}/><button className="btn-primary" disabled={busy||(!body.trim()&&!file)||thread.isError} type="submit"><Send size={16}/> Send</button></form>
     </>:<div className="p-8 text-center"><MessageCircle className="mx-auto"/><p>Select a conversation or start a new message.</p></div>}
    </div>
   </div>

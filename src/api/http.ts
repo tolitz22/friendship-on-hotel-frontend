@@ -78,3 +78,24 @@ export async function requestJson<T>(path:string,options:JsonOptions={}):Promise
 export function getJson<T>(path:string,params:Record<string,string|number|undefined>={}):Promise<T>{
  return requestJson<T>(path,{params});
 }
+
+/** Download protected files without exposing credentials in a URL. */
+export async function downloadPrivateFile(path:string,filename:string):Promise<void>{
+ const cookie=isCookieAuth(),token=readSession().token;
+ if(!cookie&&!token)throw new ApiError(401,'AUTH_REQUIRED','Sign in to continue.');
+ const headers:Record<string,string>={Accept:'application/octet-stream'};
+ if(!cookie&&token)headers.Authorization='Bearer '+token;
+ let response:Response;
+ try{response=await fetch(base+path,{headers,credentials:cookie?'include':'omit',cache:'no-store'});}
+ catch{throw new ApiError(0,'NETWORK_ERROR','Unable to download. Check your connection.');}
+ if(!response.ok){
+  if(cookie&&(response.status===401||response.status===419))sessionExpiredHandler?.();
+  throw new ApiError(response.status,'DOWNLOAD_FAILED','Unable to download this attachment.');
+ }
+ if(response.headers.get('Content-Type')?.split(';')[0]!=='application/octet-stream')throw new ApiError(0,'INVALID_DOWNLOAD','Unexpected attachment response.');
+ const url=URL.createObjectURL(await response.blob());
+ const link=document.createElement('a');
+ link.href=url;link.download=filename.replace(/[^a-zA-Z0-9 _.-]/g,'_')||'attachment';
+ document.body.appendChild(link);
+ try{link.click();}finally{link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),1000);}
+}

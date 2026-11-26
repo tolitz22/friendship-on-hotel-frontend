@@ -7,6 +7,7 @@ import {getJson} from '../api/http';
 import {hotelPath} from '../api/session';
 import {dateLabel} from '../lib/format';
 import {QueryFeedback} from './QueryFeedback';
+import {PushDeviceControl} from './PushDeviceControl';
 
 const notificationKinds={
  checkout_overdue:{label:'Checkout overdue',icon:AlertTriangle,action:'Review checkout'},
@@ -23,7 +24,7 @@ const responseSchema=z.object({data:z.object({
  hasMore:z.boolean(),
 })});
 
-export function StaffNotifications({hotelId,userId}:{hotelId:string;userId:string}){
+export function StaffNotifications({hotelId,userId,canPush=false}:{hotelId:string;userId:string;canPush?:boolean}){
  const storageKey='pms.notification-read:v1:'+userId+':'+hotelId;
  const [read,setRead]=useState<string[]>(()=>{
   try{
@@ -62,6 +63,7 @@ export function StaffNotifications({hotelId,userId}:{hotelId:string;userId:strin
      <p>{unread?`${unread} unread`:'Front desk updates'}</p></div>
     <button type="button" className="icon-btn" onClick={()=>dialog.current?.close()} aria-label="Close notifications"><X size={20}/></button>
    </header>
+   {canPush&&<PushDeviceControl hotelId={hotelId} userId={userId}/>}
    {unread>0&&<button type="button" className="btn-inline" onClick={()=>markRead(items.map(item=>item.id))}>Mark all as read</button>}
    <QueryFeedback loading={feed.isPending} error={feed.error} onRetry={()=>void feed.refetch()}
     empty={feed.isSuccess&&items.length===0} emptyMessage="You’re caught up. New bookings and front desk alerts will appear here."/>

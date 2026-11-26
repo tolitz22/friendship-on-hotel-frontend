@@ -215,7 +215,7 @@ export function AppShell(){
       {theme==='light'?<Moon size={19}/>:<Sun size={19}/>}
      </button>
      {dataMode==='api'&&hotelId&&user&&(role==='admin'||role==='front_desk')&&
-      <StaffNotifications key={user.id+':'+hotelId} userId={user.id} hotelId={hotelId}/>}
+      <StaffNotifications key={user.id+':'+hotelId} userId={user.id} hotelId={hotelId} canPush={admin}/>}
      {dataMode==='api'
       ?<button className="icon-btn topbar-action-signout" type="button" aria-label="Sign out" title="Sign out" disabled={pending} onClick={()=>void signOut()}><LogOut size={18}/></button>
       :<div className="topbar-avatar" aria-label="Demo user">FO</div>}

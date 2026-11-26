@@ -11,7 +11,7 @@ export const isCookieAuth=()=>import.meta.env.VITE_AUTH_MODE==='cookie';
 let sessionExpiredHandler:(()=>void)|null=null;
 export function onSpaSessionExpired(handler:(()=>void)|null){sessionExpiredHandler=handler;}
 type JsonOptions={
- method?:'GET'|'POST'|'PATCH'|'PUT';body?:unknown;authenticated?:boolean;
+ method?:'GET'|'POST'|'PATCH'|'PUT'|'DELETE';body?:unknown;authenticated?:boolean;
  params?:Record<string,string|number|undefined>;
 };
 

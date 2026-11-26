@@ -3,6 +3,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {dataMode} from '../api';
 import {fetchStaffProfile,loginStaff,logoutStaff,type StaffProfile} from '../api/auth';
 import {isCookieAuth,onSpaSessionExpired} from '../api/http';
+import {revokeLocalPush} from '../features/notifications/pushDevice';
 import {clearSession,readSession,setSessionHotel,setSessionToken} from '../api/session';
 
 interface AuthContextValue{
@@ -109,7 +110,7 @@ export function AuthProvider({children}:{children:ReactNode}){
  };
  const signOut=async()=>{
   setPending(true);
-  try{if(user)await logoutStaff();}
+  try{if(user){await revokeLocalPush(user.id).catch(()=>{});await logoutStaff();}}
   catch{/* Clear client state even if logout fails; server session may persist until expiry. */}
   finally{clearSession();setUser(null);setHotelId(null);queryClient.clear();setPending(false);}
  };

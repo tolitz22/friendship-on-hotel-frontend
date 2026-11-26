@@ -3608,3 +3608,59 @@ dialog.no-show-dialog {
 dialog.no-show-dialog::backdrop { background: rgb(0 0 0 / 45%); }
 .no-show-dialog .billing-payment-fields { margin-block: 1rem; }
 .no-show-dialog-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
+
+
+/* Mobile usability phase 1: shell, touch controls and shared layout.
+   Keep data tables and room calendars scrollable within their own containers. */
+@media(max-width:760px){
+ .app-layout{min-height:100dvh}
+ .main-area{width:100%;min-width:0}
+ body:has(.sidebar-open){overflow:hidden}
+ .mobile-overlay{z-index:60}
+ .sidebar{z-index:61;width:min(320px,calc(100% - 40px));height:100dvh;padding:12px 12px max(12px,env(safe-area-inset-bottom,0px));overscroll-behavior:contain}
+ .sidebar .brand{padding:4px 6px 16px;flex-shrink:0}
+ .sidebar .close-mobile{display:grid;place-items:center;min-width:44px;min-height:44px;border-radius:8px}
+ .sidebar .workspace-nav{overscroll-behavior-y:contain}
+ .sidebar .nav-link{min-height:48px;font-size:14px;padding:10px 12px}
+ .sidebar .nav-link svg{flex-shrink:0}
+ .sidebar .sidebar-footer{flex-shrink:0;padding-top:10px}
+ .topbar,.topbar:has(.topbar-action-notifications){
+  grid-template-columns:44px minmax(0,1fr) 44px 44px;
+  grid-template-rows:minmax(44px,auto);
+  grid-auto-rows:auto;min-height:0;gap:8px 6px;
+  padding:10px max(12px,env(safe-area-inset-right,0px)) 10px max(12px,env(safe-area-inset-left,0px))
+ }
+ .topbar:has(.topbar-action-notifications){grid-template-columns:44px minmax(0,1fr) 44px 44px 44px}
+ .topbar .mobile-menu,.topbar .topbar-action-theme,.topbar .topbar-action-signout,.topbar .topbar-action-notifications{width:44px;height:44px;min-width:44px}
+ .topbar .topbar-heading{grid-column:2;grid-row:1;display:block;overflow:visible}
+ .topbar .topbar-heading h1{font-size:17px;line-height:1.25;overflow-wrap:anywhere}
+ .topbar .hotel-context-select{grid-column:1/-1;grid-row:2;flex-direction:row;align-items:center;gap:10px;font-size:12px;font-weight:650}
+ .topbar .hotel-context-select select{flex:1;min-width:0;font-size:16px;height:44px}
+ .topbar .topbar-avatar{display:none}
+ .workflow-shortcuts{padding:9px 12px;gap:6px;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin}
+ .workflow-shortcuts>span{width:auto;flex-shrink:0}
+ .workflow-shortcuts a{flex-shrink:0;min-height:44px;font-size:12px;padding:8px 12px}
+ .page-content{width:100%;min-width:0;padding:16px max(12px,env(safe-area-inset-right,0px)) 20px max(12px,env(safe-area-inset-left,0px))}
+ .page-content .heading{gap:10px;margin-bottom:16px}
+ .page-content .heading h2{font-size:21px;overflow-wrap:anywhere}
+ .page-content .heading p{line-height:1.55}
+ .page-content .panel{min-width:0}
+ .page-content .table-scroll,.page-content .calendar-grid-scroll{max-width:100%;min-width:0;overscroll-behavior-x:contain}
+ .page-content :is(.btn-primary,.btn-inline),.page-content .icon-btn{min-height:44px;align-items:center;justify-content:center}
+ .page-content .icon-btn{min-width:44px}
+ .page-content :is(.search-box,.wizard-input){min-width:0;max-width:100%}
+ .page-content .search-box{min-height:44px}
+ .page-content :is(.search-box input,.wizard-input):not([type=checkbox]):not([type=radio]){font-size:16px;min-width:0}
+ .page-content .wizard-input:not([type=checkbox]):not([type=radio]){min-height:44px}
+ .staff-notifications-dialog{inset:8px;margin:auto;width:calc(100% - 16px);max-height:calc(100dvh - 16px);overscroll-behavior:contain}
+ .staff-notifications-dialog .icon-btn{min-width:44px;min-height:44px}
+ .message-arrival-alert{top:calc(116px + env(safe-area-inset-top,0px))}
+}
+@media(min-width:761px) and (max-width:1024px){
+ .topbar{height:auto;min-height:84px;padding:12px 18px;flex-wrap:wrap}
+ .topbar-left,.topbar-actions{min-width:0;flex-wrap:wrap;gap:10px}
+ .page-content{padding:20px 18px}
+}
+@media(max-width:760px) and (prefers-reduced-motion:reduce){
+ .sidebar{transition:none}
+}

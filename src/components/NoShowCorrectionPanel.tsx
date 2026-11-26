@@ -1,11 +1,12 @@
 import {useRef,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
+import {NoShowCorrectionAudit,correctionAuditSchema} from './NoShowCorrectionAudit';
 import {getJson,requestJson} from '../api/http';
 import {hotelPath,readSession} from '../api/session';
 
 const amountSchema=z.number().int().nullable();
-const groupSchema=z.object({kind:z.enum(['room','fee']),proposalId:z.string(),businessDate:z.string(),proposedBy:z.string(),reviewedBy:z.string().nullable(),reason:z.string(),status:z.string(),snapshotIntegrityValid:z.boolean(),originalFeeMinor:amountSchema,replacementFeeMinor:amountSchema,replacementVatMinor:amountSchema.optional(),replacementRevenueMinor:amountSchema.optional(),taxClassification:z.string().nullable().optional()});
+const groupSchema=correctionAuditSchema.extend({kind:z.enum(['room','fee']),proposalId:z.string(),businessDate:z.string(),proposedBy:z.string(),reviewedBy:z.string().nullable(),reason:z.string(),status:z.string(),snapshotIntegrityValid:z.boolean(),originalFeeMinor:amountSchema,replacementFeeMinor:amountSchema,replacementVatMinor:amountSchema.optional(),replacementRevenueMinor:amountSchema.optional(),taxClassification:z.string().nullable().optional()});
 const schema=z.object({data:z.object({bookingId:z.string(),currency:z.literal('PHP'),businessDate:z.string().nullable(),open:z.boolean(),roomReviewEnabled:z.boolean(),roomPostingEnabled:z.boolean(),feeReviewEnabled:z.boolean(),feePostingEnabled:z.boolean(),
  room:z.object({requiresCorrection:z.boolean(),eligibleForReview:z.boolean(),blockers:z.array(z.string()),totals:z.object({grossMinor:z.number(),assessedVatMinor:z.number(),recognizedRevenueMinor:z.number()}),nights:z.array(z.object({assessmentId:z.string(),stayDate:z.string(),issues:z.array(z.string())}))}),
  fee:z.object({originalFeeMinor:amountSchema,replacementFeeMinor:z.number(),proposedFolioCreditMinor:amountSchema,originalVatMinor:amountSchema,originalRevenueMinor:amountSchema,projectedCollectionMinor:amountSchema,projectedExcessDepositMinor:amountSchema,eligibleForReview:z.boolean(),blockers:z.array(z.string())}),
@@ -109,6 +110,7 @@ export function NoShowCorrectionPanel({hotelId,bookingId,userId}:{hotelId:string
     <button type="button" className="btn-inline" disabled={busy} onClick={()=>{setAction(null);setConfirmed(false);}}>Cancel</button>
    </form>}
   </>}
+  {data&&<NoShowCorrectionAudit corrections={data.corrections}/>}
   {notice&&<p role="status">{notice}</p>}{error&&<p role="alert">{error}</p>}
  </section>;
 }

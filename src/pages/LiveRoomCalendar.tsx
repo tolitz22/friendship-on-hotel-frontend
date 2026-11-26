@@ -57,7 +57,7 @@ export function LiveRoomCalendar(){
  const [roomTypeId,setRoomTypeId]=useState('');
  const [search,setSearch]=useState('');
  const [showCheckedOut,setShowCheckedOut]=useState(true);
- const [filtersExpanded,setFiltersExpanded]=useState(false);
+ const [filtersExpanded,setFiltersExpanded]=useState(()=>!!(contextMatches&&focus.room));
  const [selected,setSelected]=useState<Selection|null>(null);
  const [departure,setDeparture]=useState('');
  const [dragPreview,setDragPreview]=useState<{roomId:string;start:string;end:string}|null>(null);
@@ -76,7 +76,7 @@ export function LiveRoomCalendar(){
   groupId:focusGroupId});
  const hasFilters=floor!=='all'||roomTypeId!==''||search.trim().length>0;
  const clearFilters=()=>{setFloor('all');setRoomTypeId('');setSearch('');setPage(1);};
- useEffect(()=>{setPage(1);setFloor('all');setRoomTypeId('');setSearch(contextMatches?focus.room??'':'');setSelected(null);},
+ useEffect(()=>{setPage(1);setFloor('all');setRoomTypeId('');setSearch(contextMatches?focus.room??'':'');setSelected(null);if(contextMatches&&focus.room)setFiltersExpanded(true);},
   [hotelId,focusGroupId,focus.room,contextMatches]);
  useEffect(()=>{setAnchor(contextMatches&&focus.date?focus.date:today);},
   [hotelId,property.data?.data.timeZone,focus.date,contextMatches]);

@@ -94,7 +94,7 @@ function RackDrawer({room,hotelId,today,canInspect,onEditRoom,onClose,restoreFoc
      {room.currentStay?<div className="rack-stay">
       <strong>{room.currentStay.guestName??'Guest name unavailable'}</strong>
       <span>In house · {readableDate(room.currentStay.checkIn)} – {readableDate(room.currentStay.checkOut)}</span>
-      <Link to="/reservations" search={{booking:room.currentStay.bookingId}}>Open reservation <ArrowRight size={15}/></Link>
+      <Link to="/reservations" search={{booking:room.currentStay.bookingId}}>{room.occupancy==='due_for_checkout'?'Review checkout':'Open reservation'} <ArrowRight size={15}/></Link>
      </div>:<p className="desk-muted">No guest is currently checked in according to PMS records.</p>}
      {room.upcomingStay&&<div className="rack-stay">
       <strong>{room.upcomingStay.guestName??'Guest name unavailable'}</strong>
@@ -145,7 +145,7 @@ export function RoomRackDashboard({hotelId,focusRoomNumber,onEditRoom}:{hotelId:
  const [perPage,setPerPage]=useState(100);
  const [quick,setQuick]=useState<RackQuickFilter>('all');
  const [filter,setFilter]=useState<Filters>(emptyFilters);
- const [listView,setListView]=useState(false);
+ const [listView,setListView]=useState(()=>typeof window!=='undefined'&&window.matchMedia('(max-width: 760px)').matches);
  const [filtersOpen,setFiltersOpen]=useState(false);
  const [selected,setSelected]=useState<RackRoom|null>(null);
  const trigger=useRef<HTMLButtonElement|null>(null);
@@ -244,8 +244,8 @@ export function RoomRackDashboard({hotelId,focusRoomNumber,onEditRoom}:{hotelId:
     <label className="rack-search"><Search size={16} aria-hidden="true"/>
      <input type="search" value={filter.search} onChange={e=>setFilter(f=>({...f,search:e.target.value}))}
       aria-label="Search loaded rooms by number or guest" placeholder="Room or guest…" /></label>
-    <button type="button" className="rack-filter-toggle" aria-expanded={filtersOpen}
-     onClick={()=>setFiltersOpen(v=>!v)}><Menu size={16}/> Filters</button>
+    <button type="button" className="rack-filter-toggle" aria-expanded={filtersOpen} aria-controls="rack-advanced-filters"
+     onClick={()=>setFiltersOpen(v=>!v)}><Menu size={16}/> {filtersOpen?'Hide filters':'Filters'}{chips.length>0?' ( '+chips.length+' )':''}</button>
     <label className="rack-floor">Floor
      <select value={filter.floor} aria-label="Filter by floor" onChange={e=>setFilter(f=>({...f,floor:e.target.value}))}>
       <option value="all">All floors</option>
@@ -258,7 +258,7 @@ export function RoomRackDashboard({hotelId,focusRoomNumber,onEditRoom}:{hotelId:
     {quickFilters.map(([value,label])=><button type="button" key={value}
      aria-pressed={quick===value} className={quick===value?'active':''} onClick={()=>setQuick(value)}>{label}</button>)}
    </div>
-   <div className={'rack-advanced'+(filtersOpen?' open':'')}>
+   <div id="rack-advanced-filters" className={'rack-advanced'+(filtersOpen?' open':'')}>
     <label>Room type<select value={filter.type} onChange={e=>setFilter(f=>({...f,type:e.target.value}))}>
      <option value="all">All types</option>{(roomTypes.data?.data??[]).map(type=><option value={type.id} key={type.id}>{type.name}</option>)}
     </select></label>
@@ -278,6 +278,7 @@ export function RoomRackDashboard({hotelId,focusRoomNumber,onEditRoom}:{hotelId:
     </select></label>
     <label>Arrival / departure date<input type="date" value={filter.date}
      onChange={e=>setFilter(f=>({...f,date:e.target.value}))}/></label>
+    <button type="button" className="btn-inline rack-filter-done" onClick={()=>setFiltersOpen(false)}>Done · Hide filters</button>
    </div>
    {(chips.length>0||quick!=='all')&&<div className="rack-chips" aria-label="Active filters">
     {quick!=='all'&&<button type="button" onClick={()=>setQuick('all')}>{quickFilters.find(f=>f[0]===quick)?.[1]} <X size={13}/></button>}
@@ -362,6 +363,7 @@ export function RoomTile({room,arrivals,today,list=false,canInspect=true,onSelec
    </span>
    <span className="rack-tile-next">Next: {next} <ArrowRight size={12} aria-hidden="true"/></span>
   </span>
+  <span className="rack-tile-readable-status"><span>Cleaning: {room.cleaning.replaceAll('_',' ')}</span><span>Inspection: {room.advisoryReady?'Current':'Not verified'}</span></span>
   {problem&&<span className="rack-tile-problem" title={problem}><AlertTriangle size={12} aria-hidden="true"/>{problem}</span>}
  </button>;
 }

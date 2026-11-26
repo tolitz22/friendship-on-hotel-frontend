@@ -4,6 +4,7 @@ import {z} from 'zod';
 import {getJson,requestJson} from '../api/http';
 import {hotelPath,readSession} from '../api/session';
 import './NoShowFinancialOverview.css';
+import {NoShowDepositPanel} from './NoShowDepositPanel';
 import {NoShowLedgerPanel} from './NoShowLedgerPanel';
 
 const reviewSchema=z.object({
@@ -191,6 +192,7 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
     </>}
     </div>
    </>}
+   {opened&&data&&<NoShowDepositPanel hotelId={hotelId} bookingId={bookingId}/>}
    {opened&&data?.clearance&&<div id="no-show-accounting-details"><NoShowLedgerPanel hotelId={hotelId} bookingId={bookingId} userId={userId}/></div>
    {notice&&<p role="status">{notice}</p>}
    {error&&<p role="alert">{error}</p>}

@@ -47,7 +47,9 @@ test('Daily Closing starts on the financial date and links to actionable blocker
  await page.goto('http://127.0.0.1:5174/night-audit');
  const date=page.getByLabel('Date to review');
  await expect(date).toHaveValue(businessDate);
- await expect(page.getByRole('link',{name:'Review payment evidence'})).toHaveAttribute('href','/operational-exceptions');
+ const evidenceLinks=page.getByRole('link',{name:'Review payment evidence',exact:true});
+ await expect(evidenceLinks.first()).toBeVisible();
+ for(const link of await evidenceLinks.all())await expect(link).toHaveAttribute('href','/operational-exceptions');
  await expect(page.getByRole('link',{name:'Open cashier shift #2'})).toHaveAttribute('href',/shift=/);
  await page.getByRole('link',{name:'Open cashier shift #2'}).click();
  const drawer=page.getByRole('region',{name:'Selected cashier shift'});

@@ -49,7 +49,7 @@ export function AuthProvider({children}:{children:ReactNode}){
     const authorized=profile.hotels.find(h=>h.id===previousHotel);
     const linked=requestedNotificationHotel(window.location.pathname,window.location.search,profile.hotels);
     const scoped=hasScopedBookingLink(window.location.pathname,window.location.search);
-    if(scoped&&!linked)window.history.replaceState(window.history.state,'','/reservations');
+    if(scoped&&!linked){window.location.replace('/');return;}
     const selected=linked??authorized?.id??(profile.hotels.length===1?profile.hotels[0].id:null);
     setSessionHotel(selected);
     setHotelId(selected);
@@ -102,7 +102,7 @@ export function AuthProvider({children}:{children:ReactNode}){
    setUser(profile);
    const linked=requestedNotificationHotel(window.location.pathname,window.location.search,profile.hotels);
    const scoped=hasScopedBookingLink(window.location.pathname,window.location.search);
-   if(scoped&&!linked)window.history.replaceState(window.history.state,'','/reservations');
+   if(scoped&&!linked){window.location.replace('/');return;}
    const selected=linked??(profile.hotels.length===1?profile.hotels[0].id:null);
    setSessionHotel(selected);setHotelId(selected);
   }catch(e){

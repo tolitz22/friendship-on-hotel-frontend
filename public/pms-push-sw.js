@@ -3,12 +3,18 @@ function safeDestination(value){
  if(typeof value!=='string')return '/front-desk';
  try{
   const url=new URL(value,self.location.origin);
-  if(url.origin!==self.location.origin||url.pathname!=='/reservations')return '/front-desk';
-  const hotel=url.searchParams.get('hotel'),booking=url.searchParams.get('booking'),action=url.searchParams.get('deskAction');
-  if(!/^[1-9][0-9]*$/.test(hotel||'')||!/^[1-9][0-9]*$/.test(booking||''))return '/front-desk';
-  const params=new URLSearchParams({hotel,booking});
-  if(action==='assign'||action==='check-out')params.set('deskAction',action);
-  return '/reservations?'+params.toString();
+  const keys={'/reservations':'booking','/billing':'booking','/expenses':'expense','/cashier-shifts':'shift'};
+  const key=keys[url.pathname];
+  if(url.origin!==self.location.origin||!key)return '/front-desk';
+  const hotel=url.searchParams.get('hotel'),id=url.searchParams.get(key);
+  const numeric=value=>/^[1-9][0-9]*$/.test(value||'');
+  if(!numeric(hotel)||!numeric(id))return '/front-desk';
+  const params=new URLSearchParams({hotel,[key]:id,push:'1'});
+  const action=url.searchParams.get('deskAction');
+  if(url.pathname==='/reservations'&&(action==='assign'||action==='check-out'))params.set('deskAction',action);
+  const payment=url.searchParams.get('payment');
+  if(url.pathname==='/billing'&&numeric(payment))params.set('payment',payment);
+  return url.pathname+'?'+params.toString();
  }catch{return '/front-desk';}
 }
 self.addEventListener('push',event=>{

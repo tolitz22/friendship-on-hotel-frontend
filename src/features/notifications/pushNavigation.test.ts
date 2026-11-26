@@ -8,7 +8,11 @@ describe('notification hotel routing',()=>{
   expect(requestedNotificationHotel('/reservations','?hotel=3&booking=9',hotels)).toBeNull();
  });
  it('rejects malformed or unrelated links',()=>{
-  expect(requestedNotificationHotel('/billing','?hotel=1&booking=9',hotels)).toBeNull();
+  expect(requestedNotificationHotel('/billing','?hotel=1&booking=9&push=1',hotels)).toBe('1');
+  expect(requestedNotificationHotel('/billing','?hotel=2&booking=9&push=1',hotels)).toBeNull();
+  expect(requestedNotificationHotel('/expenses','?hotel=1&expense=7&push=1',hotels)).toBe('1');
+  expect(requestedNotificationHotel('/cashier-shifts','?hotel=1&shift=8&push=1',hotels)).toBe('1');
+  expect(requestedNotificationHotel('/expenses','?hotel=3&expense=7&push=1',hotels)).toBeNull();
   expect(requestedNotificationHotel('/reservations','?hotel=1&booking=abc',hotels)).toBeNull();
  });
 });

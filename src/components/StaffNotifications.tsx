@@ -1,7 +1,7 @@
 import {useRef,useState} from 'react';
 import {Link} from '@tanstack/react-router';
 import {useQuery} from '@tanstack/react-query';
-import {AlertTriangle,ArrowRight,BedDouble,Bell,CalendarPlus,LogOut,X} from 'lucide-react';
+import {AlertTriangle,ArrowRight,BedDouble,Bell,CalendarPlus,CreditCard,LogOut,Receipt,Wallet,X} from 'lucide-react';
 import {z} from 'zod';
 import {getJson} from '../api/http';
 import {hotelPath} from '../api/session';
@@ -19,13 +19,24 @@ const notificationKinds={
  booking_cancelled:{label:'Booking cancelled',icon:X,action:'Open booking'},
  booking_no_show:{label:'Booking marked no-show',icon:AlertTriangle,action:'Open booking'},
  stay_extended:{label:'Stay extended',icon:CalendarPlus,action:'Open booking'},
+ payment_recorded:{label:'Payment recorded',icon:CreditCard,action:'Open billing'},
+ payment_pending_review:{label:'Payment awaiting verification',icon:AlertTriangle,action:'Review payment'},
+ payment_verified:{label:'Payment verified',icon:CreditCard,action:'Open billing'},
+ payment_rejected:{label:'Payment rejected',icon:AlertTriangle,action:'Open billing'},
+ payment_voided:{label:'Payment voided',icon:AlertTriangle,action:'Open billing'},
+ refund_requested:{label:'Refund requested',icon:Wallet,action:'Review refund'},
+ refund_verified:{label:'Refund evidence verified',icon:Wallet,action:'Open billing'},
+ expense_recorded:{label:'Expense recorded',icon:Receipt,action:'Open expense'},
+ expense_correction_requested:{label:'Expense correction requested',icon:AlertTriangle,action:'Review expense'},
+ cashier_discrepancy:{label:'Cashier cash-count discrepancy',icon:AlertTriangle,action:'Review cashier shift'},
 } as const;
 const responseSchema=z.object({data:z.object({
  hotelId:z.string(),
  notifications:z.array(z.object({
-  id:z.string(),kind:z.enum(Object.keys(notificationKinds) as (keyof typeof notificationKinds)[]),bookingId:z.string().regex(/^[1-9]\d*$/),
+  id:z.string(),kind:z.enum(Object.keys(notificationKinds) as (keyof typeof notificationKinds)[]),bookingId:z.string().regex(/^[1-9]\d*$/).optional(),
+  target:z.enum(['billing','expenses','cashier-shifts']).optional(),paymentId:z.string().regex(/^[1-9]\d*$/).nullish(),expenseId:z.string().regex(/^[1-9]\d*$/).optional(),shiftId:z.string().regex(/^[1-9]\d*$/).optional(),
   reference:z.string(),date:z.iso.date(),
- })),
+ }).refine(item=>item.target==='expenses'?!!item.expenseId:item.target==='cashier-shifts'?!!item.shiftId:!!item.bookingId)),
  hasMore:z.boolean(),
 })});
 
@@ -76,14 +87,16 @@ export function StaffNotifications({hotelId,userId,canPush=false}:{hotelId:strin
     {items.map(item=>{
      const {label,icon:Icon,action}=notificationKinds[item.kind];
      const deskAction=item.kind==='room_assignment'?'assign':item.kind.startsWith('checkout_')?'check-out':undefined;
-     return <li key={item.id}>
-      <Link to="/reservations" search={{booking:item.bookingId,deskAction}}
-       onClick={()=>{markRead([item.id]);dialog.current?.close();}}>
-       <Icon size={19} aria-hidden="true"/>
+     const close=()=>{markRead([item.id]);dialog.current?.close();};
+     const content=<><Icon size={19} aria-hidden="true"/>
        <span><strong>{label}{!read.includes(item.id)&&<span className="staff-notifications-unread"> · Unread</span>}</strong>
         <small>{item.reference} · {dateLabel(item.date)}</small><small>{action}</small></span>
-       <ArrowRight size={16} aria-hidden="true"/>
-      </Link>
+       <ArrowRight size={16} aria-hidden="true"/></>;
+     return <li key={item.id}>
+      {item.target==='billing'?<Link to="/billing" search={{booking:item.bookingId,payment:item.paymentId??undefined,hotel:hotelId}} onClick={close}>{content}</Link>
+      :item.target==='expenses'?<Link to="/expenses" search={{expense:item.expenseId,hotel:hotelId}} onClick={close}>{content}</Link>
+      :item.target==='cashier-shifts'?<Link to="/cashier-shifts" search={{shift:item.shiftId,hotel:hotelId}} onClick={close}>{content}</Link>
+      :<Link to="/reservations" search={{booking:item.bookingId,deskAction}} onClick={close}>{content}</Link>}
      </li>;
     })}
    </ul>}

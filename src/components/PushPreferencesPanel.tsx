@@ -6,7 +6,7 @@ import {getJson,requestJson} from '../api/http';
 import {registeredDevice} from '../features/notifications/pushDevice';
 import './PushPreferencesPanel.css';
 
-const schema=z.object({enabled:z.boolean(),new_booking:z.boolean(),checkout_due:z.boolean(),checkout_overdue:z.boolean(),room_assignment:z.boolean(),guest_check_in:z.boolean().default(true),guest_check_out:z.boolean().default(true),booking_cancelled:z.boolean().default(true),booking_no_show:z.boolean().default(true),stay_extended:z.boolean().default(true)});
+const schema=z.object({enabled:z.boolean(),new_booking:z.boolean(),checkout_due:z.boolean(),checkout_overdue:z.boolean(),room_assignment:z.boolean(),guest_check_in:z.boolean().default(true),guest_check_out:z.boolean().default(true),booking_cancelled:z.boolean().default(true),booking_no_show:z.boolean().default(true),stay_extended:z.boolean().default(true),payment_recorded:z.boolean().default(true),payment_pending_review:z.boolean().default(true),payment_verified:z.boolean().default(true),payment_rejected:z.boolean().default(true),payment_voided:z.boolean().default(true),refund_requested:z.boolean().default(true),refund_verified:z.boolean().default(true),expense_recorded:z.boolean().default(true),expense_correction_requested:z.boolean().default(true),cashier_discrepancy:z.boolean().default(true)});
 type Preferences=z.infer<typeof schema>;
 const deviceSchema=z.object({id:z.string(),deviceName:z.string(),updatedAt:z.string()});
 const categories=[
@@ -19,6 +19,16 @@ const categories=[
  ['booking_cancelled','Booking cancellations'],
  ['booking_no_show','No-show bookings'],
  ['stay_extended','Stay extensions'],
+ ['payment_recorded','Payments recorded'],
+ ['payment_pending_review','Payments awaiting verification'],
+ ['payment_verified','Verified payments'],
+ ['payment_rejected','Rejected payments'],
+ ['payment_voided','Voided payments'],
+ ['refund_requested','Refund requests'],
+ ['refund_verified','Verified refund evidence'],
+ ['expense_recorded','Expenses recorded'],
+ ['expense_correction_requested','Expense correction requests'],
+ ['cashier_discrepancy','Cashier discrepancies'],
 ] as const;
 
 export function PushPreferencesPanel({userId,hotelId,onRemoveCurrent}:{userId:string;hotelId:string;onRemoveCurrent:()=>Promise<void>}){

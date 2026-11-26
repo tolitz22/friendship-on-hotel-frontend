@@ -11,3 +11,5 @@
 .no-show-next-step h5{font-size:1rem;margin-top:.2rem}
 .no-show-next-step button{flex-shrink:0}
 @media(max-width:480px){.no-show-overview{padding:.75rem}.no-show-next-step{align-items:stretch;flex-direction:column}.no-show-overview-metrics>div{padding:.6rem}.no-show-overview-metrics strong{font-size:1rem}}
+
+.no-show-deposit-row{display:grid;gap:.5rem;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:.75rem;min-width:0;overflow-wrap:anywhere}.no-show-deposit-row p{font-size:.875rem;color:#475569}.no-show-deposit-row button{justify-self:start}

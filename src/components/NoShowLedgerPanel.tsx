@@ -35,26 +35,37 @@ export function NoShowLedgerPanel({hotelId,bookingId,userId}:Props){
     <strong>{data.settled?'Ledger reconciled and settled':data.reconciled?'Ledger reconciled · settlement incomplete':'Accounting review needed'}</strong>
     <span>{data.businessDate?'Business date: '+data.businessDate:'Business date unavailable'}</span>
    </div>
+   <p>{data.reconciled?'Folio amounts match the checked accounting entries.':'Resolve differences before relying on the settlement balances. A matched amount excludes entries that failed validation.'}</p>
    <dl className="no-show-ledger-balances">
-    <div><dt>Outstanding receivable</dt><dd>{money(data.expectedBalances.receivableMinor)}</dd><small>Matched ledger: {money(data.matchedJournalBalances.receivableMinor)}</small></div>
-    <div><dt>Remaining deposit liability</dt><dd>{money(data.expectedBalances.depositLiabilityMinor)}</dd><small>Matched ledger: {money(data.matchedJournalBalances.depositLiabilityMinor)}</small></div>
+    <div><dt>Outstanding receivable</dt><dd>{money(data.expectedBalances.receivableMinor)}</dd><small>Matched ledger: {money(data.matchedJournalBalances.receivableMinor)}</small>{data.expectedBalances.receivableMinor!==data.matchedJournalBalances.receivableMinor&&<small className="ledger-difference">Difference (folio − ledger): {money(data.expectedBalances.receivableMinor-data.matchedJournalBalances.receivableMinor)}</small>}</div>
+    <div><dt>Remaining deposit liability</dt><dd>{money(data.expectedBalances.depositLiabilityMinor)}</dd><small>Matched ledger: {money(data.matchedJournalBalances.depositLiabilityMinor)}</small>{data.expectedBalances.depositLiabilityMinor!==data.matchedJournalBalances.depositLiabilityMinor&&<small className="ledger-difference">Difference (folio − ledger): {money(data.expectedBalances.depositLiabilityMinor-data.matchedJournalBalances.depositLiabilityMinor)}</small>}</div>
    </dl>
    <div className="no-show-ledger-table-wrap"><table className="no-show-ledger-table">
     <caption>Transaction comparison</caption>
-    <thead><tr><th scope="col">Transaction</th><th scope="col">Folio</th><th scope="col">Matched ledger</th></tr></thead>
+    <thead><tr><th scope="col">Transaction</th><th scope="col">Folio</th><th scope="col">Matched ledger</th><th scope="col">Difference</th></tr></thead>
     <tbody>{movements.map(([key,label])=><tr key={key} data-mismatch={data.expectedMinor[key]!==data.matchedJournalMinor[key]}>
      <th scope="row">{label}</th><td>{money(data.expectedMinor[key])}</td><td>{money(data.matchedJournalMinor[key])}
-      {data.expectedMinor[key]!==data.matchedJournalMinor[key]&&<small>Mismatch</small>}</td>
+      {data.expectedMinor[key]!==data.matchedJournalMinor[key]&&<small>Mismatch</small>}</td><td>{money(data.expectedMinor[key]-data.matchedJournalMinor[key])}</td>
     </tr>)}</tbody>
    </table></div>
    {!data.reconciled&&<div className="no-show-ledger-issues">
     <h5>Items to review</h5>
     {data.issues.length>0?<ul>{data.issues.map((issue,index)=><li key={issue.kind+issue.reference+index}>
      <strong>{reasonLabels[issue.reason]??'Accounting discrepancy'}</strong><span>{kindLabels[issue.kind]??'Transaction'} · {issue.reference}</span>
+     {!!issue.journalIds?.length&&<span>Journal references: {issue.journalIds.map(id=>'#'+id).join(', ')}</span>}
      <p>{reasonGuidance[issue.reason]??'Ask a finance administrator to review the original transaction and its journal before making corrections.'}</p>
     </li>)}</ul>:<p>Folio balances or payment evidence need further review.</p>}
     <p>After the authorized correction is complete, select Refresh to check the updated ledger. This report cannot post or reverse entries.</p>
    </div>}
+   <details className="no-show-ledger-trace">
+    <summary>Accounting details and journal references</summary>
+    {data.journalTrace===undefined?<p>Journal trace details are unavailable on this API version.</p>:data.journalTrace.length===0?<p>No matched transaction references available.</p>:<ul>{data.journalTrace.map((entry,index)=><li key={entry.kind+entry.reference+index}>
+     <strong>{kindLabels[entry.kind]??entry.kind} · {money(entry.amountMinor)}</strong>
+     <span>{entry.reference} · {entry.status==='matched'?'Matched':reasonLabels[entry.status]??'Review needed'}</span>
+     <span>{entry.journalIds.length?entry.journalIds.map(id=>'Journal #'+id).join(', '):'No linked journal reference'}</span>
+    </li>)}</ul>}
+    <p>Property-wide orphaned journal detection is separate from this booking report. Unlinked journals cannot safely be assigned to this booking.</p>
+   </details>
    <p className="no-show-ledger-note">Read-only booking report. Matched entries only; not a complete general ledger or Daily Closing certification.</p>
   </>:<p role="status">No accounting report available.</p>}
  </section>;

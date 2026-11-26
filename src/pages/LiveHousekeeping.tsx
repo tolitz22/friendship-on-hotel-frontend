@@ -84,6 +84,9 @@ export function LiveHousekeeping(){
  const [typeFilter,setTypeFilter]=useState<HousekeepingType|''>('');
  const [textFilter,setTextFilter]=useState('');
  const [mineOnly,setMineOnly]=useState(false);
+ const [moreFilters,setMoreFilters]=useState(false);
+ const finalInspectionRef=useRef<HTMLElement>(null);
+ const jumpToInspection=useRef(false);
  const filter:TaskFilter={...(statusFilter?{status:statusFilter}:{}),...(typeFilter?{type:typeFilter}:{}),q:textFilter.trim()||undefined,mine:mineOnly?1:undefined};
  const tasks=useQuery({
   queryKey:['live-housekeeping',hotelId,page,filter],
@@ -111,6 +114,7 @@ export function LiveHousekeeping(){
  const [selected,setSelected]=useState<LiveHousekeepingTask|null>(null);
  const [form,setForm]=useState<FormState|null>(null);
  const [saving,setSaving]=useState(false);
+ useEffect(()=>{if(jumpToInspection.current&&selected?.status==='done'&&!saving){jumpToInspection.current=false;finalInspectionRef.current?.scrollIntoView({block:'start'});}},[selected?.status,saving]);
  const [inspectionChecks,setInspectionChecks]=useState([false,false,false]);
  const [inspectionNote,setInspectionNote]=useState('');
  const [inspectionMessage,setInspectionMessage]=useState('');
@@ -126,7 +130,7 @@ export function LiveHousekeeping(){
  });
  useEffect(()=>{
   setPage(1);setSelected(null);setForm(null);setError('');setHistoryOpen(false);setHistoryPage(1);
-  setTextFilter('');setStatusFilter('');setTypeFilter('');setMineOnly(false);
+  setTextFilter('');setStatusFilter('');setTypeFilter('');setMineOnly(false);setMoreFilters(false);jumpToInspection.current=false;
  },[hotelId]);
  useEffect(()=>{
   openedLinkedTask.current=null;
@@ -169,7 +173,7 @@ export function LiveHousekeeping(){
    if(readSession().hotelId!==hotelId)return;
    setPage(1);
    if(updated&&updated.type==='checkout_clean'&&updated.status==='done'){
-    setSelected(updated);setForm(fromTask(updated));
+    jumpToInspection.current=selected?.status!=='done';setSelected(updated);setForm(fromTask(updated));
    }else close();
    // Failed cache refresh must not make an already committed update look failed.
    void Promise.all([
@@ -317,10 +321,11 @@ export function LiveHousekeeping(){
       <button key={value} type="button" aria-pressed={statusFilter===value} className={statusFilter===value?'active':''}
        onClick={()=>{setStatusFilter(value);setPage(1);}}>{label}</button>)}
     </div>
-    <div className="hk-filter-controls">
+    <div className={'hk-filter-controls'+(moreFilters?' ops-filters-expanded':'')}>
      <label className="hk-search-field"><Search size={17}/><input aria-label="Search tasks" type="search" maxLength={120} value={textFilter}
       placeholder="Room number, staff, task…" onChange={e=>{setPage(1);setTextFilter(e.target.value);}}/></label>
-     <label className="hk-type-filter">Task type <select aria-label="Filter task type" value={typeFilter}
+     <button type="button" className="btn-inline ops-filter-toggle" aria-expanded={moreFilters} aria-controls="hk-type-filter" onClick={()=>setMoreFilters(v=>!v)}>{moreFilters?'Hide task type':'Task type filter'}{typeFilter?' · Active':''}</button>
+     <label id="hk-type-filter" className="hk-type-filter">Task type <select aria-label="Filter task type" value={typeFilter}
       onChange={e=>{setTypeFilter(e.target.value as HousekeepingType|'');setPage(1);}}>
       <option value="">All types</option>
       {taskTypes.map(type=><option key={type} value={type}>{taskNames[type]}</option>)}
@@ -367,7 +372,7 @@ export function LiveHousekeeping(){
      <button type="button" className="btn-inline" disabled={page>=tasks.data.meta.totalPages} onClick={()=>setPage(x=>x+1)}>Next</button></div>
    </div>}
   </section>
-  {form&&<div className="guest-modal-backdrop" role="presentation"><section className="guest-modal" role="dialog" aria-modal="true" aria-labelledby="hk-dialog-title">
+  {form&&<div className="guest-modal-backdrop" role="presentation"><section className="guest-modal ops-mobile-editor" role="dialog" aria-modal="true" aria-labelledby="hk-dialog-title">
    <div className="catalog-modal-heading"><h3 id="hk-dialog-title">{selected?'Housekeeping task HK-'+selected.id:'Create housekeeping task'}</h3>
     <button type="button" className="icon-btn" aria-label="Close" disabled={saving} onClick={close}><X size={19}/></button></div>
    <div className="hk-dialog-guide"><Info size={17}/><p><strong>One task, two stages.</strong> Save cleaning progress, then finish the final inspection below. Maintenance and inventory checks still apply.</p></div>
@@ -391,7 +396,13 @@ export function LiveHousekeeping(){
     </>}
    </>}
    {!selected&&rooms.data&&rooms.data.meta.total>100&&<p className="guest-info">Room selector displays only the first 100 registered rooms.</p>}
-   <form onSubmit={e=>void save(e)}><div className="guest-fields">
+   <form onSubmit={e=>void save(e)}>
+    {selected&&maySave&&transitions[selected.status].length>0&&<div className="ops-quick-progress" role="group" aria-label="Quick cleaning progress">
+     <strong>Step 1 · Cleaning progress</strong>
+     <small>Choose progress, then save the task to record it.</small>
+     <div>{[selected.status,...transitions[selected.status]].map(status=><button key={status} type="button" className="btn-inline" disabled={saving} aria-pressed={form.status===status} onClick={()=>change('status',status)}>{statusNames[status]}</button>)}</div>
+    </div>}
+    <div className="guest-fields">
     <label>Room<select required disabled={!!selected||!admin||saving} value={form.roomId} onChange={e=>change('roomId',e.target.value)}>
      <option value="">Choose a room</option>{rooms.data?.data.map(r=><option key={r.id} value={r.id}>Room {r.number}</option>)}</select></label>
     <label>Task type<select disabled={!!selected||!admin||saving} value={form.type} onChange={e=>change('type',e.target.value as HousekeepingType)}>
@@ -409,9 +420,9 @@ export function LiveHousekeeping(){
    {Object.entries(fieldErrors).flatMap(([field,messages])=>messages.map((m,i)=><p key={field+i} className="catalog-field-error" role="alert">{field}: {m}</p>))}
    {error&&<p role="alert" className="auth-error">{error}</p>}
    <div className="guest-modal-actions"><button type="button" className="btn-inline" disabled={saving} onClick={close}>Close</button>
-    {maySave&&<button type="submit" className="btn-primary" disabled={saving}>{saving?'Saving…':selected?'Save task updates':'Create task'}</button>}</div>
+    {maySave&&<button type="submit" className="btn-primary" disabled={saving}>{saving?'Saving…':selected&&selected.type==='checkout_clean'&&selected.status!=='done'&&form.status==='done'?'Save cleaning & continue':selected?'Save task updates':'Create task'}</button>}</div>
    </form>
-   {selected&&selected.type==='checkout_clean'&&<section className="hk-final-inspection" aria-label="Final inspection in housekeeping task">
+   {selected&&selected.type==='checkout_clean'&&<section ref={finalInspectionRef} className="hk-final-inspection" aria-label="Final inspection in housekeeping task">
     <h4>Step 2 · Final room inspection</h4>
     {selected.status!=='done'
      ?<p>Step 1: Finish cleaning and save the task before inspecting Room {selected.roomNumber}.</p>

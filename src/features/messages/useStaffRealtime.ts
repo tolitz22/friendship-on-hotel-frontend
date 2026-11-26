@@ -8,6 +8,7 @@ export function useStaffRealtime(hotel:string|null,user:string|undefined){
   const key=import.meta.env.VITE_STAFF_REALTIME_KEY as string|undefined;
   const endpoint=import.meta.env.VITE_STAFF_REALTIME_WS_URL as string|undefined;
   if(!hotel||!user||!key||!endpoint)return;
+  const appKey:string=key,wsEndpoint:string=endpoint;
   let stopped=false,socket:WebSocket|null=null,timer:number|undefined,attempt=0;
   const channel='private-staff.hotel.'+hotel+'.user.'+user;
   const refresh=()=>{
@@ -17,7 +18,7 @@ export function useStaffRealtime(hotel:string|null,user:string|undefined){
   function connect(){
    if(stopped)return;
    let url:URL;
-   try{url=new URL(endpoint);if(url.protocol!=='wss:')return;url.pathname=url.pathname.replace(/\/$/,'')+'/app/'+encodeURIComponent(key);url.searchParams.set('protocol','7');url.searchParams.set('client','js');url.searchParams.set('version','1.0');}
+   try{url=new URL(wsEndpoint);if(url.protocol!=='wss:')return;url.pathname=url.pathname.replace(/\/$/,'')+'/app/'+encodeURIComponent(appKey);url.searchParams.set('protocol','7');url.searchParams.set('client','js');url.searchParams.set('version','1.0');}
    catch{return;}
    const ws=new WebSocket(url.toString());socket=ws;
    ws.onmessage=async event=>{

@@ -41,6 +41,7 @@ export function LiveBookingsWorkspace({
  onSearch,onFilter,onPage,onClear,onRefresh,onOpen,onNew,dates,onDates,
 }:Props){
  const [showDates,setShowDates]=useState(false);
+ const [showSnapshot,setShowSnapshot]=useState(false);
  const [roomDay,setRoomDay]=useState(hotelToday);
  const [floor,setFloor]=useState('all');
  const [roomPage,setRoomPage]=useState(1);
@@ -69,13 +70,15 @@ export function LiveBookingsWorkspace({
  const filtersActive=search.trim().length>0||filter!=='all'||!!dates.from||!!dates.to||dates.field!=='created_at'||dates.sortBy!=='created_at'||dates.direction!=='desc';
  return <div className="bk-workspace">
   <div className="bk-overview">
-   <section className="bk-room-panel" aria-label="Room assignment snapshot">
+   <section className={'bk-room-panel'+(showSnapshot?' bk-snapshot-expanded':'')} aria-label="Room assignment snapshot">
     <div className="bk-section-heading">
      <div><h3><BedDouble size={18}/> Room snapshot</h3>
       <p>Reservations assigned to rooms for {readableDate(roomDay)}</p></div>
      <Link to="/room-calendar" search={{date:roomDay}} className="btn-inline">
       Full calendar <ArrowRight size={14}/></Link>
     </div>
+    <button type="button" className="btn-inline bk-snapshot-toggle" aria-expanded={showSnapshot} aria-controls="booking-room-snapshot" onClick={()=>setShowSnapshot(v=>!v)}>{showSnapshot?'Hide room snapshot':'Show room snapshot'} <BedDouble size={16}/></button>
+    <div id="booking-room-snapshot" className="bk-snapshot-content">
     <div className="bk-room-toolbar">
      <label>Date <input aria-label="Room snapshot date" type="date" value={roomDay}
       onChange={e=>{if(e.target.value){setRoomDay(e.target.value);setRoomPage(1);}}}/></label>
@@ -124,6 +127,7 @@ export function LiveBookingsWorkspace({
        onClick={()=>setRoomPage(n=>n+1)} aria-label="Next room page"><ChevronRight size={15}/></button>
      </div>}
     </div>
+    </div>
    </section>
    <section className="bk-kpis" aria-label="Reservation list overview">
     <div className="bk-kpi"><span><ClipboardList size={16}/> Matching bookings</span>
@@ -149,7 +153,7 @@ export function LiveBookingsWorkspace({
       onClick={()=>onFilter(value)}>{label}</button>)}
     </div>
 
-    <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:8}}>
+    <div className="bk-filter-tools" style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:8}}>
      <div style={{flex:'1 1 280px',minWidth:0}}>    <label className="bk-search"><Search size={17}/>
      <input type="search" value={search} onChange={e=>onSearch(e.target.value)}
       aria-label="Search bookings" placeholder="Search guest, booking reference, or room…"/>
@@ -190,6 +194,7 @@ export function LiveBookingsWorkspace({
     <label style={{display:"grid",gap:4,fontSize:12,fontWeight:600,minWidth:0}}>To <input className="wizard-input" type="date" value={dates.to} min={dates.from||undefined} onChange={e=>onDates({...dates,to:e.target.value,from:dates.from&&e.target.value&&e.target.value<dates.from?'':dates.from})}/></label>
 
      </div>
+     <button type="button" className="btn-inline" onClick={()=>setShowDates(false)}>Done · Hide date filters</button>
     </div>}
    </div>
    <div className="bk-results-bar" role="status">
@@ -228,6 +233,27 @@ export function LiveBookingsWorkspace({
       </div></td>
      </tr>)}</tbody>
     </table>
+   </div>}
+   {!isPending&&!isError&&!searching&&rows.length>0&&<div className="bk-mobile-cards" aria-label="Mobile booking list">
+    {rows.map(record=><article className="bk-mobile-card" key={record.id}>
+     <div className="bk-mobile-card-head">
+      <div><button type="button" className="bk-guest-link" onClick={()=>onOpen(record.id)}>{record.guestName?.trim()||'Guest details unavailable'}</button>
+       <small className="bk-ref">{record.reference}</small>
+       {record.earlyCheckIn&&<small className="bk-early">Early check-in</small>}</div>
+      <span className={'bk-state bk-state-'+(record.lifecycleState??'unknown').replaceAll('_','-')}>{lifecycleName(record.lifecycleState)}</span>
+     </div>
+     <dl className="bk-mobile-facts">
+      <div><dt>Room</dt><dd>{record.assignedRoomNumber?'Room '+record.assignedRoomNumber:'Unassigned'}<small>{record.roomTypeName??'Room type #'+record.roomTypeId}</small></dd></div>
+      <div><dt>Stay dates</dt><dd>{readableDate(record.checkIn)}<small>to {readableDate(record.checkOut)}</small></dd></div>
+      <div><dt>Date created</dt><dd>{record.createdDate?readableDate(record.createdDate):'—'}</dd></div>
+      <div><dt>Contact</dt><dd>{record.guestPhone?.trim()||'Not provided'}</dd></div>
+      <div><dt>Next step</dt><dd>{nextReservationAction(record)}</dd></div>
+     </dl>
+     <div className="bk-mobile-actions">
+      <button type="button" className="btn-primary" onClick={()=>onOpen(record.id)}>{['confirmed','checked_in'].includes(record.lifecycleState??'')?nextReservationAction(record):'View details'} <ArrowRight size={16}/></button>
+      <Link to="/billing" search={{booking:record.id}} className="bk-folio-link">Billing</Link>
+     </div>
+    </article>)}
    </div>}
    {pagination&&pagination.totalPages>1&&<div className="bk-list-footer">
     <span>{pagination.perPage} bookings per page · {pagination.total} matching</span>

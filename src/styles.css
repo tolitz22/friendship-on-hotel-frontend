@@ -3961,3 +3961,105 @@ dialog.no-show-dialog::backdrop { background: rgb(0 0 0 / 45%); }
  .rack-timeline{--rack-lane-height:50px}
  .rack-booking-bar{height:44px}
 }
+
+
+/* Mobile usability phase 5: rooms, readiness, and inspection workflows. */
+.rr-mobile-readiness,.rack-tile-readable-status{display:none}
+.rack-filter-done{grid-column:1/-1;justify-self:end}
+.rr-inspection-history>summary{cursor:pointer;font-size:14px;font-weight:750;padding:12px 0}
+@media(max-width:760px){
+ .rack-page-heading{gap:10px;margin-bottom:12px}
+ .rack-page-heading .rr-heading-actions{width:100%;display:flex;gap:8px}
+ .rack-page-heading .rr-heading-actions>*{flex:1 1 120px;justify-content:center;min-height:44px;text-align:center}
+ .rack-page-heading .rr-mobile-readiness{display:inline-flex;flex-basis:100%}
+ .rack-readiness-queue{scroll-margin-top:16px}
+ .rack-dashboard{min-width:0;gap:10px}
+ .rack-heading h2{font-size:19px}
+ .rack-heading>button{min-height:44px}
+ .rack-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ .rack-metric{padding:10px;min-width:0;min-height:66px}
+ .rack-metric>span{font-size:12px;overflow-wrap:anywhere;align-items:flex-start}
+ .rack-metric>span svg{flex-shrink:0}
+ .rack-metric>strong{font-size:23px}
+ .rack-controls{position:static;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;padding:0}
+ .rack-controls .rack-search{grid-row:1;grid-column:1/-1;min-width:0}
+ .rack-search input,.rack-floor select,.rack-advanced select,.rack-advanced input{font-size:16px}
+ .rack-controls .rack-view-switch{min-width:0;padding:2px}
+ .rack-view-switch button{flex:1;min-width:0;min-height:44px;padding:6px}
+ .rack-filter-toggle{justify-content:center;min-height:44px;white-space:normal}
+ .rack-floor{grid-column:1/-1}
+ .rack-floor select{flex:1;width:100%;min-width:0}
+ .rack-quick{padding:3px;gap:6px}
+ .rack-quick button,.rack-chips button{min-height:44px;font-size:12px}
+ .rack-advanced.open{grid-template-columns:minmax(0,1fr);padding:10px;gap:10px}
+ .rack-advanced label{font-size:12px}
+ .rack-filter-done{width:100%;min-height:44px}
+ .rack-results{overflow-wrap:anywhere;line-height:1.5}
+ .rack-list{gap:9px}
+ .rack-list .rack-tile-list{display:flex;flex-direction:column;align-items:stretch;gap:7px;padding:12px;min-height:0;max-height:none;overflow:visible}
+ .rack-list .rack-tile-head{flex-wrap:wrap}
+ .rack-list .rack-tile-number{font-size:17px;min-height:34px;min-width:44px}
+ .rack-list .rack-tile-state{font-size:12px;text-align:left}
+ .rack-list .rack-tile-type,.rack-list .rack-tile-occupancy{font-size:12px;line-height:1.4;white-space:normal;overflow-wrap:anywhere}
+ .rack-list .rack-tile-stay strong{font-size:14px;white-space:normal;overflow-wrap:anywhere}
+ .rack-list .rack-tile-stay small{font-size:12px;white-space:normal}
+ .rack-list .rack-tile-event{font-size:12px;position:static}
+ .rack-list .rack-tile-bottom{display:block}
+ .rack-list .rack-tile-quick-icons{display:none}
+ .rack-list .rack-tile-next{border-top:1px solid currentColor;padding-top:8px;font-size:13px;white-space:normal;overflow-wrap:anywhere;max-width:none}
+ .rack-list .rack-tile-readable-status{display:flex;flex-wrap:wrap;gap:5px 12px;font-size:12px;line-height:1.4}
+ .rack-list .rack-tile-problem{font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+ .rack-grid,.rack-grid.rack-grid-small{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ .rack-grid .rack-tile{min-height:0;max-height:none;overflow:visible;padding:10px;gap:7px}
+ .rack-grid .rack-tile-head{flex-wrap:wrap;justify-content:flex-start}
+ .rack-grid .rack-tile-state{text-align:left;justify-content:flex-start;font-size:11px}
+ .rack-grid .rack-tile-type,.rack-grid .rack-tile-stay strong,.rack-grid .rack-tile-stay small{white-space:normal;overflow-wrap:anywhere}
+ .rack-grid .rack-tile-event{position:static;font-size:11px}
+ .rack-grid .rack-tile-bottom{display:grid;gap:5px}
+ .rack-grid .rack-tile-next{max-width:none;justify-content:space-between;font-size:11px;white-space:normal;overflow-wrap:anywhere}
+ .rack-grid .rack-tile-problem{display:flex;font-size:11px;overflow-wrap:anywhere}
+ .rack-pagination>div{width:100%}
+ .rack-pagination>div button{flex:1}
+ .rack-pagination label{width:100%}
+ .rack-pagination select{flex:1;font-size:16px}
+ .rack-drawer-overlay{align-items:stretch}
+ .rack-drawer{width:100%;height:100dvh;max-height:100dvh;border-radius:0}
+ .rack-drawer-head{padding:12px;flex-shrink:0;gap:10px}
+ .rack-drawer-head>div{min-width:0;overflow-wrap:anywhere}
+ .rack-drawer-scroll{flex:1;padding:10px 10px max(12px,env(safe-area-inset-bottom,0px));gap:10px;align-content:start}
+ .rack-status-line span{margin-left:0;width:100%}
+ .rack-drawer-section{padding:12px;gap:8px}
+ .rack-drawer-problem{align-items:flex-start;overflow-wrap:anywhere}
+ .rack-drawer-problem svg{flex-shrink:0}
+ .rack-stay a,.rack-drawer-links a,.rack-manage-room{min-height:44px;width:100%;text-align:center;white-space:normal}
+ .rack-evidence>div{flex-wrap:wrap}
+ .rack-evidence dd{text-align:left}
+ .rr-inspection-status,.rr-blocker-section,.rr-latest-inspection{padding:12px;margin:10px 0}
+ .rr-mobile-checklist{display:grid;gap:10px;min-width:0}
+ .rr-inspection-check{display:flex;align-items:center;gap:12px;padding:10px;border:1px solid var(--border);border-radius:9px;min-height:48px;font-size:14px;line-height:1.4}
+ .rr-inspection-check input{width:22px;height:22px;flex-shrink:0;accent-color:var(--accent)}
+ .rr-mobile-checklist textarea{width:100%;font-size:16px;min-height:96px}
+ .rr-mobile-checklist .btn-primary{width:100%;min-height:48px}
+ .rr-inspection-history>summary{min-height:44px}
+ .rh-header{gap:10px}
+ .rh-header-controls{width:100%;gap:8px}
+ .rh-header-controls>label{flex:1;min-width:0}
+ .rh-header-controls select{width:100%;min-width:0;font-size:16px;min-height:44px}
+ .rh-header-controls button{min-height:44px}
+ .rh-simple-summary{gap:6px}
+ .rh-simple-summary button{display:grid;gap:5px;padding:9px;min-height:75px;align-content:center}
+ .rh-simple-summary button span{font-size:11px;line-height:1.4}
+ .rh-action-card{flex-direction:column;align-items:stretch;padding:12px;gap:10px}
+ .rh-action-card.urgent{border-left:4px solid var(--accent)}
+ .rh-action-info{overflow-wrap:anywhere}
+ .rh-action-controls{display:grid;grid-template-columns:minmax(0,1fr);width:100%;gap:7px}
+ .rh-action-controls>a,.rh-action-controls>button{min-height:44px;width:100%;text-align:center;white-space:normal}
+ .rh-pagination{padding:10px;gap:8px}
+ .rh-pagination>div{width:100%}
+ .rh-pagination button{flex:1;min-height:44px;justify-content:center}
+}
+@media(max-width:360px){
+ .rack-grid,.rack-grid.rack-grid-small{grid-template-columns:minmax(0,1fr)}
+ .rack-metric>span{font-size:11px}
+ .rh-simple-summary button{padding:7px}
+}

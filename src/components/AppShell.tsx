@@ -2,6 +2,7 @@ import {useStaffRealtime} from '../features/messages/useStaffRealtime';
 import {useMessageInbox} from '../pages/Messages';
 import {MessageCircle} from 'lucide-react';
 import './FloatingMessages.css';
+import {requestedNotificationHotel} from '../features/notifications/pushNavigation';
 import {StaffNotifications} from './StaffNotifications';
 import {Link,Outlet,useRouterState} from '@tanstack/react-router';
 import {LayoutDashboard,CalendarDays,CalendarRange,BedDouble,Users,Wallet,ClipboardCheck,Wrench,ChartNoAxesCombined,Settings,Sun,Moon,Menu,X,Hotel,LogOut,ArrowRight,ChevronDown,ShieldCheck,ShieldAlert,ClipboardList,Receipt} from 'lucide-react';
@@ -77,6 +78,7 @@ export function AppShell(){
  const [showAdvanced,setShowAdvanced]=useState(false);
  const [showMoreOperations,setShowMoreOperations]=useState(false);
  const pathname=useRouterState({select:s=>s.location.pathname});
+ const search=useRouterState({select:s=>s.location.searchStr});
  const current=pathname.startsWith('/guests/')?'Customer stays':pathname.startsWith('/expenses/')?'Expense voucher':all.find(item=>item.to===pathname)?.label??'Overview';
  const role=selectedRole(user?.hotels,hotelId);
  const effectivePermissions=user?.hotels.find(h=>h.id===hotelId)?.permissions;
@@ -140,6 +142,16 @@ export function AppShell(){
    </div>
   </main>
  </div>;
+ // A native push link must be checked even when it opens an already signed-in tab.
+ if(dataMode==='api'&&user&&new URLSearchParams(search).has('push')){
+  const target=requestedNotificationHotel(pathname,search,user.hotels);
+  if(!target||target!==hotelId)return <div className="auth-shell"><div className="auth-card">
+   <h1>{target?'Switch hotel to open this alert':'Notification unavailable'}</h1>
+   <p>{target?'This notification belongs to a different authorized hotel. Switch before viewing its records.':'This notification is invalid or your account no longer has administrator access to its hotel.'}</p>
+   {target&&<button type="button" className="btn-primary" onClick={()=>selectHotel(target)}>Switch hotel</button>}
+   <Link to="/" className="btn-inline">Return to workspace</Link>
+  </div></div>;
+ }
  if(dataMode==='api'&&user&&!hotelId&&pathname==='/change-password')return <Outlet/>;
  if(dataMode==='api'&&!hotelId)return <HotelChooser/>;
 

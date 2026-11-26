@@ -52,7 +52,7 @@ function Home(){const {user,hotelId}=useHotelAuth();
 const index=createRoute({getParentRoute:()=>root,path:'/',component:dataMode==='api'?Home:Dashboard});
 const reservations=createRoute({getParentRoute:()=>root,path:'/reservations',
  validateSearch:(value:Record<string,unknown>):{booking?:string;mode?:'new';guest?:string;room?:string;roomNumber?:string;checkIn?:string;checkOut?:string;deskAction?:'assign'|'check-in'|'check-out'|'extend';group?:string;hotel?:string;push?:string}=>({
-  push:String(value.push)==='1'?'1':undefined,
+  push:normalizeBillingBookingId(value.push)==='1'?'1':undefined,
   booking:(()=>{const raw=typeof value.booking==='string'?value.booking.trim():String(typeof value.booking==='number'?value.booking:'');
    const normalized=raw.replace(/^\"([1-9][0-9]*)\"$/,'$1');
    return /^[1-9][0-9]*$/.test(normalized)?normalized:undefined;
@@ -75,7 +75,7 @@ const groupReservations=createRoute({getParentRoute:()=>root,path:'/group-reserv
  }),component:GroupReservations});
 const rooms=createRoute({getParentRoute:()=>root,path:'/rooms',
  validateSearch:(value:Record<string,unknown>):{room?:string;inspect?:boolean;hotel?:string;push?:string}=>({
-  hotel:normalizeBillingBookingId(value.hotel),push:String(value.push)==='1'?'1':undefined,
+  hotel:normalizeBillingBookingId(value.hotel),push:normalizeBillingBookingId(value.push)==='1'?'1':undefined,
   inspect:value.inspect===true?true:undefined,
   room:(typeof value.room==='string'||typeof value.room==='number')&&String(value.room).trim().length<=50
    ?String(value.room).trim()||undefined:undefined,
@@ -83,7 +83,7 @@ const rooms=createRoute({getParentRoute:()=>root,path:'/rooms',
  component:dataMode==='api'?LiveRooms:Rooms});
 const roomCalendar=createRoute({getParentRoute:()=>root,path:'/room-calendar',
  validateSearch:(value:Record<string,unknown>):{date?:string;end?:string;group?:string;hotel?:string;room?:string;push?:string}=>({
-  push:String(value.push)==='1'?'1':undefined,
+  push:normalizeBillingBookingId(value.push)==='1'?'1':undefined,
   room:(typeof value.room==='string'||typeof value.room==='number')&&/^[A-Za-z0-9_-]{1,32}$/.test(String(value.room))?String(value.room):undefined,
   date:typeof value.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.date)
     &&!Number.isNaN(Date.parse(value.date+'T00:00:00Z'))
@@ -97,19 +97,19 @@ const roomCalendar=createRoute({getParentRoute:()=>root,path:'/room-calendar',
   hotel:normalizeBillingBookingId(value.hotel),
  }),component:LiveRoomCalendar});
 const functionalRoutes=[
- createRoute({getParentRoute:()=>root,path:'/messages',validateSearch:(value:Record<string,unknown>):{conversation?:string;hotel?:string;push?:string}=>({conversation:normalizeBillingBookingId(value.conversation),hotel:normalizeBillingBookingId(value.hotel),push:String(value.push)==='1'?'1':undefined}),component:Messages}),
+ createRoute({getParentRoute:()=>root,path:'/messages',validateSearch:(value:Record<string,unknown>):{conversation?:string;hotel?:string;push?:string}=>({conversation:normalizeBillingBookingId(value.conversation),hotel:normalizeBillingBookingId(value.hotel),push:normalizeBillingBookingId(value.push)==='1'?'1':undefined}),component:Messages}),
  createRoute({getParentRoute:()=>root,path:'/my-expense-claims',component:MyExpenseClaims}),
  createRoute({getParentRoute:()=>root,path:'/expenses',component:Expenses,
  validateSearch:(value:Record<string,unknown>):{expense?:string;date?:string;hotel?:string;tab?:ExpenseView;push?:string}=>({
- push:String(value.push)==='1'?'1':undefined,
+ push:normalizeBillingBookingId(value.push)==='1'?'1':undefined,
  tab:value.tab==='bills'||value.tab==='suppliers'||value.tab==='reimbursements'?value.tab:undefined,
- expense:/^[1-9]\d*$/.test(String(value.expense??''))?String(value.expense):undefined,
- hotel:/^[1-9]\d*$/.test(String(value.hotel??''))?String(value.hotel):undefined,
+ expense:normalizeBillingBookingId(value.expense),
+ hotel:normalizeBillingBookingId(value.hotel),
  date:typeof value.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.date)?value.date:undefined,
  })}),
  createRoute({getParentRoute:()=>root,path:'/expenses/$expenseId',component:ExpenseVoucher,
  validateSearch:(value:Record<string,unknown>):{date?:string;hotel?:string}=>({
-  hotel:/^[1-9]\d*$/.test(String(value.hotel??''))?String(value.hotel):undefined,
+  hotel:normalizeBillingBookingId(value.hotel),
   date:typeof value.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.date)?value.date:undefined,
  })}),
  createRoute({getParentRoute:()=>root,path:'/front-desk',
@@ -118,10 +118,10 @@ const functionalRoutes=[
   }),
   component:FrontDesk}),
  createRoute({getParentRoute:()=>root,path:'/operational-exceptions',component:OperationalExceptions}),
- createRoute({getParentRoute:()=>root,path:'/manager-approvals',validateSearch:(value:Record<string,unknown>):{approval?:string;hotel?:string;push?:string}=>({approval:normalizeBillingBookingId(value.approval),hotel:normalizeBillingBookingId(value.hotel),push:String(value.push)==='1'?'1':undefined}),component:ManagerApprovals}),
+ createRoute({getParentRoute:()=>root,path:'/manager-approvals',validateSearch:(value:Record<string,unknown>):{approval?:string;hotel?:string;push?:string}=>({approval:normalizeBillingBookingId(value.approval),hotel:normalizeBillingBookingId(value.hotel),push:normalizeBillingBookingId(value.push)==='1'?'1':undefined}),component:ManagerApprovals}),
  createRoute({getParentRoute:()=>root,path:'/cashier-shifts',
   validateSearch:(value:Record<string,unknown>):{booking?:string;hotel?:string;shift?:string;push?:string}=>({
-   push:String(value.push)==='1'?'1':undefined,
+   push:normalizeBillingBookingId(value.push)==='1'?'1':undefined,
    booking:normalizeBillingBookingId(value.booking),
    hotel:normalizeBillingBookingId(value.hotel),
    shift:normalizeBillingBookingId(value.shift),
@@ -132,7 +132,7 @@ const functionalRoutes=[
    date:typeof value.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.date)?value.date:undefined,
   }),component:OccupancyVerification}),
  createRoute({getParentRoute:()=>root,path:'/occupancy-coverage',component:OccupancyCoverageReport}),
- createRoute({getParentRoute:()=>root,path:'/night-audit',validateSearch:(value:Record<string,unknown>):{date?:string;hotel?:string;push?:string}=>({date:typeof value.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.date)&&!Number.isNaN(Date.parse(value.date+'T00:00:00Z'))&&new Date(value.date+'T00:00:00Z').toISOString().slice(0,10)===value.date?value.date:undefined,hotel:normalizeBillingBookingId(value.hotel),push:String(value.push)==='1'?'1':undefined}),component:NightAuditPreview}),
+ createRoute({getParentRoute:()=>root,path:'/night-audit',validateSearch:(value:Record<string,unknown>):{date?:string;hotel?:string;push?:string}=>({date:typeof value.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.date)&&!Number.isNaN(Date.parse(value.date+'T00:00:00Z'))&&new Date(value.date+'T00:00:00Z').toISOString().slice(0,10)===value.date?value.date:undefined,hotel:normalizeBillingBookingId(value.hotel),push:normalizeBillingBookingId(value.push)==='1'?'1':undefined}),component:NightAuditPreview}),
  createRoute({getParentRoute:()=>root,path:'/rate-calendar',component:RateCalendar}),
  createRoute({getParentRoute:()=>root,path:'/tax-policies',component:TaxPolicies}),
  createRoute({getParentRoute:()=>root,path:'/folio-night-accounting',component:FolioNightAccounting}),
@@ -143,7 +143,7 @@ const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/guests/$guestId/stays',component:GuestStays}),
  createRoute({getParentRoute:()=>root,path:'/billing',
   validateSearch:(value:Record<string,unknown>):{booking?:string;payment?:string;action?:'signoff'|'no-show';group?:string;hotel?:string;checkIn?:string;checkOut?:string;push?:string}=>({
-   push:String(value.push)==='1'?'1':undefined,
+   push:normalizeBillingBookingId(value.push)==='1'?'1':undefined,
    booking:normalizeBillingBookingId(value.booking),
    payment:normalizeBillingBookingId(value.payment),
    action:value.action==='signoff'||value.action==='no-show'?value.action:undefined,
@@ -154,12 +154,12 @@ const functionalRoutes=[
   }),component:Billing}),
  createRoute({getParentRoute:()=>root,path:'/housekeeping',
   validateSearch:(value:Record<string,unknown>):{task?:string;hotel?:string;push?:string}=>({
-   hotel:normalizeBillingBookingId(value.hotel),push:String(value.push)==='1'?'1':undefined,
+   hotel:normalizeBillingBookingId(value.hotel),push:normalizeBillingBookingId(value.push)==='1'?'1':undefined,
    task:normalizeBillingBookingId(value.task),
   }),component:dataMode==='api'?LiveHousekeeping:Housekeeping}),
  createRoute({getParentRoute:()=>root,path:'/maintenance',
   validateSearch:(value:Record<string,unknown>):{order?:string;hotel?:string;push?:string}=>({
-   hotel:normalizeBillingBookingId(value.hotel),push:String(value.push)==='1'?'1':undefined,
+   hotel:normalizeBillingBookingId(value.hotel),push:normalizeBillingBookingId(value.push)==='1'?'1':undefined,
    order:normalizeBillingBookingId(value.order),
   }),component:dataMode==='api'?LiveMaintenance:Maintenance}),
  createRoute({getParentRoute:()=>root,path:'/reports',component:Reports}),

@@ -55,3 +55,10 @@ it('rejects ambiguous property links and recognizes incomplete push destinations
  expect(hasScopedBookingLink('/billing','?push=1&booking=9')).toBe(true);
  expect(requestedNotificationHotel('/billing','?push=1&booking=9',hotels)).toBeNull();
 });
+
+it('does not allow encoded or malformed push markers to bypass administrator authorization',()=>{
+ const hotels=[{id:'1',role:'admin'},{id:'2',role:'front_desk'}];
+ expect(requestedNotificationHotel('/billing','?hotel=2&booking=9&push=%221%22',hotels)).toBeNull();
+ expect(requestedNotificationHotel('/billing','?hotel=1&booking=9&push=%221%22',hotels)).toBe('1');
+ expect(requestedNotificationHotel('/billing','?hotel=1&booking=9&push=0',hotels)).toBeNull();
+});

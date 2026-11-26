@@ -10,7 +10,8 @@ export function requestedNotificationHotel(pathname:string,search:string,hotels:
  const hotel=normalizeBillingBookingId(params.get('hotel'));
  const record=params.get(key);
  if(params.getAll('hotel').length!==1||params.getAll(key).length!==1||params.getAll('push').length>1||!hotel||!(key==='date'?validDate(record):key==='room'?!!record&&/^[A-Za-z0-9_-]{1,32}$/.test(record):!!normalizeBillingBookingId(record)))return null;
- const push=pathname==='/reservations'||params.get('push')==='1';
+ if(params.has('push')&&normalizeBillingBookingId(params.get('push'))!=='1')return null;
+ const push=pathname==='/reservations'||params.has('push');
  return hotels.some(h=>h.id===hotel&&(!push||h.role==='admin'))?hotel:null;
 }
 export function hasScopedBookingLink(pathname:string,search:string):boolean{

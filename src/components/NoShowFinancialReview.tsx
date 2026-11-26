@@ -66,12 +66,12 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
  },[openOnLoad]);
  useEffect(()=>{setExpanded(['ledger']);setReason('');setManualFee('');setTaxBasis('');setTaxClassification('');setError('');setNotice('');},[hotelId,bookingId,userId]);
  const data=query.isFetching||query.isError?undefined:query.data;
- const visibleData=query.isError?undefined:query.data;
  const [expanded,setExpanded]=useState<string[]>(['ledger']);
  const [childBusy,setChildBusy]=useState(false);
  const [activeOperation,setActiveOperation]=useState<string|null>(null);
  function operation(key:string,value:boolean){setChildBusy(value);setActiveOperation(value?key:null);}
  const locked=busy||childBusy;
+ const visibleData=query.isError&&!childBusy?undefined:query.data;
  function jump(target:string){
   const section=dialog.current?.querySelector<HTMLElement>('#'+target);
   if(section instanceof HTMLDetailsElement){section.open=true;}
@@ -157,7 +157,7 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
       <div><span>Eligible refund limit</span><strong>{money(eligibility?.financialClearanceValid?eligibility.maximumRefundRequestMinor:null)}</strong></div>
      </div>
      {nextStep&&<div className="no-show-next-step"><div><span>Recommended next step</span><h5>{nextStep.title}</h5><p>{nextStep.detail}</p></div>
-      {nextStep.target?<button type="button" className="btn-inline" onClick={()=>jump(nextStep.target!)}>Go to details</button>:
+      {nextStep.target?<button type="button" className="btn-inline" disabled={locked} onClick={()=>jump(nextStep.target!)}>Go to details</button>:
        <button type="button" className="btn-inline" disabled={locked} onClick={()=>dialog.current?.close()}>Return to guest bill</button>}</div>}
     </section>
     <div id="no-show-review-details">
@@ -211,10 +211,10 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
    {opened&&visibleData&&<div className="no-show-workflow-sections" inert={busy}>
     {([
      ['corrections','no-show-correction-details','Room and fee corrections',<NoShowCorrectionPanel hotelId={hotelId} bookingId={bookingId} userId={userId} onBusyChange={value=>operation('corrections',value)}/>],
-     ['deposits','no-show-deposit-details','Guest deposit accounting',<NoShowDepositPanel hotelId={hotelId} bookingId={bookingId} onBusyChange={setChildBusy}/>],
+     ['deposits','no-show-deposit-details','Guest deposit accounting',<NoShowDepositPanel hotelId={hotelId} bookingId={bookingId} onBusyChange={value=>operation('deposits',value)}/>],
      ...(visibleData.clearance?[
-      ['allocation','no-show-allocation-details','Deposit allocation and settlement',<NoShowAllocationPanel hotelId={hotelId} bookingId={bookingId} onBusyChange={setChildBusy}/>],
-      ['refunds','no-show-refund-details','Refund processing and verification',<NoShowRefundPanel hotelId={hotelId} bookingId={bookingId} userId={userId} onBusyChange={setChildBusy}/>],
+      ['allocation','no-show-allocation-details','Deposit allocation and settlement',<NoShowAllocationPanel hotelId={hotelId} bookingId={bookingId} onBusyChange={value=>operation('allocation',value)}/>],
+      ['refunds','no-show-refund-details','Refund processing and verification',<NoShowRefundPanel hotelId={hotelId} bookingId={bookingId} userId={userId} onBusyChange={value=>operation('refunds',value)}/>],
       ['ledger','no-show-accounting-details','Accounting ledger',<NoShowLedgerPanel hotelId={hotelId} bookingId={bookingId} userId={userId}/>],
      ]:[]),
     ] as [string,string,string,React.ReactNode][]).map(([key,id,label,content])=><details key={key} id={id} tabIndex={-1} className="no-show-workflow-section"

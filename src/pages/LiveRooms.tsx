@@ -1,4 +1,4 @@
-import {useEffect,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 import {Link,useSearch} from '@tanstack/react-router';
 import {BedDouble,Plus,Settings2,ClipboardCheck} from 'lucide-react';
@@ -23,6 +23,8 @@ export function LiveRooms(){
  const role=user?.hotels.find(h=>h.id===hotelId)?.role;
  const admin=role==='admin';
  const canSeeStay=admin||role==='front_desk';
+ const readinessQueue=useRef<HTMLDetailsElement>(null);
+ const openReadinessQueue=()=>{const target=readinessQueue.current;if(target){target.open=true;target.scrollIntoView({block:'start'});target.querySelector('summary')?.focus({preventScroll:true});}};
  const [showCreate,setShowCreate]=useState(false);
  const [editingRoom,setEditingRoom]=useState<LiveRoom|null>(null);
  const [inspectionRoomNumber,setInspectionRoomNumber]=useState<string|null>(null);
@@ -45,6 +47,7 @@ export function LiveRooms(){
   <div className="rr-page-heading rack-page-heading">
    <Heading title="Rooms" description="See every room at a glance. Select a room to inspect its status or manage it."/>
    <div className="rr-heading-actions">
+    {canSeeStay&&<button type="button" className="rr-secondary-action rr-mobile-readiness" onClick={openReadinessQueue}><ClipboardCheck size={16}/> Readiness & arrivals</button>}
     {canSeeStay&&<Link to="/room-calendar" className="rr-secondary-action">
      <BedDouble size={16}/> Booking calendar</Link>}
     {admin&&<button type="button" className="btn-primary" onClick={()=>setShowCreate(true)}>
@@ -54,7 +57,7 @@ export function LiveRooms(){
   {canSeeStay&&hotelId&&<RoomRackDashboard key={hotelId} hotelId={hotelId}
    focusRoomNumber={inspect?undefined:linkedRoomNumber}
    onEditRoom={admin?room=>setEditingRoom(room):undefined}/>}
-  {canSeeStay?<details className="workflow-disclosure rack-readiness-queue" open={undefined}>
+  {canSeeStay?<details ref={readinessQueue} className="workflow-disclosure rack-readiness-queue">
    <summary><ClipboardCheck size={17} aria-hidden="true"/> Readiness & arrivals · prioritized staff actions</summary>
    <p className="desk-muted">Room availability, housekeeping completion and physical inspection are separate checks. The queue shows a snapshot, not guaranteed eligibility to check in.</p>
    <ReadinessDashboardPanel onInspectRoom={setInspectionRoomNumber}/>

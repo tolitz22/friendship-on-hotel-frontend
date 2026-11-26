@@ -14,6 +14,11 @@ const notificationKinds={
  checkout_due:{label:'Checkout due today',icon:LogOut,action:'Review checkout'},
  room_assignment:{label:'Arrival needs a room',icon:BedDouble,action:'Assign room'},
  new_booking:{label:'New booking',icon:CalendarPlus,action:'Open booking'},
+ guest_check_in:{label:'Guest checked in',icon:BedDouble,action:'Open booking'},
+ guest_check_out:{label:'Guest checked out',icon:LogOut,action:'Open booking'},
+ booking_cancelled:{label:'Booking cancelled',icon:X,action:'Open booking'},
+ booking_no_show:{label:'Booking marked no-show',icon:AlertTriangle,action:'Open booking'},
+ stay_extended:{label:'Stay extended',icon:CalendarPlus,action:'Open booking'},
 } as const;
 const responseSchema=z.object({data:z.object({
  hotelId:z.string(),
@@ -34,9 +39,9 @@ export function StaffNotifications({hotelId,userId,canPush=false}:{hotelId:strin
  const dialog=useRef<HTMLDialogElement>(null);
  const bell=useRef<HTMLButtonElement>(null);
  const feed=useQuery({
-  queryKey:['live','front-desk','manifest',hotelId,'notifications',userId],
+  queryKey:['live','front-desk','manifest',hotelId,'notifications',userId,canPush],
   queryFn:async()=>{
-   const {data}=responseSchema.parse(await getJson<unknown>(hotelPath('/front-desk/notifications')));
+   const {data}=responseSchema.parse(await getJson<unknown>(hotelPath('/front-desk/notifications'),canPush?{expanded:1}:{}));
    if(data.hotelId!==hotelId)throw new Error('Notifications belong to another hotel.');
    return data;
   },
@@ -66,7 +71,7 @@ export function StaffNotifications({hotelId,userId,canPush=false}:{hotelId:strin
    {canPush&&<PushDeviceControl hotelId={hotelId} userId={userId}/>}
    {unread>0&&<button type="button" className="btn-inline" onClick={()=>markRead(items.map(item=>item.id))}>Mark all as read</button>}
    <QueryFeedback loading={feed.isPending} error={feed.error} onRetry={()=>void feed.refetch()}
-    empty={feed.isSuccess&&items.length===0} emptyMessage="You’re caught up. New bookings and front desk alerts will appear here."/>
+    empty={feed.isSuccess&&items.length===0} emptyMessage="You’re caught up. New bookings and hotel activity alerts will appear here."/>
    {items.length>0&&<ul className="staff-notifications-list">
     {items.map(item=>{
      const {label,icon:Icon,action}=notificationKinds[item.kind];

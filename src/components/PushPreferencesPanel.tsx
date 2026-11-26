@@ -6,7 +6,7 @@ import {getJson,requestJson} from '../api/http';
 import {registeredDevice} from '../features/notifications/pushDevice';
 import './PushPreferencesPanel.css';
 
-const schema=z.object({enabled:z.boolean(),new_booking:z.boolean(),checkout_due:z.boolean(),checkout_overdue:z.boolean(),room_assignment:z.boolean()});
+const schema=z.object({enabled:z.boolean(),new_booking:z.boolean(),checkout_due:z.boolean(),checkout_overdue:z.boolean(),room_assignment:z.boolean(),guest_check_in:z.boolean().default(true),guest_check_out:z.boolean().default(true),booking_cancelled:z.boolean().default(true),booking_no_show:z.boolean().default(true),stay_extended:z.boolean().default(true)});
 type Preferences=z.infer<typeof schema>;
 const deviceSchema=z.object({id:z.string(),deviceName:z.string(),updatedAt:z.string()});
 const categories=[
@@ -14,6 +14,11 @@ const categories=[
  ['checkout_due','Checkout due today'],
  ['checkout_overdue','Overdue checkouts'],
  ['room_assignment','Arrivals needing a room'],
+ ['guest_check_in','Guest check-ins'],
+ ['guest_check_out','Guest checkouts'],
+ ['booking_cancelled','Booking cancellations'],
+ ['booking_no_show','No-show bookings'],
+ ['stay_extended','Stay extensions'],
 ] as const;
 
 export function PushPreferencesPanel({userId,hotelId,onRemoveCurrent}:{userId:string;hotelId:string;onRemoveCurrent:()=>Promise<void>}){

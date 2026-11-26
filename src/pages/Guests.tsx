@@ -61,10 +61,26 @@ export function Guests(){
  <div className="table-toolbar"><label className="search-box"><Search size={17}/><input value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} aria-label="Search guests" placeholder="Search guest name or email"/></label>
  <button type="button" className="btn-inline" onClick={()=>void query.refetch()}><RotateCcw size={15}/> Refresh</button></div>
  <QueryFeedback loading={query.isPending} error={query.error} empty={query.data?.data.length===0}/>
- {query.data&&query.data.data.length>0&&<div className="table-scroll"><table><thead><tr><th>Guest</th><th>Email</th><th>Phone</th><th>Nationality</th><th>Created</th>{live&&<th>Stay history</th>}{admin&&<th>Actions</th>}</tr></thead><tbody>{query.data.data.map(g=><tr key={g.id}><td><strong>{g.firstName} {g.lastName}</strong></td><td>{g.email??'—'}</td><td>{g.phone??'—'}</td><td>{g.nationality??'—'}</td><td>{dateLabel(g.createdAt.slice(0,10))}</td>{live&&<td><Link className="btn-inline" to="/guests/$guestId/stays" params={{guestId:g.id}}>View stays</Link></td>}{admin&&<td><div className="guest-inline-actions">
+ {query.data&&query.data.data.length>0&&<div className="table-scroll guest-directory-table"><table><thead><tr><th>Guest</th><th>Email</th><th>Phone</th><th>Nationality</th><th>Created</th>{live&&<th>Stay history</th>}{admin&&<th>Actions</th>}</tr></thead><tbody>{query.data.data.map(g=><tr key={g.id}><td><strong>{g.firstName} {g.lastName}</strong></td><td>{g.email??'—'}</td><td>{g.phone??'—'}</td><td>{g.nationality??'—'}</td><td>{dateLabel(g.createdAt.slice(0,10))}</td>{live&&<td><Link className="btn-inline" to="/guests/$guestId/stays" params={{guestId:g.id}}>View stays</Link></td>}{admin&&<td><div className="guest-inline-actions">
  <button type="button" className="guest-edit-button" onClick={()=>openEdit(g)}><Pencil size={14}/> Edit</button>
  {live&&<Link className="inline-task-link" to="/reservations" search={{guest:g.id}}>Create booking</Link>}
  </div></td>}</tr>)}</tbody></table></div>}
+ {query.data&&query.data.data.length>0&&<div className="guest-mobile-cards" aria-label="Mobile guest profiles">
+  {query.data.data.map(g=><article className="guest-mobile-card" key={g.id}>
+   <strong>{g.firstName} {g.lastName}</strong>
+   <dl className="guest-mobile-facts">
+    <div><dt>Email</dt><dd>{g.email??'—'}</dd></div>
+    <div><dt>Phone</dt><dd>{g.phone??'—'}</dd></div>
+    <div><dt>Nationality</dt><dd>{g.nationality??'—'}</dd></div>
+    <div><dt>Created</dt><dd>{dateLabel(g.createdAt.slice(0,10))}</dd></div>
+   </dl>
+   {live&&<div className="guest-mobile-actions">
+    <Link className="btn-inline" to="/guests/$guestId/stays" params={{guestId:g.id}}>View stays</Link>
+    {admin&&<><button type="button" className="btn-inline" onClick={()=>openEdit(g)}><Pencil size={14}/> Edit</button>
+     <Link className="btn-primary" to="/reservations" search={{guest:g.id}}>Create booking</Link></>}
+   </div>}
+  </article>)}
+ </div>}
  {query.data&&<div className="guest-pagination"><span>Page {query.data.meta.page} of {Math.max(1,totalPages)}</span><div><button className="btn-inline" disabled={page<=1} onClick={()=>setPage(p=>Math.max(1,p-1))}>Previous</button><button className="btn-inline" disabled={page>=totalPages} onClick={()=>setPage(p=>p+1)}>Next</button></div></div>}
  </Panel>
  {live&&!admin&&<div className="guest-info">Guest creation and editing are restricted to hotel administrators in this milestone.</div>}

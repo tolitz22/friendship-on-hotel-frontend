@@ -13,7 +13,7 @@ const schema=z.object({data:z.object({
 })});
 const money=(minor:number)=>new Intl.NumberFormat('en-PH',{style:'currency',currency:'PHP'}).format(minor/100);
 type Action={kind:'approval'|'record'|'verify';id:string};
-export function NoShowRefundPanel({hotelId,bookingId,userId}:{hotelId:string;bookingId:string;userId:string}){
+export function NoShowRefundPanel({hotelId,bookingId,userId,onBusyChange}:{hotelId:string;bookingId:string;userId:string;onBusyChange?:(busy:boolean)=>void}){
  const client=useQueryClient();
  const [paymentId,setPaymentId]=useState('');
  const [amount,setAmount]=useState('');
@@ -42,7 +42,7 @@ export function NoShowRefundPanel({hotelId,bookingId,userId}:{hotelId:string;boo
  const openAction=(next:Action)=>{setAction(next);setNote('');setConfirmed(false);setError('');};
  async function write(path:string,body:Record<string,unknown>,success:string,onSuccess?:()=>void){
   if(lock.current||readSession().hotelId!==hotelId||!data?.workflowEnabled)return;
-  lock.current=true;setBusy(true);setError('');setNotice('');
+  lock.current=true;setBusy(true);onBusyChange?.(true);setError('');setNotice('');
   try{
    await requestJson(hotelPath(base+path),{method:'POST',body});
    setNotice(success);setAction(null);setNote('');onSuccess?.();
@@ -50,7 +50,7 @@ export function NoShowRefundPanel({hotelId,bookingId,userId}:{hotelId:string;boo
   finally{
    setConfirmed(false);
    await Promise.allSettled([query.refetch(),...['no-show-financial-review','no-show-ledger-reconciliation','no-show-deposits','no-show-allocations','settlement-statement','folio-ledger','billing-folios','financial-business-day'].map(key=>client.invalidateQueries({queryKey:['live',key,hotelId]}))]);
-   lock.current=false;setBusy(false);
+   lock.current=false;setBusy(false);onBusyChange?.(false);
   }
  }
  function requestRefund(){

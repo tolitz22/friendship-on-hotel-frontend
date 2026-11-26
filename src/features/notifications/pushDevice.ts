@@ -4,7 +4,7 @@ import {z} from 'zod';
 export const pushKey=import.meta.env.VITE_PUSH_PUBLIC_KEY?.trim()??'';
 export const pushSupported=()=>typeof window!=='undefined'&&window.isSecureContext&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
 const prefix='pms.push-device:v1:';
-const recordSchema=z.object({userId:z.string(),hotelId:z.string(),id:z.string()});
+const recordSchema=z.object({userId:z.string(),hotelId:z.string(),id:z.string(),endpointDigest:z.string().optional()});
 type DeviceRecord=z.infer<typeof recordSchema>;
 const path=(hotelId:string)=>'/hotels/'+encodeURIComponent(hotelId)+'/push-subscriptions';
 function records():DeviceRecord[]{
@@ -19,11 +19,43 @@ export function decodePushKey(key:string):Uint8Array<ArrayBuffer>{
  if(bytes.length!==65||bytes[0]!==4)throw new Error('Invalid push public key.');
  return bytes;
 }
+export type DeviceHealth='not-registered'|'registered'|'repair-required'|'permission-blocked'|'unsupported'|'configuration-pending';
+async function digest(endpoint:string){
+ const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(endpoint));
+ return Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');
+}
+export function keyMatches(subscription:PushSubscription,key:Uint8Array<ArrayBuffer>){
+ const existing=subscription.options.applicationServerKey;
+ if(!existing)return false;
+ const bytes=new Uint8Array(existing);
+ return bytes.length===key.length&&bytes.every((value,i)=>value===key[i]);
+}
+export async function inspectPushDevice(userId:string,hotelId:string):Promise<DeviceHealth>{
+ if(!pushSupported())return 'unsupported';
+ if(Notification.permission==='denied')return 'permission-blocked';
+ if(!pushKey)return 'configuration-pending';
+ const row=registeredDevice(userId,hotelId);
+ if(!row)return 'not-registered';
+ if(Notification.permission!=='granted')return 'repair-required';
+ const reg=await navigator.serviceWorker.getRegistration('/');
+ if(!reg||!isPushWorker(reg))return 'repair-required';
+ const subscription=await reg.pushManager.getSubscription();
+ if(!subscription||!keyMatches(subscription,decodePushKey(pushKey))||
+    (subscription.expirationTime!==null&&subscription.expirationTime<=Date.now())||
+    row.endpointDigest!==await digest(subscription.endpoint))return 'repair-required';
+ const devices=z.object({data:z.array(z.object({id:z.string()}))}).parse(await requestJson<unknown>(path(hotelId)));
+ return devices.data.some(device=>device.id===row.id)?'registered':'repair-required';
+}
 async function registration(){
  const existing=await navigator.serviceWorker.getRegistration('/');
- if(existing&&existing.active&&!existing.active.scriptURL.endsWith('/pms-push-sw.js'))throw new Error('An existing app worker needs push integration.');
- await navigator.serviceWorker.register('/pms-push-sw.js',{scope:'/'});
- return navigator.serviceWorker.ready;
+ if(existing&&(existing.active||existing.waiting||existing.installing)&&!isPushWorker(existing))throw new Error('An existing app worker needs push integration.');
+ await navigator.serviceWorker.register('/pms-push-sw.js',{scope:'/',updateViaCache:'none'});
+ let timer:ReturnType<typeof setTimeout>|undefined;
+ try{
+  const ready=await Promise.race([navigator.serviceWorker.ready,new Promise<never>((_,reject)=>{timer=setTimeout(()=>reject(new Error('Push worker is not ready. Reload the PMS and try again.')),15000);})]);
+  if(!isPushWorker(ready))throw new Error('An existing app worker needs push integration.');
+  return ready;
+ }finally{if(timer!==undefined)clearTimeout(timer);}
 }
 export async function enablePush(userId:string,hotelId:string){
  if(!pushSupported()||!pushKey)throw new Error('Push notifications are not configured on this device.');
@@ -33,13 +65,21 @@ export async function enablePush(userId:string,hotelId:string){
  if(permission!=='granted')throw new Error('Notification permission was not granted.');
  const reg=await registration();
  let sub=await reg.pushManager.getSubscription();
+ if(sub&&(!keyMatches(sub,key)||(sub.expirationTime!==null&&sub.expirationTime<=Date.now()))){
+  await sub.unsubscribe();
+  if(await reg.pushManager.getSubscription())throw new Error('Unable to replace the old subscription. Reset notification permissions and retry.');
+  sub=null;
+ }
  const created=!sub;
  if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:key});
  try{
+  const old=registeredDevice(userId,hotelId);
+  const endpointDigest=await digest(sub.endpoint);
   const json=sub.toJSON();
   const data=z.object({data:z.object({id:z.string()})}).parse(await requestJson<unknown>(path(hotelId),{method:'POST',body:{endpoint:sub.endpoint,keys:json.keys,deviceName:(navigator.platform||'Browser').slice(0,100)}})).data;
-  try{save([...records().filter(r=>r.userId!==userId||r.hotelId!==hotelId),{userId,hotelId,id:data.id}]);}
+  try{save([...records().filter(r=>r.userId!==userId||r.hotelId!==hotelId),{userId,hotelId,id:data.id,endpointDigest}]);}
   catch(e){await requestJson(path(hotelId)+'/'+encodeURIComponent(data.id),{method:'DELETE'}).catch(()=>{});throw e;}
+  if(old&&old.id!==data.id)await requestJson(path(hotelId)+'/'+encodeURIComponent(old.id),{method:'DELETE'}).catch(()=>{});
  }catch(e){if(created)await sub.unsubscribe().catch(()=>{});throw e;}
 }
 export async function disablePush(userId:string,hotelId:string){

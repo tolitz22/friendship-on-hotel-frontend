@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {requestedNotificationHotel} from './pushNavigation';
+import {requestedNotificationHotel,hasScopedBookingLink} from './pushNavigation';
 describe('notification hotel routing',()=>{
  const hotels=[{id:'1',role:'admin'},{id:'2',role:'front_desk'}];
  it('selects only authorized admin properties',()=>{
@@ -46,4 +46,12 @@ it('accepts router-encoded decimal IDs without weakening hotel authorization',()
  expect(requestedNotificationHotel('/messages','?hotel=%222%22&conversation=%229%22&push=1',hotels)).toBeNull();
  expect(requestedNotificationHotel('/expenses','?hotel=%223%22&expense=%227%22',hotels)).toBeNull();
  expect(requestedNotificationHotel('/expenses','?hotel=1&expense=%22invalid%22',hotels)).toBeNull();
+});
+
+it('rejects ambiguous property links and recognizes incomplete push destinations',()=>{
+ const hotels=[{id:'1',role:'admin'}];
+ expect(requestedNotificationHotel('/billing','?hotel=1&hotel=2&booking=9&push=1',hotels)).toBeNull();
+ expect(requestedNotificationHotel('/billing','?hotel=1&booking=9&booking=10&push=1',hotels)).toBeNull();
+ expect(hasScopedBookingLink('/billing','?push=1&booking=9')).toBe(true);
+ expect(requestedNotificationHotel('/billing','?push=1&booking=9',hotels)).toBeNull();
 });

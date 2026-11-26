@@ -51,7 +51,8 @@ function Home(){const {user,hotelId}=useHotelAuth();
 }
 const index=createRoute({getParentRoute:()=>root,path:'/',component:dataMode==='api'?Home:Dashboard});
 const reservations=createRoute({getParentRoute:()=>root,path:'/reservations',
- validateSearch:(value:Record<string,unknown>):{booking?:string;mode?:'new';guest?:string;room?:string;roomNumber?:string;checkIn?:string;checkOut?:string;deskAction?:'assign'|'check-in'|'check-out'|'extend';group?:string;hotel?:string}=>({
+ validateSearch:(value:Record<string,unknown>):{booking?:string;mode?:'new';guest?:string;room?:string;roomNumber?:string;checkIn?:string;checkOut?:string;deskAction?:'assign'|'check-in'|'check-out'|'extend';group?:string;hotel?:string;push?:string}=>({
+  push:String(value.push)==='1'?'1':undefined,
   booking:(()=>{const raw=typeof value.booking==='string'?value.booking.trim():String(typeof value.booking==='number'?value.booking:'');
    const normalized=raw.replace(/^\"([1-9][0-9]*)\"$/,'$1');
    return /^[1-9][0-9]*$/.test(normalized)?normalized:undefined;
@@ -62,7 +63,7 @@ const reservations=createRoute({getParentRoute:()=>root,path:'/reservations',
   roomNumber:typeof value.roomNumber==='string'&&value.roomNumber.length<=32?value.roomNumber:undefined,
   deskAction:value.deskAction==='assign'||value.deskAction==='check-in'||value.deskAction==='check-out'||value.deskAction==='extend'?value.deskAction:undefined,
   group:typeof value.group==='string'&&/^[1-9][0-9]*$/.test(value.group)?value.group:undefined,
-  hotel:typeof value.hotel==='string'&&/^[1-9][0-9]*$/.test(value.hotel)?value.hotel:undefined,
+  hotel:normalizeBillingBookingId(value.hotel),
   checkIn:typeof value.checkIn==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.checkIn)&&!Number.isNaN(Date.parse(value.checkIn+'T00:00:00Z'))&&new Date(value.checkIn+'T00:00:00Z').toISOString().slice(0,10)===value.checkIn?value.checkIn:undefined,
   checkOut:typeof value.checkOut==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.checkOut)&&!Number.isNaN(Date.parse(value.checkOut+'T00:00:00Z'))&&new Date(value.checkOut+'T00:00:00Z').toISOString().slice(0,10)===value.checkOut?value.checkOut:undefined,
  }),component:Reservations});
@@ -70,19 +71,20 @@ const groupReservations=createRoute({getParentRoute:()=>root,path:'/group-reserv
  validateSearch:(value:Record<string,unknown>):{group?:string;tab?:'rooms'|'billing'|'activity';hotel?:string}=>({
   group:typeof value.group==='string'&&/^[1-9][0-9]*$/.test(value.group)?value.group:undefined,
   tab:parseGroupDetailTab(value.tab),
-  hotel:typeof value.hotel==='string'&&/^[1-9][0-9]*$/.test(value.hotel)?value.hotel:undefined,
+  hotel:normalizeBillingBookingId(value.hotel),
  }),component:GroupReservations});
 const rooms=createRoute({getParentRoute:()=>root,path:'/rooms',
  validateSearch:(value:Record<string,unknown>):{room?:string;inspect?:boolean;hotel?:string;push?:string}=>({
   hotel:normalizeBillingBookingId(value.hotel),push:String(value.push)==='1'?'1':undefined,
   inspect:value.inspect===true?true:undefined,
-  room:typeof value.room==='string'&&value.room.trim().length<=50
-   ?value.room.trim()||undefined:undefined,
+  room:(typeof value.room==='string'||typeof value.room==='number')&&String(value.room).trim().length<=50
+   ?String(value.room).trim()||undefined:undefined,
  }),
  component:dataMode==='api'?LiveRooms:Rooms});
 const roomCalendar=createRoute({getParentRoute:()=>root,path:'/room-calendar',
- validateSearch:(value:Record<string,unknown>):{date?:string;end?:string;group?:string;hotel?:string;room?:string}=>({
-  room:typeof value.room==='string'&&value.room.length<=32&&/^[A-Za-z0-9_-]+$/.test(value.room)?value.room:undefined,
+ validateSearch:(value:Record<string,unknown>):{date?:string;end?:string;group?:string;hotel?:string;room?:string;push?:string}=>({
+  push:String(value.push)==='1'?'1':undefined,
+  room:(typeof value.room==='string'||typeof value.room==='number')&&/^[A-Za-z0-9_-]{1,32}$/.test(String(value.room))?String(value.room):undefined,
   date:typeof value.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.date)
     &&!Number.isNaN(Date.parse(value.date+'T00:00:00Z'))
     &&new Date(value.date+'T00:00:00Z').toISOString().slice(0,10)===value.date
@@ -92,13 +94,14 @@ const roomCalendar=createRoute({getParentRoute:()=>root,path:'/room-calendar',
     &&!Number.isNaN(Date.parse(value.end+'T00:00:00Z'))
     &&new Date(value.end+'T00:00:00Z').toISOString().slice(0,10)===value.end
      ?value.end:undefined,
-  hotel:typeof value.hotel==='string'&&/^[1-9][0-9]*$/.test(value.hotel)?value.hotel:undefined,
+  hotel:normalizeBillingBookingId(value.hotel),
  }),component:LiveRoomCalendar});
 const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/messages',validateSearch:(value:Record<string,unknown>):{conversation?:string;hotel?:string;push?:string}=>({conversation:normalizeBillingBookingId(value.conversation),hotel:normalizeBillingBookingId(value.hotel),push:String(value.push)==='1'?'1':undefined}),component:Messages}),
  createRoute({getParentRoute:()=>root,path:'/my-expense-claims',component:MyExpenseClaims}),
  createRoute({getParentRoute:()=>root,path:'/expenses',component:Expenses,
- validateSearch:(value:Record<string,unknown>):{expense?:string;date?:string;hotel?:string;tab?:ExpenseView}=>({
+ validateSearch:(value:Record<string,unknown>):{expense?:string;date?:string;hotel?:string;tab?:ExpenseView;push?:string}=>({
+ push:String(value.push)==='1'?'1':undefined,
  tab:value.tab==='bills'||value.tab==='suppliers'||value.tab==='reimbursements'?value.tab:undefined,
  expense:/^[1-9]\d*$/.test(String(value.expense??''))?String(value.expense):undefined,
  hotel:/^[1-9]\d*$/.test(String(value.hotel??''))?String(value.hotel):undefined,
@@ -117,10 +120,11 @@ const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/operational-exceptions',component:OperationalExceptions}),
  createRoute({getParentRoute:()=>root,path:'/manager-approvals',validateSearch:(value:Record<string,unknown>):{approval?:string;hotel?:string;push?:string}=>({approval:normalizeBillingBookingId(value.approval),hotel:normalizeBillingBookingId(value.hotel),push:String(value.push)==='1'?'1':undefined}),component:ManagerApprovals}),
  createRoute({getParentRoute:()=>root,path:'/cashier-shifts',
-  validateSearch:(value:Record<string,unknown>):{booking?:string;hotel?:string;shift?:string}=>({
+  validateSearch:(value:Record<string,unknown>):{booking?:string;hotel?:string;shift?:string;push?:string}=>({
+   push:String(value.push)==='1'?'1':undefined,
    booking:normalizeBillingBookingId(value.booking),
-   hotel:typeof value.hotel==='string'&&/^[1-9][0-9]*$/.test(value.hotel)?value.hotel:undefined,
-   shift:typeof value.shift==='string'&&/^[1-9][0-9]*$/.test(value.shift)?value.shift:undefined,
+   hotel:normalizeBillingBookingId(value.hotel),
+   shift:normalizeBillingBookingId(value.shift),
   }),component:CashierShifts}),
  createRoute({getParentRoute:()=>root,path:'/occupancy-verification',
   validateSearch:(value:Record<string,unknown>):{room?:string;date?:string}=>({
@@ -138,7 +142,8 @@ const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/guests',component:Guests}),
  createRoute({getParentRoute:()=>root,path:'/guests/$guestId/stays',component:GuestStays}),
  createRoute({getParentRoute:()=>root,path:'/billing',
-  validateSearch:(value:Record<string,unknown>):{booking?:string;payment?:string;action?:'signoff'|'no-show';group?:string;hotel?:string;checkIn?:string;checkOut?:string}=>({
+  validateSearch:(value:Record<string,unknown>):{booking?:string;payment?:string;action?:'signoff'|'no-show';group?:string;hotel?:string;checkIn?:string;checkOut?:string;push?:string}=>({
+   push:String(value.push)==='1'?'1':undefined,
    booking:normalizeBillingBookingId(value.booking),
    payment:normalizeBillingBookingId(value.payment),
    action:value.action==='signoff'||value.action==='no-show'?value.action:undefined,
@@ -150,7 +155,7 @@ const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/housekeeping',
   validateSearch:(value:Record<string,unknown>):{task?:string;hotel?:string;push?:string}=>({
    hotel:normalizeBillingBookingId(value.hotel),push:String(value.push)==='1'?'1':undefined,
-   task:typeof value.task==='string'&&/^[1-9][0-9]*$/.test(value.task)?value.task:undefined,
+   task:normalizeBillingBookingId(value.task),
   }),component:dataMode==='api'?LiveHousekeeping:Housekeeping}),
  createRoute({getParentRoute:()=>root,path:'/maintenance',
   validateSearch:(value:Record<string,unknown>):{order?:string;hotel?:string;push?:string}=>({

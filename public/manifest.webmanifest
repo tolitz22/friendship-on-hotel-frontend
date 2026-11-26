@@ -1,0 +1,18 @@
+{
+  "id": "/",
+  "name": "Friendship On Hotel PMS",
+  "short_name": "Hotel PMS",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f8fa",
+  "theme_color": "#222326",
+  "icons": [
+    {
+      "src": "/pms-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

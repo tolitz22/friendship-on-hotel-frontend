@@ -1,5 +1,5 @@
 import {afterEach,describe,expect,it,vi} from 'vitest';
-import {decodePushKey,resetPushForDifferentAccount} from './pushDevice';
+import {decodePushKey,keyMatches,resetPushForDifferentAccount} from './pushDevice';
 describe('push public key',()=>{
  it('decodes an uncompressed P-256 key',()=>{
   const bytes=new Uint8Array(65);bytes[0]=4;
@@ -49,4 +49,12 @@ describe('shared browser push ownership',()=>{
   await expect(resetPushForDifferentAccount('2')).rejects.toThrow('Unable to remove');
   expect(write).not.toHaveBeenCalled();
  });
+});
+
+it('detects a changed VAPID key instead of reusing an incompatible subscription',()=>{
+ const key=new Uint8Array([4,1,2]);
+ const sub={options:{applicationServerKey:new Uint8Array([4,1,2]).buffer}} as PushSubscription;
+ expect(keyMatches(sub,key)).toBe(true);
+ expect(keyMatches(sub,new Uint8Array([4,1,3]))).toBe(false);
+ expect(keyMatches({options:{applicationServerKey:null}} as PushSubscription,key)).toBe(false);
 });

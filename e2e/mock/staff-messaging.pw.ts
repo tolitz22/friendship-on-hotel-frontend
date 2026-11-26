@@ -156,8 +156,8 @@ test('requires explicit acknowledgement and isolates drafts on property switch',
  await expect(history.getByText('Acknowledged',{exact:true})).toBeVisible();
  expect(requests.some(p=>p.endsWith('/announcements/1/acknowledge'))).toBe(true);
  await page.getByRole('textbox',{name:'Write a message'}).fill('Private draft');
- // The property selector belongs to AppShell; use its accessible label.
- const property=page.getByLabel('Property',{exact:true});
+ // The AppShell property selector has the accessible name Selected hotel.
+ const property=page.getByRole('combobox',{name:'Selected hotel',exact:true});
  if(!await property.isVisible()){
   const menu=page.getByRole('button',{name:/open navigation|menu/i}).first();
   if(await menu.isVisible())await menu.click();

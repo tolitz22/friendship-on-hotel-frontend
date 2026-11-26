@@ -135,7 +135,7 @@ function Inbox({hotel,user,linkedConversation}:{hotel:string;user:string;linkedC
  }
  return <section className="panel staff-messenger">
   <div className="messenger-heading"><div><h2>Staff messages</h2><p>Private conversations and hotel channels</p></div><button className="btn-primary" disabled={busy} onClick={()=>{open(null);setCompose(true);}}><Plus size={16}/> New message</button></div>
-  {error&&<div className="messenger-error" role="alert">{error}<button type="button" onClick={()=>setError('')} aria-label="Dismiss error">×</button></div>}
+  {error&&<div className="messenger-error" role="alert"><span>{error}</span><button type="button" onClick={()=>setError('')} aria-label="Dismiss error">×</button></div>}
   <div className="messenger-layout">
    <aside className={(selected||compose?'hidden md:block':'')+' messenger-inbox min-w-0'}>
     <div className="messenger-search"><Search size={17} aria-hidden="true"/><input aria-label="Search conversations" placeholder="Search conversations" value={filter} onChange={e=>setFilter(e.target.value)} className="w-full min-w-0"/></div>

@@ -38,3 +38,12 @@ it('validates financial closing dates and property access',()=>{
  expect(requestedNotificationHotel('/night-audit','?hotel=2&date=2026-11-26&push=1',hotels)).toBeNull();
  expect(requestedNotificationHotel('/night-audit','?hotel=1&date=2026-02-30&push=1',hotels)).toBeNull();
 });
+
+it('accepts router-encoded decimal IDs without weakening hotel authorization',()=>{
+ const hotels=[{id:'1',role:'admin'},{id:'2',role:'front_desk'}];
+ expect(requestedNotificationHotel('/expenses','?hotel=%221%22&expense=%227%22',hotels)).toBe('1');
+ expect(requestedNotificationHotel('/cashier-shifts','?hotel=%221%22&shift=%222%22',hotels)).toBe('1');
+ expect(requestedNotificationHotel('/messages','?hotel=%222%22&conversation=%229%22&push=1',hotels)).toBeNull();
+ expect(requestedNotificationHotel('/expenses','?hotel=%223%22&expense=%227%22',hotels)).toBeNull();
+ expect(requestedNotificationHotel('/expenses','?hotel=1&expense=%22invalid%22',hotels)).toBeNull();
+});

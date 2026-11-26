@@ -65,7 +65,12 @@ test('Daily Closing starts on the financial date and links to actionable blocker
  await expect(date).toHaveValue(businessDate);
  await expect(closePanel.getByRole('link',{name:'Open cashier shift #2'})).toBeVisible();
  const integrity=closePanel.getByRole('region',{name:'No-show financial integrity'});
- await expect(integrity.getByRole('link',{name:'Open guest account #102'})).toHaveAttribute('href',/booking=102/);
+ const bookingLink=integrity.getByRole('link',{name:'Open guest account #102'});
+ await expect(bookingLink).toBeVisible();
+ const bookingUrl=new URL((await bookingLink.getAttribute('href'))!,page.url());
+ expect(bookingUrl.pathname).toBe('/billing');
+ expect(bookingUrl.searchParams.get('booking')?.replace(/^"|"$/g,'')).toBe('102');
+ expect(bookingUrl.searchParams.get('action')).toBe('no-show');
  await expect(integrity.getByText('Duplicate accounting journal',{exact:true})).toBeVisible();
  await expect(integrity.getByText(/Related journal #201/)).toBeVisible();
  await expect(integrity.getByText('Property-wide issue; no verified booking link is available.')).toBeVisible();

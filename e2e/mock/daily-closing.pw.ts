@@ -27,7 +27,11 @@ test('Daily Closing starts on the financial date and links to actionable blocker
    businessDate:closed?'2026-11-25':businessDate,nextBusinessDate:closed?hotelDate:'2026-11-25',
    status:'open',version:closed?2:1,journalCount:closed?0:2,
    invalidJournalCount:0,nightAuditReview:null,openShiftIds:ready?[]:['2'],
-   blockers:ready?[]:['An open cashier shift must be counted.'],canClose:ready&&!closed,readinessIsAdvisory:true,
+   blockers:ready?[]:['An open cashier shift must be counted.','2 no-show financial integrity issue(s) must be resolved before closing.'],canClose:ready&&!closed,readinessIsAdvisory:true,
+   noShowIntegrity:{scope:'current_no_show_carry_forward',businessDate:closed?'2026-11-25':businessDate,
+    scannedBookingCount:2,scannedJournalCount:4,integrityValid:ready,readOnly:true,
+    issues:ready?[]:[{reason:'ledger_not_reconciled',bookingId:'102',details:[{reason:'missing_journal',kind:'refund',reference:'refund-evidence-42'}]},
+     {reason:'duplicate_journal',journalId:'208',firstJournalId:'201',sourceReference:'folio-payment-42'}]},
   }}});
   if(url.pathname.endsWith('/night-audit/preview'))return route.fulfill({json:{data:{
    hotelId:'1',businessDate:url.searchParams.get('date'),hotelDate,currency:'PHP',roomCount:0,
@@ -58,8 +62,15 @@ test('Daily Closing starts on the financial date and links to actionable blocker
  await closePanel.getByRole('button',{name:'Review current business date'}).click();
  await expect(date).toHaveValue(businessDate);
  await expect(closePanel.getByRole('link',{name:'Open cashier shift #2'})).toBeVisible();
+ const integrity=closePanel.getByRole('region',{name:'No-show financial integrity'});
+ await expect(integrity.getByRole('link',{name:'Open guest account #102'})).toHaveAttribute('href',/booking=102/);
+ await expect(integrity.getByText('Duplicate accounting journal',{exact:true})).toBeVisible();
+ await expect(integrity.getByText(/Related journal #201/)).toBeVisible();
+ await expect(integrity.getByText('Property-wide issue; no verified booking link is available.')).toBeVisible();
+ await expect(closePanel.getByRole('button',{name:'Close business day',exact:true})).toHaveCount(0);
  ready=true;
  await closePanel.getByRole('button',{name:'Refresh readiness'}).click();
+ await expect(integrity.getByText(/No discrepancies found/)).toBeVisible();
  await closePanel.getByLabel('Type 2026-11-24 to confirm the exact date').fill(businessDate);
  await closePanel.getByRole('checkbox',{name:/I verified the manager review/}).check();
  await closePanel.getByRole('button',{name:'Close business day',exact:true}).click();

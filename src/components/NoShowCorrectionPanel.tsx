@@ -16,7 +16,7 @@ type Action={kind:Kind;mode:'propose'|'approve'|'post';id?:string};
 const money=(n:number|null|undefined)=>n==null?'—':new Intl.NumberFormat('en-PH',{style:'currency',currency:'PHP'}).format(n/100);
 const readable=(s:string)=>s.replaceAll('_',' ');
 const taxOptions=[['vat_standard','VAT-inclusive (12%)'],['vat_zero','Zero-rated VAT'],['vat_exempt','VAT-exempt'],['non_vat','Outside VAT']];
-export function NoShowCorrectionPanel({hotelId,bookingId,userId}:{hotelId:string;bookingId:string;userId:string}){
+export function NoShowCorrectionPanel({hotelId,bookingId,userId,onBusyChange}:{hotelId:string;bookingId:string;userId:string;onBusyChange?:(busy:boolean)=>void}){
  const client=useQueryClient();
  const [replacement,setReplacement]=useState('0.00');
  const [previewMinor,setPreviewMinor]=useState(0);
@@ -53,7 +53,7 @@ export function NoShowCorrectionPanel({hotelId,bookingId,userId}:{hotelId:string
   if(!allowed||!action||lock.current||readSession().hotelId!==hotelId)return;
   const url=path+'/'+action.kind+(action.mode==='propose'?'':'/'+action.id+'/'+action.mode);
   const body=action.mode==='post'?{acknowledged:true}:action.mode==='propose'?{reason:reason.trim(),...(action.kind==='fee'?{replacementMinor:previewMinor}:{})}:{reason:reason.trim(),...(action.kind==='fee'?{taxClassification:tax,taxBasis:basis.trim()}:{})};
-  lock.current=true;setBusy(true);setError('');setNotice('');
+  lock.current=true;setBusy(true);onBusyChange?.(true);setError('');setNotice('');
   try{
    await requestJson(hotelPath(url),{method:'POST',body});
    setNotice(action.mode==='post'?'Correction posted. No refund was issued.':action.mode==='approve'?'Correction approved. No journals posted yet.':'Correction proposed. Independent approval required.');
@@ -62,7 +62,7 @@ export function NoShowCorrectionPanel({hotelId,bookingId,userId}:{hotelId:string
   finally{
    setConfirmed(false);
    await Promise.allSettled([query.refetch(),...['no-show-corrections','no-show-financial-review','no-show-ledger-reconciliation','no-show-deposits','no-show-allocations','no-show-refunds','settlement-statement','folio-ledger','billing-folios','financial-business-day'].map(key=>client.invalidateQueries({queryKey:['live',key,hotelId]}))]);
-   lock.current=false;setBusy(false);
+   lock.current=false;setBusy(false);onBusyChange?.(false);
   }
  }
  return <section className="no-show-overview" aria-label="Room revenue and fee corrections">

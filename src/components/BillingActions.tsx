@@ -103,6 +103,8 @@ export function BillingActions({bookingId,signed,mode='full',targetPayment}:{
   await Promise.all([
    client.invalidateQueries({queryKey:['live','folio-ledger',hotelId,bookingId]}),
    client.invalidateQueries({queryKey:['live','settlement-statement',hotelId,bookingId]}),
+   client.invalidateQueries({queryKey:['live','no-show-financial-review',hotelId,bookingId]}),
+   client.invalidateQueries({queryKey:['live','no-show-ledger-reconciliation',hotelId,bookingId]}),
    client.invalidateQueries({queryKey:['live','payment-safety',hotelId,bookingId]}),
    client.invalidateQueries({queryKey:['live','billing-folios',hotelId]}),
   ]);

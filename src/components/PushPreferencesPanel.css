@@ -1,0 +1,10 @@
+.push-preferences{border-top:1px solid currentColor;padding-top:10px;margin-top:10px}
+.push-settings-content{display:grid;gap:10px;padding:10px 0}
+.push-settings-content h3,.push-settings-content p{margin:0}
+.push-settings-content fieldset{border:0;padding:0;margin:0;min-width:0}
+.push-settings-content legend{font-size:.8rem;opacity:.8;margin-bottom:4px}
+.push-setting,.push-device-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0}
+.push-setting input{width:18px;height:18px;flex-shrink:0}
+.push-setting-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.push-device-row{border-top:1px solid color-mix(in srgb,currentColor 15%,transparent)}
+.push-device-date{display:block;opacity:.75}

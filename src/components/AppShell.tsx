@@ -77,6 +77,7 @@ export function AppShell(){
  const restoreMenuFocus=useRef(false);
  const [showAdvanced,setShowAdvanced]=useState(false);
  const [showMoreOperations,setShowMoreOperations]=useState(false);
+ const [notificationPromptHost,setNotificationPromptHost]=useState<HTMLDivElement|null>(null);
  const pathname=useRouterState({select:s=>s.location.pathname});
  const search=useRouterState({select:s=>s.location.searchStr});
  const current=pathname.startsWith('/guests/')?'Customer stays':pathname.startsWith('/expenses/')?'Expense voucher':all.find(item=>item.to===pathname)?.label??'Overview';
@@ -227,7 +228,7 @@ export function AppShell(){
       {theme==='light'?<Moon size={19}/>:<Sun size={19}/>}
      </button>
      {dataMode==='api'&&hotelId&&user&&(role==='admin'||role==='front_desk')&&
-      <StaffNotifications key={user.id+':'+hotelId} userId={user.id} hotelId={hotelId} canPush={admin}/>}
+      <StaffNotifications key={user.id+':'+hotelId} userId={user.id} hotelId={hotelId} canPush={admin} promptHost={notificationPromptHost}/>}
      {dataMode==='api'
       ?<button className="icon-btn topbar-action-signout" type="button" aria-label="Sign out" title="Sign out" disabled={pending} onClick={()=>void signOut()}><LogOut size={18}/></button>
       :<div className="topbar-avatar" aria-label="Demo user">FO</div>}
@@ -260,6 +261,7 @@ export function AppShell(){
     </>}
    </div>}
    <div className="page-content">
+    {admin&&<div ref={setNotificationPromptHost}/>}
     {dataMode==='api'&&!canViewWorkspacePath(role,pathname,effectivePermissions)
      ?<section className="panel" role="alert" aria-label="Page access denied">
        <h2>Page not available for your role</h2>

@@ -40,6 +40,6 @@ export default defineConfig({
   url:'http://127.0.0.1:5175/',
   reuseExistingServer:false,
   timeout:60_000,
-  env:{VITE_DATA_SOURCE:'api',VITE_AUTH_MODE:'bearer',VITE_API_URL:'http://127.0.0.1:5175/api/v1',VITE_STAFF_REALTIME_KEY:'qa-key',VITE_STAFF_REALTIME_WS_URL:'wss://realtime.example.test'},
+  env:{VITE_DATA_SOURCE:'api',VITE_AUTH_MODE:'bearer',VITE_API_URL:'http://127.0.0.1:5175/api/v1',VITE_STAFF_REALTIME_KEY:'qa-key',VITE_STAFF_REALTIME_WS_URL:'wss://realtime.example.test',VITE_PUSH_PUBLIC_KEY:'qa-prompt-key'},
  }],
 });

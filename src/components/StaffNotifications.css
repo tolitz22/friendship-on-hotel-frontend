@@ -37,7 +37,7 @@
 @media(max-width:600px){.staff-notifications-dialog{inset:8px 8px auto auto;width:calc(100% - 16px);max-height:calc(100dvh - 16px);padding:14px}.notification-header-actions .icon-btn{width:44px;height:44px}.notification-filters button,.notification-tools button,.notification-mark,.notification-back{min-height:44px}.notification-filters button{font-size:11px}.notification-tools select{max-width:175px}.notification-row a{min-height:72px}}
 
 /* Non-modal opt-in: never blocks an administrator from hotel operations. */
-.push-permission-prompt{position:fixed;inset:76px 20px auto auto;z-index:70;width:min(370px,calc(100vw - 32px));max-height:calc(100dvh - 92px);overflow:auto;box-sizing:border-box;padding:18px;border:1px solid var(--border);border-radius:14px;background:var(--surface);color:var(--text);box-shadow:0 12px 36px #0003;text-align:left;white-space:normal}
+.push-permission-prompt{margin:0 0 18px;padding:14px 18px;border:1px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text);text-align:left;white-space:normal}
 .push-permission-prompt header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .push-prompt-icon{display:grid;place-items:center;width:44px;height:44px;border:1px solid var(--border);border-radius:12px;background:var(--canvas);color:var(--accent)}
 .push-permission-prompt h2{font-size:17px;line-height:1.3;margin:0 0 8px;font-weight:700;color:var(--text)}
@@ -47,4 +47,4 @@
 .push-prompt-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px}
 .push-prompt-actions button{min-height:44px}
 .push-permission-prompt .push-prompt-error{color:var(--text);margin-top:10px}
-@media(max-width:600px){.push-permission-prompt{inset:64px 8px auto 8px;width:auto;max-height:calc(100dvh - 80px);padding:14px}.push-prompt-actions .btn-primary{flex:1}}
+@media(max-width:600px){.push-permission-prompt{padding:14px}.push-prompt-actions .btn-primary{flex:1}}

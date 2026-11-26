@@ -1,4 +1,5 @@
 import {useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
 import {Link} from '@tanstack/react-router';
 import {useQuery} from '@tanstack/react-query';
 import {AlertTriangle,ArrowRight,BedDouble,Bell,CalendarPlus,ClipboardCheck,ClipboardList,CreditCard,LogOut,Megaphone,MessageCircle,Receipt,RefreshCw,Settings2,Wallet,Wrench,X} from 'lucide-react';
@@ -67,7 +68,7 @@ const responseSchema=z.object({data:z.object({
  hasMore:z.boolean(),
 })});
 
-export function StaffNotifications({hotelId,userId,canPush=false}:{hotelId:string;userId:string;canPush?:boolean}){
+export function StaffNotifications({hotelId,userId,canPush=false,promptHost}:{hotelId:string;userId:string;canPush?:boolean;promptHost?:HTMLElement|null}){
  const storageKey='pms.notification-read:v1:'+userId+':'+hotelId;
  const [read,setRead]=useState<string[]>(()=>{
   try{
@@ -105,7 +106,7 @@ export function StaffNotifications({hotelId,userId,canPush=false}:{hotelId:strin
   try{localStorage.setItem(storageKey,JSON.stringify(updated));}catch{/* Remain usable in memory. */}
  }
  return <>
-  {canPush&&<PushPermissionPrompt userId={userId} hotelId={hotelId} active={!open} onSettings={()=>{dialog.current?.showModal();setSettings(true);setOpen(true);}}/>}
+  {canPush&&promptHost&&createPortal(<PushPermissionPrompt userId={userId} hotelId={hotelId} active={!open} onSettings={()=>{dialog.current?.showModal();setSettings(true);setOpen(true);}}/>,promptHost)}
   <button ref={bell} type="button" className={'icon-btn topbar-action-notifications'+(urgent?' has-urgent':'')}
    aria-label={unread?`Notifications, ${unread} unread`:'Notifications'} aria-haspopup="dialog"
    onClick={()=>{dialog.current?.showModal();setOpen(true);void feed.refetch();}}>

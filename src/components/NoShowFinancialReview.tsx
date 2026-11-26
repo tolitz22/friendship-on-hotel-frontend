@@ -4,6 +4,7 @@ import {z} from 'zod';
 import {getJson,requestJson} from '../api/http';
 import {hotelPath,readSession} from '../api/session';
 import './NoShowFinancialOverview.css';
+import {NoShowAllocationPanel} from './NoShowAllocationPanel';
 import {NoShowDepositPanel} from './NoShowDepositPanel';
 import {NoShowLedgerPanel} from './NoShowLedgerPanel';
 
@@ -84,7 +85,7 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
   eligibility.settled?{title:'Settlement recorded',detail:'Check matched accounting entries before treating the account as fully reconciled.',target:'no-show-accounting-details'}:
   (eligibility.maximumRefundRequestMinor>0)?{title:'Review eligible refund',detail:'Return to the guest bill to review refund eligibility. No funds are sent from this overview.',target:null}:
   (eligibility.remainingCollectionMinor??0)>0?{title:'Review outstanding collection',detail:'Return to the guest bill to review the remaining amount and payment evidence.',target:null}:
-  {title:'Review allocation and settlement',detail:'Check the guest bill for unapplied deposits and remaining settlement steps.',target:null};
+  {title:'Review allocation and settlement',detail:'Check unapplied deposits and remaining settlement steps below.',target:'no-show-allocation-details'};
 
  async function submit(approve:boolean){
   if(lock.current||!data||readSession().hotelId!==hotelId||!(approve?canApprove:canApply))return;
@@ -193,6 +194,7 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
     </div>
    </>}
    {opened&&data&&<NoShowDepositPanel hotelId={hotelId} bookingId={bookingId}/>}
+   {opened&&data?.clearance&&<div id="no-show-allocation-details"><NoShowAllocationPanel hotelId={hotelId} bookingId={bookingId}/></div>}
    {opened&&data?.clearance&&<div id="no-show-accounting-details"><NoShowLedgerPanel hotelId={hotelId} bookingId={bookingId} userId={userId}/></div>}
    {notice&&<p role="status">{notice}</p>}
    {error&&<p role="alert">{error}</p>}

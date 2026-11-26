@@ -246,9 +246,8 @@ export function LiveFrontDesk(){
   </section>
   {extension?.hotelId===hotelId&&<StayExtensionModal key={hotelId+'-'+extension.record.id}
    hotelId={hotelId} record={extension.record} today={hotelDate} openOnEntry hideTrigger
-   onDismiss={()=>setExtension(null)} onSaved={()=>{
-    void client.invalidateQueries({queryKey:['live'],refetchType:'active'});
-   }}/>}
+   onDismiss={()=>setExtension(null)}
+   onSaved={()=>client.invalidateQueries({queryKey:['live'],refetchType:'active'})}/>}
   <p className="fdc-safety-note"><AlertTriangle size={17}/>
    Actions open the existing guarded reservation workflow for review and confirmation. This screen does not verify room cleanliness, cash collection or actual physical occupancy.
   </p>

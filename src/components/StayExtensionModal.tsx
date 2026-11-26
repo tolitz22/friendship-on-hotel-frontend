@@ -88,7 +88,8 @@ export function StayExtensionModal({hotelId,record,today,openOnEntry=false,disab
      disabled={busy} onClick={()=>dialog.current?.close()}><X size={20}/></button>
    </header>
   {message?<div><p role="status" className="stay-feedback-success">{message}</p>
-   <button type="button" className="btn-primary" onClick={()=>dialog.current?.close()}>Done</button></div>:
+   {busy?<p role="status">Refreshing the guest bill and stay details…</p>:
+    <button type="button" className="btn-primary" onClick={()=>dialog.current?.close()}>Done</button>}</div>:
   <form className="billing-payment-fields" onSubmit={event=>{event.preventDefault();void submit(canConfirm);}}>
    <label className="night-audit-date">New departure date
     <input className="wizard-input" type="date" required min={minimum} value={date} disabled={busy}

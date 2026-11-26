@@ -45,6 +45,12 @@ test('Daily Closing starts on the financial date and links to actionable blocker
  await expect(date).toHaveValue(businessDate);
  await expect(page.getByRole('link',{name:'Review payment evidence'})).toHaveAttribute('href','/operational-exceptions');
  await expect(page.getByRole('link',{name:'Open cashier shift #2'})).toHaveAttribute('href',/shift=/);
+ await page.getByRole('link',{name:'Open cashier shift #2'}).click();
+ const drawer=page.getByRole('region',{name:'Selected cashier shift'});
+ await expect(drawer.getByRole('heading',{name:'Cash shift #2'})).toBeVisible();
+ await expect(drawer).not.toContainText('FROM GUEST BILLING');
+ await page.goBack();
+ await expect(date).toHaveValue(businessDate);
  await page.getByRole('button',{name:'Review yesterday'}).click();
  await expect(date).toHaveValue('2026-11-25');
  const closePanel=page.getByRole('region',{name:'Financial business-date close'});

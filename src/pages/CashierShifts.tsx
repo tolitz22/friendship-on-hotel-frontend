@@ -245,11 +245,11 @@ export function CashierShifts(){
    <Link className="btn-primary" to="/billing" search={{booking:originBooking}}>
     Return to guest bill <ArrowRight size={16}/></Link>
   </div>}
-  {context.shift&&<section className="cashier-linked-task" aria-label="Payment-linked cashier shift">
+  {context.shift&&<section className="cashier-linked-task" aria-label={originBooking?'Payment-linked cashier shift':'Selected cashier shift'}>
    <div className="cashier-linked-title">
-    <div><span className="rr-eyebrow">FROM GUEST BILLING</span>
+    <div><span className="rr-eyebrow">{originBooking?'FROM GUEST BILLING':'SHIFT DETAILS'}</span>
      <h2>Cash shift #{context.shift}</h2>
-     <p>This is the cash drawer linked to the guest's recorded payment. Review this shift; do not record the payment again.</p>
+     {originBooking&&<p>This is the cash drawer linked to the guest's recorded payment. Review this shift; do not record the payment again.</p>}
     </div>
    </div>
    <QueryFeedback loading={linkedShift.isPending} error={linkedShift.error}

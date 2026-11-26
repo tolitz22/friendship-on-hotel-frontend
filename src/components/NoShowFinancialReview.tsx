@@ -4,6 +4,7 @@ import {z} from 'zod';
 import {getJson,requestJson} from '../api/http';
 import {hotelPath,readSession} from '../api/session';
 import './NoShowFinancialOverview.css';
+import {NoShowCorrectionPanel} from './NoShowCorrectionPanel';
 import {NoShowRefundPanel} from './NoShowRefundPanel';
 import {NoShowAllocationPanel} from './NoShowAllocationPanel';
 import {NoShowDepositPanel} from './NoShowDepositPanel';
@@ -194,6 +195,7 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
     </>}
     </div>
    </>}
+   {opened&&data&&<NoShowCorrectionPanel hotelId={hotelId} bookingId={bookingId} userId={userId}/>}
    {opened&&data&&<NoShowDepositPanel hotelId={hotelId} bookingId={bookingId}/>}
    {opened&&data?.clearance&&<div id="no-show-allocation-details"><NoShowAllocationPanel hotelId={hotelId} bookingId={bookingId}/></div>}
    {opened&&data?.clearance&&<div id="no-show-refund-details"><NoShowRefundPanel hotelId={hotelId} bookingId={bookingId} userId={userId}/></div>}

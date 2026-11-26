@@ -11,7 +11,7 @@ const schema=z.object({data:z.object({
  blocker:z.string().nullable(),payments:z.array(z.object({paymentId:z.string(),method:z.string(),availableMinor:minor.nonnegative(),maximumMinor:minor.nonnegative()})),
 })});
 const money=(n:number|null)=>n===null?'—':new Intl.NumberFormat('en-PH',{style:'currency',currency:'PHP'}).format(n/100);
-export function NoShowAllocationPanel({hotelId,bookingId}:{hotelId:string;bookingId:string}){
+export function NoShowAllocationPanel({hotelId,bookingId,onBusyChange}:{hotelId:string;bookingId:string;onBusyChange?:(busy:boolean)=>void}){
  const client=useQueryClient();
  const [paymentId,setPaymentId]=useState('');
  const [amount,setAmount]=useState('');
@@ -40,7 +40,7 @@ export function NoShowAllocationPanel({hotelId,bookingId}:{hotelId:string;bookin
   const payload={amountMinor,payerKind,payerReference:payerReference.trim(),acknowledged:true};
   const identity=JSON.stringify([paymentId,payload]);
   if(attempt.current?.payload!==identity)attempt.current={payload:identity,key:'no-show-ui-'+crypto.randomUUID()};
-  lock.current=true;setBusy(true);setError('');setNotice('');
+  lock.current=true;setBusy(true);onBusyChange?.(true);setError('');setNotice('');
   try{
    await requestJson(hotelPath(path+'/'+paymentId),{method:'POST',body:{...payload,requestKey:attempt.current.key}});
    attempt.current=null;setPaymentId('');setAmount('');setNotice('Deposit allocation recorded.');
@@ -48,7 +48,7 @@ export function NoShowAllocationPanel({hotelId,bookingId}:{hotelId:string;bookin
   finally{
    setConfirmed(false);
    await Promise.allSettled([query.refetch(),...['no-show-ledger-reconciliation','no-show-deposits','no-show-financial-review','settlement-statement','folio-ledger','billing-folios','financial-business-day'].map(key=>client.invalidateQueries({queryKey:['live',key,hotelId]}))]);
-   lock.current=false;setBusy(false);
+   lock.current=false;setBusy(false);onBusyChange?.(false);
   }
  }
  return <section className="no-show-overview" aria-label="Deposit allocation and settlement">

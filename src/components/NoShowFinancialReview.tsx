@@ -3,6 +3,7 @@ import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 import {getJson,requestJson} from '../api/http';
 import {hotelPath,readSession} from '../api/session';
+import './NoShowFinancialOverview.css';
 import {NoShowLedgerPanel} from './NoShowLedgerPanel';
 
 const reviewSchema=z.object({
@@ -71,6 +72,19 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
  const fee=data?.recordedFeeMinor??data?.proposedNoShowFeeMinor
   ??(useManual&&Number.isSafeInteger(manualFeeMinor)?manualFeeMinor:null);
 
+ const pendingPayments=data?.currentFolioSummary.pendingReviewPaymentsMinor??0;
+ const eligibility=data?.refundEligibility;
+ const nextStep=!data?null:!data.recordedReviewId?
+  {title:data.canApply||useManual?'Record financial adjustments':'Resolve review blockers',detail:'Confirm the booking policy and document the reason before recording the fee.',target:'no-show-review-details'}:
+  !data.clearance?{title:!data.approvalEnabled?'Accounting approval unavailable':data.recordedBy===userId?'Waiting for another administrator':'Review fee and tax treatment',
+   detail:'Accounting clearance requires an independent administrator.',target:'no-show-review-details'}:
+  pendingPayments>0?{title:'Review pending payment evidence',detail:'Return to the guest bill to verify recorded payments before relying on settlement balances.',target:null}:
+  !eligibility?.financialClearanceValid?{title:'Check financial reconciliation',detail:'The current clearance or settlement balances require review.',target:'no-show-accounting-details'}:
+  eligibility.settled?{title:'Settlement recorded',detail:'Check matched accounting entries before treating the account as fully reconciled.',target:'no-show-accounting-details'}:
+  (eligibility.maximumRefundRequestMinor>0)?{title:'Review eligible refund',detail:'Return to the guest bill to review refund eligibility. No funds are sent from this overview.',target:null}:
+  (eligibility.remainingCollectionMinor??0)>0?{title:'Review outstanding collection',detail:'Return to the guest bill to review the remaining amount and payment evidence.',target:null}:
+  {title:'Review allocation and settlement',detail:'Check the guest bill for unapplied deposits and remaining settlement steps.',target:null};
+
  async function submit(approve:boolean){
   if(lock.current||!data||readSession().hotelId!==hotelId||!(approve?canApprove:canApply))return;
   lock.current=true;
@@ -116,6 +130,20 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
    {query.isFetching&&<p role="status">Loading current financial review…</p>}
    {query.isError&&<p role="alert">Unable to load financial review. <button type="button" onClick={()=>void query.refetch()}>Retry</button></p>}
    {data&&<>
+    <section className="no-show-overview" aria-label="Financial overview">
+     <div className="no-show-overview-heading"><div><h4>Financial overview</h4><p>Review the fee, payments and remaining actions.</p></div>
+      <span className="no-show-overview-state">{data.clearance?'Clearance recorded':data.recordedReviewId?'Awaiting clearance':'Review required'}</span></div>
+     <div className="no-show-overview-metrics">
+      <div><span>No-show fee</span><strong>{money(fee)}</strong></div>
+      <div><span>Verified funds</span><strong>{money(eligibility?.verifiedPaymentsMinor??verifiedMinor)}</strong></div>
+      <div><span>To collect</span><strong>{money(eligibility?.financialClearanceValid?eligibility.remainingCollectionMinor:null)}</strong></div>
+      <div><span>Eligible refund limit</span><strong>{money(eligibility?.financialClearanceValid?eligibility.maximumRefundRequestMinor:null)}</strong></div>
+     </div>
+     {nextStep&&<div className="no-show-next-step"><div><span>Recommended next step</span><h5>{nextStep.title}</h5><p>{nextStep.detail}</p></div>
+      {nextStep.target?<button type="button" className="btn-inline" onClick={()=>document.getElementById(nextStep.target!)?.scrollIntoView({block:'nearest'})}>Go to details</button>:
+       <button type="button" className="btn-inline" disabled={busy} onClick={()=>dialog.current?.close()}>Return to guest bill</button>}</div>}
+    </section>
+    <div id="no-show-review-details">
     <p>{data.noShowKind&&policyLabels[data.noShowKind]?policyLabels[data.noShowKind]:'No saved penalty policy. Document the basis for any fee.'}</p>
     {([
      ['Room charges before review',data.originalRoomSubtotalMinor],
@@ -161,8 +189,9 @@ export function NoShowFinancialReview({hotelId,bookingId,userId,verifiedMinor,op
       <button type="submit" className="btn-primary" disabled={busy||!canApply}>Record financial adjustments</button>
      </form>:<p>Financial adjustments are unavailable for this booking.</p>}
     </>}
+    </div>
    </>}
-   {opened&&data?.clearance&&<NoShowLedgerPanel hotelId={hotelId} bookingId={bookingId} userId={userId}/>}
+   {opened&&data?.clearance&&<div id="no-show-accounting-details"><NoShowLedgerPanel hotelId={hotelId} bookingId={bookingId} userId={userId}/></div>
    {notice&&<p role="status">{notice}</p>}
    {error&&<p role="alert">{error}</p>}
    <div className="no-show-dialog-actions">

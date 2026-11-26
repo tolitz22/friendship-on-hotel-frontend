@@ -1,6 +1,7 @@
 import {useStaffRealtime} from '../features/messages/useStaffRealtime';
 import {useMessageInbox} from '../pages/Messages';
 import {MessageCircle} from 'lucide-react';
+import './FloatingMessages.css';
 import {StaffNotifications} from './StaffNotifications';
 import {Link,Outlet,useRouterState} from '@tanstack/react-router';
 import {LayoutDashboard,CalendarDays,CalendarRange,BedDouble,Users,Wallet,ClipboardCheck,Wrench,ChartNoAxesCombined,Settings,Sun,Moon,Menu,X,Hotel,LogOut,ArrowRight,ChevronDown,ShieldCheck,ShieldAlert,ClipboardList,Receipt} from 'lucide-react';
@@ -81,6 +82,17 @@ export function AppShell(){
  const effectivePermissions=user?.hotels.find(h=>h.id===hotelId)?.permissions;
  const workspace=navigationForRole(role);
  const admin=role==='admin';
+ const canMessage=dataMode==='api'&&!!user&&!!hotelId&&!user.mustChangePassword&&canViewWorkspacePath(role,'/messages',effectivePermissions);
+ const showMessageShortcut=canMessage&&pathname!=='/messages'&&!open;
+ const messageScope=hotelId+':'+user?.id;
+ const previousUnread=useRef<{scope:string;count:number}|null>(null);
+ const [attention,setAttention]=useState(0);
+ useEffect(()=>{
+  if(!canMessage||!messageInbox.isSuccess){previousUnread.current=null;return;}
+  const old=previousUnread.current;
+  previousUnread.current={scope:messageScope,count:unreadMessages};
+  if(unreadMessages>0&&(!old||old.scope!==messageScope||unreadMessages>old.count))setAttention(n=>n+1);
+ },[canMessage,messageInbox.isSuccess,messageScope,unreadMessages]);
  useEffect(()=>{setOpen(false);},[pathname,hotelId]);
  useEffect(()=>{
   if(!open){
@@ -185,7 +197,7 @@ export function AppShell(){
     </div>
    </div>
   </aside>
-  <main className="main-area" inert={open}>
+  <main className={'main-area'+(showMessageShortcut?' has-message-shortcut':'')} inert={open}>
    <header className="topbar">
     <div className="topbar-left">
      <button ref={menuButton} className="icon-btn mobile-menu" type="button" onClick={()=>setOpen(true)}
@@ -244,6 +256,12 @@ export function AppShell(){
       </section>
      :<Suspense fallback={<div role="status" className="workspace-loading">Loading hotel workspace…</div>}><Outlet/></Suspense>}
    </div>
+   {showMessageShortcut&&<Link key={messageScope+':'+attention} to="/messages" className={'floating-messages'+(unreadMessages>0?' has-unread is-new':'')}
+    aria-label={unreadMessages>0?'Open messages, '+unreadMessages+' unread messages':'Open messages'} title={unreadMessages>0?unreadMessages+' unread messages':'Open messages'}>
+    <MessageCircle size={26} aria-hidden="true"/>
+    {unreadMessages>0&&<><span className="floating-messages-label">New messages</span><span className="floating-messages-count" aria-hidden="true">{unreadMessages>99?'99+':unreadMessages}</span></>}
+   </Link>}
+   {canMessage&&<span role="status" aria-live="polite" style={{position:'absolute',width:1,height:1,padding:0,margin:-1,overflow:'hidden',clipPath:'inset(50%)',whiteSpace:'nowrap'}}>{unreadMessages>0?unreadMessages+' unread staff messages':''}</span>}
   </main>
  </div>;
 }

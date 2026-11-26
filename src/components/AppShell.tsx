@@ -1,3 +1,5 @@
+import {useMessageInbox} from '../pages/Messages';
+import {MessageCircle} from 'lucide-react';
 import {StaffNotifications} from './StaffNotifications';
 import {Link,Outlet,useRouterState} from '@tanstack/react-router';
 import {LayoutDashboard,CalendarDays,CalendarRange,BedDouble,Users,Wallet,ClipboardCheck,Wrench,ChartNoAxesCombined,Settings,Sun,Moon,Menu,X,Hotel,LogOut,ArrowRight,ChevronDown,ShieldCheck,ShieldAlert,ClipboardList,Receipt} from 'lucide-react';
@@ -11,6 +13,7 @@ import {ChangePassword} from '../pages/StaffPassword';
 import {selectedRole,navigationForRole,canViewWorkspacePath} from '../features/workspaces/roleNavigation';
 
 const daily=[
+ {to:'/messages' as const,label:'Messages',icon:MessageCircle},
  {to:'/' as const,label:'Overview',icon:LayoutDashboard},
  {to:'/front-desk' as const,label:'Front desk',icon:Hotel},
  {to:'/reservations' as const,label:'Bookings',icon:CalendarDays},
@@ -25,7 +28,7 @@ const daily=[
  {to:'/occupancy-verification' as const,label:'Occupancy checks',icon:ClipboardCheck},
  {to:'/occupancy-coverage' as const,label:'Occupancy report',icon:ClipboardList},
 ];
-const primaryPaths=['/','/front-desk','/reservations','/group-reservations','/room-calendar','/rooms','/billing'];
+const primaryPaths=['/messages','/','/front-desk','/reservations','/group-reservations','/room-calendar','/rooms','/billing'];
 const primaryDaily=daily.filter(item=>primaryPaths.includes(item.to));
 const secondaryDaily=daily.filter(item=>!primaryPaths.includes(item.to));
 const administration=[
@@ -62,6 +65,8 @@ export function experienceForPath(pathname:string,mode:typeof dataMode){
 export function AppShell(){
  const {theme,toggle}=useTheme();
  const {user,hotelId,selectHotel,signOut,pending}=useHotelAuth();
+ const messageInbox=useMessageInbox(hotelId,user?.id);
+ const unreadMessages=messageInbox.data?.data.reduce((sum,c)=>sum+Number(c.unread),0)??0;
  const [open,setOpen]=useState(false);
  const menuButton=useRef<HTMLButtonElement>(null);
  const closeButton=useRef<HTMLButtonElement>(null);
@@ -125,7 +130,7 @@ export function AppShell(){
  if(dataMode==='api'&&!hotelId)return <HotelChooser/>;
 
  const renderNav=(items:readonly NavItem[],section:'daily'|'management'|'advanced')=>items
-  .filter(item=>dataMode==='api'||!['/change-password','/staff','/expenses','/my-expense-claims'].includes(item.to))
+  .filter(item=>dataMode==='api'||!['/change-password','/staff','/expenses','/my-expense-claims','/messages'].includes(item.to))
   .filter(item=>dataMode!=='api'||(
    canViewWorkspacePath(role,item.to,effectivePermissions)&&(
    section==='daily'?workspace.daily.includes(item.to):
@@ -134,7 +139,7 @@ export function AppShell(){
   .map(({to,label,icon:Icon})=><Link key={to} to={to} activeOptions={{exact:true}} onClick={open?closeNavigation:undefined}
    aria-current={pathname===to?'page':undefined}
    className={'nav-link'+(pathname===to||to==='/expenses'&&pathname.startsWith('/expenses/')?' active':'')}>
-   <Icon size={18} aria-hidden="true"/><span>{label}</span>
+   <Icon size={18} aria-hidden="true"/><span>{label}{to==='/messages'&&unreadMessages>0?' ('+unreadMessages+')':''}</span>
   </Link>);
 
  return <div className="app-layout">

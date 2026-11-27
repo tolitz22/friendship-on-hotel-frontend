@@ -99,11 +99,11 @@ export function RoomReadinessPanel({room}:{room:LiveRoom;onClose:()=>void}){
      <input type="checkbox" checked={form[key]} disabled={busy}
       onChange={e=>setForm(old=>({...old,[key]:e.target.checked}))}/> {label}
     </label>)}
-    <label className="wizard-label">Inspector note (required)
+    <label className="wizard-label">Inspector note (optional)
      <textarea className="wizard-input" rows={2} value={form.note} maxLength={2000}
       disabled={busy} onChange={e=>setForm(old=>({...old,note:e.target.value}))}/>
     </label>
-    <button type="button" className="btn-primary" disabled={busy||!allChecks||form.note.trim().length<5}
+    <button type="button" className="btn-primary" disabled={busy||!allChecks}
      onClick={submit}>Complete room inspection</button>
    </section>}
    <details className="rr-compact-details"><summary>Inspection details</summary>     <p>{state.data.advisoryReady?'No new inspection is required merely because another day has passed. Reinspect after checkout turnover, relevant room work, or a new blocker.':'A current completed inspection is missing, or a new blocker needs attention. This does not necessarily mean the room is dirty.'}</p>   <p className="rr-one-note">Cleaning is recorded separately. A completed room inspection checks safety, cleanliness and amenities; no manager approval is required.</p>

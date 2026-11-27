@@ -40,7 +40,7 @@ function TaskDetail({label,value}:{label:string;value:string}){
 }
 export function LiveHousekeeping(){
  const {hotelId,user}=useHotelAuth();
- const {task:linkedTaskId,queue:linkedQueue,status:linkedStatus}=useSearch({from:'/housekeeping'});
+ const {task:linkedTaskId,queue:linkedQueue,status:linkedStatus,mine:linkedMine}=useSearch({from:'/housekeeping'});
  const navigate=useNavigate();
  const directTask=useDirectHousekeepingTask(linkedTaskId??null);
  const openedLinkedTask=useRef<string|null>(null);
@@ -71,7 +71,7 @@ export function LiveHousekeeping(){
  });
  const client=useQueryClient();
  const [page,setPage]=useState(1);
- const [filters,setFilters]=useState<WorkspaceFilters>(()=>({...defaultWorkspaceFilters,view:linkedQueue??linkedStatus??'all'}));
+ const [filters,setFilters]=useState<WorkspaceFilters>(()=>({...defaultWorkspaceFilters,view:linkedQueue??linkedStatus??(linkedMine?'mine':'all'),own:!!linkedMine&&!!(linkedQueue??linkedStatus)}));
  const changeFilters=(next:Partial<WorkspaceFilters>)=>{
   setPage(1);
   setFilters(current=>({...current,...next}));
@@ -89,7 +89,7 @@ export function LiveHousekeeping(){
   status:view==='todo'||view==='in_progress'||view==='done'?view:undefined,
   queue:view==='all'||view==='mine'||view==='todo'||view==='in_progress'||view==='done'?undefined:view,
   type:filters.type||undefined,q:searchTerm?debouncedText||undefined:undefined,
-  mine:view==='mine'?1:undefined,sort:'priority',assignee:filters.assignee||undefined,
+  mine:view==='mine'||filters.own?1:undefined,sort:'priority',assignee:filters.assignee||undefined,
   floor:filters.floor||undefined,room:filters.room.trim()||undefined,dueDate:filters.dueDate||undefined,
  };
  const tasks=useQuery({
@@ -158,7 +158,7 @@ export function LiveHousekeeping(){
   setPage(1);setSelected(null);setForm(null);setError('');setNotice('');setHistoryOpen(false);setHistoryPage(1);
   jumpToInspection.current=false;
  },[hotelId]);
- useEffect(()=>{changeFilters({...defaultWorkspaceFilters,view:linkedQueue??linkedStatus??'all'});},[hotelId,linkedQueue,linkedStatus]);
+ useEffect(()=>{changeFilters({...defaultWorkspaceFilters,view:linkedQueue??linkedStatus??(linkedMine?'mine':'all'),own:!!linkedMine&&!!(linkedQueue??linkedStatus)});},[hotelId,linkedQueue,linkedStatus,linkedMine]);
  useEffect(()=>{
   openedLinkedTask.current=null;
  },[hotelId,linkedTaskId]);
@@ -189,7 +189,7 @@ export function LiveHousekeeping(){
  function close(){
   resetEditor();
   setSelected(null);setForm(null);
-  if(linkedTaskId)void navigate({to:'/housekeeping',search:{task:undefined}});
+  if(linkedTaskId)void navigate({to:'/housekeeping',search:{queue:linkedQueue,status:linkedStatus,mine:linkedMine}});
  }
  async function checkLatest(){
   if(!selected||!hotelId||!online||reviewLoading)return;
@@ -338,7 +338,7 @@ export function LiveHousekeeping(){
   {linkedTaskId&&<section aria-label="Direct checkout cleaning task">
    <div className="desk-tools">
     <button type="button" className="btn-inline"
-     onClick={()=>void navigate({to:'/housekeeping',search:{task:undefined}})}>Back to task queue</button>
+     onClick={()=>void navigate({to:'/housekeeping',search:{queue:linkedQueue,status:linkedStatus,mine:linkedMine}})}>Back to task queue</button>
    </div>
    <QueryFeedback loading={directTask.isPending} error={directTask.error}
     onRetry={()=>void directTask.refetch()}/>

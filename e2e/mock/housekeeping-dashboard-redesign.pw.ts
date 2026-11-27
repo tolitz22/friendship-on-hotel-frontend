@@ -27,6 +27,7 @@ for(const width of [320,390,1280]){
   await expect(home.getByRole('region',{name:'Your next room'}).getByRole('button',{name:'Start cleaning'})).toBeEnabled();
   await expect(home.getByRole('region',{name:'Final inspections'}).getByRole('link',{name:/Room 203/})).toBeVisible();
   await expect(home.getByRole('link',{name:/Inspection due/}).first()).toHaveAttribute('href',/queue=(?:%22)?pending_inspection/);
+  await expect(home.getByRole('link',{name:/My active tasks/})).toHaveAttribute('href',/mine=true/);
   await expect(home.getByRole('link',{name:/Lost & found/})).toBeVisible();
   expect(await home.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBeTruthy();
   expect(writes).toBe(0);

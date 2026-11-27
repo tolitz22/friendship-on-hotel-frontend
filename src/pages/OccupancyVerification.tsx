@@ -14,13 +14,17 @@ import {readableDate,readableDateTime,statusLabel} from '../lib/format';
 import {auditActorName} from '../components/ReadableAuditEvent';
 import {useLiveProperty} from '../api/liveCatalogQueries';
 import {hotelToday} from '../features/reservations/calendarDate';
+import {ShiftDialog} from '../features/housekeeping/ShiftDialog';
+import {useNetworkStatus} from '../features/housekeeping/useNetworkStatus';
 import {OccupancyInvestigationPanel} from '../components/OccupancyInvestigationPanel';
 
 function CheckCard({check,manager,isCurrentDate,onChanged}:{check:OccupancyVerification;manager:boolean;isCurrentDate:boolean;onChanged:()=>void}){
  const {hotelId,user}=useHotelAuth();
+ const online=useNetworkStatus();
+ const canRecord=user?.hotels.find(hotel=>hotel.id===hotelId)?.permissions?.includes('occupancy.observe')!==false;
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:manager&&!!hotelId});
  const actor=(id:string,name?:string|null)=>auditActorName(id,name??staff.data?.data.find(m=>m.userId===id)?.name,user?.id,user?.name);
- const [observed,setObserved]=useState<'occupied'|'vacant'|'unknown'>('unknown');
+ const [observed,setObserved]=useState<'occupied'|'vacant'|'unknown'|null>(null);
  const [note,setNote]=useState('');
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState('');
@@ -33,13 +37,13 @@ function CheckCard({check,manager,isCurrentDate,onChanged}:{check:OccupancyVerif
   queryFn:()=>occupancyHistory(hotelId!,check.id),retry:false,
  });
  async function submit(action:'observe'|'verified'|'flagged'){
-  if(!hotelId||busy||note.trim().length<5)return;
+  if(!hotelId||!online||busy||note.trim().length<5||action==='observe'&&(!canObserve||!observed))return;
   setBusy(true);setError('');setMessage('');
   try{
-   if(action==='observe')await observeOccupancy(hotelId,check.id,{observedOccupancy:observed,note:note.trim()});
-   else await reviewOccupancy(hotelId,check.id,{decision:action,note:note.trim()});
+   if(action==='observe'&&observed)await observeOccupancy(hotelId,check.id,{observedOccupancy:observed,note:note.trim()});
+   else if(action!=='observe')await reviewOccupancy(hotelId,check.id,{decision:action,note:note.trim()});
    if(readSession().hotelId!==hotelId)return;
-   setMessage(action==='observe'?'Observation saved for manager review.':action==='verified'?'Matching observation reviewed.':'Investigation flag recorded.');setNote('');setWorkDialog(false);onChanged();
+   setMessage(action==='observe'?'Observation saved for manager review.':action==='verified'?'Matching observation reviewed.':'Investigation flag recorded.');setNote('');setObserved(null);setWorkDialog(false);onChanged();
   }catch(e){setError(e instanceof Error?e.message:'Result uncertain. Refresh before retrying.');}
   finally{setBusy(false);}
  }
@@ -48,12 +52,12 @@ function CheckCard({check,manager,isCurrentDate,onChanged}:{check:OccupancyVerif
  const mismatch=check.discrepancy==='unexpected_occupied'?'Observed occupied, PMS has no checked-in stay':
   check.discrepancy==='expected_occupied_vacant'?'Observed vacant, PMS has a checked-in stay':
   check.discrepancy==='unverified'?'Could not confirm occupancy':'Observation matches PMS snapshot';
- const canObserve=check.status==='assigned'&&!manager&&isCurrentDate;
+ const canObserve=check.status==='assigned'&&!manager&&isCurrentDate&&canRecord&&check.assignedUserId===user?.id;
  const canReview=check.status==='submitted'&&manager;
  const independent=check.observedBy!==user?.id;
- return <article className="occ-check-card">
+ return <article className={manager?'occ-check-card':'hk-shift-card hk-occupancy-card'}>
   <div className="occ-check-header">
-   <div><strong>Room {check.roomNumber}</strong><small>{readableDate(check.inspectionDate)} · Assigned to {actor(check.assignedUserId)}</small></div>
+   <div><h3>Room {check.roomNumber}</h3><small>{readableDate(check.inspectionDate)}{manager?' · Assigned to '+actor(check.assignedUserId):''}</small></div>
    <span className={'occ-status '+(check.status==='flagged'||(check.discrepancy!==null&&check.discrepancy!=='match'&&check.discrepancy!=='unverified')?'occ-danger':
     check.status==='verified'?'occ-success':'occ-attention')}>{statusText}</span>
   </div>
@@ -62,37 +66,42 @@ function CheckCard({check,manager,isCurrentDate,onChanged}:{check:OccupancyVerif
    <div><small>Registered in the PMS at observation</small><strong>{statusLabel(check.expectedOccupancy??'unknown')}</strong></div>
   </div>}
   {check.status!=='assigned'&&<p className="occ-check-result">
-   <Info size={15}/>{mismatch}. This is evidence for review, not proof of an unregistered stay.</p>}
-  {check.status==='assigned'&&<p className="occ-check-result"><Info size={15}/>
-   {isCurrentDate?'Awaiting an independent observation. Follow privacy and safe room-access procedures.':'This assignment is historical. Do not submit a new observation for an earlier date.'}</p>}
-  <div className="occ-check-actions">
+   <Info size={15}/>{mismatch}{manager?'. This is evidence for review, not proof of an unregistered stay.':''}</p>}
+  {check.status==='assigned'&&!canObserve&&<p className="occ-check-result"><Info size={15}/>
+   {isCurrentDate?(manager?'Waiting for the assigned employee.':'Your account can view this check.'):'The observation window for this date has ended.'}</p>}
+  <div className={manager?'occ-check-actions':'hk-shift-actions'}>
    {(canObserve||canReview)&&<button type="button" className="btn-primary"
-    onClick={()=>{setError('');setMessage('');setWorkDialog(true);}}>
+    disabled={!online} onClick={()=>{setError('');setMessage('');setWorkDialog(true);}}>
     {canObserve?'Record observation':'Review observation'} <ArrowRight size={15}/></button>}
    <button type="button" className="rr-secondary-action" aria-expanded={showHistory}
     onClick={()=>setShowHistory(v=>!v)}>{showHistory?'Hide':'View'} activity</button>
   </div>
-  {workDialog&&<div className="billing-modal-backdrop"><section role="dialog" aria-modal="true"
-   aria-label={canObserve?'Record room observation':'Review room observation'} className="billing-action-modal occ-check-dialog">
+  {workDialog&&canObserve&&<ShiftDialog title="Record room observation" context={'Room '+check.roomNumber+' · '+readableDate(check.inspectionDate)}
+   busy={busy} onClose={()=>setWorkDialog(false)} actions={
+    <button form={'observe-room-'+check.id} type="submit" className="btn-primary" disabled={!online||busy||!observed||note.trim().length<5}>
+     {busy?'Saving…':'Submit observation'}
+    </button>
+   }>
+   <form id={'observe-room-'+check.id} className="hk-shift-fields" onSubmit={event=>{event.preventDefault();void submit('observe');}}>
+    <p className="hk-shift-muted">Enter a room only with permission and under your hotel’s procedures. If you’re unsure, choose Could not verify.</p>
+    {!online&&<p role="status" className="hk-network-alert">You’re offline. Your draft is still open.</p>}
+    <fieldset disabled={busy} className="hk-shift-choices">
+     <legend>Was the room occupied?</legend>
+     {([['occupied','Occupied'],['vacant','Vacant'],['unknown','Could not verify']] as const).map(([value,label])=>
+      <label key={value} className="hk-shift-choice"><input type="radio" name={'occupancy-'+check.id} checked={observed===value}
+       onChange={()=>setObserved(value)}/>{label}</label>)}
+    </fieldset>
+    <label>Observation notes<textarea rows={3} maxLength={1500} value={note} disabled={busy} onChange={event=>setNote(event.target.value)}
+     placeholder="What did you observe? Leave out guest names and personal details."/></label>
+    {error&&<p role="alert" className="auth-error">{error}</p>}
+   </form>
+  </ShiftDialog>}
+  {workDialog&&canReview&&<div className="billing-modal-backdrop"><section role="dialog" aria-modal="true"
+   aria-label="Review room observation" className="billing-action-modal occ-check-dialog">
    <div className="billing-action-modal-header"><div><span className="rr-eyebrow">ROOM {check.roomNumber}</span>
-    <h3>{canObserve?'Record what you observed':'Review the observation'}</h3>
-    <p>{readableDate(check.inspectionDate)} · {canReview?mismatch:'Only record what you can safely verify.'}</p></div>
+    <h3>Review the observation</h3><p>{readableDate(check.inspectionDate)} · {mismatch}</p></div>
     <button type="button" className="billing-modal-dismiss" aria-label="Close dialog" disabled={busy}
      onClick={()=>setWorkDialog(false)}><X size={19}/></button></div>
-   {canObserve&&<div className="occ-dialog-form">
-    <p className="occ-dialog-guidance"><Info size={15}/> Do not enter a guest room without permission and approved procedures. If uncertain, choose Could not verify.</p>
-    <label>Was the room physically occupied?
-     <select className="wizard-input" value={observed} disabled={busy}
-      onChange={e=>setObserved(e.target.value as typeof observed)}>
-      <option value="unknown">Could not verify</option>
-      <option value="occupied">Yes, occupied</option><option value="vacant">No, vacant</option>
-     </select></label>
-    <label>What did you observe?
-     <textarea className="wizard-input" rows={3} maxLength={1500} value={note} disabled={busy}
-      onChange={e=>setNote(e.target.value)} placeholder="Describe the observation method and any limitations. Avoid guest personal details."/></label>
-    <button type="button" className="btn-primary" disabled={busy||note.trim().length<5}
-     onClick={()=>void submit('observe')}>{busy?'Saving…':'Submit observation for review'}</button>
-   </div>}
    {canReview&&<div className="occ-dialog-form">
     <p className="occ-dialog-guidance"><Info size={15}/>
      {independent?'Review the original observation and reservation snapshot.':'You cannot review an observation you submitted.'}
@@ -113,8 +122,8 @@ function CheckCard({check,manager,isCurrentDate,onChanged}:{check:OccupancyVerif
   {check.reviewNote&&<p className="occ-manager-note"><strong>Manager review:</strong> {check.reviewNote}</p>}
   {check.status==='flagged'&&manager&&<OccupancyInvestigationPanel
    verificationId={check.id} roomNumber={check.roomNumber}/>} 
-  {message&&<p role="status" className="occ-check-result">{message}</p>}
-  {showHistory&&<div><QueryFeedback loading={history.isPending} error={history.error}/>
+
+  {showHistory&&<div><QueryFeedback loading={history.isPending} error={history.error} onRetry={()=>void history.refetch()} empty={history.isSuccess&&!history.data.data.length} emptyMessage="No activity recorded."/>
    {history.data?.data.map(event=>{
     const details=event.details&&typeof event.details==='object'&&!Array.isArray(event.details)
      ?event.details as Record<string,unknown>:null;
@@ -131,7 +140,7 @@ function CheckCard({check,manager,isCurrentDate,onChanged}:{check:OccupancyVerif
       Decision: {statusLabel(details.decision)}</p>}
     </article>;
    })}</div>}
-  {error&&<p role="alert" className="auth-error">{error}</p>}
+  {error&&!workDialog&&<p role="alert" className="auth-error">{error}</p>}
   {message&&<p role="status">{message}</p>}
  </article>;
 }
@@ -142,6 +151,7 @@ export function OccupancyVerification(){
  const {hotelId,user}=useHotelAuth();
  const role=user?.hotels.find(h=>h.id===hotelId)?.role;
  const manager=role==='admin';
+ const online=useNetworkStatus();
  const allowed=role==='admin'||role==='housekeeping';
  const [page,setPage]=useState(1);
  const [selectedDate,setSelectedDate]=useState('');
@@ -157,7 +167,7 @@ export function OccupancyVerification(){
  const [showAssign,setShowAssign]=useState(false);
  const client=useQueryClient();
  const checks=useOccupancyVerifications(allowed,page,status==='all'?undefined:status as OccupancyVerification['status'],displayDate,linkedRoom);
- const rooms=useLiveRooms({page:1,perPage:100});
+ const rooms=useLiveRooms({page:1,perPage:100},!!linkedRoom||showAssign);
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:manager});
  const eligible=staff.data?.data.filter(person=>person.role==='housekeeping'&&person.isActive)??[];
  useEffect(()=>{setPage(1);setStatus('all');setSelectedDate('');setRoomId('');setAssignee('');setError('');setMessage('');},[hotelId]);
@@ -177,11 +187,8 @@ export function OccupancyVerification(){
  }
  if(!allowed)return <><Heading title="Independent occupancy verification" description="Only assigned housekeeping and managers may use this workspace."/>
   <Panel title="Access restricted"><p>This page is available only to staff with the required permissions and assignments.</p></Panel></>;
- return <>
-  <div className="occ-page-heading"><div><span className="rr-eyebrow">ROOM OPERATIONS</span>
-   <Heading title="Room occupancy checks" description={manager
-    ?'Assign independent room observations and review what differs from the hotel records.'
-    :'Report what you can safely observe in your assigned rooms.'}/></div>
+ return <div className={manager?undefined:'hk-shift hk-occupancy-page'}>
+  <div className="hk-shift-header"><div><h2>Occupancy checks</h2><p>{manager?'Assign and review independent room checks.':'Record an observation for your assigned rooms.'}</p></div>
    {manager&&displayDate===hotelDate&&<button type="button" className="btn-primary occ-nav-link" onClick={()=>{if(linkedRoom)setRoomId(linkedRoom);setShowAssign(true);}}>
     <Plus size={16}/> Assign a room check</button>}</div>
   {manager&&<div className="occ-report-link"><Link to="/occupancy-coverage">
@@ -214,31 +221,35 @@ export function OccupancyVerification(){
    {error&&<p role="alert" className="auth-error">{error}</p>}
    {message&&<p role="status">{message}</p>}
    </Panel></section></div>}
+  {!online&&<p role="status" className="hk-network-alert">You’re offline. {checks.data?'Showing the last loaded checks. Reconnect to submit observations.':'Reconnect to load your assigned room checks.'}</p>}
   <Panel title={linkedRoom?'Selected room checks':manager?'Room checks':'My assigned rooms'}>
    {linkedRoom&&<div className="occ-room-deeplink">
     <span>Showing room {rooms.data?.data.find(room=>room.id===linkedRoom)?.number??'selected'} on {readableDate(displayDate)}</span>
     <button type="button" className="btn-inline" onClick={()=>void navigate({to:'/occupancy-verification',search:{}})}>Show all rooms</button>
    </div>}
-   <div className="desk-tools">
+   <div className="hk-shift-toolbar">
     <label>Check date
      <input className="wizard-input" type="date" max={hotelDate}
       value={displayDate} onChange={e=>{setSelectedDate(e.target.value||hotelDate);setPage(1);}}/>
     </label>
     {displayDate!==hotelDate&&<button type="button" className="btn-inline"
-     onClick={()=>{setSelectedDate('');setPage(1);}}>Show today</button>}
+     onClick={()=>{setSelectedDate(hotelDate);setPage(1);}}>Show today</button>}
     <label>Filter status{' '}
      <select className="wizard-input" value={status} onChange={e=>{setPage(1);setStatus(e.target.value);}}>
-      <option value="all">All</option><option value="assigned">Assigned</option>
+      <option value="all">All checks</option><option value="assigned">Observation needed</option>
       <option value="submitted">Needs review</option><option value="verified">Verified</option>
       <option value="flagged">Flagged</option>
      </select></label>
-    <button type="button" className="btn-inline" onClick={()=>void checks.refetch()}><RefreshCw size={16}/> Refresh</button>
+    <button type="button" className="btn-inline" disabled={!online||checks.isFetching} onClick={()=>void checks.refetch()}><RefreshCw size={16}/> Refresh</button>
    </div>
-   <QueryFeedback loading={checks.isPending} error={checks.error}
-    empty={checks.isSuccess&&checks.data.data.length===0}/>
-   {checks.data?.data.map(check=><CheckCard key={hotelId+'-'+check.id} check={check}
-    manager={manager} isCurrentDate={check.inspectionDate===hotelDate} onChanged={refresh}/>) }
-   {checks.data&&<div className="desk-tools">
+   {online&&<QueryFeedback loading={checks.isPending} error={checks.error} onRetry={()=>void checks.refetch()}
+    empty={checks.isSuccess&&checks.data.data.length===0}
+    emptyMessage={!manager&&status==='all'?'No room checks assigned to you for this date.':'No room checks match this view.'}/>}
+   {checks.data&&<div className={manager?undefined:'hk-shift-cards'}>
+    {checks.data.data.map(check=><CheckCard key={hotelId+'-'+check.id} check={check} manager={manager}
+     isCurrentDate={check.inspectionDate===hotelDate} onChanged={refresh}/>)}
+   </div>}
+   {online&&checks.isSuccess&&checks.data.meta.totalPages>1&&<div className="hk-shift-actions">
     <span>Page {checks.data.meta.page} of {Math.max(1,checks.data.meta.totalPages)}</span>
     <div className="desk-date-nav">
      <button className="btn-inline" type="button" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>Previous</button>
@@ -247,7 +258,7 @@ export function OccupancyVerification(){
     </div>
    </div>}
   </Panel>
-  <p className="occ-privacy-footnote"><AlertTriangle size={16}/>
-   This compares staff observations with registered checked-in reservations, not actual payments or independent access logs. A mismatch is a lead for investigation, not proof of fraud. Never enter a guest's room without consent and hotel procedure.</p>
- </>;
+  {manager&&<p className="occ-privacy-footnote"><AlertTriangle size={16}/>
+   This compares staff observations with registered checked-in reservations, not actual payments or independent access logs. A mismatch is a lead for investigation, not proof of fraud. Never enter a guest's room without consent and hotel procedure.</p>}
+ </div>;
 }

@@ -13,6 +13,7 @@ export type TaskView = 'all' | 'mine' | 'active' | 'arrival_today' | 'todo' | 'i
 
 export type WorkspaceFilters = {
  view: TaskView;
+ own: boolean;
  text: string;
  type: keyof typeof taskNames | '';
  assignee: string;
@@ -22,7 +23,7 @@ export type WorkspaceFilters = {
 };
 
 export const defaultWorkspaceFilters: WorkspaceFilters = {
- view: 'all', text: '', type: '', assignee: '', floor: '', room: '', dueDate: '',
+ view: 'all', own: false, text: '', type: '', assignee: '', floor: '', room: '', dueDate: '',
 };
 
 const metrics = [
@@ -112,7 +113,7 @@ export function TaskWorkspace({ filters, change, page, setPage, tasks, overview,
  if (filters.assignee) secondary.push({ key: 'assignee', label: overviewMeta?.assignees?.find(staff => staff.id === filters.assignee)?.name ?? 'Selected employee' });
  if (filters.dueDate) secondary.push({ key: 'dueDate', label: 'Due ' + filters.dueDate });
  const narrowed = !!filters.text.trim() || secondary.length > 0;
- const filtered = narrowed || filters.view !== 'all';
+ const filtered = narrowed || filters.own || filters.view !== 'all';
  const list = online && tasks.isSuccess ? tasks.data : undefined;
  const refresh = () => { void Promise.all([tasks.refetch(), overview.refetch()]); };
 
@@ -127,7 +128,7 @@ export function TaskWorkspace({ filters, change, page, setPage, tasks, overview,
    <div className="hk-overview-grid" role="group" aria-label="Workload filters">
     {metrics.map(({ key, view, label, icon: Icon, tone }) => {
      const count = summary?.[key];
-     return <button key={key} type="button" aria-pressed={filters.view === view} data-tone={count ? tone : 'neutral'}
+     return <button key={key} type="button" aria-pressed={!filters.own && filters.view === view} data-tone={count ? tone : 'neutral'}
       onClick={() => change({ ...defaultWorkspaceFilters, view })}>
       <Icon size={17} aria-hidden="true"/><strong>{count ?? '—'}</strong><span>{label}</span>
      </button>;
@@ -148,7 +149,7 @@ export function TaskWorkspace({ filters, change, page, setPage, tasks, overview,
     <div className="hk-work-views" role="group" aria-label="Task views">
      {(['all', 'mine', 'completed', ...(admin ? ['unassigned'] as const : [])] as const).map(view =>
       <button type="button" key={view} aria-pressed={filters.view === view}
-       onClick={() => change({ view, ...(view === 'mine' || view === 'unassigned' ? { assignee: '' } : {}) })}>
+       onClick={() => change({ view, own:false, ...(view === 'mine' || view === 'unassigned' ? { assignee: '' } : {}) })}>
        {viewLabels[view]}
       </button>)}
     </div>
@@ -168,12 +169,13 @@ export function TaskWorkspace({ filters, change, page, setPage, tasks, overview,
       <option value="">All floors</option>{overviewMeta.floors.map(floor => <option key={floor} value={floor}>{floorLabel(floor)}</option>)}
      </select></label>}
      {!!overviewMeta?.assignees?.length && <label>Assigned employee<select value={filters.assignee}
-      disabled={filters.view === 'mine' || filters.view === 'unassigned'} onChange={event => change({ assignee: event.target.value })}>
+      disabled={filters.own || filters.view === 'mine' || filters.view === 'unassigned'} onChange={event => change({ assignee: event.target.value })}>
       <option value="">All employees</option>{overviewMeta.assignees.map(staff => <option value={staff.id} key={staff.id}>{staff.name}</option>)}
      </select></label>}
      <label>Due date<input type="date" value={filters.dueDate} onChange={event => change({ dueDate: event.target.value })}/></label>
     </div>
     {filtered && <div className="hk-active-filters" aria-label="Active filters">
+     {filters.own && <span>My assigned tasks</span>}
      {filters.view !== 'all' && <span>{viewLabels[filters.view]}</span>}
      {secondary.map(({ key, label }) => <button type="button" key={key} className="btn-inline" aria-label={'Remove filter ' + label}
       onClick={() => change({ [key]: '' })}>{label}<X size={14} aria-hidden="true"/></button>)}
@@ -183,7 +185,7 @@ export function TaskWorkspace({ filters, change, page, setPage, tasks, overview,
    {!online ? <p className="hk-network-alert" role="status">You’re offline. Reconnect to load current tasks.</p> :
     <QueryFeedback loading={tasks.isPending} error={tasks.error} onRetry={() => void tasks.refetch()}/>}
    {list && list.data.length === 0 && <div className="hk-work-empty" role="status">
-    <ClipboardList size={22} aria-hidden="true"/><p>{emptyCopy(filters.view, narrowed, summary)}</p>
+    <ClipboardList size={22} aria-hidden="true"/><p>{emptyCopy(filters.view, narrowed || filters.own, summary)}</p>
     {filters.view === 'active' && !!summary?.inspectionDue &&
      <button type="button" className="btn-inline" onClick={() => change({ ...defaultWorkspaceFilters, view: 'pending_inspection' })}>Open inspections</button>}
    </div>}

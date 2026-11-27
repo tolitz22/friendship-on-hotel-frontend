@@ -15,6 +15,8 @@ import {readSession} from '../api/session';
 import {listHotelStaff} from '../api/liveStaff';
 import {Heading} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
+import {ShiftDialog} from '../features/housekeeping/ShiftDialog';
+import {useNetworkStatus} from '../features/housekeeping/useNetworkStatus';
 import {ReadableAuditEvent} from '../components/ReadableAuditEvent';
 
 const priorities:MaintenancePriority[]=['low','medium','high','urgent'];
@@ -37,10 +39,12 @@ const fromOrder=(order:LiveWorkOrder):Draft=>({
 export function LiveMaintenance(){
  const navigate=useNavigate();
  const openedLink=useRef<string|null>(null);
- const {order:linkedOrder}=useSearch({from:'/maintenance'});
+ const {order:linkedOrder,room:linkedRoom}=useSearch({from:'/maintenance'});
  const {hotelId,user}=useHotelAuth();
  const role=user?.hotels.find(h=>h.id===hotelId)?.role;
  const admin=role==='admin';
+ const housekeeper=role==='housekeeping';
+ const online=useNetworkStatus();
  const canWork=admin||user?.hotels.find(h=>h.id===hotelId)?.permissions?.includes('maintenance.assigned')!==false;
  const property=useLiveProperty();
  const today=hotelToday(new Date(),property.data?.data.timeZone??'Asia/Manila');
@@ -49,7 +53,7 @@ export function LiveMaintenance(){
  const [page,setPage]=useState(1);
  const [statusFilter,setStatusFilter]=useState<MaintenanceStatus|''>('');
  const [priorityFilter,setPriorityFilter]=useState<MaintenancePriority|''>('');
- const [search,setSearch]=useState('');
+ const [search,setSearch]=useState(linkedRoom??'');
  const [mineOnly,setMineOnly]=useState(false);
  const [moreFilters,setMoreFilters]=useState(false);
  const filters:MaintenanceFilters={...(statusFilter?{status:statusFilter}:{}),...(priorityFilter?{priority:priorityFilter}:{}),q:search.trim()||undefined,mine:mineOnly?1:undefined};
@@ -61,7 +65,7 @@ export function LiveMaintenance(){
  // Separate status totals are independent of the queue's selected tab and priority.
  const statusTotals=useQuery({
   queryKey:['live-maintenance-status-totals',hotelId],
-  enabled:!!hotelId,
+  enabled:!!hotelId&&!housekeeper,
   queryFn:async()=>{
    const [open,inProgress,resolved,closed]=await Promise.all([
     listMaintenance(1,1,{status:'open'}),
@@ -73,7 +77,7 @@ export function LiveMaintenance(){
    return {open:totals[0],in_progress:totals[1],resolved:totals[2],closed:totals[3]};
   },retry:false,
  });
- const rooms=useLiveRooms({page:1,perPage:100});
+
  const linked=useQuery({
   queryKey:['live','maintenance-order',hotelId,linkedOrder],
   enabled:!!hotelId&&!!linkedOrder,retry:false,
@@ -81,6 +85,7 @@ export function LiveMaintenance(){
  });
  const [selected,setSelected]=useState<LiveWorkOrder|null>(null);
  const [draft,setDraft]=useState<Draft|null>(null);
+ const rooms=useLiveRooms({page:1,perPage:100},!housekeeper);
  const [saving,setSaving]=useState(false);
  const [error,setError]=useState('');
  const [fieldErrors,setFieldErrors]=useState<Record<string,string[]>>({});
@@ -95,6 +100,7 @@ export function LiveMaintenance(){
   setSelected(null);setDraft(null);setHistoryVisible(false);setError('');setPage(1);
   setStatusFilter('');setPriorityFilter('');setSearch('');setMineOnly(false);setHistoryPage(1);setMoreFilters(false);
  },[hotelId]);
+ useEffect(()=>{setSearch(linkedRoom??'');setPage(1);},[hotelId,linkedRoom]);
  useEffect(()=>{
   if(!linkedOrder){openedLink.current=null;return;}
   const key=hotelId+'-'+linkedOrder;
@@ -111,7 +117,7 @@ export function LiveMaintenance(){
  };
  const close=()=>{
   setDraft(null);setSelected(null);setError('');setHistoryVisible(false);
-  if(linkedOrder)void navigate({to:'/maintenance',search:{},replace:true});
+  if(linkedOrder)void navigate({to:'/maintenance',search:previous=>({...previous,order:undefined}),replace:true});
  };
  const change=<K extends keyof Draft>(field:K,value:Draft[K])=>
   setDraft(current=>current?{...current,[field]:value}:current);
@@ -154,7 +160,8 @@ export function LiveMaintenance(){
    }else setError(caught instanceof Error?caught.message:'Unable to save work order.');
   }finally{setSaving(false);}
  }
- const data=orders.isSuccess?orders.data.data:[];
+ const showOrders=orders.isSuccess&&(!housekeeper||online);
+ const data=showOrders?orders.data.data:[];
  const visible=data;
  const canUpdate=(order:LiveWorkOrder)=>canWork&&mayUpdateMaintenance(order,admin,role,user?.id??null);
  const maySave=admin||(!!selected&&canUpdate(selected));
@@ -163,15 +170,16 @@ export function LiveMaintenance(){
  const assignedName=(order:LiveWorkOrder)=>order.assignedUserId
   ?order.assignedUserId===user?.id?'You':admin?staff.data?.data.find(m=>m.userId===order.assignedUserId)?.name??'Assigned technician':'Assigned technician'
   :order.assignedTo??'Not assigned';
- return <>
+ return <div className={housekeeper?'hk-shift hk-maintenance-reader':undefined}>
   <div className="mnt-page-intro">
-   <div><span className="rr-eyebrow">DAILY OPERATIONS · MAINTENANCE</span>
-    <Heading title="Maintenance" description="Track repairs, identify urgent work, assign technicians and record progress."/></div>
+   {housekeeper?<div className="hk-shift-header"><h2>Room repairs</h2><p>Check repairs that may affect the rooms you service.</p></div>:
+    <Heading title="Maintenance" description="Track repairs, identify urgent work, assign technicians and record progress."/>}
    {admin&&<button type="button" className="btn-primary" onClick={openCreate}><Plus size={16}/> New work order</button>}
   </div>
-  <div className="mnt-guidance"><Info size={18}/><p><strong>Room-impact notes do not automatically block bookings.</strong>
-   For serious defects, managers can mark the room out of order from its open work order.</p></div>
-  <section className="mnt-work-summary" aria-label="Hotel-wide maintenance workload">
+  {housekeeper?<div className="hk-shift-actions"><Link to="/housekeeping" search={{}} className="btn-inline">Open cleaning tasks to report an issue <ArrowRight size={15}/></Link></div>:<div className="mnt-guidance"><Info size={18}/><p><strong>Room-impact notes do not automatically block bookings.</strong>
+   For serious defects, managers can mark the room out of order from its open work order.</p></div>}
+  {housekeeper&&!online&&<p className="hk-network-alert" role="status">You’re offline. Reconnect to see current repairs.</p>}
+  {!housekeeper&&<section className="mnt-work-summary" aria-label="Hotel-wide maintenance workload">
    <div className="mnt-work-heading">
     <div><span className="rr-eyebrow">HOTEL-WIDE WORK ORDERS</span><h3>Maintenance workload</h3>
      <p>These counts cover the hotel, even when you switch the queue's status or priority filters.</p></div>
@@ -187,11 +195,12 @@ export function LiveMaintenance(){
    </div>
    {statusTotals.isError&&<div className="mnt-total-error" role="status">Workload totals could not be loaded.
     <button type="button" className="btn-inline" onClick={()=>void statusTotals.refetch()}>Retry totals</button></div>}
-  </section>
+  </section>}
   <section className="mnt-queue-section" aria-labelledby="mnt-queue-title">
    <div className="mnt-queue-head"><div><h3 id="mnt-queue-title">Maintenance work queue</h3>
-    <p>Review reported problems and open work orders to update them.</p></div>
-    <span>{orders.isSuccess?orders.data.meta.total:'—'} work orders match these filters</span>
+    {!housekeeper&&<p>Review reported problems and open work orders to update them.</p>}</div>
+    {showOrders&&<span>{orders.data.meta.total} {orders.data.meta.total===1?'work order':'work orders'}</span>}
+    {housekeeper&&<button type="button" className="btn-inline" disabled={!online||orders.isFetching} onClick={()=>void orders.refetch()}><RefreshCcw size={15} aria-hidden="true"/> Refresh</button>}
    </div>
    <div className="mnt-queue-filters">
     <div className="mnt-queue-tabs" role="group" aria-label="Maintenance status">
@@ -209,22 +218,22 @@ export function LiveMaintenance(){
       <option value="">All priorities</option>
       {priorities.map(priority=><option value={priority} key={priority}>{priorityLabels[priority]}</option>)}
      </select></label>
-     {user&&<label className="mnt-mine-filter"><input type="checkbox" checked={mineOnly}
+     {user&&!housekeeper&&<label className="mnt-mine-filter"><input type="checkbox" checked={mineOnly}
       onChange={event=>{setPage(1);setMineOnly(event.target.checked);}}/> My orders</label>}
      {hasFilters&&<button type="button" className="mnt-clear-filters" onClick={clearFilters}><X size={15}/> Clear filters</button>}
     </div>
    </div>
    {linkedOrder&&<QueryFeedback loading={linked.isPending} error={linked.error} onRetry={()=>void linked.refetch()}/>}
-   <QueryFeedback loading={orders.isPending} error={orders.error} onRetry={()=>void orders.refetch()}
+   {(!housekeeper||online)&&<QueryFeedback loading={orders.isPending} error={orders.error} onRetry={()=>void orders.refetch()}
     empty={orders.isSuccess&&visible.length===0}
-    emptyMessage={hasFilters?'No work orders match these filters.':'No work orders have been recorded. An administrator can create the first one.'}/>
-   {orders.isSuccess&&visible.length>0&&<div className="mnt-work-grid">
+    emptyMessage={hasFilters?'No work orders match these filters.':'No work orders have been recorded.'}/>}
+   {showOrders&&visible.length>0&&<div className="mnt-work-grid">
     {visible.map(order=>{
      const editable=canUpdate(order);
      const action=editable?order.status==='open'?'Start or update work':order.status==='in_progress'?'Update repair progress':order.status==='resolved'?'Review and close':'View closed order':'View work order';
      return <article className={'mnt-work-card'+(order.priority==='urgent'&&order.status!=='closed'?' mnt-urgent-card':'')} key={order.id}>
       <div className="mnt-work-card-head">
-       <div><small>WO-{order.id} · Room {order.roomNumber}</small><h4>{order.title}</h4></div>
+       <div><small>{housekeeper?'Room '+order.roomNumber:'WO-'+order.id+' · Room '+order.roomNumber}</small><h4>{order.title}</h4></div>
        <span className={'mnt-priority mnt-priority-'+order.priority}>{priorityLabels[order.priority]}</span>
       </div>
       <p className="mnt-work-description">{order.description}</p>
@@ -233,7 +242,7 @@ export function LiveMaintenance(){
        <span><UserRound size={15}/>{assignedName(order)}</span>
       </div>
       {order.affectsRoom&&<p className="mnt-impact-advisory"><ShieldAlert size={16}/>
-       Room affected · check separate room restrictions before booking</p>}
+       {housekeeper?'May affect room readiness. Check Room status.':'Room affected · check separate room restrictions before booking'}</p>}
       {admin&&hotelId&&(order.status==='open'||order.status==='in_progress')&&
        <RoomOutOfOrderForm key={hotelId+'-'+order.id} order={order} hotelId={hotelId} today={today}/>}
       {order.status==='resolved'&&<p className="mnt-completion-advisory"><CheckCircle2 size={15}/> Repair marked resolved; review before closing.</p>}
@@ -243,13 +252,31 @@ export function LiveMaintenance(){
      </article>;
     })}
    </div>}
-   {orders.isSuccess&&orders.data.meta.totalPages>1&&<div className="mnt-queue-pagination">
+   {showOrders&&orders.data.meta.totalPages>1&&<div className="mnt-queue-pagination">
     <span>Page {orders.data.meta.page} of {orders.data.meta.totalPages} · {visible.length} shown</span>
     <div><button type="button" className="btn-inline" disabled={page<=1} onClick={()=>setPage(v=>Math.max(1,v-1))}>Previous</button>
      <button type="button" className="btn-inline" disabled={page>=orders.data.meta.totalPages} onClick={()=>setPage(v=>v+1)}>Next</button></div>
    </div>}
   </section>
-  {draft&&<div className="guest-modal-backdrop" role="presentation">
+  {housekeeper&&selected&&<ShiftDialog title={selected.title} context={'Room '+selected.roomNumber+' · WO-'+selected.id} onClose={close}
+   actions={<Link to="/rooms" search={{room:selected.roomNumber}} className="btn-inline">Check room status <ArrowRight size={15}/></Link>}>
+   <div className="hk-shift">
+    <dl className="hk-shift-details">
+     <div><dt>Repair status</dt><dd>{statusLabels[selected.status]}</dd></div>
+     <div><dt>Priority</dt><dd>{priorityLabels[selected.priority]}</dd></div>
+     <div><dt>Issue reported</dt><dd>{selected.description}</dd></div>
+     {selected.affectsRoom&&<div><dt>Room impact</dt><dd>Check Room status for current restrictions.</dd></div>}
+    </dl>
+    <div className="hk-shift-actions"><button type="button" className="btn-inline" aria-expanded={historyVisible} onClick={()=>setHistoryVisible(value=>!value)}><History size={15} aria-hidden="true"/> Repair history</button></div>
+    {historyVisible&&<section aria-label="Repair activity">
+     <QueryFeedback loading={history.isPending} error={history.error} onRetry={()=>void history.refetch()} empty={history.isSuccess&&!history.data.data.length} emptyMessage="No repair activity recorded."/>
+     {history.isSuccess&&history.data.data.map(event=><ReadableAuditEvent key={event.id} event={event} currentUserId={user?.id} currentUserName={user?.name}/>)}
+     {history.isSuccess&&history.data.meta.totalPages>1&&<div className="hk-shift-actions"><button type="button" className="btn-inline" disabled={historyPage<=1} onClick={()=>setHistoryPage(value=>value-1)}>Newer</button>
+      <button type="button" className="btn-inline" disabled={historyPage>=history.data.meta.totalPages} onClick={()=>setHistoryPage(value=>value+1)}>Older</button></div>}
+    </section>}
+   </div>
+  </ShiftDialog>}
+  {!housekeeper&&draft&&<div className="guest-modal-backdrop" role="presentation">
    <section className="guest-modal ops-mobile-editor" role="dialog" aria-modal="true" aria-labelledby="maintenance-title">
     <div className="catalog-modal-heading"><h3 id="maintenance-title">{selected?'Work order WO-'+selected.id+' · Room '+selected.roomNumber:'Create work order'}</h3>
      <button className="icon-btn" type="button" disabled={saving} onClick={close} aria-label="Close"><X size={19}/></button></div>
@@ -305,5 +332,5 @@ export function LiveMaintenance(){
     </div>}
    </section>
   </div>}
- </>;
+ </div>;
 }

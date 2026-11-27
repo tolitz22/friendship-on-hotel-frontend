@@ -1,3 +1,5 @@
 # Super-admin system monitoring
 
 Dedicated platform operators sign in with their separate account, then enter /super-admin automatically. Hotel membership accounts do not gain this privilege. The UI never calls Grafana directly, and no Grafana secrets belong in VITE variables. The backend controls access and read credentials. Read-only sampled metrics, environment/role/range filters, UUID lookup, slow routes, warning/error trend and paginated events are supported. No live data or mock totals are displayed when the source is unavailable. Up to 500 exported records per query; INFO export is required for routine request telemetry. No uptime claim or complete totals. See backend docs/LOG_8_PLATFORM_MONITORING.md for setup.
+
+LOG-8.1: dashboard count cards, P95 and warning/error trend use a separate full-window aggregate endpoint. The recent event list and slow route rankings remain limited to the most recent 500 records. Partial/unavailable metrics display unavailable, not sample counts or fabricated zeros. The existing backend read connection and filters are reused.

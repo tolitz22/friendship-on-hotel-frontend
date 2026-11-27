@@ -4204,3 +4204,13 @@ dialog.no-show-dialog::backdrop { background: rgb(0 0 0 / 45%); }
 .hk-board-room .btn-inline{min-height:44px;justify-content:space-between}
 @media(max-width:760px){.hk-board-summary,.hk-board-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.hk-board-room,.hk-board-summary-card{padding:10px}.hk-board-controls label{width:100%}.hk-board-controls input,.hk-board-controls select{flex:1}}
 @media(max-width:360px){.hk-board-grid{grid-template-columns:1fr}}
+
+/* HK-06 — issue and custody records */
+.hk-report-panel{border:1px solid #cbd5e1;border-radius:12px;padding:14px;display:grid;gap:12px;min-width:0}
+.hk-report-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.hk-report-form{display:grid;gap:12px;min-width:0}
+.hk-report-form label{display:grid;gap:5px;font-weight:500}
+.hk-report-form input:not([type=checkbox]),.hk-report-form textarea,.hk-report-form select{width:100%;min-height:44px;box-sizing:border-box}
+.hk-report-form .hk-report-check{display:flex;align-items:center;gap:8px;min-height:44px}
+.hk-custody-event{display:grid;gap:4px;border-top:1px solid #cbd5e1;padding:10px 0}
+@media(max-width:760px){.hk-report-actions .btn-inline{min-height:44px}.hk-report-form .btn-primary{width:100%;min-height:44px}}

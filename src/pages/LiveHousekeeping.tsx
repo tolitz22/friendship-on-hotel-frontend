@@ -4,6 +4,7 @@ import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {Link,useNavigate,useSearch} from '@tanstack/react-router';
 import {AlertTriangle,ArrowRight,CheckCircle2,ClipboardCheck,Clock3,History,Info,Plus,RefreshCcw,Search,ShieldAlert,UserRound,X} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
+import {HousekeepingIssueReport} from '../components/HousekeepingIssueReport';
 import {useLiveRooms,useLiveProperty} from '../api/liveCatalogQueries';
 import {hotelToday} from '../features/reservations/calendarDate';
 import {readableDate} from '../lib/format';
@@ -418,6 +419,7 @@ export function LiveHousekeeping(){
    <div className="catalog-modal-heading"><h3 id="hk-dialog-title">{selected?'Housekeeping task HK-'+selected.id:'Create housekeeping task'}</h3>
     <button type="button" className="icon-btn" aria-label="Close" disabled={saving} onClick={close}><X size={19}/></button></div>
    <div className="hk-dialog-guide"><Info size={17}/><p><strong>One task, two stages.</strong> Save cleaning progress, then finish the final inspection below. Maintenance and inventory checks still apply.</p></div>
+   {selected&&maySave&&hotelId&&<HousekeepingIssueReport key={hotelId+':'+selected.id} hotelId={hotelId} task={selected} disabled={saving}/>}
    {selected&&<>
     <QueryFeedback loading={maintenance.isPending} error={maintenance.error}/>
     {maintenance.isSuccess&&<>

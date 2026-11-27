@@ -2,18 +2,18 @@ import type {StaffHotel} from '../../api/auth';
 
 export type HotelRole='admin'|'front_desk'|'housekeeping'|'maintenance';
 export type WorkspacePath='/messages'|'/'|'/front-desk'|'/reservations'|'/room-calendar'|
- '/rooms'|'/group-reservations'|'/guests'|'/housekeeping'|'/maintenance'|'/billing'|'/cashier-shifts'|
+ '/rooms'|'/group-reservations'|'/guests'|'/housekeeping'|'/lost-found'|'/maintenance'|'/billing'|'/cashier-shifts'|
  '/rate-calendar'|'/my-expense-claims'|'/expenses'|'/reports'|'/operational-exceptions'|'/manager-approvals'|'/settings'|'/staff'|
  '/occupancy-verification'|'/occupancy-coverage'|'/night-audit'|'/tax-policies'|'/folio-night-accounting'|'/change-password'|'/reservation-demand'|'/reservation-policy'|'/reservation-simulation';
 
-const allDaily:WorkspacePath[]=['/','/front-desk','/reservations','/group-reservations','/room-calendar','/rooms','/guests','/housekeeping','/maintenance','/billing','/cashier-shifts','/occupancy-verification','/occupancy-coverage'];
+const allDaily:WorkspacePath[]=['/','/front-desk','/reservations','/group-reservations','/room-calendar','/rooms','/guests','/housekeeping','/lost-found','/maintenance','/billing','/cashier-shifts','/occupancy-verification','/occupancy-coverage'];
 const allManagement:WorkspacePath[]=['/rate-calendar','/expenses','/night-audit','/tax-policies','/folio-night-accounting','/reports','/operational-exceptions','/manager-approvals','/settings','/staff','/change-password'];
 const allAdvanced:WorkspacePath[]=['/reservation-demand','/reservation-policy','/reservation-simulation'];
 const roleNav:Record<HotelRole,{daily:WorkspacePath[];management:WorkspacePath[];advanced:WorkspacePath[];label:string}>={
  admin:{daily:[...allDaily,'/messages'],management:allManagement,advanced:allAdvanced,label:'Manager'},
  front_desk:{daily:['/','/messages','/front-desk','/reservations','/room-calendar','/rooms','/guests','/billing','/cashier-shifts'],
   management:['/my-expense-claims','/change-password'],advanced:[],label:'Reception'},
- housekeeping:{daily:['/','/messages','/housekeeping','/rooms','/maintenance','/occupancy-verification'],
+ housekeeping:{daily:['/','/messages','/housekeeping','/rooms','/maintenance','/lost-found','/occupancy-verification'],
   management:['/my-expense-claims','/change-password'],advanced:[],label:'Housekeeping'},
  maintenance:{daily:['/','/messages','/maintenance','/rooms','/housekeeping'],
   management:['/my-expense-claims','/change-password'],advanced:[],label:'Maintenance'},

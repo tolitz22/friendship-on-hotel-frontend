@@ -42,6 +42,7 @@ import {Billing} from './pages/Billing';
 import {FrontDesk} from './pages/FrontDesk';
 import {Maintenance} from './pages/Maintenance';
 import {LiveMaintenance} from './pages/LiveMaintenance';
+import {LostFound} from './pages/LostFound';
 const Reports=React.lazy(async()=>({default:(await import('./pages/Reports')).Reports}));
 import {Settings} from './pages/Settings';import './styles.css';
 import {normalizeBillingBookingId} from './features/billing/bookingLink';
@@ -157,6 +158,7 @@ const functionalRoutes=[
    hotel:normalizeBillingBookingId(value.hotel),push:normalizeBillingBookingId(value.push)==='1'?'1':undefined,
    task:normalizeBillingBookingId(value.task),
   }),component:dataMode==='api'?LiveHousekeeping:Housekeeping}),
+ createRoute({getParentRoute:()=>root,path:'/lost-found',component:LostFound,validateSearch:(value:Record<string,unknown>):{room?:string}=>({room:normalizeBillingBookingId(value.room)})}),
  createRoute({getParentRoute:()=>root,path:'/maintenance',
   validateSearch:(value:Record<string,unknown>):{order?:string;hotel?:string;push?:string}=>({
    hotel:normalizeBillingBookingId(value.hotel),push:normalizeBillingBookingId(value.push)==='1'?'1':undefined,

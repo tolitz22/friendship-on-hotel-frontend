@@ -26,6 +26,7 @@ const daily=[
  {to:'/rooms' as const,label:'Rooms & readiness',icon:BedDouble},
  {to:'/guests' as const,label:'Guests',icon:Users},
  {to:'/housekeeping' as const,label:'Housekeeping',icon:ClipboardCheck},
+ {to:'/lost-found' as const,label:'Lost & found',icon:ClipboardList},
  {to:'/maintenance' as const,label:'Maintenance',icon:Wrench},
  {to:'/billing' as const,label:'Billing',icon:Wallet},
  {to:'/cashier-shifts' as const,label:'Cashier shifts',icon:Wallet},
@@ -158,7 +159,7 @@ export function AppShell(){
  if(dataMode==='api'&&!hotelId)return <HotelChooser/>;
 
  const renderNav=(items:readonly NavItem[],section:'daily'|'management'|'advanced')=>items
-  .filter(item=>dataMode==='api'||!['/change-password','/staff','/expenses','/my-expense-claims','/messages'].includes(item.to))
+  .filter(item=>dataMode==='api'||!['/change-password','/staff','/expenses','/my-expense-claims','/messages','/lost-found'].includes(item.to))
   .filter(item=>dataMode!=='api'||(
    canViewWorkspacePath(role,item.to,effectivePermissions)&&(
    section==='daily'?workspace.daily.includes(item.to):

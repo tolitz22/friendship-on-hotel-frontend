@@ -7,7 +7,7 @@ export type MaintenanceStatus='open'|'in_progress'|'resolved'|'closed';
 export interface LiveWorkOrder{
  id:string;hotelId:string;roomId:string;roomNumber:string;title:string;description:string;
  priority:MaintenancePriority;status:MaintenanceStatus;assignedTo:string|null;assignedUserId:string|null;affectsRoom:boolean;
- revision:number;reportedAt:string;resolvedAt:string|null;
+ revision:number;reportedAt:string;resolvedAt:string|null;housekeepingTaskId?:string|null;
 }
 export interface MaintenanceEvent{
  id:string;actorId:string;actorName?:string|null;action:string;before:Record<string,unknown>|null;
@@ -47,7 +47,7 @@ const workOrder=z.object({
  status:z.enum(['open','in_progress','resolved','closed']),
  assignedTo:z.string().nullable(),assignedUserId:id.nullable(),
  affectsRoom:z.boolean(),revision:z.number().int().positive(),
- reportedAt:z.string(),resolvedAt:z.string().nullable(),
+ reportedAt:z.string(),resolvedAt:z.string().nullable(),housekeepingTaskId:id.nullable().optional(),
 });
 const pagination=z.object({
  page:z.number().int().positive(),perPage:z.number().int().positive(),
@@ -100,4 +100,12 @@ export async function fetchMaintenanceOrder(orderId:string):Promise<LiveWorkOrde
  if(!hotelId)throw new Error('Select a hotel before opening maintenance.');
  const payload=await getJson<unknown>(hotelPath('/maintenance-work-orders/'+encodeURIComponent(orderId)));
  return parseUpdatedMaintenance(payload,hotelId,orderId);
+}
+
+export async function reportHousekeepingMaintenance(hotelId:string,taskId:string,roomId:string,body:{title:string;description:string;priority:MaintenancePriority;affectsRoom:boolean;requestKey:string}){
+ if(readSession().hotelId!==hotelId)throw new Error('Hotel changed. Reload the task.');
+ const result=z.object({data:workOrder}).parse(await requestJson<unknown>(
+  hotelPath('/housekeeping-tasks/'+encodeURIComponent(taskId)+'/maintenance-report'),{method:'POST',body})).data;
+ if(result.hotelId!==hotelId||result.roomId!==roomId||result.housekeepingTaskId!==taskId)throw new Error('Maintenance report does not match the task.');
+ return result;
 }

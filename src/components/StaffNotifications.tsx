@@ -1,4 +1,5 @@
 import {useRef,useState} from 'react';
+import {HousekeepingAssignmentAlert} from './HousekeepingAssignmentAlert';
 import {createPortal} from 'react-dom';
 import {Link} from '@tanstack/react-router';
 import {useQuery} from '@tanstack/react-query';
@@ -95,7 +96,9 @@ export function StaffNotifications({hotelId,userId,canPush=false,promptHost,hous
   },
   retry:false,
   staleTime:15_000,
-  refetchInterval:housekeeping||open?30_000:60_000,
+  refetchInterval:housekeeping?10_000:open?30_000:60_000,
+  refetchOnWindowFocus:'always',
+  refetchOnReconnect:'always',
   refetchIntervalInBackground:false,
  });
  const access=useQuery({queryKey:['push-access',hotelId,userId,housekeeping],enabled:!canPush,queryFn:async()=>z.object({data:z.object({allowed:z.boolean()})}).parse(await getJson<unknown>('/hotels/'+encodeURIComponent(hotelId)+'/push-access')).data.allowed,retry:false,staleTime:30_000,refetchInterval:60_000});
@@ -114,8 +117,9 @@ export function StaffNotifications({hotelId,userId,canPush=false,promptHost,hous
   try{localStorage.setItem(storageKey,JSON.stringify(updated));}catch{/* Remain usable in memory. */}
  }
  return <>
-  {canPush&&promptHost&&createPortal(<PushPermissionPrompt userId={userId} hotelId={hotelId} active={!open} onSettings={()=>{dialog.current?.showModal();setSettings(true);setOpen(true);}}/>,promptHost)}
-  <button ref={bell} type="button" className={'icon-btn topbar-action-notifications'+(urgent?' has-urgent':'')}
+  {housekeeping&&<HousekeepingAssignmentAlert key={storageKey} scope={storageKey} alerts={feed.isSuccess?items.filter(item=>item.kind==='hk_assigned'||item.kind==='hk_arrival_urgent'||item.kind==='hk_overdue'):undefined} read={read} onRead={markRead} dialogOpen={open}/>}
+  {pushEnabled&&promptHost&&createPortal(<PushPermissionPrompt userId={userId} hotelId={hotelId} active={!open} onSettings={()=>{dialog.current?.showModal();setSettings(true);setOpen(true);}}/>,promptHost)}
+  <button ref={bell} type="button" className={'icon-btn topbar-action-notifications'+(urgent?' has-urgent':'')+(unread?' has-unread':'')}
    aria-label={unread?`Notifications, ${unread} unread`:'Notifications'} aria-haspopup="dialog"
    onClick={()=>{dialog.current?.showModal();setOpen(true);void feed.refetch();}}>
    <Bell size={19}/>{unread>0&&<span className="staff-notifications-badge" aria-hidden="true">{unread}</span>}

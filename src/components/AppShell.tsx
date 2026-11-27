@@ -264,7 +264,7 @@ export function AppShell(){
     </>}
    </div>}
    <div className="page-content">
-    {admin&&<div ref={setNotificationPromptHost}/>}
+    {dataMode==='api'&&(admin||role==='housekeeping'||role==='front_desk')&&<div ref={setNotificationPromptHost}/>}
     {dataMode==='api'&&role==='housekeeping'&&pathname==='/'&&<HousekeepingInstallHelp/>}
     {dataMode==='api'&&!canViewWorkspacePath(role,pathname,effectivePermissions)
      ?<section className="panel" role="alert" aria-label="Page access denied">

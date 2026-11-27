@@ -24,7 +24,7 @@ export function StaffSignIn(){
    <button type="submit" className="btn-primary" disabled={pending}><LogIn size={16}/>{pending?'Signing in…':'Sign in'}</button>
   </form>
   <p className="auth-footnote"><Link to="/forgot-password">Forgot your password?</Link></p>
-  <p className="auth-footnote"><LockKeyhole size={14}/>{isCookieAuth()?'Your sign-in is protected. Always sign out when using a shared computer.' :import.meta.env.VITE_AUTH_PERSISTENCE!=='memory'?'This tab remembers your login across refreshes. Closing the tab ends local access; always sign out on shared devices.':'For your security, refreshing this page signs you out.'}</p>
+  <p className="auth-footnote"><LockKeyhole size={14}/>{isCookieAuth()?'Your secure session can stay active across refreshes and browser restarts until it expires. Always sign out on shared devices.' :import.meta.env.VITE_AUTH_PERSISTENCE!=='memory'?'This tab remembers your login across refreshes. Closing the tab ends local access; always sign out on shared devices.':'For your security, refreshing this page signs you out.'}</p>
   <p className="auth-footnote">Your access and records are limited to the hotel you select. Some billing and management tasks are handled in separate sections.</p>
  </div></div>;
 }

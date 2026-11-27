@@ -1,181 +1,94 @@
 import {useEffect,useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import {Link} from '@tanstack/react-router';
-import {
- ArrowRight,BedDouble,Building2,CalendarDays,CalendarPlus,CheckCircle2,
- ClipboardCheck,Clock3,Hotel,Layers3,RefreshCw,ShieldAlert,
- UserRound,Wallet,Wrench,LogIn,LogOut,Users,ChevronRight,AlertTriangle,
-} from 'lucide-react';
+import {AlertTriangle,ArrowRight,BedDouble,CalendarPlus,CheckCircle2,ChevronRight,ClipboardCheck,Clock3,DoorOpen,Hotel,Layers3,LogIn,LogOut,Receipt,RefreshCw,ShieldAlert,Users,Wallet,Wrench} from 'lucide-react';
 import {useLiveCatalogSummary,useLiveProperty} from '../api/liveCatalogQueries';
 import {useLiveManifest} from '../api/liveFrontDesk';
+import {useRoomRack} from '../api/roomRack';
+import {useOperationalExceptions} from '../api/operationalExceptions';
+import {useApprovalRequests} from '../api/managerApprovals';
+import {listMaintenance,parseLiveMaintenance} from '../api/liveMaintenance';
 import {useHotelAuth} from '../components/AuthProvider';
-import {selectedRole,navigationForRole,type WorkspacePath} from '../features/workspaces/roleNavigation';
+import {recommendedDeskAction} from '../features/front-desk/deskActions';
+import {dayHeading,hotelToday} from '../features/reservations/calendarDate';
 import {QueryFeedback} from '../components/QueryFeedback';
-import {hotelToday} from '../features/reservations/calendarDate';
-import {dateLabel} from '../lib/format';
+import './AdminOverview.css';
 
-type Shortcut={to:WorkspacePath;title:string;hint:string;icon:typeof Hotel};
-const actions:Shortcut[]=[
- {to:'/front-desk',title:'Open front desk',hint:'Arrivals, departures and check-ins',icon:Hotel},
- {to:'/reservations',title:'New booking',hint:'Create or manage a guest booking',icon:CalendarPlus},
- {to:'/room-calendar',title:'Room calendar',hint:'See bookings by room and date',icon:CalendarDays},
- {to:'/housekeeping',title:'Housekeeping',hint:'Assigned cleaning and room inspections',icon:ClipboardCheck},
- {to:'/maintenance',title:'Maintenance',hint:'Work orders and reported issues',icon:Wrench},
- {to:'/guests',title:'Guest directory',hint:'Find existing or register new guests',icon:UserRound},
- {to:'/cashier-shifts',title:'Cashier shifts',hint:'Reconcile drawer and receipts',icon:Wallet},
- {to:'/operational-exceptions',title:'Review exceptions',hint:'Investigate mismatches and alerts',icon:ShieldAlert},
-];
-const rolePrimary:Record<string,WorkspacePath>={
- admin:'/front-desk',front_desk:'/front-desk',housekeeping:'/housekeeping',maintenance:'/maintenance',
-};
-function DeskSummary({date}:{date:string}){
- const arrivals=useLiveManifest(date,'arrivals',1,5);
- const departures=useLiveManifest(date,'departures',1,5);
- const inHouse=useLiveManifest(date,'in_house',1,5);
- const overdue=useLiveManifest(date,'overdue',1,5);
- const ready=arrivals.isSuccess&&departures.isSuccess&&inHouse.isSuccess&&overdue.isSuccess;
- const failed=arrivals.error??departures.error??inHouse.error??overdue.error;
- const refresh=()=>{void arrivals.refetch();void departures.refetch();void inHouse.refetch();void overdue.refetch();};
- const queueCount=(query:typeof arrivals)=>query.isSuccess?query.data.meta.total:query.isPending?'Loading…':'Unavailable';
- return <section className="ov-section" aria-labelledby="ov-desk-title">
-  <div className="ov-section-heading">
-   <div><span className="ov-kicker">LIVE OPERATIONS</span><h3 id="ov-desk-title">Front desk today</h3>
-    <p>Reservation queues for {dateLabel(date)} · hotel-local date</p></div>
-   <button type="button" className="ov-icon-button" onClick={refresh}
-    disabled={arrivals.isFetching||departures.isFetching||inHouse.isFetching||overdue.isFetching}
-    aria-label="Refresh front desk queues" title="Refresh queues"><RefreshCw size={16}/></button>
-  </div>
-  {failed&&<QueryFeedback loading={false} error={failed} onRetry={refresh}/>}
-  {overdue.isSuccess&&(overdue.data.meta.queueTotal??overdue.data.meta.total)>0&&
-   <Link to="/front-desk" search={{queue:'overdue'}} className="ov-overdue-priority"
-    aria-label={'Review '+(overdue.data.meta.queueTotal??overdue.data.meta.total)+' overdue checkouts'}>
-    <span className="ov-overdue-priority-icon"><AlertTriangle size={22}/></span>
-    <span><strong>{overdue.data.meta.queueTotal??overdue.data.meta.total} overdue checkout{(overdue.data.meta.queueTotal??overdue.data.meta.total)===1?'':'s'}</strong>
-     <small>Requires follow-up · confirm guest departure or extend stay</small></span>
-    <span className="ov-overdue-priority-action">Review now <ArrowRight size={15}/></span>
-   </Link>}
-  <div className="ov-queue-grid">
-   <Link to="/front-desk" search={{queue:'arrivals'}} className="ov-queue-card" aria-label="View expected arrivals">
-    <span className="ov-queue-icon"><LogIn size={19}/></span><span>Expected arrivals</span>
-    <strong>{queueCount(arrivals)}</strong><small>Confirmed stays due today</small><ArrowRight size={16} className="ov-queue-arrow"/>
-   </Link>
-   <Link to="/front-desk" search={{queue:'departures'}} className="ov-queue-card" aria-label="View due departures">
-    <span className="ov-queue-icon"><LogOut size={19}/></span><span>Due departures</span>
-    <strong>{queueCount(departures)}</strong><small>In-house stays due today</small><ArrowRight size={16} className="ov-queue-arrow"/>
-   </Link>
-   <Link to="/front-desk" search={{queue:'overdue'}} className={'ov-queue-card ov-queue-overdue'+(overdue.isSuccess&&(overdue.data.meta.queueTotal??overdue.data.meta.total)>0?' has-overdue':'')}
-    aria-label="View overdue checkouts">
-    <span className="ov-queue-icon"><AlertTriangle size={19}/></span><span>Overdue checkouts</span>
-    <strong>{queueCount(overdue)}</strong><small>Past the hotel departure cutoff</small><ArrowRight size={16} className="ov-queue-arrow"/>
-   </Link>
-   <Link to="/front-desk" search={{queue:'in_house'}} className="ov-queue-card" aria-label="View in-house reservations">
-    <span className="ov-queue-icon"><Users size={19}/></span><span>In-house reservations</span>
-    <strong>{queueCount(inHouse)}</strong><small>Registered in-house stays</small><ArrowRight size={16} className="ov-queue-arrow"/>
-   </Link>
-  </div>
-  {ready&&<p className="ov-data-note"><CheckCircle2 size={14}/> Live reservation counts, not independently verified physical occupancy or room availability.</p>}
- </section>;
+function eventLabel(value:string){return value.replace(/[_-]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase());}
+function activityTime(value:string,zone:string){
+ const date=new Date(value);
+ return Number.isNaN(date.getTime())?value:new Intl.DateTimeFormat('en-PH',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZone:zone}).format(date);
 }
 export function LiveDashboard(){
  const {hotelId,user}=useHotelAuth();
- const role=selectedRole(user?.hotels,hotelId);
- const workspace=navigationForRole(role);
- const permitted=new Set([...workspace.daily,...workspace.management,...workspace.advanced]);
- const primary=rolePrimary[role??'']??'/rooms';
- const catalog=useLiveCatalogSummary();
  const property=useLiveProperty();
- const [showAll,setShowAll]=useState(false);
- useEffect(()=>setShowAll(false),[hotelId]);
- const data=catalog.isError?undefined:catalog.data?.data;
- const today=hotelToday(new Date(),property.data?.data.timeZone??'Asia/Manila');
- const shortcuts=actions.filter(item=>permitted.has(item.to));
- const visible=showAll?shortcuts:shortcuts.slice(0,6);
- const catalogLoading=catalog.isPending&&!catalog.isError;
- const propertyLoading=property.isPending&&!property.isError;
- const canDesk=role==='admin'||role==='front_desk';
- return <div className="ov-page">
-  <section className="ov-hero" aria-label="Hotel operations welcome">
-   <div className="ov-hero-main">
-    <div className="ov-hero-tag"><span className="ov-live-dot"/> HOTEL WORKSPACE <span className="ov-hero-tag-divider">/</span> {workspace.label.toUpperCase()}</div>
-    <h2>Good day, {user?.name?.trim().split(/\s+/)[0]||'team'}.</h2>
-    <p>Here's your starting point for hotel operations. Choose your next task or review what needs attention.</p>
-    <div className="ov-hero-actions">
-     <Link to={primary} className="ov-action-primary">
-      {canDesk?'Open front desk':role==='housekeeping'?'View cleaning tasks':role==='maintenance'?'View work orders':'Open room inventory'} <ArrowRight size={17}/>
-     </Link>
-     {permitted.has('/room-calendar')&&<Link to="/room-calendar" className="ov-action-secondary">View room calendar</Link>}
+ const zone=property.data?.data.timeZone??'Asia/Manila';
+ const today=hotelToday(new Date(),zone);
+ const catalog=useLiveCatalogSummary();
+ const arrivals=useLiveManifest(today,'arrivals',1,5);
+ const departures=useLiveManifest(today,'departures',1,5);
+ const inHouse=useLiveManifest(today,'in_house',1,1);
+ const overdue=useLiveManifest(today,'overdue',1,1);
+ const rack=useRoomRack(1,1,1,true,30000);
+ const exceptions=useOperationalExceptions(7);
+ const approvals=useApprovalRequests({enabled:true,status:'pending'});
+ const maintenance=useQuery({queryKey:['live','overview-maintenance',hotelId],enabled:!!hotelId,
+  queryFn:async()=>{const results=await Promise.all([listMaintenance(1,1,{status:'open'}),listMaintenance(1,1,{status:'in_progress'})]);return results.reduce((total,result)=>total+parseLiveMaintenance(result,hotelId!).meta.total,0);},
+  retry:false,refetchInterval:60000,refetchIntervalInBackground:false});
+ const [tab,setTab]=useState<'arrivals'|'departures'>('arrivals');
+ useEffect(()=>setTab('arrivals'),[hotelId]);
+ const summary=rack.isSuccess&&rack.data.data.hotelDate===today?rack.data.data.summary:undefined;
+ const occupancy=summary&&summary.totalRooms>0?Math.round(summary.pmsOccupiedRooms/summary.totalRooms*100):null;
+ const count=(query:typeof arrivals)=>query.isSuccess?query.data.meta.queueTotal??query.data.meta.total:undefined;
+ const urgent=count(overdue);
+ const current=tab==='arrivals'?arrivals:departures;
+ const activity=exceptions.isSuccess?exceptions.data.data.activity.slice().sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,5):[];
+ const refresh=()=>{for(const query of [property,catalog,arrivals,departures,inHouse,overdue,rack,exceptions,approvals,maintenance])void query.refetch();};
+ const pending=[property,arrivals,departures,overdue,rack,exceptions,approvals,maintenance].some(q=>q.isFetching);
+ const unavailable=[property,arrivals,departures,inHouse,overdue,rack,exceptions,approvals,maintenance].some(q=>q.isError);
+ return <div className="ao-page">
+  <header className="ao-heading"><div><h2>Overview</h2><p>{dayHeading(today)} · {today.slice(0,4)}</p></div><button type="button" className="icon-btn ao-refresh" aria-label="Refresh overview" disabled={pending} onClick={refresh}><RefreshCw size={18}/></button></header>
+  {unavailable&&<div className="ao-unavailable" role="status">Some figures are unavailable. <button type="button" onClick={refresh}>Retry</button></div>}
+  <section className="ao-metrics" aria-label="Hotel overview">
+   <Link to="/rooms" className="ao-metric"><span className="ao-icon ao-orange"><BedDouble size={23}/></span><span><small>Occupied in PMS</small><strong>{summary?.pmsOccupiedRooms??'—'}{summary&&<small> / {summary.totalRooms}</small>}</strong></span></Link>
+   <Link to="/rooms" className="ao-metric"><span className="ao-icon"><DoorOpen size={23}/></span><span><small>Vacant in PMS</small><strong>{summary?.pmsVacantRooms??'—'}</strong></span></Link>
+   <Link to="/front-desk" search={{queue:'arrivals'}} className="ao-metric" aria-label="View expected arrivals"><span className="ao-icon ao-green"><LogIn size={23}/></span><span><small>Arrivals today</small><strong>{count(arrivals)??'—'}</strong></span></Link>
+   <Link to="/front-desk" search={{queue:'departures'}} className="ao-metric" aria-label="View due departures"><span className="ao-icon ao-red"><LogOut size={23}/></span><span><small>Departures today</small><strong>{count(departures)??'—'}</strong></span></Link>
+  </section>
+  <div className="ao-core">
+   <section className="ao-card ao-occupancy" aria-labelledby="ao-occupancy"><div className="ao-card-head"><h3 id="ao-occupancy">Occupancy</h3><span className="ao-muted">Today</span></div>
+    <div className="ao-occupancy-body"><div className="ao-ring" style={{background:occupancy===null?'var(--border)':'conic-gradient(var(--accent) '+occupancy+'%, var(--border) 0)'}}><div><strong>{occupancy===null?'—':occupancy+'%'}</strong><small>PMS occupancy</small></div></div>
+     <div className="ao-legend"><div><span><i className="ao-dot occupied"/>Occupied</span><strong>{summary?.pmsOccupiedRooms??'—'}</strong></div><div><span><i className="ao-dot"/>Vacant</span><strong>{summary?.pmsVacantRooms??'—'}</strong></div><div className="ao-legend-total"><span>Total rooms</span><strong>{summary?.totalRooms??'—'}</strong></div></div>
     </div>
-   </div>
-   <div className="ov-hero-aside">
-    <Clock3 size={19}/><small>HOTEL DATE</small>
-    <strong>{dateLabel(today)}</strong>
-    <span>{property.data?.data.timeZone??'Asia/Manila · fallback timezone'}</span>
-   </div>
-  </section>
-
-  <QueryFeedback loading={false} error={catalog.error??property.error}
-   onRetry={()=>{void catalog.refetch();void property.refetch();}}/>
-
-  {canDesk&&<DeskSummary date={today}/>}
-  <section className="ov-section" aria-labelledby="ov-actions-title">
-   <div className="ov-section-heading">
-    <div><span className="ov-kicker">YOUR WORKSPACE</span><h3 id="ov-actions-title">Quick actions</h3>
-     <p>Frequently used tools for your assigned hotel role.</p></div>
-    {shortcuts.length>6&&<button className="ov-text-button" type="button" aria-expanded={showAll}
-     onClick={()=>setShowAll(v=>!v)}>{showAll?'Show fewer':'View all tools'} <ChevronRight size={15}/></button>}
-   </div>
-   <div className="ov-actions-grid">
-    {visible.map(({to,title,hint,icon:Icon})=><Link key={to} to={to}
-     search={to==='/reservations'?{mode:'new'}:undefined} className="ov-action-card">
-     <span className="ov-action-icon"><Icon size={20}/></span>
-     <span className="ov-action-content"><strong>{title}</strong><small>{hint}</small></span>
-     <ArrowRight size={17} className="ov-action-chevron" aria-hidden="true"/>
-    </Link>)}
-   </div>
-   {shortcuts.length===0&&<p className="ov-empty" role="status">No quick actions are available for the selected workspace.</p>}
-  </section>
-
-  <section className="ov-section" aria-labelledby="ov-property-title">
-   <div className="ov-section-heading">
-    <div><span className="ov-kicker">PROPERTY SNAPSHOT</span><h3 id="ov-property-title">Registered room inventory</h3>
-     <p>Current catalogue totals—not occupied, clean, or bookable room counts.</p></div>
-    <Link to="/rooms" className="ov-text-button">Room inventory <ArrowRight size={16}/></Link>
-   </div>
-   {catalogLoading&&<div className="ov-inventory-grid" role="status" aria-label="Loading room inventory">
-    {[0,1,2].map(i=><div className="ov-inventory-stat ov-skeleton" key={i} aria-hidden="true"><span/><strong/><small/></div>)}
-   </div>}
-   {data&&<div className="ov-inventory-grid">
-    <div className="ov-inventory-stat"><BedDouble size={21}/><span>Registered rooms</span><strong>{data.totalRooms}</strong><small>Physical rooms in catalogue</small></div>
-    <div className="ov-inventory-stat"><Layers3 size={21}/><span>Room categories</span><strong>{data.totalRoomTypes}</strong><small>Registered room types</small></div>
-    <div className="ov-inventory-stat"><Building2 size={21}/><span>Numbered floors</span><strong>{data.floors.filter(f=>f.number!==null).length}</strong><small>Distinct floors with rooms</small></div>
-   </div>}
-   {catalog.isSuccess&&data?.totalRooms===0&&<p className="ov-empty">No rooms have been registered yet. Open Room inventory to get started.</p>}
-  </section>
-
-  <div className="ov-bottom-grid">
-   <section className="ov-bottom-card" aria-labelledby="ov-categories-title">
-    <div className="ov-card-heading"><div><h3 id="ov-categories-title">Room categories</h3>
-     <p>Capacity and registered inventory</p></div><Layers3 size={19}/></div>
-    {catalogLoading?<div className="ov-table-loading" role="status">Loading room categories…</div>:data&&data.roomTypes.length>0?<div className="table-scroll">
-     <table className="ov-room-table"><thead><tr><th>Room type</th><th>Rooms</th><th>Max guests</th></tr></thead>
-      <tbody>{data.roomTypes.map(type=><tr key={type.id}><td><strong>{type.name}</strong></td>
-       <td>{type.roomCount}</td><td>{type.maxOccupancy}</td></tr>)}</tbody>
-     </table></div>:catalog.isError?<p className="ov-empty">Room categories could not be loaded.</p>:<p className="ov-empty">No room categories registered yet.</p>}
+    <Link to="/front-desk" search={{queue:'in_house'}} className="ao-inline" aria-label="View in-house reservations"><Users size={15}/> In-house stays <strong>{count(inHouse)??'—'}</strong><ChevronRight size={15}/></Link>
+    <p className="ao-footnote">PMS vacancy is not booking availability.</p>
    </section>
-   <section className="ov-bottom-card" aria-labelledby="ov-selected-title">
-    <div className="ov-card-heading"><div><h3 id="ov-selected-title">Selected property</h3>
-     <p>Current hotel context</p></div><Hotel size={19}/></div>
-    {property.data?<div className="ov-property-card">
-     <div className="ov-property-symbol"><Hotel size={24}/></div>
-     <strong>{property.data.data.name}</strong>
-     <span>{property.data.data.address??'Property address not configured'}</span>
-     <div className="ov-property-facts"><div><span>Timezone</span><strong>{property.data.data.timeZone}</strong></div>
-      <div><span>Currency</span><strong>{property.data.data.currency}</strong></div></div>
-     {permitted.has('/settings')&&<Link to="/settings" className="ov-text-button">Hotel settings <ArrowRight size={16}/></Link>}
-    </div>:<p className="ov-empty" role="status">{propertyLoading?'Loading property details…':'Property details could not be loaded.'}</p>}
+   <section className="ao-card ao-today" aria-labelledby="ao-today-title"><div className="ao-card-head"><h3 id="ao-today-title">Today's activity</h3><Link to="/front-desk" search={{queue:tab}} className="ao-link">View all <ChevronRight size={15}/></Link></div>
+    <div className="ao-tabs" role="group" aria-label="Today's activity queue"><button type="button" aria-pressed={tab==='arrivals'} onClick={()=>setTab('arrivals')}>Arrivals ({count(arrivals)??'—'})</button><button type="button" aria-pressed={tab==='departures'} onClick={()=>setTab('departures')}>Departures ({count(departures)??'—'})</button></div>
+    <QueryFeedback loading={current.isPending} error={current.error} onRetry={()=>void current.refetch()} empty={current.isSuccess&&current.data.data.length===0} emptyMessage={'No '+tab+' scheduled.'}/>
+    {current.isSuccess&&current.data.data.slice(0,3).map(row=>{const action=recommendedDeskAction(tab,row);return <div className="ao-guest" key={row.id}><span className="ao-avatar"><Users size={17}/></span><Link to="/reservations" search={{booking:row.id}} className="ao-guest-name"><strong>{row.guestName?.trim()||'Guest name unavailable'}</strong><small>{row.roomNumber?'Room '+row.roomNumber:'Unassigned'} · {row.reference}</small></Link><span className={'ao-status '+(row.status==='confirmed'?'ao-green':'ao-blue')}>{row.status==='confirmed'?'Confirmed':'In house'}</span><Link className="ao-guest-action" to="/reservations" search={{booking:row.id,deskAction:action.kind==='view'?undefined:action.kind}}>{action.kind==='assign'?'Assign room':action.kind==='check-in'?'Check in':action.kind==='check-out'?'Check out':'View stay'}</Link></div>})}
+   </section>
+   <section className="ao-card ao-attention" aria-labelledby="ao-attention-title"><div className="ao-card-head"><h3 id="ao-attention-title">Needs attention</h3></div>
+    <Link to="/front-desk" search={{queue:'overdue'}} className="ao-attention-row" data-urgent={!!urgent}><AlertTriangle size={20}/><span>Overdue checkouts</span><strong>{urgent??'—'}</strong><ChevronRight size={16}/></Link>
+    <Link to="/manager-approvals" className="ao-attention-row"><ShieldAlert size={20}/><span>Pending approvals</span><strong>{approvals.isSuccess?approvals.data.meta.total:'—'}</strong><ChevronRight size={16}/></Link>
+    <Link to="/operational-exceptions" className="ao-attention-row"><ClipboardCheck size={20}/><span>Exceptions to review</span><strong>{exceptions.isSuccess?exceptions.data.data.summary.total:'—'}</strong><ChevronRight size={16}/></Link>
+    <Link to="/maintenance" className="ao-attention-row"><Wrench size={20}/><span>Active maintenance</span><strong>{maintenance.isSuccess?maintenance.data:'—'}</strong><ChevronRight size={16}/></Link>
+    <Link to="/housekeeping" search={{queue:'active'}} className="ao-attention-row"><BedDouble size={20}/><span>Rooms needing cleaning</span><strong>{summary?.roomsNeedingCleaning??'—'}</strong><ChevronRight size={16}/></Link>
+    <Link to="/night-audit" className="ao-inline"><Clock3 size={16}/> Daily closing <ChevronRight size={16}/></Link>
    </section>
   </div>
-  <p className="ov-disclaimer"><ShieldAlert size={16}/>
-   This overview distinguishes reservation status from verified room occupancy. Registered room counts do not indicate real-time availability, payment settlement, or housekeeping readiness.
-  </p>
+  <section className="ao-quick" aria-labelledby="ao-actions-title"><h3 id="ao-actions-title">Quick actions</h3><div className="ao-actions">
+   <Link to="/reservations" search={{mode:'new'}}><CalendarPlus size={24}/> New booking</Link>
+   <Link to="/front-desk" search={{queue:'arrivals'}}><LogIn size={24}/> Check in</Link>
+   <Link to="/front-desk" search={{queue:'departures'}}><LogOut size={24}/> Check out</Link>
+   <Link to="/front-desk" search={{queue:'in_house'}}><Clock3 size={24}/> Extend stay</Link>
+   <Link to="/reservations" search={{filter:'needs_room'}}><BedDouble size={24}/> Assign room</Link>
+   <Link to="/expenses"><Receipt size={24}/> Expenses</Link>
+  </div></section>
+  <section className="ao-card ao-activity" aria-labelledby="ao-activity-title"><div className="ao-card-head"><h3 id="ao-activity-title">Recent activity</h3><Link to="/operational-exceptions" className="ao-link">View audit log <ChevronRight size={15}/></Link></div>
+   <QueryFeedback loading={exceptions.isPending} error={exceptions.error} onRetry={()=>void exceptions.refetch()} empty={exceptions.isSuccess&&activity.length===0} emptyMessage="No recent reservation activity."/>
+   {activity.length>0&&<div className="table-scroll"><table><thead><tr><th>Time</th><th>Activity</th><th>Booking</th><th>User</th></tr></thead><tbody>{activity.map(entry=><tr key={entry.id}><td>{activityTime(entry.createdAt,zone)}</td><td><span className="ao-event"><CheckCircle2 size={15}/>{eventLabel(entry.eventType)}</span></td><td><Link to="/reservations" search={{booking:entry.bookingId}}>{entry.reference}</Link></td><td>{entry.actorName|| (entry.actorId===user?.id?user.name:'Staff #'+entry.actorId)}</td></tr>)}</tbody></table></div>}
+  </section>
+  <details className="ao-card ao-more"><summary>Registered room inventory & property details <ChevronRight size={16}/></summary><div className="ao-more-body"><QueryFeedback loading={catalog.isPending} error={catalog.error} onRetry={()=>void catalog.refetch()}/>{catalog.data&&<><p>{catalog.data.data.totalRooms} registered rooms · {catalog.data.data.totalRoomTypes} room types</p><div className="table-scroll"><table><thead><tr><th>Room type</th><th>Rooms</th><th>Max guests</th></tr></thead><tbody>{catalog.data.data.roomTypes.map(type=><tr key={type.id}><td>{type.name}</td><td>{type.roomCount}</td><td>{type.maxOccupancy}</td></tr>)}</tbody></table></div></>}<p>{property.data?.data.name} · {zone} · {property.data?.data.currency}</p><Link to="/settings" className="ao-link"><Hotel size={16}/> Hotel settings <ArrowRight size={15}/></Link><Link to="/rooms" className="ao-link"><Layers3 size={16}/> Room inventory <ArrowRight size={15}/></Link><Link to="/cashier-shifts" className="ao-link"><Wallet size={16}/> Cashier shifts <ArrowRight size={15}/></Link></div></details>
  </div>;
 }

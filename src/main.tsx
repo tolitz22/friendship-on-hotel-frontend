@@ -52,12 +52,14 @@ function Home(){const {user,hotelId}=useHotelAuth();
 }
 const index=createRoute({getParentRoute:()=>root,path:'/',component:dataMode==='api'?Home:Dashboard});
 const reservations=createRoute({getParentRoute:()=>root,path:'/reservations',
- validateSearch:(value:Record<string,unknown>):{booking?:string;mode?:'new';guest?:string;room?:string;roomNumber?:string;checkIn?:string;checkOut?:string;deskAction?:'assign'|'check-in'|'check-out'|'extend';group?:string;hotel?:string;push?:string}=>({
+ validateSearch:(value:Record<string,unknown>):{booking?:string;q?:string;filter?:'needs_room';mode?:'new';guest?:string;room?:string;roomNumber?:string;checkIn?:string;checkOut?:string;deskAction?:'assign'|'check-in'|'check-out'|'extend';group?:string;hotel?:string;push?:string}=>({
   push:normalizeBillingBookingId(value.push)==='1'?'1':undefined,
   booking:(()=>{const raw=typeof value.booking==='string'?value.booking.trim():String(typeof value.booking==='number'?value.booking:'');
    const normalized=raw.replace(/^\"([1-9][0-9]*)\"$/,'$1');
    return /^[1-9][0-9]*$/.test(normalized)?normalized:undefined;
   })(),
+  q:typeof value.q==='string'?value.q.trim().slice(0,120)||undefined:undefined,
+  filter:value.filter==='needs_room'?'needs_room':undefined,
   mode:value.mode==='new'?'new':undefined,
   guest:typeof value.guest==='string'&&/^[1-9][0-9]*$/.test(value.guest)?value.guest:undefined,
   room:typeof value.room==='string'&&/^[1-9][0-9]*$/.test(value.room)?value.room:undefined,

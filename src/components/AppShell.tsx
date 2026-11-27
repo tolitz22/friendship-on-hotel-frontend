@@ -4,11 +4,12 @@ import {MessageArrivalAlert} from './MessageArrivalAlert';
 import {MessageCircle,Home,UserRound} from 'lucide-react';
 import '../features/housekeeping/minimalMobile.css';
 import './FloatingMessages.css';
+import './AdminTopbar.css';
 import {requestedNotificationHotel} from '../features/notifications/pushNavigation';
 import {StaffNotifications} from './StaffNotifications';
 import {HousekeepingInstallHelp} from './HousekeepingInstallHelp';
-import {Link,Outlet,useRouterState} from '@tanstack/react-router';
-import {LayoutDashboard,CalendarDays,CalendarRange,BedDouble,Users,Wallet,ClipboardCheck,Wrench,ChartNoAxesCombined,Settings,Sun,Moon,Menu,X,Hotel,LogOut,ArrowRight,ChevronDown,ShieldCheck,ShieldAlert,ClipboardList,Receipt} from 'lucide-react';
+import {Link,Outlet,useNavigate,useRouterState} from '@tanstack/react-router';
+import {LayoutDashboard,CalendarDays,CalendarRange,BedDouble,Users,Wallet,ClipboardCheck,Wrench,ChartNoAxesCombined,Settings,Sun,Moon,Menu,X,Hotel,LogOut,ArrowRight,ChevronDown,ShieldCheck,ShieldAlert,ClipboardList,Receipt,Search} from 'lucide-react';
 import {Suspense,useEffect,useRef,useState,type KeyboardEvent} from 'react';
 import {useTheme} from './ThemeProvider';
 import {dataMode} from '../api';
@@ -71,6 +72,9 @@ export function experienceForPath(pathname:string,mode:typeof dataMode){
 }
 export function AppShell(){
  const {theme,toggle}=useTheme();
+ const navigate=useNavigate();
+ const [bookingSearch,setBookingSearch]=useState('');
+ const adminProfile=useRef<HTMLDetailsElement>(null);
  const {user,hotelId,selectHotel,signOut,pending}=useHotelAuth();
  useStaffRealtime(dataMode==='api'&&!user?.mustChangePassword?hotelId:null,user?.id);
  const messageInbox=useMessageInbox(hotelId,user?.id);
@@ -91,6 +95,8 @@ export function AppShell(){
  const effectivePermissions=user?.hotels.find(h=>h.id===hotelId)?.permissions;
  const workspace=navigationForRole(role);
  const admin=role==='admin';
+ const adminLive=dataMode==='api'&&admin;
+ useEffect(()=>{setBookingSearch('');if(adminProfile.current)adminProfile.current.open=false;},[hotelId,pathname]);
  const housekeepingMobile=dataMode==='api'&&role==='housekeeping';
  const receptionMobile=dataMode==='api'&&role==='front_desk';
  const staffMobile=housekeepingMobile||receptionMobile;
@@ -180,7 +186,7 @@ export function AppShell(){
    <Icon size={18} aria-hidden="true"/><span>{dataMode==='api'&&role==='housekeeping'?(to==='/'?'My dashboard':to==='/housekeeping'?'My tasks':to==='/rooms'?'Room status':label):label}{to==='/messages'&&unreadMessages>0?' ('+unreadMessages+')':''}</span>
   </Link>);
 
- return <div className={'app-layout'+(housekeepingMobile?' housekeeping-shell':receptionMobile?' reception-shell':'')}>
+ return <div className={'app-layout'+(housekeepingMobile?' housekeeping-shell':receptionMobile?' reception-shell':adminLive?' admin-shell':'')}>
   {open&&<div className="mobile-overlay" aria-hidden="true" onClick={closeNavigation}/>}
   <aside id="workspace-sidebar" className={'sidebar'+(open?' sidebar-open':'')}
    role={open?'dialog':undefined} aria-modal={open||undefined}
@@ -244,6 +250,7 @@ export function AppShell(){
        {user.hotels.map(h=><option key={h.id} value={h.id}>{h.name}</option>)}
       </select>
      </label>}
+     {adminLive&&<form className="admin-top-search" role="search" onSubmit={event=>{event.preventDefault();const q=bookingSearch.trim();if(q)void navigate({to:'/reservations',search:{q}});}}><Search size={17} aria-hidden="true"/><input aria-label="Search bookings" placeholder="Search guest, booking, room…" maxLength={120} value={bookingSearch} onChange={event=>setBookingSearch(event.target.value)}/><button type="submit" aria-label="Submit booking search" disabled={!bookingSearch.trim()}>Search</button></form>}
      <span className="demo-pill" role="status">{experienceForPath(pathname,dataMode)}</span>
      <button className="icon-btn topbar-action-theme" type="button" aria-label={theme==='light'?'Switch to dark mode':'Switch to light mode'} onClick={toggle}>
       {theme==='light'?<Moon size={19}/>:<Sun size={19}/>}
@@ -253,9 +260,10 @@ export function AppShell(){
      {dataMode==='api'
       ?<button className="icon-btn topbar-action-signout" type="button" aria-label="Sign out" title="Sign out" disabled={pending} onClick={()=>void signOut()}><LogOut size={18}/></button>
       :<div className="topbar-avatar" aria-label="Demo user">FO</div>}
+     {adminLive&&<details className="admin-profile" ref={adminProfile} onKeyDown={event=>{if(event.key==='Escape'){event.currentTarget.open=false;event.currentTarget.querySelector('summary')?.focus();}}}><summary><span className="admin-profile-avatar"><UserRound size={18}/></span><span>{user?.name??'Manager'}</span><ChevronDown size={15}/></summary><div className="admin-profile-menu"><Link to="/change-password" onClick={()=>{if(adminProfile.current)adminProfile.current.open=false;}}><ShieldCheck size={16}/> Account security</Link><button type="button" onClick={()=>{toggle();if(adminProfile.current)adminProfile.current.open=false;}}>{theme==='light'?<Moon size={16}/>:<Sun size={16}/>} {theme==='light'?'Dark mode':'Light mode'}</button><button type="button" disabled={pending} onClick={()=>void signOut()}><LogOut size={16}/> Sign out</button></div></details>}
     </div>
    </header>
-   {dataMode==='api'&&<div className="workflow-shortcuts" aria-label="Related actions">
+   {dataMode==='api'&&!(adminLive&&pathname==='/')&&<div className="workflow-shortcuts" aria-label="Related actions">
     <span>RELATED</span>
     {pathname==='/group-reservations'?<>
      {(role==='admin'||role==='front_desk')&&canViewWorkspacePath(role,'/reservations',effectivePermissions)&&<Link to="/reservations">Bookings <ArrowRight size={13}/></Link>}
@@ -282,7 +290,7 @@ export function AppShell(){
     </>}
    </div>}
    <div className="page-content">
-    {dataMode==='api'&&(admin||role==='housekeeping'||role==='front_desk')&&!(staffMobile&&pathname==='/')&&<div ref={setNotificationPromptHost}/>}
+    {dataMode==='api'&&(admin||role==='housekeeping'||role==='front_desk')&&!((staffMobile||adminLive)&&pathname==='/')&&<div ref={setNotificationPromptHost}/>}
     {dataMode==='api'&&!canViewWorkspacePath(role,pathname,effectivePermissions)
      ?<section className="panel" role="alert" aria-label="Page access denied">
        <h2>Page not available for your role</h2>
@@ -290,7 +298,7 @@ export function AppShell(){
        <Link className="btn-primary" to="/">Return to your workspace <ArrowRight size={15}/></Link>
       </section>
      :<Suspense fallback={<div role="status" className="workspace-loading">Loading hotel workspace…</div>}><Outlet/></Suspense>}
-    {staffMobile&&pathname==='/'&&<div className="hk-phone-secondary"><div ref={setNotificationPromptHost}/>{housekeepingMobile&&<HousekeepingInstallHelp/>}</div>}
+    {(staffMobile||adminLive)&&pathname==='/'&&<div className="hk-phone-secondary"><div ref={setNotificationPromptHost}/>{housekeepingMobile&&<HousekeepingInstallHelp/>}</div>}
    </div>
    {staffMobile&&<nav className="hk-bottom-nav" aria-label={housekeepingMobile?'Housekeeping mobile navigation':'Front desk mobile navigation'}>
     {mobileTabs.map(({to,label,icon:Icon})=><Link to={to} key={to} className={'hk-bottom-tab'+(pathname===to?' is-current':'')} activeOptions={{exact:true}} aria-current={pathname===to?'page':undefined} aria-label={label+(to==='/messages'&&unreadMessages>0?', '+unreadMessages+' unread messages':'')}><span className="hk-bottom-icon"><Icon size={22} aria-hidden="true"/>{to==='/messages'&&unreadMessages>0&&<span className="hk-bottom-unread" aria-hidden="true">{unreadMessages>99?'99+':unreadMessages}</span>}</span><span>{label}</span></Link>)}

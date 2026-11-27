@@ -49,9 +49,9 @@ export function LiveReservations(){
   return ()=>window.clearTimeout(timer);
  },[search]);
  useEffect(()=>{
-  setPage(1);setFilter('all');setSearch('');setAppliedSearch('');setDates(defaultBookingDates);
+  setPage(1);setFilter(routeSearch.filter??'all');setSearch(routeSearch.q??'');setAppliedSearch(routeSearch.q??'');setDates(defaultBookingDates);
   setView(routeSearch.mode==='new'||!!routeSearch.guest||!!routeSearch.room?'new':'manage');
- },[hotelId,routeSearch.mode,routeSearch.guest,routeSearch.room]);
+ },[hotelId,routeSearch.mode,routeSearch.guest,routeSearch.room,routeSearch.q,routeSearch.filter]);
  const [inputs,setInputs]=useState<LiveStay>(initialStay);
  const [rateId,setRateId]=useState('');
  const [requested,setRequested]=useState<{stay:LiveStay;rateId:string}|null>(null);

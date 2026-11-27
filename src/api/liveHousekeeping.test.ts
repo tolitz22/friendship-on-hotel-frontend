@@ -45,7 +45,7 @@ describe('Phase 14 live housekeeping API',()=>{
  });
  it('reads event history and requires a selected hotel',async()=>{
   setSessionToken('staff-token');setSessionHotel('4');
-  const fetchMock=vi.fn().mockResolvedValue({ok:true,json:async()=>({data:[],meta:{}})});
+  const fetchMock=vi.fn().mockResolvedValue({ok:true,json:async()=>({data:[],meta:{page:1,perPage:20,total:0,totalPages:1}})});
   vi.stubGlobal('fetch',fetchMock);
   await getHousekeepingHistory('7');
   expect(new URL(fetchMock.mock.calls[0][0] as string).pathname)

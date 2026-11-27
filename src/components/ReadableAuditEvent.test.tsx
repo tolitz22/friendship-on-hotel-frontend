@@ -90,5 +90,5 @@ it('shows actual checklist additions and removals plus inspection outcomes',()=>
  expect(housekeepingAuditChanges({checkedItems:['trash']},{checkedItems:['linens']})).toEqual([
   {label:'Replace bed linens',from:'Not checked',to:'Checked'},{label:'Remove trash',from:'Checked',to:'Unchecked'},
  ]);
- expect(housekeepingAuditChanges({status:'done'},{status:'done',inspectionStatus:'approved'})).toEqual([{label:'Final inspection',from:null,to:'Completed and approved'}]);
+ expect(housekeepingAuditChanges({status:'done'},{status:'done',inspectionStatus:'approved'})).toEqual([{label:'Final inspection',from:null,to:'Physical checks verified'}]);
 });

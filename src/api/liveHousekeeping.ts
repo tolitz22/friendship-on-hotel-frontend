@@ -8,6 +8,7 @@ export interface CleaningChecklistItem{key:string;label:string;checkedBy:string|
 export interface LiveHousekeepingTask{
  id:string;hotelId:string;roomId:string;roomNumber:string;type:HousekeepingType;
  status:HousekeepingStatus;assignedTo:string|null;assignedUserId:string|null;dueAt:string|null;completedAt:string|null;
+ roomType?:string|null;floor?:number|null;assignedName?:string|null;
  revision:number;createdAt:string;arrivalToday?:boolean;overdue?:boolean;pendingInspection?:boolean;
  checklist?:CleaningChecklistItem[];completedBy?:string|null;
 }
@@ -15,8 +16,11 @@ export interface HousekeepingEvent{
  id:string;actorId:string;actorName?:string|null;action:string;
  before:Record<string,unknown>|null;after:Record<string,unknown>;note:string|null;createdAt:string;
 }
+export type HousekeepingSummary={
+ active:number;urgent:number;todo:number;inProgress:number;inspectionDue:number;completedToday:number;overdue:number;
+};
 export type HousekeepingList=CollectionResponse<LiveHousekeepingTask>&{
- meta:CollectionResponse<LiveHousekeepingTask>['meta']&{determinesRoomReadiness:false;pastDueCount?:number;pendingInspectionCount?:number};
+ meta:CollectionResponse<LiveHousekeepingTask>['meta']&{determinesRoomReadiness:false;pastDueCount?:number;pendingInspectionCount?:number;summary?:HousekeepingSummary;floors?:number[];assignees?:{id:string;name:string}[]};
 };
 export interface CreateHousekeepingInput{
  roomId:string;type:HousekeepingType;assignedTo:string|null;assignedUserId?:string|null;dueAt:string|null;note?:string|null;
@@ -26,7 +30,7 @@ export interface UpdateHousekeepingInput{
  assignedTo?:string|null;assignedUserId?:string|null;dueAt?:string|null;note?:string|null;
 }
 export const listHousekeepingTasks=(page=1,perPage=50,filter:TaskFilter={})=>getJson<HousekeepingList>(
- hotelPath('/housekeeping-tasks'),{page,per_page:perPage,status:filter.status,type:filter.type,q:filter.q,mine:filter.mine,queue:filter.queue,sort:filter.sort,assignee:filter.assignee });
+ hotelPath('/housekeeping-tasks'),{page,per_page:perPage,status:filter.status,type:filter.type,q:filter.q,mine:filter.mine,queue:filter.queue,sort:filter.sort,assignee:filter.assignee,floor:filter.floor,room:filter.room,due_date:filter.dueDate,overview:filter.overview });
 export const createHousekeepingTask=(body:CreateHousekeepingInput)=>requestJson<ItemResponse<LiveHousekeepingTask>>(
  hotelPath('/housekeeping-tasks'),{method:'POST',body});
 export const updateHousekeepingTask=(id:string,body:UpdateHousekeepingInput)=>
@@ -36,8 +40,8 @@ export const completeHousekeepingInspection=(id:string,expectedRevision:number,n
  hotelPath('/housekeeping-tasks/'+encodeURIComponent(id)+'/final-inspection'),{
   method:'POST',body:{expectedRevision,cleaningVerified:true,safetyVerified:true,amenitiesVerified:true,note},
  });
-export const getHousekeepingHistory=(id:string,page=1)=>getJson<CollectionResponse<HousekeepingEvent>>(
- hotelPath('/housekeeping-tasks/'+encodeURIComponent(id)+'/history'),{page,per_page:20});
+export const getHousekeepingHistory=(id:string,page=1)=>getJson<unknown>(
+ hotelPath('/housekeeping-tasks/'+encodeURIComponent(id)+'/history'),{page,per_page:20}).then(parseHousekeepingHistory);
 
 
 // Phase 33 validated queries and cautious revisioned transitions.
@@ -50,6 +54,7 @@ const checklistItemSchema=z.object({key:z.string().min(1),label:z.string().min(1
  .refine(item=>(item.checkedBy===null)===(item.checkedAt===null),'Incomplete checklist evidence');
 const taskSchema=z.object({
  id:idSchema,hotelId:idSchema,roomId:idSchema,roomNumber:z.string(),
+ roomType:z.string().nullable().optional(),floor:z.number().int().nonnegative().nullable().optional(),assignedName:z.string().nullable().optional(),
  type:z.enum(['checkout_clean','stayover','inspection']),
  status:z.enum(['todo','in_progress','done']),
  assignedTo:z.string().nullable(),assignedUserId:idSchema.nullable(),
@@ -58,12 +63,15 @@ const taskSchema=z.object({
  arrivalToday:z.boolean().optional(),overdue:z.boolean().optional(),pendingInspection:z.boolean().optional(),
  checklist:z.array(checklistItemSchema).refine(items=>new Set(items.map(item=>item.key)).size===items.length,'Duplicate checklist items').optional(),completedBy:idSchema.nullable().optional(),
 });
+const count=z.number().int().nonnegative();
 const listSchema=z.object({
  data:z.array(taskSchema),
  meta:z.object({
   page:z.number().int().positive(),perPage:z.number().int().positive(),
   total:z.number().int().nonnegative(),totalPages:z.number().int().nonnegative(),
-  determinesRoomReadiness:z.literal(false),pastDueCount:z.number().int().nonnegative().optional(),pendingInspectionCount:z.number().int().nonnegative().optional(),
+  determinesRoomReadiness:z.literal(false),pastDueCount:z.number().int().nonnegative().optional(),pendingInspectionCount:count.optional(),
+  summary:z.object({active:count,urgent:count,todo:count,inProgress:count,inspectionDue:count,completedToday:count,overdue:count}).optional(),
+  floors:z.array(count).optional(),assignees:z.array(z.object({id:idSchema,name:z.string()})).optional(),
  }),
 });
 const historySchema=z.object({
@@ -76,8 +84,8 @@ const historySchema=z.object({
   total:z.number().int().nonnegative(),totalPages:z.number().int().nonnegative(),
  }),
 });
-export type HousekeepingQueue='active'|'arrival_today'|'overdue'|'unassigned'|'pending_inspection';
-export type TaskFilter={q?:string;mine?:number;status?:HousekeepingStatus;type?:HousekeepingType;queue?:HousekeepingQueue;sort?:'priority';assignee?:string};
+export type HousekeepingQueue='active'|'arrival_today'|'overdue'|'unassigned'|'pending_inspection'|'completed'|'completed_today';
+export type TaskFilter={q?:string;mine?:number;status?:HousekeepingStatus;type?:HousekeepingType;queue?:HousekeepingQueue;sort?:'priority';assignee?:string;floor?:string;room?:string;dueDate?:string;overview?:1};
 
 export function parseLiveHousekeeping(value:unknown,hotelId:string){
  const result=listSchema.parse(value);
@@ -131,15 +139,20 @@ export async function patchLiveHousekeeping(hotelId:string,task:LiveHousekeeping
 }
 
 
+export async function getHousekeepingTask(hotelId:string,taskId:string){
+ if(readSession().hotelId!==hotelId)throw new Error('Hotel changed. Reload housekeeping before continuing.');
+ return parseUpdatedHousekeeping(await getJson<unknown>(
+  hotelPath('/housekeeping-tasks/'+encodeURIComponent(taskId))
+ ),hotelId,taskId);
+}
+
 /** Load one housekeeping task even if it is outside the current task page. */
 export function useDirectHousekeepingTask(taskId:string|null){
  const {hotelId}=readSession();
  return useQuery({
   queryKey:['live','housekeeping-direct-task',hotelId,taskId],
   enabled:!!hotelId&&!!taskId&&idSchema.safeParse(taskId).success,
-  queryFn:async()=>parseUpdatedHousekeeping(await getJson<unknown>(
-   hotelPath('/housekeeping-tasks/'+encodeURIComponent(taskId!))
-  ),hotelId!,taskId!),
+  queryFn:()=>getHousekeepingTask(hotelId!,taskId!),
   retry:false,staleTime:0,
  });
 }

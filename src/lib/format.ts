@@ -17,13 +17,13 @@ export function readableDate(value:string|null|undefined):string{
 
 /** Display an ISO instant in the hotel's Philippine timezone with a readable clock.
  * Do not guess a time for date-only fields. */
-export function readableDateTime(value:string|null|undefined):string{
+export function readableDateTime(value:string|null|undefined,timeZone='Asia/Manila'):string{
  if(!value)return '—';
  if(/^\d{4}-\d{2}-\d{2}$/.test(value))return readableDate(value);
  const instant=new Date(value);
  if(!Number.isFinite(instant.getTime()))return value;
  return new Intl.DateTimeFormat('en-PH',{
   month:'short',day:'numeric',year:'numeric',
-  hour:'numeric',minute:'2-digit',hour12:true,timeZone:'Asia/Manila',
+  hour:'numeric',minute:'2-digit',hour12:true,timeZone,
  }).format(instant);
 }

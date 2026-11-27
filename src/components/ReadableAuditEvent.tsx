@@ -56,7 +56,7 @@ export function housekeepingAuditChanges(before:Record<string,unknown>|null,afte
   for(const key of added)result.push({label:label(key),from:'Not checked',to:'Checked'});
   for(const key of removed)result.push({label:label(key),from:'Checked',to:'Unchecked'});
  }
- if(after.inspectionStatus==='approved'&&before?.inspectionStatus!=='approved')result.push({label:'Final inspection',from:null,to:'Completed and approved'});
+ if(after.inspectionStatus==='approved'&&before?.inspectionStatus!=='approved')result.push({label:'Final inspection',from:null,to:'Physical checks verified'});
  if(after.completedBy!==undefined&&before?.status!=='done'&&after.status==='done')result.push({label:'Completion recorded',from:null,to:'By the employee shown above'});
  return result;
 }
@@ -75,16 +75,18 @@ export const auditActorName=(id:string,name?:string|null,currentId?:string|null,
  return 'Employee name unavailable';
 };
 
-export function ReadableAuditEvent({event,actorName,currentUserId,currentUserName,housekeepingChecklist}:{
- event:AuditEvent;actorName?:string|null;currentUserId?:string|null;currentUserName?:string|null;housekeepingChecklist?:readonly {key:string;label:string}[];
+export function ReadableAuditEvent({event,actorName,currentUserId,currentUserName,housekeepingChecklist,hotelTimeZone}:{
+ event:AuditEvent;actorName?:string|null;currentUserId?:string|null;currentUserName?:string|null;housekeepingChecklist?:readonly {key:string;label:string}[];hotelTimeZone?:string;
 }){
  const changes=[...describeAuditChanges(event.before,event.after),...housekeepingAuditChanges(event.before,event.after,housekeepingChecklist)];
+ const eventTime = hotelTimeZone && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(event.createdAt)
+  ?event.createdAt.replace(' ','T')+'Z':event.createdAt;
  const title=event.action==='updated'&&event.before?.status!==event.after.status?event.after.status==='done'?'Completed cleaning':event.after.status==='in_progress'?'Started cleaning':headline(event.action):event.action==='updated'&&changes.some(change=>change.to==='Checked'||change.to==='Unchecked')?'Updated cleaning checklist':headline(event.action);
  return <article className="readable-audit-event">
   <div className="readable-audit-heading"><span className="readable-audit-icon"><History size={16}/></span>
    <div><strong>{title}</strong><span><UserRound size={13}/>
     {auditActorName(event.actorId,event.actorName??actorName,currentUserId,currentUserName)} <span aria-hidden="true">·</span>
-    <Clock3 size={13}/> {readableDateTime(event.createdAt)}</span></div></div>
+    <Clock3 size={13}/> <time dateTime={eventTime}>{readableDateTime(eventTime,hotelTimeZone)}</time></span></div></div>
   {changes.length>0?<dl className="readable-audit-changes">
    {changes.map(change=><div key={change.label}>
     <dt>{change.label}</dt>
@@ -94,7 +96,7 @@ export function ReadableAuditEvent({event,actorName,currentUserId,currentUserNam
   </dl>:<p className="readable-audit-context">
    {event.before===null?'Record was created.':'The action was recorded; no additional field changes are available.'}
   </p>}
-  {event.note&&<p className="readable-audit-note"><strong>Staff note:</strong> {event.note}</p>}
+  {event.note&&<p className="readable-audit-note"><strong>{event.action==='inspection_completed'?'Inspection note':housekeepingChecklist?'Handover note':'Staff note'}:</strong> {event.note}</p>}
  </article>;
 }
 

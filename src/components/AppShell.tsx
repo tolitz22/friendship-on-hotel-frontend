@@ -229,8 +229,8 @@ export function AppShell(){
      <button className="icon-btn topbar-action-theme" type="button" aria-label={theme==='light'?'Switch to dark mode':'Switch to light mode'} onClick={toggle}>
       {theme==='light'?<Moon size={19}/>:<Sun size={19}/>}
      </button>
-     {dataMode==='api'&&hotelId&&user&&(role==='admin'||role==='front_desk')&&
-      <StaffNotifications key={user.id+':'+hotelId} userId={user.id} hotelId={hotelId} canPush={admin} promptHost={notificationPromptHost}/>}
+     {dataMode==='api'&&hotelId&&user&&(role==='admin'||role==='front_desk'||role==='housekeeping')&&
+      <StaffNotifications key={user.id+':'+hotelId} userId={user.id} hotelId={hotelId} canPush={admin} housekeeping={role==='housekeeping'} promptHost={notificationPromptHost}/>}
      {dataMode==='api'
       ?<button className="icon-btn topbar-action-signout" type="button" aria-label="Sign out" title="Sign out" disabled={pending} onClick={()=>void signOut()}><LogOut size={18}/></button>
       :<div className="topbar-avatar" aria-label="Demo user">FO</div>}

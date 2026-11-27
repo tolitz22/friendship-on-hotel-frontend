@@ -158,7 +158,7 @@ const functionalRoutes=[
    hotel:normalizeBillingBookingId(value.hotel),push:normalizeBillingBookingId(value.push)==='1'?'1':undefined,
    task:normalizeBillingBookingId(value.task),
   }),component:dataMode==='api'?LiveHousekeeping:Housekeeping}),
- createRoute({getParentRoute:()=>root,path:'/lost-found',component:LostFound,validateSearch:(value:Record<string,unknown>):{room?:string}=>({room:normalizeBillingBookingId(value.room)})}),
+ createRoute({getParentRoute:()=>root,path:'/lost-found',component:LostFound,validateSearch:(value:Record<string,unknown>):{room?:string;item?:string;hotel?:string;push?:string}=>({room:normalizeBillingBookingId(value.room),item:normalizeBillingBookingId(value.item),hotel:normalizeBillingBookingId(value.hotel),push:normalizeBillingBookingId(value.push)==='1'?'1':undefined})}),
  createRoute({getParentRoute:()=>root,path:'/maintenance',
   validateSearch:(value:Record<string,unknown>):{order?:string;hotel?:string;push?:string}=>({
    hotel:normalizeBillingBookingId(value.hotel),push:normalizeBillingBookingId(value.push)==='1'?'1':undefined,

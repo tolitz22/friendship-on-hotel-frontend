@@ -9,14 +9,14 @@ import {createLostFound,listLostFound,lostFoundHistory,updateLostFound,type Cust
 import {readSession} from '../api/session';
 export function LostFound(){
  const {hotelId,user}=useHotelAuth();
- const {room}=useSearch({from:'/lost-found'});
+ const {room,item}=useSearch({from:'/lost-found'});
  if(!hotelId||!user)return null;
  const member=user.hotels.find(h=>h.id===hotelId);
- return <Register key={hotelId+':'+user.id+':'+(room??'')} hotelId={hotelId} userId={user.id} admin={member?.role==='admin'} canRegister={member?.role==='admin'||member?.role==='housekeeping'&&member.permissions?.includes('housekeeping.assigned')!==false} initialRoom={room}/>;
+ return <Register key={hotelId+':'+user.id+':'+(room??'')+':'+(item??'')} hotelId={hotelId} userId={user.id} admin={member?.role==='admin'} canRegister={member?.role==='admin'||member?.role==='housekeeping'&&member.permissions?.includes('housekeeping.assigned')!==false} initialRoom={room} initialItem={item}/>;
 }
-function Register({hotelId,userId,admin,canRegister,initialRoom}:{hotelId:string;userId:string;admin:boolean;canRegister:boolean;initialRoom?:string}){
+function Register({hotelId,userId,admin,canRegister,initialRoom,initialItem}:{hotelId:string;userId:string;admin:boolean;canRegister:boolean;initialRoom?:string;initialItem?:string}){
  const client=useQueryClient();
- const [page,setPage]=useState(1);const [status,setStatus]=useState('');
+ const [page,setPage]=useState(1);const [status,setStatus]=useState('');const [itemFilter,setItemFilter]=useState(initialItem);
  const [open,setOpen]=useState(!!initialRoom&&canRegister);const [roomId,setRoomId]=useState(initialRoom??'');
  const [search,setSearch]=useState('');const [description,setDescription]=useState('');const [storage,setStorage]=useState('');
  const [requestKey,setRequestKey]=useState(()=>crypto.randomUUID());const [busy,setBusy]=useState(false);
@@ -24,7 +24,7 @@ function Register({hotelId,userId,admin,canRegister,initialRoom}:{hotelId:string
  const [selected,setSelected]=useState<LostFoundItem|null>(null);const [action,setAction]=useState<CustodyAction>('move');
  const [destination,setDestination]=useState('');const [note,setNote]=useState('');const [historyPage,setHistoryPage]=useState(1);
  const rooms=useLiveRooms({page:1,perPage:100,search:search.trim()||undefined},open);
- const list=useQuery({queryKey:['lost-found',hotelId,userId,page,status],queryFn:()=>listLostFound(hotelId,page,status,admin?undefined:userId),retry:false});
+ const list=useQuery({queryKey:['lost-found',hotelId,userId,page,status,itemFilter],queryFn:()=>listLostFound(hotelId,page,status,admin?undefined:userId,itemFilter),retry:false});
  const history=useQuery({queryKey:['lost-found-history',hotelId,selected?.id,historyPage],enabled:!!selected,queryFn:()=>lostFoundHistory(hotelId,selected!.id,historyPage),retry:false});
  const refresh=()=>void client.invalidateQueries({queryKey:['lost-found',hotelId]});
  async function register(event:FormEvent){
@@ -32,7 +32,7 @@ function Register({hotelId,userId,admin,canRegister,initialRoom}:{hotelId:string
   setBusy(true);setError('');setMessage('');
   try{const row=await createLostFound(hotelId,{roomId,description:description.trim(),storageLocation:storage.trim(),requestKey});
    if(readSession().hotelId!==hotelId)return;
-   setMessage('Item LF-'+row.id+' registered. Label and store the item securely.');setOpen(false);setDescription('');setStorage('');setRequestKey(crypto.randomUUID());setPage(1);setStatus('');refresh();}
+   setMessage('Item LF-'+row.id+' registered. Label and store the item securely.');setOpen(false);setDescription('');setStorage('');setRequestKey(crypto.randomUUID());setPage(1);setStatus('');setItemFilter(undefined);refresh();}
   catch(e){setError(e instanceof Error?e.message:'Unable to register item.');}finally{setBusy(false);}
  }
  async function custody(event:FormEvent){
@@ -58,6 +58,7 @@ function Register({hotelId,userId,admin,canRegister,initialRoom}:{hotelId:string
    <label>Secure storage location<input required maxLength={160} value={storage} disabled={busy} onChange={e=>setStorage(e.target.value)} placeholder="e.g. Reception locker A"/></label>
    <button type="submit" className="btn-primary" disabled={busy||!roomId||!description.trim()||!storage.trim()}>{busy?'Saving…':'Register item'}</button>
   </form>}
+  {itemFilter&&<p role="status">Showing item LF-{itemFilter}. <button className="btn-inline" type="button" onClick={()=>{setItemFilter(undefined);setPage(1);}}>Show all items</button></p>}
   <div className="hk-queue-tabs" role="group" aria-label="Item status">{['','stored','returned','disposed'].map(value=><button type="button" key={value} aria-pressed={status===value} className={status===value?'active':''} onClick={()=>{setStatus(value);setPage(1);}}>{value||'All items'}</button>)}</div>
   <QueryFeedback loading={list.isPending} error={list.error} onRetry={()=>void list.refetch()}/>
   {list.isSuccess&&<><div className="hk-board-grid">{list.data.data.map(row=><article className="hk-board-room" key={row.id}>

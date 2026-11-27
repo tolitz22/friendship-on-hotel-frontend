@@ -14,8 +14,8 @@ export function parseLostFoundList(raw:unknown,hotelId:string,userId?:string){
  if(result.meta.hotelId!==hotelId||result.data.some(row=>row.hotelId!==hotelId||userId!==undefined&&row.reportedBy!==userId))throw new Error('Lost and found scope mismatch.');
  return result;
 }
-export async function listLostFound(hotelId:string,page:number,status:string,userId?:string){
- scope(hotelId);return parseLostFoundList(await getJson<unknown>(hotelPath('/lost-found'),{page,status:status||undefined}),hotelId,userId);
+export async function listLostFound(hotelId:string,page:number,status:string,userId?:string,itemId?:string){
+ scope(hotelId);return parseLostFoundList(await getJson<unknown>(hotelPath('/lost-found'),{page,status:status||undefined,item:itemId}),hotelId,userId);
 }
 export async function createLostFound(hotelId:string,body:{roomId:string;description:string;storageLocation:string;requestKey:string}){
  scope(hotelId);const result=z.object({data:item}).parse(await requestJson<unknown>(hotelPath('/lost-found'),{method:'POST',body})).data;

@@ -32,6 +32,11 @@ const notificationKinds={
  expense_recorded:{label:'Expense recorded',icon:Receipt,action:'Open expense'},
  expense_correction_requested:{label:'Expense correction requested',icon:AlertTriangle,action:'Review expense'},
  cashier_discrepancy:{label:'Cashier cash-count discrepancy',icon:AlertTriangle,action:'Review cashier shift'},
+ hk_assigned:{label:'Cleaning assignment received',icon:ClipboardList,action:'Open my task'},
+ hk_checkout_handoff:{label:'Checkout cleaning needs assignment',icon:ClipboardList,action:'Assign housekeeping'},
+ hk_arrival_urgent:{label:'Arrival room needs cleaning',icon:AlertTriangle,action:'Open cleaning task'},
+ hk_overdue:{label:'Housekeeping task overdue',icon:AlertTriangle,action:'Review task'},
+ lost_found_registered:{label:'Found item registered',icon:ClipboardList,action:'View item'},
  housekeeping_completed:{label:'Housekeeping completed',icon:ClipboardCheck,action:'Open task'},
  room_inspection_approved:{label:'Room inspection approved',icon:ClipboardCheck,action:'Open room'},
  room_inspection_rejected:{label:'Room inspection rejected',icon:AlertTriangle,action:'Review room'},
@@ -59,16 +64,16 @@ const responseSchema=z.object({data:z.object({
  hotelId:z.string(),
  notifications:z.array(z.object({
   id:z.string(),kind:z.enum(Object.keys(notificationKinds) as (keyof typeof notificationKinds)[]),bookingId:z.string().regex(/^[1-9]\d*$/).optional(),
-  target:z.enum(['billing','expenses','cashier-shifts','housekeeping','maintenance','rooms','room-calendar','manager-approvals','messages','night-audit']).optional(),paymentId:z.string().regex(/^[1-9]\d*$/).nullish(),expenseId:z.string().regex(/^[1-9]\d*$/).optional(),shiftId:z.string().regex(/^[1-9]\d*$/).optional(),
+  target:z.enum(['billing','expenses','cashier-shifts','housekeeping','maintenance','rooms','room-calendar','manager-approvals','messages','night-audit','lost-found']).optional(),paymentId:z.string().regex(/^[1-9]\d*$/).nullish(),expenseId:z.string().regex(/^[1-9]\d*$/).optional(),shiftId:z.string().regex(/^[1-9]\d*$/).optional(),
   taskId:z.string().regex(/^[1-9]\d*$/).optional(),orderId:z.string().regex(/^[1-9]\d*$/).optional(),room:z.string().min(1).max(50).optional(),calendarDate:z.iso.date().optional(),approvalId:z.string().regex(/^[1-9]\d*$/).optional(),
   conversationId:z.string().regex(/^[1-9]\d*$/).optional(),
-  closingDate:z.iso.date().optional(),
+  closingDate:z.iso.date().optional(),itemId:z.string().regex(/^[1-9]\d*$/).optional(),
   reference:z.string(),date:z.iso.date(),
- }).refine(item=>item.target==='expenses'?!!item.expenseId:item.target==='cashier-shifts'?!!item.shiftId:item.target==='housekeeping'?!!item.taskId:item.target==='maintenance'?!!item.orderId:item.target==='rooms'||item.target==='room-calendar'?!!item.room:item.target==='manager-approvals'?!!item.approvalId:item.target==='messages'?!!item.conversationId:item.target==='night-audit'?!!item.closingDate:!!item.bookingId)),
+ }).refine(item=>item.target==='expenses'?!!item.expenseId:item.target==='cashier-shifts'?!!item.shiftId:item.target==='housekeeping'?!!item.taskId:item.target==='maintenance'?!!item.orderId:item.target==='rooms'||item.target==='room-calendar'?!!item.room:item.target==='manager-approvals'?!!item.approvalId:item.target==='messages'?!!item.conversationId:item.target==='night-audit'?!!item.closingDate:item.target==='lost-found'?!!item.itemId:!!item.bookingId)),
  hasMore:z.boolean(),
 })});
 
-export function StaffNotifications({hotelId,userId,canPush=false,promptHost}:{hotelId:string;userId:string;canPush?:boolean;promptHost?:HTMLElement|null}){
+export function StaffNotifications({hotelId,userId,canPush=false,promptHost,housekeeping=false}:{hotelId:string;userId:string;canPush?:boolean;promptHost?:HTMLElement|null;housekeeping?:boolean}){
  const storageKey='pms.notification-read:v1:'+userId+':'+hotelId;
  const [read,setRead]=useState<string[]>(()=>{
   try{
@@ -82,15 +87,15 @@ export function StaffNotifications({hotelId,userId,canPush=false,promptHost}:{ho
  const dialog=useRef<HTMLDialogElement>(null);
  const bell=useRef<HTMLButtonElement>(null);
  const feed=useQuery({
-  queryKey:['live','front-desk','manifest',hotelId,'notifications',userId,canPush],
+  queryKey:['live','front-desk','manifest',hotelId,'notifications',userId,canPush,housekeeping],
   queryFn:async()=>{
-   const {data}=responseSchema.parse(await getJson<unknown>('/hotels/'+encodeURIComponent(hotelId)+'/front-desk/notifications',canPush?{expanded:1}:{}));
-   if(data.hotelId!==hotelId)throw new Error('Notifications belong to another hotel.');
+   const {data}=responseSchema.parse(await getJson<unknown>('/hotels/'+encodeURIComponent(hotelId)+(housekeeping?'/housekeeping/notifications':'/front-desk/notifications'),canPush?{expanded:1}:{}));
+   if(data.hotelId!==hotelId||housekeeping&&data.notifications.some(item=>!['hk_assigned','hk_arrival_urgent','hk_overdue'].includes(item.kind)||item.target!=='housekeeping'))throw new Error('Notifications belong to another hotel or staff scope.');
    return data;
   },
   retry:false,
   staleTime:15_000,
-  refetchInterval:open?30_000:60_000,
+  refetchInterval:housekeeping||open?30_000:60_000,
   refetchIntervalInBackground:false,
  });
  const items=feed.data?.notifications??[];
@@ -157,13 +162,14 @@ export function StaffNotifications({hotelId,userId,canPush=false,promptHost}:{ho
       :item.target==='room-calendar'?<Link to="/room-calendar" search={{room:item.room,date:item.calendarDate,hotel:hotelId}} onClick={close}>{content}</Link>
       :item.target==='manager-approvals'?<Link to="/manager-approvals" search={{approval:item.approvalId,hotel:hotelId}} onClick={close}>{content}</Link>
       :item.target==='messages'?<Link to="/messages" search={{conversation:item.conversationId,hotel:hotelId}} onClick={close}>{content}</Link>
+      :item.target==='lost-found'?<Link to="/lost-found" search={{item:item.itemId,hotel:hotelId}} onClick={close}>{content}</Link>
       :item.target==='night-audit'?<Link to="/night-audit" search={{date:item.closingDate,hotel:hotelId}} onClick={close}>{content}</Link>
       :<Link to="/reservations" search={{booking:item.bookingId,deskAction}} onClick={close}>{content}</Link>}
      </li>;
     })}
    </ul>}
    {feed.data?.hasMore&&<p>Showing up to eight per alert type.</p>}
-   <Link to="/front-desk" search={{queue:items.some(item=>item.kind==='checkout_overdue')?'overdue':undefined}} onClick={()=>dialog.current?.close()} className="btn-inline">Open Front Desk <ArrowRight size={15}/></Link>
+   {housekeeping?<Link to="/housekeeping" search={{}} onClick={()=>dialog.current?.close()} className="btn-inline">Open my tasks <ArrowRight size={15}/></Link>:<Link to="/front-desk" search={{queue:items.some(item=>item.kind==='checkout_overdue')?'overdue':undefined}} onClick={()=>dialog.current?.close()} className="btn-inline">Open Front Desk <ArrowRight size={15}/></Link>}
    </div>
   </dialog>
  </>;

@@ -148,7 +148,7 @@ export function LiveFrontDesk(){
         {!canOperate?<ClipboardCheck size={16}/>:action.kind==='assign'?<BedDouble size={16}/>:action.kind==='check-in'?<LogIn size={16}/>:action.kind==='check-out'?<LogOut size={16}/>:<ClipboardCheck size={16}/>}
         {canOperate&&action.kind!=='view'&&kind==='overdue'?'Review checkout':canOperate?action.label:'View stay'} <ArrowRight size={15}/>
        </Link>
-       {canExtend&&row.status==='checked_in'&&row.assignedRoomId&&
+       {hotelId&&canExtend&&row.status==='checked_in'&&row.assignedRoomId&&
         <button type="button" className="fdc-v2-secondary-action" aria-haspopup="dialog"
          onClick={()=>setExtension({hotelId,record:row})}><Clock3 size={15}/> Extend stay</button>}
       </div>

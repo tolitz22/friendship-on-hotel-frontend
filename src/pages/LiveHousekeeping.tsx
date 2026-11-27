@@ -480,7 +480,7 @@ export function LiveHousekeeping(){
      <option value="">Choose a room</option>{rooms.data?.data.map(r=><option key={r.id} value={r.id}>Room {r.number}</option>)}</select></label>
     <label>Task type<select disabled={!!selected||!admin||saving} value={form.type} onChange={e=>change('type',e.target.value as HousekeepingType)}>
      {taskTypes.map(type=><option key={type} value={type}>{taskNames[type]}</option>)}</select></label>
-    <label>Cleaning progress<select disabled={!selected||!maySave||saving} value={form.status} onChange={e=>change('status',e.target.value as HousekeepingStatus)}>
+    <label>Cleaning progress<select aria-label="Cleaning progress" disabled={!selected||!maySave||saving} value={form.status} onChange={e=>change('status',e.target.value as HousekeepingStatus)}>
      {[selected?.status??'todo',...(transitions[selected?.status??'todo']??[])].map(status=><option key={status} value={status} disabled={!!selected&&status==='done'&&!canFinishCleaningChecklist(selected,form.checkedItems)}>{statusNames[status]}</option>)}</select></label>
     {admin&&<label>Assign staff member<select value={form.assignedUserId} disabled={saving} onChange={e=>change('assignedUserId',e.target.value)}>
      <option value="">No linked account</option>

@@ -35,7 +35,7 @@ for(const width of [320,390,760]){
   await hk.getByRole('checkbox',{name:'Replace bed linens',exact:true}).check();
   await expect(completed).toBeEnabled();
   await completed.click();
-  await expect(hk.getByLabel('Cleaning progress',{exact:true})).toHaveValue('done');
+  await expect(hk.getByRole('combobox',{name:'Cleaning progress',exact:true})).toHaveValue('done');
   const save=hk.getByRole('button',{name:'Save cleaning & continue'});
   await expect(save).toBeVisible();
   await page.evaluate(()=>{Object.defineProperty(navigator,'onLine',{configurable:true,get:()=>false});window.dispatchEvent(new Event('offline'));});
@@ -54,7 +54,7 @@ for(const width of [320,390,760]){
   const mnt=page.getByRole('dialog',{name:'Work order WO-2 · Room 101'});
   await expect(mnt).toBeVisible();
   await mnt.getByRole('group',{name:'Quick repair progress'}).getByRole('button',{name:'Resolved',exact:true}).click();
-  await expect(mnt.getByLabel('Status',{exact:true})).toHaveValue('resolved');
+  await expect(mnt.getByRole('combobox',{name:'Status',exact:true})).toHaveValue('resolved');
   expect(await mnt.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBeTruthy();
   expect(writes).toBe(0);
  });

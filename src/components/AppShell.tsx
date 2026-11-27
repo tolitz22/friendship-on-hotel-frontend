@@ -14,6 +14,7 @@ import {Suspense,useEffect,useRef,useState,type KeyboardEvent} from 'react';
 import {useTheme} from './ThemeProvider';
 import {dataMode} from '../api';
 import {useHotelAuth} from './AuthProvider';
+import './PlatformHotelAccessPanel.css';
 import {StaffSignIn} from './StaffSignIn';
 import {HotelChooser} from './HotelChooser';
 import {ChangePassword} from '../pages/StaffPassword';
@@ -101,6 +102,7 @@ export function AppShell(){
  const housekeepingMobile=dataMode==='api'&&role==='housekeeping';
  const receptionMobile=dataMode==='api'&&role==='front_desk';
  const staffMobile=housekeepingMobile||receptionMobile;
+ const accessState=user?.hotels.find(h=>h.id===hotelId)?.accessState;
  const selectedHotelName=user?.hotels.find(h=>h.id===hotelId)?.name??'Hotel';
  const mobileTabs=(receptionMobile?[{to:'/' as const,label:'Overview',icon:Home},{to:'/front-desk' as const,label:'Front desk',icon:Hotel},{to:'/rooms' as const,label:'Rooms',icon:BedDouble},{to:'/messages' as const,label:'Messages',icon:MessageCircle}]:[{to:'/' as const,label:'Home',icon:Home},{to:'/housekeeping' as const,label:'Tasks',icon:ClipboardCheck},{to:'/rooms' as const,label:'Rooms',icon:BedDouble},{to:'/messages' as const,label:'Messages',icon:MessageCircle}]).filter(item=>canViewWorkspacePath(role,item.to,effectivePermissions));
  const canMessage=dataMode==='api'&&!!user&&!!hotelId&&!user.mustChangePassword&&canViewWorkspacePath(role,'/messages',effectivePermissions);
@@ -156,6 +158,7 @@ export function AppShell(){
  if(dataMode==='api'&&user?.mustChangePassword)return <div className="app-layout">
   <main className="main-area">
    <div className="page-content">
+    {dataMode==='api'&&(accessState==='restricted'||accessState==='suspended')&&<div className={'hotel-access-banner '+accessState} role="status"><strong>{accessState==='suspended'?'Hotel operations suspended':'New bookings restricted'}</strong>{accessState==='suspended'?'Authorized records remain available for viewing. Routine changes are disabled. Contact your PMS provider.':'Existing guest stays, checkout and financial settlement can continue. New bookings and group holds are disabled.'}</div>}
     <div className="notice" role="alert"><strong>Initial password change required.</strong> Your hotel administrator created this account with a temporary password. Choose a private new password before accessing any hotel records.</div>
     <ChangePassword/>
    </div>

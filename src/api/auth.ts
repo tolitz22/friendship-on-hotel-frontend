@@ -1,6 +1,7 @@
+import type {HotelAccessState} from './platformHotelAccess';
 import {initializeSpaCsrf,isCookieAuth,requestJson} from './http';
 
-export interface StaffHotel{id:string;name:string;role:string;permissions?:string[];}
+export interface StaffHotel{id:string;name:string;role:string;permissions?:string[];accessState?:HotelAccessState;}
 export interface StaffProfile{id:string;name:string;email:string;hotels:StaffHotel[];mustChangePassword?:boolean;platformAdmin?:boolean;}
 export interface AuthLoginResponse{data:{token:string;tokenType:'Bearer';user:{id:string;name:string;email:string}};}
 export interface StaffProfileResponse{data:StaffProfile;}

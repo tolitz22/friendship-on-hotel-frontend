@@ -1,6 +1,8 @@
+import type {HotelAccessState} from './platformHotelAccess';
 import {getJson,requestJson} from './http';
 export interface PlatformHotel{
  id:string;name:string;timezone:string;currency:string;createdAt:string|null;
+ accessState?:HotelAccessState;accessRevision?:number;
  roomCount:number;activeStaffCount:number;activeAdminCount:number;
 }
 export interface HotelDirectory{data:PlatformHotel[];meta:{page:number;lastPage:number;total:number}}

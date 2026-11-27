@@ -23,6 +23,13 @@ for(const width of [320,390,430,1280]){
   const desk=page.locator('.fdc-reception'),alert=desk.locator('.fdc-overdue-alert');
   await expect(desk.getByRole('region',{name:'Arrivals',exact:true})).toContainText('Demo Arrival');
   await expect(desk.getByRole('region',{name:'Departures',exact:true})).toContainText('Demo Departure');
+  await expect(desk.getByRole('region',{name:'Arrivals',exact:true}).locator('.rd-room-warning')).toHaveText('Readiness not verified');
+  await expect(desk.getByRole('region',{name:'Departures',exact:true}).locator('.rd-room-warning')).toHaveCount(0);
+  await expect(desk.getByText('Current room checks:',{exact:true})).toHaveCount(0);
+  await desk.getByRole('region',{name:'Arrivals',exact:true}).getByRole('button',{name:'View all'}).click();
+  await expect(desk.getByText('Current room checks:',{exact:true})).toHaveCount(0);
+  await desk.getByRole('group',{name:'Front desk views'}).getByRole('button',{name:'Today',exact:true}).click();
+  await expect(desk.getByRole('region',{name:'Arrivals',exact:true})).toBeVisible();
   await expect(alert).toContainText('1 overdue checkout needs attention');
   if(width<768){
    const refresh=desk.getByRole('button',{name:'Refresh front desk'});

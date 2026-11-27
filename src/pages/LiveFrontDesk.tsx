@@ -114,7 +114,8 @@ export function LiveFrontDesk(){
       ?maintenanceNotes.data.data.filter(note=>note.roomId===row.assignedRoomId):[];
      const advisoryCount=informationalMaintenanceCount(relatedNotes);
      const noteCoverageComplete=maintenanceNotes.isSuccess&&maintenanceNotes.data.meta.totalPages<=1;
-     const hasRoomWarning=kind!=='overdue'&&isToday&&!!row.assignedRoomId&&(signal?.tone==='attention'||signal?.tone==='blocked'||advisoryCount>0||maintenanceNotes.isError||!noteCoverageComplete&&maintenanceNotes.isSuccess||!status);
+     // Reception should only see room-readiness concerns where they affect the next check-in.
+     const hasRoomWarning=kind==='arrivals'&&isToday&&!!row.assignedRoomId&&(signal?.tone==='attention'||signal?.tone==='blocked'||signal?.tone==='occupied'||!status||advisoryCount>0);
      if(reception)return <article className="rd-guest" key={row.id}>
       <div className="rd-guest-main">
        <span className="rd-avatar" aria-hidden="true"><Users size={17}/></span>
@@ -123,7 +124,7 @@ export function LiveFrontDesk(){
        </div>
        <Link to="/reservations" search={{booking:row.id,...(action.kind==='view'?{}:{deskAction:action.kind})}} className="rd-row-action" aria-label={action.label+' · '+displayGuest(row)}>{action.kind==='check-in'?'Check in':action.kind==='check-out'?'Check out':action.kind==='assign'?'Assign room':'View stay'}</Link>
       </div>
-      {hasRoomWarning&&<Link to="/rooms" search={{room:row.roomNumber??'',inspect:shouldInspect||undefined}} className="rd-room-warning"><Info size={14}/><span>{signal?.title??(advisoryCount>0?'Maintenance notes':'Readiness not verified')}</span><ChevronRight size={14}/></Link>}
+      {hasRoomWarning&&<Link to="/rooms" search={{room:row.roomNumber??'',inspect:shouldInspect||undefined}} className="rd-room-warning" data-priority={signal?.tone==='blocked'||signal?.tone==='occupied'?'urgent':'attention'}><AlertTriangle size={14}/><span>{signal&&signal.tone!=='approved'?signal.title:advisoryCount>0?'Maintenance notes':'Readiness not verified'}</span><ChevronRight size={14}/></Link>}
       {(kind==='overdue'||!combined&&row.status==='checked_in')&&<div className="rd-extra">
        {kind==='overdue'&&<span className="rd-due">Due {dateLabel(row.checkOut)}</span>}
        {hotelId&&canExtend&&row.assignedRoomId&&row.status==='checked_in'&&<button className="rd-text-action" type="button" onClick={()=>setExtension({hotelId,record:row})}>Extend stay <ChevronRight size={14}/></button>}
@@ -252,8 +253,8 @@ export function LiveFrontDesk(){
   </section>}
   {reception&&overdueTotal.isError&&<p className="fdc-alert-unavailable" role="status">Overdue checkout status unavailable. <button type="button" className="btn-inline" onClick={()=>void overdueTotal.refetch()}>Retry</button></p>}
   {arrivals.isSuccess&&(arrivals.data.meta.unassignedCount??0)>0&&<div className="fdc-assign-hint">
-   <BedDouble size={16}/> {arrivals.data.meta.unassignedCount} arrival{arrivals.data.meta.unassignedCount===1?'':'s'} need a room assignment for {dateLabel(date)}.
-   <button type="button" onClick={()=>selectQueue('arrivals')}>Review arrivals <ArrowRight size={14}/></button>
+   <BedDouble size={16}/> {reception?<span>{arrivals.data.meta.unassignedCount} unassigned arrival{arrivals.data.meta.unassignedCount===1?'':'s'}</span>:<span>{arrivals.data.meta.unassignedCount} arrival{arrivals.data.meta.unassignedCount===1?'':'s'} need a room assignment for {dateLabel(date)}.</span>}
+   <button type="button" onClick={()=>selectQueue('arrivals')}>{reception?'Assign rooms':'Review arrivals'} <ArrowRight size={14}/></button>
   </div>}
   {combined?<div className="fdc-today-queues">
    {([{kind:'arrivals',title:'Arrivals',query:arrivals,Icon:LogIn},{kind:'departures',title:'Departures',query:departures,Icon:LogOut}] as const).map(({kind:queue,title,query,Icon})=><section className="fdc-today-section" key={queue} aria-label={title}>
@@ -264,7 +265,7 @@ export function LiveFrontDesk(){
   </div>:<section className="fdc-workspace" aria-label="Daily front desk work queue">
    <div className="fdc-workspace-heading">
     <div><h3>{kind==='overdue'?'Overdue checkouts':'Reservations for '+dateLabel(date)}</h3>
-     <p>{kind==='overdue'?'Still checked in after noon on the scheduled departure date, or due on an earlier date. This queue follows the hotel clock.':'Choose a queue, find a guest, then take the next action.'}</p></div>
+     {!reception&&<p>{kind==='overdue'?'Still checked in after noon on the scheduled departure date, or due on an earlier date. This queue follows the hotel clock.':'Choose a queue, find a guest, then take the next action.'}</p>}</div>
     <Link to="/room-calendar" className="fdc-secondary-link"><BedDouble size={16}/> Room calendar <ArrowRight size={14}/></Link>
    </div>
    {!reception&&<div className="fdc-controls">
@@ -282,10 +283,10 @@ export function LiveFrontDesk(){
    <QueryFeedback loading={current.isPending} error={current.error} onRetry={()=>void current.refetch()}
     empty={current.isSuccess&&filtered.length===0}
     emptyMessage={kind==='overdue'?(term?'No matching overdue checkouts.':'No overdue checkouts to follow up.') :term?'No matches in this queue on the selected date.':'No reservations in this queue on the selected date.'}/>
-   {kind!=='overdue'&&isToday&&canOperate&&<div className="fdc-room-notice"><Info size={16}/>
+   {!reception&&kind!=='overdue'&&isToday&&canOperate&&<div className="fdc-room-notice"><Info size={16}/>
     <p><strong>Current room checks:</strong> Active inventory restrictions and inspection/cleaning concerns are shown below when available.
      Maintenance work-order notes are informational and do not automatically block bookings. Always confirm availability at check-in.</p></div>}
-   {kind!=='overdue'&&!isToday&&<div className="fdc-room-notice"><Info size={16}/>
+   {!reception&&kind!=='overdue'&&!isToday&&<div className="fdc-room-notice"><Info size={16}/>
     <p>Room conditions are checked on the hotel’s current date. This future or past schedule does not guarantee a room’s cleaning, inspection, or maintenance status.</p></div>}
    {current.isSuccess&&filtered.length>0&&<div className="fdc-queue" aria-live="polite">
     {filtered.map(row=>renderRow(row,kind))}

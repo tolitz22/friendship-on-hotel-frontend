@@ -12,7 +12,7 @@ import {isMonitoringActivity,monitoringRequestIds} from '../features/monitoring/
 import {PlatformHealthPanel} from '../components/PlatformHealthPanel';
 import {PlatformWorkersPanel} from '../components/PlatformWorkersPanel';
 import {PlatformHotelsPanel} from '../components/PlatformHotelsPanel';
-import {PlatformPlansPanel} from '../components/PlatformPlansPanel';
+import {PlatformSubscriptionsWorkspace} from '../components/PlatformSubscriptionsWorkspace';
 import {monitoringTabs,monitoringQueryScope,nextMonitoringTab,type MonitoringTab} from '../features/monitoring/tabs';
 
 const tabDetails={
@@ -93,7 +93,7 @@ export function SuperAdminDashboard(){
    <aside className="platform-sidebar"><nav aria-label="Super admin modules"><span className="platform-nav-label">Workspace</span><button type="button" aria-current={module==='monitoring'?'page':undefined} onClick={()=>setModule('monitoring')}><Activity size={18}/> System monitoring</button><span className="platform-nav-label">Customers</span><button type="button" disabled={false} aria-current={module==='hotels'?'page':undefined} onClick={()=>setModule('hotels')}><Building2 size={18}/> Hotels</button><button type="button" aria-current={module==='subscriptions'?'page':undefined} onClick={()=>setModule('subscriptions')}><CreditCard size={18}/> Subscriptions</button></nav></aside>
   <main className="platform-main">
    {module==='hotels'&&user&&<PlatformHotelsPanel key={user.id} userId={user.id}/>}
-   {module==='subscriptions'&&user&&<PlatformPlansPanel key={user.id} userId={user.id}/>}
+   {module==='subscriptions'&&user&&<PlatformSubscriptionsWorkspace key={user.id} userId={user.id}/>}
    <div hidden={module!=='monitoring'} className="platform-monitoring-module">
    <div className="platform-title"><div><span className="eyebrow">PLATFORM OPERATIONS</span><h1>System monitoring</h1><p>{tabDetails[tab].description}</p></div>{logView&&<button className="btn-primary" disabled={settling||cooling||refreshUntil>0||activeQuery.isFetching} onClick={()=>{setRefreshUntil(Date.now()+30000);void activeQuery.refetch({cancelRefetch:false});}}><RefreshCw size={16} className={activeQuery.isFetching?'platform-spin':''}/> Refresh</button>}</div>
    <div className="platform-tabs" role="tablist" aria-label="Monitoring sections">{monitoringTabs.map(id=>{const {label,Icon}=tabDetails[id];return <button key={id} type="button" role="tab" id={'platform-tab-'+id} aria-selected={tab===id} aria-controls={'platform-panel-'+id} tabIndex={tab===id?0:-1} onClick={()=>selectTab(id)} onKeyDown={onTabKey}><Icon size={17}/><span>{label}</span></button>;})}</div>

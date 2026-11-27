@@ -131,7 +131,7 @@ export function LiveHousekeeping(){
  });
  useEffect(()=>{
   setPage(1);setSelected(null);setForm(null);setError('');setHistoryOpen(false);setHistoryPage(1);
-  setTextFilter('');setStatusFilter('');setTypeFilter('');setMineOnly(false);setMoreFilters(false);jumpToInspection.current=false;
+  setTextFilter('');setStatusFilter('');setTypeFilter('');setMineOnly(role==='housekeeping');setMoreFilters(false);jumpToInspection.current=false;
  },[hotelId]);
  useEffect(()=>{
   openedLinkedTask.current=null;

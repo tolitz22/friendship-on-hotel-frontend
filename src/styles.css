@@ -4139,3 +4139,29 @@ dialog.no-show-dialog::backdrop { background: rgb(0 0 0 / 45%); }
  .hk-task-actions button,.mnt-review{min-height:44px}
  .hk-drawer,.mnt-drawer{width:100%;max-width:100%;max-height:100dvh;overflow:auto}
 }
+
+
+/* HK-02 — personal housekeeping workspace */
+.hk-home{display:grid;gap:20px;min-width:0}
+.hk-home-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hk-home-heading h2,.hk-home-task h3{margin:0}
+.hk-home-heading p,.hk-home-task p{margin:4px 0;font-size:.875rem}
+.hk-home-heading small,.hk-home-task small,.hk-home-task-meta{font-size:.8rem}
+.hk-home-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.hk-home-metric{display:grid;gap:7px;padding:16px;border:1px solid #d5dce5;border-radius:12px;min-width:0}
+.hk-home-metric strong{font-size:1.9rem;line-height:1.2;font-variant-numeric:tabular-nums}
+.hk-home-metric small{font-size:.75rem;line-height:1.45}
+.hk-home-urgent svg,.hk-home-task-arrival_today .hk-home-priority,.hk-home-task-overdue .hk-home-priority{color:#b42318}
+.hk-home-done svg{color:#15803d}
+.hk-home-progress svg{color:#2563eb}
+.hk-home-queue{display:grid;gap:14px;min-width:0}
+.hk-home-task-list,.hk-home-shortcuts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.hk-home-task{display:grid;gap:12px;min-width:0;padding:16px;border:1px solid #d5dce5;border-radius:12px}
+.hk-home-task-arrival_today,.hk-home-task-overdue{border-inline-start:4px solid #b42318}
+.hk-home-task-title,.hk-home-task-meta{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap}
+.hk-home-task h3{font-size:1.25rem}
+.hk-home-priority{font-size:.8rem;font-weight:700}
+.hk-home-task .btn-primary,.hk-home-task .btn-inline{min-height:44px;justify-content:center;width:100%;box-sizing:border-box}
+.hk-home-empty{display:grid;gap:6px;padding:20px;border:1px dashed #a6b2c2;border-radius:12px}
+.hk-home-empty p{margin:0}
+@media(max-width:760px){.hk-home-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.hk-home-metric{padding:12px}.hk-home-task-list,.hk-home-shortcuts{grid-template-columns:minmax(0,1fr)}.hk-home{gap:16px}.hk-home-heading .btn-inline{min-height:44px}}

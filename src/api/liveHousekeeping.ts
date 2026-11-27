@@ -136,3 +136,30 @@ export function useDirectHousekeepingTask(taskId:string|null){
   retry:false,staleTime:0,
  });
 }
+
+
+const personalDashboardSchema=z.object({
+ data:z.object({
+  hotelId:idSchema,userId:idSchema,hotelDate:z.iso.date(),
+  summary:z.object({todo:z.number().int().nonnegative(),inProgress:z.number().int().nonnegative(),
+   urgentRooms:z.number().int().nonnegative(),completedToday:z.number().int().nonnegative()}),
+  activeTotal:z.number().int().nonnegative(),
+  tasks:z.array(taskSchema.extend({priority:z.enum(['arrival_today','overdue','in_progress','normal'])})).max(12),
+ }),
+});
+export type PersonalHousekeepingDashboard=z.infer<typeof personalDashboardSchema>['data'];
+export function parsePersonalHousekeepingDashboard(value:unknown,hotelId:string,userId:string){
+ const {data}=personalDashboardSchema.parse(value);
+ if(data.hotelId!==hotelId||data.userId!==userId||
+    data.tasks.some(task=>task.hotelId!==hotelId||task.assignedUserId!==userId||task.status==='done')||
+    data.activeTotal!==data.summary.todo+data.summary.inProgress||
+    data.summary.urgentRooms>data.activeTotal||
+    data.tasks.length!==Math.min(12,data.activeTotal)||
+    new Set(data.tasks.map(task=>task.id)).size!==data.tasks.length)
+  throw new Error('Housekeeping dashboard returned an inconsistent or different staff scope.');
+ return data;
+}
+export async function getPersonalHousekeepingDashboard(hotelId:string,userId:string){
+ if(readSession().hotelId!==hotelId)throw new Error('Hotel changed. Reload the housekeeping dashboard.');
+ return parsePersonalHousekeepingDashboard(await getJson<unknown>(hotelPath('/housekeeping/dashboard')),hotelId,userId);
+}

@@ -28,6 +28,9 @@ for(const width of [320,390,760]){
   await page.getByRole('button',{name:'Start or update task'}).click();
   const hk=page.getByRole('dialog',{name:'Housekeeping task HK-1'});
   await expect(hk).toBeVisible();
+  await expect(hk.getByRole('combobox',{name:'Room',exact:true})).toHaveCount(0);
+  await expect(hk.getByRole('combobox',{name:'Task type',exact:true})).toHaveCount(0);
+  await expect(hk.locator('.hk-task-detail').filter({hasText:'Room 201'})).toBeVisible();
   const completed=hk.getByRole('group',{name:'Quick cleaning progress'}).getByRole('button',{name:'Cleaning completed'});
   await expect(completed).toBeDisabled();
   await hk.getByRole('checkbox',{name:'Remove trash',exact:true}).check();

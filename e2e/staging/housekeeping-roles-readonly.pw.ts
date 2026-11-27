@@ -37,7 +37,11 @@ test('hotel administrator sees assignment and management controls',async({page})
   await card.locator('.hk-open-task').click();
   const dialog=page.getByRole('dialog');
   await expect(dialog.getByRole('combobox',{name:'Assign staff member'})).toBeVisible();
-  await expect(dialog.getByRole('combobox',{name:'Cleaning progress'})).toBeEnabled();
+  await expect(dialog.getByRole('combobox',{name:'Room',exact:true})).toHaveCount(0);
+  await expect(dialog.getByRole('combobox',{name:'Task type',exact:true})).toHaveCount(0);
+  const progress=dialog.getByRole('combobox',{name:'Cleaning progress'});
+  if(await progress.count())await expect(progress).toBeEnabled();
+  else await expect(dialog.locator('.hk-task-detail').filter({hasText:'Cleaning progress'})).toBeVisible();
   await expect(dialog.getByRole('button',{name:'Save task updates'})).toBeVisible();
   await dialog.getByRole('button',{name:'Close',exact:true}).first().click();
  }
@@ -56,13 +60,16 @@ test('housekeeping account can update team tasks without assignment controls',as
   await card.locator('.hk-open-task').click();
   const dialog=page.getByRole('dialog');
   await expect(dialog.getByRole('combobox',{name:'Assign staff member'})).toHaveCount(0);
+  await expect(dialog.getByRole('combobox',{name:'Room',exact:true})).toHaveCount(0);
+  await expect(dialog.getByRole('combobox',{name:'Task type',exact:true})).toHaveCount(0);
+  await expect(dialog.locator('.hk-task-detail').filter({hasText:'Due date and time'})).toBeVisible();
   const status=dialog.getByRole('combobox',{name:'Cleaning progress'});
-  if(/View task details/i.test(label)){
+  if(/Start or update task|Update cleaning progress/i.test(label)){
    await expect(status).toBeEnabled();
    await expect(dialog.getByRole('button',{name:'Save task updates'})).toBeVisible();
-  }else if(/Start or update task|Update cleaning progress/i.test(label)){
-   await expect(status).toBeEnabled();
-   await expect(dialog.getByRole('button',{name:'Save task updates'})).toBeVisible();
+  }else if(/View completed task|Complete final inspection/i.test(label)){
+   await expect(status).toHaveCount(0);
+   await expect(dialog.locator('.hk-task-detail').filter({hasText:'Cleaning progress'})).toBeVisible();
   }
   await dialog.getByRole('button',{name:'Close',exact:true}).first().click();
  }

@@ -40,6 +40,9 @@ const fromTask=(task:LiveHousekeepingTask):FormState=>({
  checkedItems:task.checklist?.filter(item=>item.checkedAt!==null).map(item=>item.key)??[],
 });
 const formatDue=(value:string)=>value.trim()===''?null:value.replace('T',' ')+':00';
+function TaskDetail({label,value}:{label:string;value:string}){
+ return <div className="hk-task-detail"><span className="hk-task-detail-label">{label}</span><span className="hk-task-detail-value">{value}</span></div>;
+}
 export function LiveHousekeeping(){
  const {hotelId,user}=useHotelAuth();
  const {task:linkedTaskId,queue:linkedQueue,status:linkedStatus}=useSearch({from:'/housekeeping'});
@@ -477,20 +480,21 @@ export function LiveHousekeeping(){
      <div>{[selected.status,...transitions[selected.status]].map(status=><button key={status} type="button" className="btn-inline" disabled={saving||(status==='done'&&!canFinishCleaningChecklist(selected,form.checkedItems))} aria-pressed={form.status===status} onClick={()=>change('status',status)}>{statusNames[status]}</button>)}</div>
     </div>}
     <div className="guest-fields">
-    <label>Room<select required disabled={!!selected||!admin||saving} value={form.roomId} onChange={e=>change('roomId',e.target.value)}>
-     <option value="">Choose a room</option>{rooms.data?.data.map(r=><option key={r.id} value={r.id}>Room {r.number}</option>)}</select></label>
-    <label>Task type<select disabled={!!selected||!admin||saving} value={form.type} onChange={e=>change('type',e.target.value as HousekeepingType)}>
-     {taskTypes.map(type=><option key={type} value={type}>{taskNames[type]}</option>)}</select></label>
-    <label>Cleaning progress<select aria-label="Cleaning progress" disabled={!selected||!maySave||saving} value={form.status} onChange={e=>change('status',e.target.value as HousekeepingStatus)}>
-     {[selected?.status??'todo',...(transitions[selected?.status??'todo']??[])].map(status=><option key={status} value={status} disabled={!!selected&&status==='done'&&!canFinishCleaningChecklist(selected,form.checkedItems)}>{statusNames[status]}</option>)}</select></label>
+    {selected||!admin?<TaskDetail label="Room" value={selected?'Room '+selected.roomNumber:'Not selected'}/>:<label>Room<select required disabled={saving} value={form.roomId} onChange={e=>change('roomId',e.target.value)}>
+     <option value="">Choose a room</option>{rooms.data?.data.map(r=><option key={r.id} value={r.id}>Room {r.number}</option>)}</select></label>}
+    {selected||!admin?<TaskDetail label="Task type" value={taskNames[form.type]}/>:<label>Task type<select disabled={saving} value={form.type} onChange={e=>change('type',e.target.value as HousekeepingType)}>
+     {taskTypes.map(type=><option key={type} value={type}>{taskNames[type]}</option>)}</select></label>}
+    {selected&&maySave&&transitions[selected.status].length>0?<label>Cleaning progress<select aria-label="Cleaning progress" disabled={saving} value={form.status} onChange={e=>change('status',e.target.value as HousekeepingStatus)}>
+     {[selected.status,...transitions[selected.status]].map(status=><option key={status} value={status} disabled={status==='done'&&!canFinishCleaningChecklist(selected,form.checkedItems)}>{statusNames[status]}</option>)}</select></label>:<TaskDetail label="Cleaning progress" value={statusNames[form.status]}/>}
     {admin&&<label>Assign staff member<select value={form.assignedUserId} disabled={saving} onChange={e=>change('assignedUserId',e.target.value)}>
      <option value="">No linked account</option>
      {form.assignedUserId&&!sortedStaff.some(m=>m.userId===form.assignedUserId)&&<option value={form.assignedUserId}>Current assignee (not eligible for new work)</option>}
      {sortedStaff.map(m=><option key={m.userId} value={m.userId}>{m.name} ({m.role}){workloadFor(m.userId)!==null?' · '+workloadFor(m.userId)+' active':''}</option>)}
     </select></label>}
     {admin&&workload.isError&&<p role="status">Staff workload unavailable. Assignment counts are not shown.</p>}
-    <label>Additional assigned staff name<input maxLength={120} disabled={!admin||saving} value={form.assignedTo} onChange={e=>change('assignedTo',e.target.value)}/></label>
-    <label>Due date and time<input type="datetime-local" disabled={!admin||saving} value={form.dueAt} onChange={e=>change('dueAt',e.target.value)}/></label>
+    {admin?<label>Additional assigned staff name<input maxLength={120} disabled={saving} value={form.assignedTo} onChange={e=>change('assignedTo',e.target.value)}/></label>:<TaskDetail label="Additional assigned staff" value={form.assignedTo.trim()||'None'}/>}
+    {admin?<label>Due date and time<input type="datetime-local" disabled={saving} value={form.dueAt} onChange={e=>change('dueAt',e.target.value)}/></label>:<TaskDetail label="Due date and time" value={form.dueAt?form.dueAt.replace('T',' '):'Not scheduled'}/>}
+
     {maySave&&<label>Handover note<textarea rows={2} maxLength={2000} disabled={saving} value={form.note} onChange={e=>change('note',e.target.value)}/></label>}
    </div>
    {Object.entries(fieldErrors).flatMap(([field,messages])=>messages.map((m,i)=><p key={field+i} className="catalog-field-error" role="alert">{field}: {m}</p>))}

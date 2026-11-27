@@ -5,8 +5,8 @@ import {useHotelAuth} from '../components/AuthProvider';
 import {Heading} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {useOperationalExceptions,type OperationalException} from '../api/operationalExceptions';
-import {readableDate,readableDateTime,statusLabel} from '../lib/format';
-import {auditActorName} from '../components/ReadableAuditEvent';
+import {readableDate,readableDateTime} from '../lib/format';
+import {BusinessAuditTimeline} from '../components/BusinessAuditTimeline';
 
 type Filter='all'|'critical'|'attention'|'review';
 const filters:{value:Filter;title:string;caption:string}[]=[
@@ -57,7 +57,7 @@ export function OperationalExceptions(){
  const {tab:initialTab}=useSearch({from:'/operational-exceptions'});
  const [showActivity,setShowActivity]=useState(initialTab==='activity');
  const [area,setArea]=useState('all');
- const report=useOperationalExceptions(days,admin);
+ const report=useOperationalExceptions(days,admin&&!showActivity);
  const data=report.data?.data;
  const matching=useMemo(()=>{
   const keyword=search.trim().toLocaleLowerCase();
@@ -87,11 +87,16 @@ export function OperationalExceptions(){
  return <div className="ops-workspace">
   <div className="ops-heading">
    <div><span className="rr-eyebrow">MANAGER WORKSPACE</span>
-    <Heading title="Exceptions & audit" description="Prioritize hotel issues, open the affected records, and review reservation activity."/></div>
-   <button type="button" className="rr-secondary-action" disabled={report.isFetching}
-    onClick={()=>void report.refetch()}><RefreshCw size={16}/> {report.isFetching?'Refreshing…':'Refresh'}</button>
+    <Heading title="Exceptions & audit" description="Prioritize hotel issues, open the affected records, and review business activity."/></div>
+   {!showActivity&&<button type="button" className="rr-secondary-action" disabled={report.isFetching}
+    onClick={()=>void report.refetch()}><RefreshCw size={16}/> {report.isFetching?'Refreshing…':'Refresh'}</button>}
   </div>
 
+   <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-2" role="group" aria-label="Workspace view">
+    <button type="button" className={"rr-secondary-action "+(!showActivity?"font-bold":"")} aria-pressed={!showActivity} onClick={()=>setShowActivity(false)}><ClipboardList size={16}/> Exceptions{data?` (${data.summary.total})`: ''}</button>
+    <button type="button" className={"rr-secondary-action "+(showActivity?"font-bold":"")} aria-pressed={showActivity} onClick={()=>setShowActivity(true)}><Clock3 size={16}/> Audit history</button>
+   </div>
+  {showActivity?<BusinessAuditTimeline key={hotelId} hotelId={hotelId!}/>:<>
   <div className="ops-toolbar">
    <div><strong>Hotel activity · {readableDate(data?.asOfHotelDate)}</strong>
     <span>Reservation alerts for the next {days} days; operational review queues are current</span></div>
@@ -109,10 +114,6 @@ export function OperationalExceptions(){
       <span>{entry.title}</span><strong>{entry.value==='all'?data.summary.total:
        data.summary[entry.value]}</strong><small>{entry.caption}</small>
     </button>)}
-   </div>
-   <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-2" role="group" aria-label="Workspace view">
-    <button type="button" className={"rr-secondary-action "+(!showActivity?"font-bold":"")} aria-pressed={!showActivity} onClick={()=>setShowActivity(false)}><ClipboardList size={16}/> Exceptions ({data.summary.total})</button>
-    <button type="button" className={"rr-secondary-action "+(showActivity?"font-bold":"")} aria-pressed={showActivity} onClick={()=>setShowActivity(true)}><Clock3 size={16}/> Audit history ({data.activity.length})</button>
    </div>
    {!showActivity&&<section className="ops-task-section">
     <div className="ops-task-heading">
@@ -140,19 +141,8 @@ export function OperationalExceptions(){
      </div>}
     </>}
    </section>}
-   {showActivity&&<section className="ops-history"><div>
-     <h3 className="font-semibold">Recent reservation activity</h3>
-     <p>Activity history is not itself an alert. Open a reservation to review what was recorded.</p>
-     {data.activity.length===0&&<p>No reservation changes recorded in the selected period.</p>}
-     {data.activity.map(entry=><article key={entry.id} className="ops-history-row">
-      <div><strong>{statusLabel(entry.eventType)}</strong>
-       <small>{entry.reference} · {auditActorName(entry.actorId,entry.actorName,user?.id,user?.name)}
-        {' · '}{readableDateTime(entry.createdAt)}</small></div>
-      <Link to="/reservations" search={{booking:entry.bookingId}}>View <ArrowRight size={14}/></Link>
-     </article>)}
-    </div>
-   </section>}
    <details className="ops-note"><summary className="cursor-pointer font-medium">About these checks</summary><p>Exceptions indicate records requiring review, not proof of misconduct. Review and resolution remain in the original authorized workflows.</p></details>
+  </>}
   </>}
  </div>;
 }

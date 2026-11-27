@@ -30,12 +30,12 @@ test('manager front desk keeps four queues, date controls and guarded actions',a
  for(const name of ['Arrivals','Departures','In-house guests','Overdue checkouts'])await expect(desk.getByRole('region',{name,exact:true})).toBeVisible();
  await expect(desk.getByRole('region',{name:'Arrivals',exact:true}).getByRole('link',{name:'Assign room · Unassigned Guest'})).toHaveAttribute('href',/deskAction=assign/);
  await expect(desk.getByRole('region',{name:'Arrivals',exact:true}).getByRole('link',{name:/Review check-in/})).toHaveAttribute('href',/deskAction=check-in/);
- await expect(desk.getByRole('region',{name:'Overdue checkout priority'})).toContainText('1 overdue checkout');
+ await expect(desk.getByRole('status',{name:'Overdue checkout priority'})).toContainText('1 overdue checkout');
  await expect(desk.getByRole('link',{name:'Walk-in booking'})).toHaveAttribute('href',new RegExp('checkIn='+date));
  await expect(desk.getByText('Current room checks:',{exact:false})).toHaveCount(0);
  await desk.getByRole('button',{name:'Next date'}).click();
  await expect(desk.getByRole('button',{name:'Arrivals 2',exact:true})).toBeVisible();
- await expect(desk.getByRole('region',{name:'Overdue checkout priority'})).toContainText('1 overdue checkout');
+ await expect(desk.getByRole('status',{name:'Overdue checkout priority'})).toContainText('1 overdue checkout');
  await expect(desk.locator('.mdesk-room-warning')).toHaveCount(0);
  await desk.getByRole('button',{name:'Review overdue checkouts'}).click();
  const overdue=desk.getByRole('region',{name:'Overdue checkouts',exact:true});
@@ -43,7 +43,7 @@ test('manager front desk keeps four queues, date controls and guarded actions',a
  const search=desk.getByRole('textbox',{name:'Search the selected manifest'});
  await search.fill('no match');
  await expect(overdue.getByText('No matching bookings.')).toBeVisible();
- await expect(desk.getByRole('region',{name:'Overdue checkout priority'})).toContainText('1 overdue checkout');
+ await expect(desk.getByRole('status',{name:'Overdue checkout priority'})).toContainText('1 overdue checkout');
  await desk.getByRole('button',{name:'Clear search'}).click();
  await overdue.getByRole('button',{name:'All queues'}).click();
  await expect(desk.getByRole('region',{name:'Arrivals',exact:true})).toBeVisible();

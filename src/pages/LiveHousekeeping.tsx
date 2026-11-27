@@ -13,7 +13,7 @@ import {readableDate} from '../lib/format';
 import {
  createHousekeepingTask,getHousekeepingHistory,listHousekeepingTasks,updateHousekeepingTask,completeHousekeepingInspection,
  type LiveHousekeepingTask,type HousekeepingStatus,type HousekeepingType,type TaskFilter,type HousekeepingQueue,getHousekeepingWorkload,
- parseLiveHousekeeping,parseUpdatedHousekeeping,useDirectHousekeepingTask,canFinishCleaningChecklist,
+ parseLiveHousekeeping,parseUpdatedHousekeeping,useDirectHousekeepingTask,canFinishCleaningChecklist,claimHousekeepingTask,
 } from '../api/liveHousekeeping';
 import {ApiError,getJson} from '../api/http';
 import {hotelPath,readSession} from '../api/session';
@@ -265,6 +265,17 @@ export function LiveHousekeeping(){
   :task.assignedTo??'Unassigned';
  const canUpdate=(task:LiveHousekeepingTask)=>admin||(role==='housekeeping'&&canWork&&task.assignedUserId===user?.id);
  const maySave=admin||(!!selected&&canUpdate(selected));
+ const mayClaim=!!selected&&role==='housekeeping'&&canWork&&selected.status==='todo'&&selected.assignedUserId===null&&!selected.assignedTo?.trim();
+ async function claim(){
+  if(!selected||!mayClaim||!hotelId||!user?.id||!online||saving)return;
+  setSaving(true);setError('');setSaveMessage('');
+  try{
+   const updated=await claimHousekeepingTask(hotelId,selected,user.id);
+   if(readSession().hotelId!==hotelId)return;
+   setSelected(updated);setForm(fromTask(updated));setSaveMessage('Task assigned to you. You can now update cleaning progress.');
+  }catch(cause){if(readSession().hotelId===hotelId)setError(cause instanceof ApiError&&cause.status===409?'Task already claimed or changed. Close and reopen the latest task.':cause instanceof Error?cause.message:'Unable to claim task.');}
+  finally{setSaving(false);void Promise.all([['live-housekeeping',hotelId],['live-housekeeping-status-totals',hotelId],['role-home','housekeeping',hotelId],['live','housekeeping-room-board',hotelId],['live','housekeeping-direct-task',hotelId],['live','housekeeping-workload',hotelId],['live','housekeeping-manager-report',hotelId],['live','housekeeping-handoff',hotelId],['live','housekeeping-assigned-alerts',hotelId],['housekeeping-history',hotelId]].map(queryKey=>client.invalidateQueries({queryKey}))).catch(()=>{});}
+ }
  return <>
   {linkedTaskId&&<section aria-label="Direct checkout cleaning task">
    <div className="desk-tools">
@@ -432,7 +443,8 @@ export function LiveHousekeeping(){
    <div className="catalog-modal-heading"><h3 id="hk-dialog-title">{selected?'Housekeeping task HK-'+selected.id:'Create housekeeping task'}</h3>
     <button type="button" className="icon-btn" aria-label="Close" disabled={saving} onClick={close}><X size={19}/></button></div>
    {!online&&<p className="hk-network-alert" role="status">You are offline. Changes are not saved. Reconnect to submit.</p>}
-   <div className="hk-dialog-guide"><Info size={17}/><p><strong>One task, two stages.</strong> Save cleaning progress, then finish the final inspection below. Maintenance and inventory checks still apply.</p></div>
+   {selected&&<div className="hk-assignment-access"><div><strong>{maySave?'Editable task':mayClaim?'Available to claim':'Read-only task'}</strong><p>{maySave?(selected.assignedUserId===user?.id?'Assigned to you. Update progress and save as you work.':'You have administrator access to this task.'):mayClaim?'No employee is assigned. Claim this task to update its progress.':role==='housekeeping'&&!canWork?'Your account does not have housekeeping task update permission. Ask your manager.':selected.assignedUserId?'This task is assigned to another employee. Ask a manager to reassign it if necessary.':selected.assignedTo?'A staff name is recorded without a linked account. Ask a manager to link the correct account.':'This task cannot be self-claimed because it is no longer awaiting a new assignment. Ask your manager.'}</p></div>{mayClaim&&<button type="button" className="btn-primary" disabled={saving||!online} onClick={()=>void claim()}>{saving?'Claiming…':'Claim task'}</button>}</div>}
+   <div className="hk-dialog-guide"><Info size={17}/><p><strong>{selected?.type==='stayover'?'Stayover service.':selected?.type==='inspection'?'Room inspection.':'One task, two stages.'}</strong> {selected?.type==='stayover'?'Record completed cleaning without releasing the occupied room.':selected?.type==='inspection'?'Record inspection task progress; room readiness is evaluated separately.':'Save cleaning progress, then finish the final inspection below. Maintenance and inventory checks still apply.'}</p></div>
    {selected&&maySave&&hotelId&&<HousekeepingIssueReport key={hotelId+':'+selected.id} hotelId={hotelId} task={selected} disabled={saving}/>}
    {selected&&<>
     <QueryFeedback loading={maintenance.isPending} error={maintenance.error}/>

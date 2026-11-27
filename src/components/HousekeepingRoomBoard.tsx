@@ -27,7 +27,7 @@ function RoomCard({room}:{room:HousekeepingBoardRoom}){
   {room.task&&<div className="hk-rb-task-info"><ClipboardCheck size={16} aria-hidden="true"/><div><strong>{taskLabels[room.task.type]}</strong><small className={room.task.assignment==='mine'?'hk-rb-mine':''}>{assignmentLabels[room.task.assignment]}</small></div></div>}
   {room.stage==='unverified'&&<p className="hk-rb-note">Confirm readiness with reception or your manager.</p>}
   {(room.task||room.maintenanceBlocked)&&<div className="hk-rb-card-actions">
-   {room.task&&<Link to="/housekeeping" search={{task:room.task.id}} className={'hk-rb-action '+(room.task.assignment==='mine'?'hk-rb-action-primary':'')}>{room.task.assignment==='mine'?(room.task.status==='done'?'Open inspection task':'Open my task'):'View task'} <ArrowRight size={15}/></Link>}
+   {room.task&&<Link to="/housekeeping" search={{task:room.task.id}} className={'hk-rb-action '+(room.task.assignment==='mine'?'hk-rb-action-primary':'')}>{room.task.assignment==='mine'?(room.task.status==='done'?'Open inspection task':'Open my task'):room.task.assignment==='unassigned'&&room.task.status==='todo'?'View available task':'View task'} <ArrowRight size={15}/></Link>}
    {room.maintenanceBlocked&&<Link to="/maintenance" className="hk-rb-action"><Wrench size={15}/> View maintenance <ArrowRight size={15}/></Link>}
   </div>}
  </article>;

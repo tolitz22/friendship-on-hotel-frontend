@@ -190,3 +190,10 @@ export function canFinishCleaningChecklist(task:LiveHousekeepingTask,checkedItem
  const items=task.checklist;
  return !!items?.length&&new Set(checkedItems).size===items.length&&checkedItems.length===items.length&&items.every(item=>checkedItems.includes(item.key));
 }
+
+export async function claimHousekeepingTask(hotelId:string,task:LiveHousekeepingTask,userId:string){
+ if(readSession().hotelId!==hotelId)throw new Error('Selected hotel changed.');
+ const result=parseUpdatedHousekeeping(await requestJson<unknown>(hotelPath('/housekeeping-tasks/'+encodeURIComponent(task.id)+'/claim'),{method:'POST',body:{expectedRevision:task.revision}}),hotelId,task.id);
+ if(result.assignedUserId!==userId)throw new Error('Assignment could not be confirmed. Reload this task.');
+ return result;
+}

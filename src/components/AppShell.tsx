@@ -230,10 +230,10 @@ export function AppShell(){
   </aside>
   <main className={'main-area'+(showMessageShortcut?' has-message-shortcut':'')+(housekeepingMobile?' hk-bottom-nav-shell':'')+(housekeepingMobile&&pathname==='/'?' hk-minimal-home-shell':'')} inert={open}>
    <header className="topbar">
-    {housekeepingMobile&&<div className="hk-mobile-brand"><span className="hk-mobile-brand-mark" aria-hidden="true"><Hotel size={22}/></span><span className="hk-mobile-brand-name">{selectedHotelName}</span></div>}
     <div className="topbar-left">
      <button ref={menuButton} className="icon-btn mobile-menu" type="button" onClick={()=>{menuTrigger.current='header';setOpen(true);}}
       aria-label="Open navigation" aria-haspopup="dialog" aria-expanded={open} aria-controls="workspace-sidebar"><Menu size={20}/></button>
+     {housekeepingMobile&&<div className="hk-mobile-brand"><span className="hk-mobile-brand-mark" aria-hidden="true"><Hotel size={22}/></span><span className="hk-mobile-brand-name">{selectedHotelName}</span></div>}
      <div className="topbar-heading"><span className="eyebrow">FRIENDSHIP ON HOTEL</span><h1>{current}</h1></div>
     </div>
     <div className="topbar-actions">

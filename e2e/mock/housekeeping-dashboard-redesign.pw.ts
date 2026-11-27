@@ -42,7 +42,12 @@ for(const width of [320,390,430,768,1280]){
    await expect(page.getByRole('button',{name:/^Notifications/})).toBeVisible();
    await expect(page.locator('.hk-mobile-brand')).toBeVisible();
    await expect(page.locator('.topbar .hotel-context-select')).toBeHidden();
-   await expect(page.getByRole('button',{name:'Open navigation'})).toBeHidden();
+   const hamburger=page.getByRole('button',{name:'Open navigation'});
+   await expect(hamburger).toBeVisible();
+   await hamburger.click();
+   await expect(page.getByRole('dialog',{name:'Workspace navigation'})).toBeVisible();
+   await page.getByRole('button',{name:'Close menu'}).click();
+   await expect(hamburger).toBeFocused();
    expect((await page.locator('.topbar').boundingBox())!.height).toBeLessThanOrEqual(84);
    for(const label of ['Tasks','Rooms','Messages'])await expect(nav.getByRole('link',{name:label,exact:true})).toBeVisible();
    const navBounds=await nav.boundingBox();

@@ -293,13 +293,22 @@ export function LiveHousekeeping(){
   }finally{setSaving(false);}
  }
  const mayInspect=!!selected&&canWork&&selected.hotelId===hotelId;
+ const inspectionReason=!mayInspect?'Your account cannot complete this inspection.':
+  !online?'Reconnect to finish the inspection.':
+  saving?'Saving inspection…':
+  needsReview?'Review the latest task before submitting.':
+  readiness.isFetching?'Checking room restrictions…':
+  !readiness.isSuccess?'Room restrictions could not be verified. Retry the check.':
+  inspectionBlockers.length?'Resolve the room restrictions shown above before continuing.':
+  !inspectionChecks.every(Boolean)?'Check all '+inspectionChecks.length+' physical inspection items.':
+  null;
  async function finishInspection(){
-  if(!selected||!checkoutDone||inspectionRecorded||!mayInspect||saving||needsReview||!inspectionChecks.every(Boolean)
-   ||inspectionNote.trim().length<5||!hotelId||!online||!readiness.isSuccess||inspectionBlockers.length)return;
+  if(!selected||!checkoutDone||inspectionRecorded||inspectionReason||!hotelId)return;
   setSaving(true);setError('');setFieldErrors({});setInspectionMessage('');
   try{
    const updated=parseUpdatedHousekeeping(await completeHousekeepingInspection(
-    selected.id,selected.revision,inspectionNote.trim()),hotelId,selected.id);
+    selected.id,selected.revision,inspectionNote.trim().length>=5?inspectionNote.trim():
+     'All three physical inspection checks confirmed by the submitting employee.'+(inspectionNote.trim()?' Additional note: '+inspectionNote.trim():'')),hotelId,selected.id);
    if(readSession().hotelId!==hotelId)return;
    setSelected(updated);setForm(fromTask(updated));
    setInspectionMessage('Final inspection completed. Room readiness has been recalculated.');
@@ -524,8 +533,9 @@ export function LiveHousekeeping(){
          </label>)}
        </div>
        <div className="hk-editor-fields">
-        <label>Inspection notes (required)<textarea value={inspectionNote} disabled={!mayInspect||saving} maxLength={2000} rows={2}
-         onChange={event=>setInspectionNote(event.target.value)} placeholder="Describe the final inspection (at least 5 characters)"/></label>
+        <label>Inspection notes (optional)<textarea value={inspectionNote} disabled={!mayInspect||saving} maxLength={2000} rows={2}
+         onChange={event=>setInspectionNote(event.target.value)} placeholder="Add any observations"/></label>
+        <small>All confirmed checks are recorded with your name and time, even without a note.</small>
        </div>
       </>}
     </section>}
@@ -567,6 +577,10 @@ export function LiveHousekeeping(){
     {error&&<p role="alert" className="auth-error">{error}</p>}
     {Object.entries(fieldErrors).flatMap(([field,messages])=>messages.map((message,index)=><p key={field+index} className="catalog-field-error" role="alert">{message}</p>))}
     {(inspectionMessage||saveMessage)&&<p role="status" className="hk-save-feedback">{inspectionMessage||saveMessage}</p>}
+    {checkoutDone&&!inspectionRecorded&&inspectionReason&&<div className="hk-inspection-action-hint" id="hk-inspection-action-hint" role="status">{inspectionReason}
+     {!readiness.isSuccess&&!readiness.isFetching&&online&&<button type="button" className="btn-inline" onClick={()=>void readiness.refetch()}>Retry check</button>}
+     {minimalEditor&&editorTab==='details'&&<button type="button" className="btn-inline" onClick={()=>setEditorTab('checklist')}>View inspection</button>}
+    </div>}
     <div className="hk-editor-controls">
      {!maySave&&<button type="button" className="btn-inline" onClick={close}>Close</button>}
      {maySave&&<>
@@ -580,7 +594,7 @@ export function LiveHousekeeping(){
       {selected&&selected.status!=='done'&&(!minimalEditor||selected.status==='in_progress'||canCompleteCleaning)&&<button type="button" className={canCompleteCleaning&&(!minimalEditor||selected.status==='in_progress')?'btn-primary':'btn-inline'}
        disabled={!online||saving||needsReview||!canCompleteCleaning} onClick={()=>void save('done')}>Complete cleaning</button>}
       {checkoutDone&&!inspectionRecorded&&<button type="button" className="btn-primary"
-       disabled={!online||saving||needsReview||!readiness.isSuccess||inspectionBlockers.length>0||!inspectionChecks.every(Boolean)||inspectionNote.trim().length<5}
+       disabled={!!inspectionReason} aria-describedby={inspectionReason?'hk-inspection-action-hint':undefined}
        onClick={()=>void finishInspection()}>Complete final inspection</button>}
      </>}
      {minimalEditor&&maySave&&selected?.status==='done'&&!inspecting&&!form.note.trim()&&<button type="button" className="btn-inline" onClick={close}>Done</button>}

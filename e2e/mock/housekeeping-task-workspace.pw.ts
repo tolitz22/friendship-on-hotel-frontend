@@ -281,13 +281,15 @@ test('starts unassigned work, recovers a teammate draft, inspects, audits and fi
  for (const label of ['Room and bathroom are clean', 'Safety, lighting and fixtures checked', 'Amenities and supplies checked']) {
   await editor.getByRole('checkbox', { name: new RegExp(label) }).check();
  }
- await editor.getByLabel('Inspection notes (required)').fill('Verified the room in person.');
+ await expect(editor.getByLabel('Inspection notes (optional)')).toHaveValue('');
  const inspect = editor.getByRole('button', { name: 'Complete final inspection' });
  await expect(inspect).toBeDisabled();
  api.block(false);
  await editor.getByRole('button', { name: 'Recheck restrictions' }).click();
+ await expect(inspect).toBeEnabled();
  await inspect.click();
  await expect(editor.getByText('Final inspection recorded')).toBeVisible();
+ expect(api.writes.find(write=>write.path.endsWith('/final-inspection'))?.body.note).toBe('All three physical inspection checks confirmed by the submitting employee.');
  await editor.getByRole('group',{name:'Task detail views'}).getByRole('button',{name:'Details',exact:true}).click();
  await editor.getByRole('button', { name: 'Activity history' }).click();
  await expect(editor.getByText('Completed final room inspection')).toBeVisible();
@@ -320,4 +322,24 @@ test('disallows writes and assignment controls for revoked housekeeping access',
  await expect(editor.getByRole('button', { name: 'Start cleaning' })).toHaveCount(0);
  await expect(editor.getByRole('combobox')).toHaveCount(0);
  expect(api.writes).toHaveLength(0);
+});
+
+test('inspection needs all physical checks but no written note, and explains restrictions',async({page},testInfo)=>{
+ test.skip(testInfo.project.name!=='mobile-chromium');
+ const api=await interceptHotel(page);
+ await page.goto(origin+'/housekeeping');
+ await card(page,204).getByRole('button',{name:'Complete final inspection'}).click();
+ const editor=page.getByRole('dialog',{name:'Room 204'});
+ const submit=editor.getByRole('button',{name:'Complete final inspection'});
+ await expect(submit).toBeDisabled();
+ await expect(editor.getByText('Check all 3 physical inspection items.')).toBeVisible();
+ const checks=editor.locator('.hk-inspection-step input[type=checkbox]');
+ await checks.nth(0).check();await checks.nth(1).check();
+ await expect(submit).toBeDisabled();
+ await checks.nth(2).check();
+ await expect(submit).toBeEnabled();
+ expect(api.writes).toHaveLength(0);
+ await submit.click();
+ await expect(editor.getByText('Final inspection recorded')).toBeVisible();
+ expect(api.writes.filter(write=>write.path.endsWith('/final-inspection'))).toHaveLength(1);
 });

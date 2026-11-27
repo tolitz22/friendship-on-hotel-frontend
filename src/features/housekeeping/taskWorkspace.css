@@ -383,3 +383,5 @@ body:has(.hk-editor[open]) { overflow: hidden; }
  .hk-task-hero-top h3{font-size:23px}
  .hk-minimal-editor .hk-editor-footer{padding-top:10px}
 }
+
+.hk-inspection-action-hint{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;color:var(--muted);font-size:12px;line-height:1.5}.hk-inspection-action-hint .btn-inline{min-height:44px}.hk-inspection-step .hk-editor-fields small{grid-column:1/-1;color:var(--muted);font-size:12px;line-height:1.4}

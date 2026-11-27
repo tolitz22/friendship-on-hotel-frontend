@@ -108,3 +108,8 @@ it('only exposes personal claims to staff with the selected hotel permission',()
    expect(canViewWorkspacePath('housekeeping',path)).toBe(false);
   }
  });
+
+it('restricts lost and found to housekeeping and administrators',()=>{
+ for(const role of ['admin','housekeeping'] as const)expect(canViewWorkspacePath(role,'/lost-found')).toBe(true);
+ for(const role of ['front_desk','maintenance'] as const)expect(canViewWorkspacePath(role,'/lost-found')).toBe(false);
+});

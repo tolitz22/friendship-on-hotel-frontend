@@ -237,7 +237,7 @@ export function AppShell(){
     </div>
    </div>
   </aside>
-  <main className={'main-area'+(showMessageShortcut?' has-message-shortcut':'')+(staffMobile?' hk-bottom-nav-shell':'')+(housekeepingMobile&&pathname==='/'?' hk-minimal-home-shell':'')} inert={open}>
+  <main className={'main-area'+(showMessageShortcut?' has-message-shortcut':'')+(pathname==='/messages'?' messages-workspace':'')+(staffMobile?' hk-bottom-nav-shell':'')+(housekeepingMobile&&pathname==='/'?' hk-minimal-home-shell':'')} inert={open}>
    <header className="topbar">
     <div className="topbar-left">
      <button ref={menuButton} className="icon-btn mobile-menu" type="button" onClick={()=>{menuTrigger.current='header';setOpen(true);}}

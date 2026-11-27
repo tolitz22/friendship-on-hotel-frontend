@@ -1,7 +1,7 @@
 import {useRef,useState} from 'react';
 import {HousekeepingAssignmentAlert} from './HousekeepingAssignmentAlert';
 import {createPortal} from 'react-dom';
-import {Link} from '@tanstack/react-router';
+import {Link,useRouterState} from '@tanstack/react-router';
 import {useQuery} from '@tanstack/react-query';
 import {AlertTriangle,ArrowRight,BedDouble,Bell,CalendarPlus,ClipboardCheck,ClipboardList,CreditCard,LogOut,Megaphone,MessageCircle,Receipt,RefreshCw,Settings2,Wallet,Wrench,X} from 'lucide-react';
 import {z} from 'zod';
@@ -75,6 +75,7 @@ const responseSchema=z.object({data:z.object({
 })});
 
 export function StaffNotifications({hotelId,userId,canPush=false,promptHost,housekeeping=false}:{hotelId:string;userId:string;canPush?:boolean;promptHost?:HTMLElement|null;housekeeping?:boolean}){
+ const pathname=useRouterState({select:s=>s.location.pathname});
  const storageKey='pms.notification-read:v1:'+userId+':'+hotelId;
  const [read,setRead]=useState<string[]>(()=>{
   try{
@@ -96,7 +97,7 @@ export function StaffNotifications({hotelId,userId,canPush=false,promptHost,hous
   },
   retry:false,
   staleTime:15_000,
-  refetchInterval:housekeeping?10_000:open?30_000:60_000,
+  refetchInterval:housekeeping?10_000:!canPush||open?30_000:60_000,
   refetchOnWindowFocus:'always',
   refetchOnReconnect:'always',
   refetchIntervalInBackground:false,
@@ -109,6 +110,10 @@ export function StaffNotifications({hotelId,userId,canPush=false,promptHost,hous
  const unread=items.filter(item=>!readSet.has(item.id)).length;
  const attention=items.filter(item=>priorityFor(item.kind)>0).length;
  const urgent=items.filter(item=>priorityFor(item.kind)===2).length;
+ const overdueItems=items.filter(item=>item.kind==='checkout_overdue');
+ const [dismissedOverdue,setDismissedOverdue]=useState<string[]>(()=>{try{return z.array(z.string()).parse(JSON.parse(localStorage.getItem(storageKey+':overdue-dismissed')??'[]'));}catch{return [];}});
+ const newOverdue=overdueItems.filter(item=>!dismissedOverdue.includes(item.id));
+ const dismissOverdue=()=>{const next=[...new Set([...overdueItems.map(item=>item.id),...dismissedOverdue])].slice(0,500);setDismissedOverdue(next);try{localStorage.setItem(storageKey+':overdue-dismissed',JSON.stringify(next));}catch{/* in-memory only */}};
  const visible=visibleNotifications(items,readSet,filter,group);
  const groups=notificationGroups.filter(name=>items.some(item=>groupFor(item.kind)===name));
  function markRead(ids:string[]){
@@ -117,6 +122,7 @@ export function StaffNotifications({hotelId,userId,canPush=false,promptHost,hous
   try{localStorage.setItem(storageKey,JSON.stringify(updated));}catch{/* Remain usable in memory. */}
  }
  return <>
+  {!housekeeping&&!canPush&&pathname!=='/front-desk'&&!open&&feed.isSuccess&&newOverdue.length>0&&<aside className="fd-overdue-toast" role="status"><AlertTriangle size={21} aria-hidden="true"/><div><strong>Overdue checkout needs attention</strong><Link to="/front-desk" search={{queue:'overdue'}}>Review overdue checkouts <ArrowRight size={14}/></Link></div><button type="button" aria-label="Dismiss overdue checkout alert" onClick={dismissOverdue}><X size={18}/></button></aside>}
   {housekeeping&&<HousekeepingAssignmentAlert key={storageKey} scope={storageKey} alerts={feed.isSuccess?items.filter(item=>item.kind==='hk_assigned'||item.kind==='hk_arrival_urgent'||item.kind==='hk_overdue'):undefined} read={read} onRead={markRead} dialogOpen={open}/>}
   {pushEnabled&&promptHost&&createPortal(<PushPermissionPrompt userId={userId} hotelId={hotelId} role={pushRole} active={!open} onSettings={()=>{dialog.current?.showModal();setSettings(true);setOpen(true);}}/>,promptHost)}
   <button ref={bell} type="button" className={'icon-btn topbar-action-notifications'+(urgent?' has-urgent':'')+(unread?' has-unread':'')}

@@ -1,0 +1,55 @@
+/* Minimal reception daily desk, retaining the existing guarded workflows. */
+.fdc-reception{display:grid;gap:12px;min-width:0}
+.fdc-reception [hidden]{display:none!important}
+.fdc-simple-controls{display:grid;gap:9px;min-width:0}
+.fdc-simple-tabs,.fdc-simple-queues{display:flex;gap:6px;flex-wrap:wrap}
+.fdc-simple-tabs :is(button,a),.fdc-simple-queues button{display:flex;align-items:center;justify-content:center;gap:5px;min-height:44px;flex:1 1 75px;padding:6px 8px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font:inherit;font-size:12px;font-weight:650;text-decoration:none;cursor:pointer}
+.fdc-simple-tabs button[aria-pressed=true],.fdc-simple-queues button[aria-pressed=true]{background:var(--accent);color:#222326;border-color:var(--accent)}
+.fdc-simple-search{display:flex;align-items:stretch;gap:8px;min-width:0}
+.fdc-simple-search .search-box{flex:1;min-width:0;max-width:none}
+.fdc-simple-search input{width:100%;min-width:0;font-size:16px}
+.fdc-simple-search>button{min-height:44px;flex:none}
+.fdc-today-queues{display:grid;gap:12px}
+.fdc-today-section{min-width:0;border:1px solid var(--border);border-radius:13px;overflow:hidden;background:var(--surface)}
+.fdc-today-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border)}
+.fdc-today-head h3{display:flex;align-items:center;gap:7px;font-size:17px;margin:0;font-weight:750}
+.fdc-today-head h3 svg{color:#15803d}
+.fdc-today-section[aria-label=Departures] .fdc-today-head h3 svg{color:#b42318}
+.fdc-today-head .btn-inline{min-height:44px;white-space:nowrap}
+.fdc-today-section .fdc-guest-row-v2{margin:0;border:0;border-radius:0;box-shadow:none}
+.fdc-today-section .fdc-guest-row-v2+.fdc-guest-row-v2{border-top:1px solid var(--border)}
+.fdc-today-section .query-feedback{padding:12px}
+.fdc-alert-unavailable{font-size:12px;color:var(--muted)}
+.fd-overdue-toast{position:fixed;top:70px;right:12px;z-index:46;width:min(370px,calc(100vw - 24px));box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #f0a6a6;border-radius:12px;background:#fff1f0;color:#881b1b;box-shadow:0 6px 24px #0002}
+.fd-overdue-toast>div{flex:1;min-width:0;display:grid;gap:4px}
+.fd-overdue-toast strong{font-size:13px}
+.fd-overdue-toast a{color:#881b1b;display:flex;align-items:center;gap:5px;font-size:12px;min-height:30px;text-decoration:underline}
+.fd-overdue-toast button{border:0;background:transparent;color:inherit;width:44px;height:44px;display:grid;place-items:center;flex:none;cursor:pointer}
+@media(max-width:760px){
+ .fdc-reception{gap:10px}
+ .fdc-reception .fdc-heading{align-items:flex-start}
+ .fdc-reception .fdc-heading h2{font-size:25px}
+ .fdc-reception .fdc-heading-actions .fdc-new-booking{position:fixed;right:12px;bottom:calc(78px + env(safe-area-inset-bottom,0px));z-index:39;min-height:48px;box-shadow:0 4px 15px #0002;border-radius:999px;padding-inline:16px}
+ .reception-shell .page-content:has(.fdc-reception){padding-bottom:calc(145px + env(safe-area-inset-bottom,0px))}
+ .fdc-reception .fdc-overdue-alert{padding:10px;gap:7px;display:flex;align-items:center;flex-wrap:wrap}
+ .fdc-reception .fdc-overdue-alert-copy{flex:1;min-width:120px}
+ .fdc-reception .fdc-overdue-alert-copy p{font-size:11px;margin:3px 0 0}
+ .fdc-reception .fdc-overdue-alert-action{min-height:44px}
+ .fdc-reception .fdc-guest-row-v2{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;padding:11px}
+ .fdc-reception .fdc-v2-identity{min-width:0;grid-column:1;grid-row:1;gap:8px}
+ .fdc-reception .fdc-v2-avatar{width:32px;height:32px;flex:none;font-size:13px}
+ .fdc-reception .fdc-v2-guest-details{min-width:0;overflow-wrap:anywhere}
+ .fdc-reception .fdc-v2-guest-details strong{font-size:14px}
+ .fdc-reception .fdc-v2-guest-details>span{font-size:11px}
+ .fdc-reception .fdc-v2-actions{grid-column:2;grid-row:1;min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:5px;justify-content:center}
+ .fdc-reception .fdc-v2-actions .fdc-action-link{min-height:44px;padding:5px 8px;font-size:11px;white-space:normal;max-width:125px}
+ .fdc-reception .fdc-v2-primary-action svg:last-child{display:none}
+ .fdc-reception .fdc-v2-secondary-action{min-height:44px;font-size:11px}
+ .fdc-reception .fdc-v2-details{grid-column:1/-1;display:none}
+ .fdc-reception .fdc-guest-row-v2.is-overdue .fdc-v2-details{display:flex;flex-wrap:wrap;gap:8px}
+ .fdc-reception .fdc-v2-room-alert,.fdc-reception .fdc-v2-overdue-followup,.fdc-reception .fdc-v2-handoff{grid-column:1/-1}
+ .fdc-reception .fdc-workspace-heading p,.fdc-reception .fdc-room-notice{font-size:11px}
+ .fdc-simple-tabs :is(button,a){flex-basis:65px;font-size:11px;gap:3px}
+ .fdc-simple-tabs svg{width:15px}
+ .fdc-simple-queues button{font-size:11px}
+}

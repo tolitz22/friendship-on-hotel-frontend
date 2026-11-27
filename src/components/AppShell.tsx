@@ -95,7 +95,7 @@ export function AppShell(){
  const receptionMobile=dataMode==='api'&&role==='front_desk';
  const staffMobile=housekeepingMobile||receptionMobile;
  const selectedHotelName=user?.hotels.find(h=>h.id===hotelId)?.name??'Hotel';
- const mobileTabs=(receptionMobile?[{to:'/' as const,label:'Overview',icon:Home},{to:'/reservations' as const,label:'Bookings',icon:CalendarDays},{to:'/rooms' as const,label:'Rooms',icon:BedDouble},{to:'/messages' as const,label:'Messages',icon:MessageCircle}]:[{to:'/' as const,label:'Home',icon:Home},{to:'/housekeeping' as const,label:'Tasks',icon:ClipboardCheck},{to:'/rooms' as const,label:'Rooms',icon:BedDouble},{to:'/messages' as const,label:'Messages',icon:MessageCircle}]).filter(item=>canViewWorkspacePath(role,item.to,effectivePermissions));
+ const mobileTabs=(receptionMobile?[{to:'/' as const,label:'Overview',icon:Home},{to:'/front-desk' as const,label:'Front desk',icon:Hotel},{to:'/rooms' as const,label:'Rooms',icon:BedDouble},{to:'/messages' as const,label:'Messages',icon:MessageCircle}]:[{to:'/' as const,label:'Home',icon:Home},{to:'/housekeeping' as const,label:'Tasks',icon:ClipboardCheck},{to:'/rooms' as const,label:'Rooms',icon:BedDouble},{to:'/messages' as const,label:'Messages',icon:MessageCircle}]).filter(item=>canViewWorkspacePath(role,item.to,effectivePermissions));
  const canMessage=dataMode==='api'&&!!user&&!!hotelId&&!user.mustChangePassword&&canViewWorkspacePath(role,'/messages',effectivePermissions);
  const showMessageShortcut=canMessage&&pathname!=='/messages'&&!open;
  const messageScope=hotelId+':'+user?.id;

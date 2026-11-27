@@ -61,3 +61,16 @@
  .hk-minimal-home-shell .hk-phone-secondary{margin-top:14px}
  .hk-minimal-home-shell .hk-phone-secondary .hk-install-help{padding:6px;border:0;background:transparent}
 }
+
+/* Keep the bell and hotel selector visible; account controls live under Profile. */
+@media(max-width:760px){
+ .housekeeping-shell .hk-bottom-nav-shell .topbar{grid-template-columns:44px minmax(0,1fr) 44px;grid-template-rows:44px auto;column-gap:8px}
+ .housekeeping-shell .hk-bottom-nav-shell .topbar .topbar-action-notifications{display:grid;grid-column:3;grid-row:1;width:44px;height:44px}
+ .housekeeping-shell .hk-bottom-nav-shell .topbar .topbar-action-theme,.housekeeping-shell .hk-bottom-nav-shell .topbar .topbar-action-signout{display:none}
+ .housekeeping-shell .hk-minimal-home-shell .topbar{grid-template-rows:44px;min-height:0}
+ .housekeeping-shell .hk-minimal-home-shell .topbar .topbar-heading{display:none}
+ .housekeeping-shell .hk-bottom-nav-shell .sidebar-footer{min-width:0}
+ .housekeeping-shell .hk-bottom-nav-shell .hk-bottom-nav{box-sizing:border-box}
+ .housekeeping-shell .hk-bottom-nav-shell .message-arrival-alert{bottom:calc(82px + env(safe-area-inset-bottom,0px))}
+}
+@media(max-width:360px){.housekeeping-shell .hk-bottom-nav-shell .topbar{column-gap:6px}}

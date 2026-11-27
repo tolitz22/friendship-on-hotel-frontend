@@ -98,6 +98,9 @@ export function StaffNotifications({hotelId,userId,canPush=false,promptHost,hous
   refetchInterval:housekeeping||open?30_000:60_000,
   refetchIntervalInBackground:false,
  });
+ const access=useQuery({queryKey:['push-access',hotelId,userId,housekeeping],enabled:!canPush,queryFn:async()=>z.object({data:z.object({allowed:z.boolean()})}).parse(await getJson<unknown>('/hotels/'+encodeURIComponent(hotelId)+'/push-access')).data.allowed,retry:false,staleTime:30_000,refetchInterval:60_000});
+ const pushEnabled=canPush||access.data===true&&!access.isError;
+ const pushRole=canPush?'admin':housekeeping?'housekeeping':'front_desk';
  const items=feed.data?.notifications??[];
  const readSet=new Set(read);
  const unread=items.filter(item=>!readSet.has(item.id)).length;
@@ -123,12 +126,12 @@ export function StaffNotifications({hotelId,userId,canPush=false,promptHost,hous
     <div><h2 id="staff-notifications-title">Notifications</h2>
      <p>{unread} unread · {attention} require attention{feed.data?.hasMore?' · partial feed':''}</p></div>
     <div className="notification-header-actions">
-     {canPush&&<button type="button" className="icon-btn" aria-label="Push notification settings" aria-pressed={settings} onClick={()=>setSettings(v=>!v)}><Settings2 size={18}/></button>}
+     {pushEnabled&&<button type="button" className="icon-btn" aria-label="Push notification settings" aria-pressed={settings} onClick={()=>setSettings(v=>!v)}><Settings2 size={18}/></button>}
      <button type="button" className="icon-btn" onClick={()=>dialog.current?.close()} aria-label="Close notifications"><X size={20}/></button>
     </div>
    </header>
-   {canPush&&<div hidden={!settings}><PushDeviceControl hotelId={hotelId} userId={userId} active={open&&settings}/><button type="button" className="btn-inline notification-back" onClick={()=>setSettings(false)}>Back to notifications</button></div>}
-   <div hidden={settings}>
+   {pushEnabled&&<div hidden={!settings}><PushDeviceControl hotelId={hotelId} userId={userId} role={pushRole} active={open&&settings}/><button type="button" className="btn-inline notification-back" onClick={()=>setSettings(false)}>Back to notifications</button></div>}
+   <div hidden={settings&&pushEnabled}>
    <div className="notification-toolbar">
     <div className="notification-filters" role="group" aria-label="Filter notifications">
      {([['all','All',items.length],['unread','Unread',unread],['attention','Requires attention',attention]] as const).map(([key,label,count])=><button type="button" key={key} aria-pressed={filter===key} onClick={()=>setFilter(key)}>{label} <span>{count}</span></button>)}

@@ -4,7 +4,7 @@ import {PushPreferencesPanel} from './PushPreferencesPanel';
 import {BellRing} from 'lucide-react';
 import {disablePush,enablePush,inspectPushDevice,pushKey,pushSupported,registeredDevice,type DeviceHealth} from '../features/notifications/pushDevice';
 
-export function PushDeviceControl({userId,hotelId,active=true}:{userId:string;hotelId:string;active?:boolean}){
+export function PushDeviceControl({userId,hotelId,active=true,role='admin'}:{userId:string;hotelId:string;active?:boolean;role?:'admin'|'housekeeping'|'front_desk'}){
  const [enabled,setEnabled]=useState(()=>!!registeredDevice(userId,hotelId));
  const [health,setHealth]=useState<DeviceHealth|null>(null);
  const [healthError,setHealthError]=useState(false);
@@ -47,6 +47,6 @@ export function PushDeviceControl({userId,hotelId,active=true}:{userId:string;ho
   <button type="button" className="btn-inline" disabled={busy||((!enabled||repair)&&(!supported||!pushKey||permission==='denied'))} onClick={()=>void toggle()}>{busy?'Updating…':repair?'Repair device notifications':enabled?'Disable on this device':'Enable push notifications'}</button>
   {repair&&enabled&&<button type="button" className="btn-inline" disabled={busy} onClick={async()=>{setBusy(true);try{await disablePush(userId,hotelId);setEnabled(false);setHealth(null);setMessage('This device was removed.');}catch{setMessage('Unable to remove this device. Try again.');}finally{setBusy(false);}}}>Remove registration</button>}
   {message&&<p role="status">{message}</p>}
-  <PushPreferencesPanel hotelId={hotelId} userId={userId} active={active} onRemoveCurrent={async()=>{await disablePush(userId,hotelId);setEnabled(false);}}/>
+  <PushPreferencesPanel hotelId={hotelId} userId={userId} role={role} active={active} onRemoveCurrent={async()=>{await disablePush(userId,hotelId);setEnabled(false);}}/>
  </section>;
 }

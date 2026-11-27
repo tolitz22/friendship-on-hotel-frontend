@@ -70,3 +70,12 @@ it('validates found-item push links and preserves administrator authorization',(
  expect(requestedNotificationHotel('/lost-found','?hotel=1&item=7&item=8&push=1',hotels)).toBeNull();
  expect(requestedNotificationHotel('/lost-found','?hotel=1&item=bad&push=1',hotels)).toBeNull();
 });
+
+it('allows only staff-specific push destinations',()=>{
+ const hotels=[{id:'1',role:'housekeeping'},{id:'2',role:'front_desk'}];
+ expect(requestedNotificationHotel('/housekeeping','?hotel=1&task=7&push=1',hotels)).toBe('1');
+ expect(requestedNotificationHotel('/rooms','?hotel=2&room=101&push=1',hotels)).toBe('2');
+ expect(requestedNotificationHotel('/billing','?hotel=1&booking=7&push=1',hotels)).toBeNull();
+ expect(requestedNotificationHotel('/lost-found','?hotel=1&item=7&push=1',hotels)).toBeNull();
+ expect(requestedNotificationHotel('/housekeeping','?hotel=2&task=7&push=1',hotels)).toBeNull();
+});

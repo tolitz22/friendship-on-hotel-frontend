@@ -7,7 +7,7 @@ import {registeredDevice} from '../features/notifications/pushDevice';
 import {groupFor,notificationGroups} from '../features/notifications/notificationView';
 import './PushPreferencesPanel.css';
 
-const schema=z.object({enabled:z.boolean(),new_booking:z.boolean(),checkout_due:z.boolean(),checkout_overdue:z.boolean(),room_assignment:z.boolean(),guest_check_in:z.boolean().default(true),guest_check_out:z.boolean().default(true),booking_cancelled:z.boolean().default(true),booking_no_show:z.boolean().default(true),stay_extended:z.boolean().default(true),payment_recorded:z.boolean().default(true),payment_pending_review:z.boolean().default(true),payment_verified:z.boolean().default(true),payment_rejected:z.boolean().default(true),payment_voided:z.boolean().default(true),refund_requested:z.boolean().default(true),refund_verified:z.boolean().default(true),expense_recorded:z.boolean().default(true),expense_correction_requested:z.boolean().default(true),cashier_discrepancy:z.boolean().default(true),housekeeping_completed:z.boolean().default(true),room_inspection_approved:z.boolean().default(true),room_inspection_rejected:z.boolean().default(true),maintenance_created:z.boolean().default(true),maintenance_urgent:z.boolean().default(true),maintenance_resolved:z.boolean().default(true),room_blocked:z.boolean().default(true),room_unblocked:z.boolean().default(true),approval_requested:z.boolean().default(true),approval_approved:z.boolean().default(true),approval_rejected:z.boolean().default(true),staff_message:z.boolean().default(true),staff_announcement:z.boolean().default(true),staff_handover:z.boolean().default(true),staff_acknowledged:z.boolean().default(true),daily_close_completed:z.boolean().default(true),daily_close_blocked:z.boolean().default(true),closing_cashier_unreconciled:z.boolean().default(true),closing_payment_pending:z.boolean().default(true),closing_journal_integrity:z.boolean().default(true),closing_no_show_unresolved:z.boolean().default(true),closing_room_night_issue:z.boolean().default(true),hk_checkout_handoff:z.boolean().default(true),hk_arrival_urgent:z.boolean().default(true),hk_overdue:z.boolean().default(true),lost_found_registered:z.boolean().default(true)});
+const schema=z.object({enabled:z.boolean(),new_booking:z.boolean(),checkout_due:z.boolean(),checkout_overdue:z.boolean(),room_assignment:z.boolean(),guest_check_in:z.boolean().default(true),guest_check_out:z.boolean().default(true),booking_cancelled:z.boolean().default(true),booking_no_show:z.boolean().default(true),stay_extended:z.boolean().default(true),payment_recorded:z.boolean().default(true),payment_pending_review:z.boolean().default(true),payment_verified:z.boolean().default(true),payment_rejected:z.boolean().default(true),payment_voided:z.boolean().default(true),refund_requested:z.boolean().default(true),refund_verified:z.boolean().default(true),expense_recorded:z.boolean().default(true),expense_correction_requested:z.boolean().default(true),cashier_discrepancy:z.boolean().default(true),housekeeping_completed:z.boolean().default(true),room_inspection_approved:z.boolean().default(true),room_inspection_rejected:z.boolean().default(true),maintenance_created:z.boolean().default(true),maintenance_urgent:z.boolean().default(true),maintenance_resolved:z.boolean().default(true),room_blocked:z.boolean().default(true),room_unblocked:z.boolean().default(true),approval_requested:z.boolean().default(true),approval_approved:z.boolean().default(true),approval_rejected:z.boolean().default(true),staff_message:z.boolean().default(true),staff_announcement:z.boolean().default(true),staff_handover:z.boolean().default(true),staff_acknowledged:z.boolean().default(true),daily_close_completed:z.boolean().default(true),daily_close_blocked:z.boolean().default(true),closing_cashier_unreconciled:z.boolean().default(true),closing_payment_pending:z.boolean().default(true),closing_journal_integrity:z.boolean().default(true),closing_no_show_unresolved:z.boolean().default(true),closing_room_night_issue:z.boolean().default(true),hk_checkout_handoff:z.boolean().default(true),hk_arrival_urgent:z.boolean().default(true),hk_overdue:z.boolean().default(true),lost_found_registered:z.boolean().default(true),hk_assigned:z.boolean().default(true)});
 type Preferences=z.infer<typeof schema>;
 const deviceSchema=z.object({id:z.string(),deviceName:z.string(),updatedAt:z.string()});
 const categories=[
@@ -30,6 +30,7 @@ const categories=[
  ['expense_recorded','Expenses recorded'],
  ['expense_correction_requested','Expense correction requests'],
  ['cashier_discrepancy','Cashier discrepancies'],
+ ['hk_assigned','My cleaning assignments'],
  ['hk_checkout_handoff','Checkout cleaning needs assignment'],
  ['hk_arrival_urgent','Arrival room needs cleaning'],
  ['hk_overdue','Overdue housekeeping'],
@@ -58,7 +59,7 @@ const categories=[
  ['closing_room_night_issue','Nightly room accounting issue'],
 ] as const;
 
-export function PushPreferencesPanel({userId,hotelId,onRemoveCurrent,active=true}:{userId:string;hotelId:string;onRemoveCurrent:()=>Promise<void>;active?:boolean}){
+export function PushPreferencesPanel({userId,hotelId,onRemoveCurrent,active=true,role='admin'}:{userId:string;hotelId:string;onRemoveCurrent:()=>Promise<void>;active?:boolean;role?:'admin'|'housekeeping'|'front_desk'}){
  const [open,setOpen]=useState(true);
  const [draft,setDraft]=useState<Preferences|null>(null);
  const [busy,setBusy]=useState(false);
@@ -101,7 +102,8 @@ export function PushPreferencesPanel({userId,hotelId,onRemoveCurrent,active=true
     <label className="push-setting"><span>All push notifications</span><input type="checkbox" checked={value.enabled} disabled={busy} onChange={e=>setDraft({...value,enabled:e.target.checked})}/></label>
     <fieldset disabled={!value.enabled||busy}><legend>Alert categories</legend>
      {notificationGroups.map(group=>{
-      const entries=categories.filter(([kind])=>groupFor(kind)===group);
+      const entries=categories.filter(([kind])=>groupFor(kind)===group&&(role==='admin'?kind!=='hk_assigned':role==='housekeeping'?['hk_assigned','hk_arrival_urgent','hk_overdue'].includes(kind):kind==='room_inspection_approved'));
+      if(!entries.length)return null;
       const enabledCount=entries.filter(([kind])=>value[kind]).length;
       return <details className="push-category" key={group}><summary>{group}<span>{enabledCount}/{entries.length} enabled</span></summary>
        <button type="button" className="btn-inline" onClick={()=>setDraft({...value,...Object.fromEntries(entries.map(([kind])=>[kind,enabledCount!==entries.length]))})}>{enabledCount===entries.length?'Disable':'Enable'} all {group.toLowerCase()} alerts</button>

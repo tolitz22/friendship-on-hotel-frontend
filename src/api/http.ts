@@ -1,7 +1,8 @@
 import {readSession} from './session';
+import {reportFrontendError} from '../features/telemetry/frontendErrors';
 
 export class ApiError extends Error {
- constructor(public status:number,public code:string,message:string,public fieldErrors?:Record<string,string[]>){
+ constructor(public status:number,public code:string,message:string,public fieldErrors?:Record<string,string[]>,public requestId?:string){
   super(message);this.name='ApiError';
  }
 }
@@ -61,8 +62,13 @@ export async function requestJson<T>(path:string,options:JsonOptions={}):Promise
    method,headers,credentials:cookie?'include':'omit',
    ...(options.body!==undefined?{body:JSON.stringify(options.body)}:{}),
   });
- }catch{throw new ApiError(0,'NETWORK_ERROR','Unable to reach the Laravel API. Check VITE_API_URL and CORS.');}
+ }catch(error){
+  reportFrontendError('api_network_error',{error,status:0});
+  throw new ApiError(0,'NETWORK_ERROR','Unable to reach the Laravel API. Check VITE_API_URL and CORS.');
+ }
+ const requestId=response.headers?.get('X-Request-ID')??undefined;
  if(!response.ok){
+  if(response.status>=500)reportFrontendError('api_server_error',{status:response.status,requestId});
   if(cookie&&options.authenticated!==false&&(response.status===401||response.status===419)){
    sessionExpiredHandler?.();
   }
@@ -71,9 +77,10 @@ export async function requestJson<T>(path:string,options:JsonOptions={}):Promise
   throw new ApiError(response.status,typeof obj.code==='string'?obj.code:'HTTP_ERROR',
    typeof obj.message==='string'?obj.message:response.status===419?'Session expired or CSRF validation failed. Reload and sign in again.':
    response.status===401?'Session expired. Sign in again.':'The request failed.',
-   obj.errors&&typeof obj.errors==='object'?obj.errors as Record<string,string[]>:undefined);
+   obj.errors&&typeof obj.errors==='object'?obj.errors as Record<string,string[]>:undefined,requestId);
  }
- return response.json() as Promise<T>;
+ try{return await response.json() as T;}
+ catch(error){reportFrontendError('api_invalid_response',{error,requestId});throw error;}
 }
 export function getJson<T>(path:string,params:Record<string,string|number|undefined>={}):Promise<T>{
  return requestJson<T>(path,{params});
@@ -89,6 +96,7 @@ export async function downloadPrivateFile(path:string,filename:string):Promise<v
  try{response=await fetch(base+path,{headers,credentials:cookie?'include':'omit',cache:'no-store'});}
  catch{throw new ApiError(0,'NETWORK_ERROR','Unable to download. Check your connection.');}
  if(!response.ok){
+  if(response.status>=500)reportFrontendError('api_server_error',{status:response.status,requestId:response.headers?.get('X-Request-ID')});
   if(cookie&&(response.status===401||response.status===419))sessionExpiredHandler?.();
   throw new ApiError(response.status,'DOWNLOAD_FAILED','Unable to download this attachment.');
  }

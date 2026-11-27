@@ -1,0 +1,5 @@
+# LOG-5 — Browser error tracking
+
+Production API builds enable authenticated, best-effort frontend telemetry unless VITE_FRONTEND_TELEMETRY=false. React root error callbacks, router fallback, browser error/unhandledrejection listeners and the JSON/download HTTP wrapper report fixed error categories. Expected HTTP 4xx responses are not reported as API failures. Errors handled by the application may not reach global listeners. Only approved screen names, standard error class, 5xx/zero status and a valid related request ID are sent, never raw messages, stacks, URL queries, form data or attachments. Uses the existing cookie/CSRF or bearer session; no public endpoint. The frontend sends at most 8 events/minute, 2 concurrent, with 30-second deduplication; transport bypasses requestJson and has no retry or durable queue. If offline or signed out, errors may be lost. The router fallback does not automatically retry a booking or payment. Use backend logs and request IDs for further investigation.
+
+Run npm test and npm run build. For live verification in Client Demo, use an authenticated synthetic test report; do not disrupt real users.

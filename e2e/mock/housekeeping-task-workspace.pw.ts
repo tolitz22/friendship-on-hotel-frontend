@@ -145,8 +145,29 @@ for (const width of [320, 390, 430, 768, 1440]) {
   await page.goto(origin + '/housekeeping');
   await expect(page.getByRole('heading', { name: 'My Tasks' })).toBeVisible();
   const workload = page.getByRole('region', { name: 'Team workload' });
-  await expect(workload.getByRole('button', { name: '3 Active tasks' })).toBeVisible();
-  await expect(workload.getByRole('button', { name: '0 Completed today' })).toHaveAttribute('data-tone', 'neutral');
+  if(width<=760){
+   await expect(workload).toBeHidden();
+   const tabs=page.getByRole('group',{name:'Task status filters'});
+   await expect(tabs.getByRole('button',{name:'All 5'})).toBeVisible();
+   await expect(tabs.getByRole('button',{name:'Inspection 1'})).toBeVisible();
+   await tabs.getByRole('button',{name:'Inspection 1'}).click();
+   await expect(card(page,204)).toBeVisible();
+   await expect(page.locator('.hk-work-card')).toHaveCount(1);
+   await tabs.getByRole('button',{name:'All 5'}).click();
+   await expect(page.locator('.hk-work-card')).toHaveCount(5);
+   await expect(page.getByRole('navigation',{name:'Housekeeping mobile navigation'}).getByRole('link',{name:'Tasks',exact:true})).toHaveAttribute('aria-current','page');
+   const first=card(page,201);
+   const bounds=await first.boundingBox(),hit=await first.getByRole('button',{name:'Start cleaning'}).boundingBox();
+   expect(hit!.height).toBeGreaterThanOrEqual(44);
+   expect(hit!.width).toBeGreaterThanOrEqual(bounds!.width-4);
+   await expect(page.getByRole('button',{name:'Filters',exact:true})).toBeVisible();
+   await page.getByRole('button',{name:'Filters',exact:true}).click();
+   await expect(page.getByRole('searchbox',{name:'Search tasks'})).toBeVisible();
+   await page.getByRole('button',{name:'Filters',exact:true}).click();
+  }else{
+   await expect(workload.getByRole('button', { name: '3 Active tasks' })).toBeVisible();
+   await expect(workload.getByRole('button', { name: '0 Completed today' })).toHaveAttribute('data-tone', 'neutral');
+  }
   await expect(card(page, 201)).toContainText('Arrival today');
   await expect(card(page, 202)).toContainText('Demo Teammate');
   if (width < 768) {

@@ -283,3 +283,59 @@ body:has(.hk-editor[open]) { overflow: hidden; }
  .hk-editor-footer .hk-editor-controls button { flex: 1 1 115px; }
  .hk-editor :is(textarea, select, input:not([type="checkbox"])), .hk-workspace :is(input, select) { font-size: 16px; }
 }
+
+/* Housekeeping phone task list: four status tabs and one tap per room.
+   Admin and desktop retain their full operational overview. */
+.hk-mobile-task-controls,.hk-mobile-more-views,.hk-mobile-room-icon,.hk-mobile-task-arrow,.hk-mobile-filter-label,.hk-mobile-task-subtitle{display:none}
+@media(max-width:760px){
+ .housekeeping-shell .hk-workspace-intro{margin-bottom:12px}
+ .housekeeping-shell .hk-workspace-intro h2{font-size:25px;font-weight:750}
+ .housekeeping-shell .hk-mobile-task-subtitle{display:block;margin:4px 0 0;color:var(--muted);font-size:13px}
+ .housekeeping-shell .hk-bottom-nav-shell:has(.hk-workspace) .topbar{grid-template-rows:44px;min-height:0}
+ .housekeeping-shell .hk-bottom-nav-shell:has(.hk-workspace) .topbar .topbar-heading{display:none}
+ .housekeeping-shell .hk-workspace{gap:0}
+ .housekeeping-shell .hk-workspace .hk-overview-panel,.housekeeping-shell .hk-desktop-queue-heading{display:none}
+ .housekeeping-shell .hk-mobile-task-controls{display:grid;gap:7px;margin-bottom:10px}
+ .housekeeping-shell .hk-mobile-task-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+ .housekeeping-shell .hk-mobile-task-tabs button{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px;min-height:46px;padding:7px 3px;min-width:0;border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:9px;font:inherit;font-size:11px;font-weight:650;line-height:1.2;cursor:pointer}
+ .housekeeping-shell .hk-mobile-task-tabs button strong{font-size:11px;font-variant-numeric:tabular-nums}
+ .housekeeping-shell .hk-mobile-task-tabs button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#222326}
+ .housekeeping-shell .hk-mobile-task-tools{display:flex;align-items:center;gap:5px;min-width:0}
+ .housekeeping-shell .hk-mobile-task-tools>span{flex:1;min-width:0;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+ .housekeeping-shell .hk-mobile-tool{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:44px;min-width:44px;padding:5px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font:inherit;font-size:12px;cursor:pointer}
+ .housekeeping-shell .hk-mobile-tool[aria-expanded=true]{border-color:var(--accent)}
+ .housekeeping-shell .hk-workspace[data-mobile-filters=closed] .hk-work-toolbar{display:none}
+ .housekeeping-shell .hk-workspace .hk-work-toolbar{padding:10px;margin-bottom:10px}
+ .housekeeping-shell .hk-workspace .hk-work-views{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .housekeeping-shell .hk-mobile-more-views{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+ .housekeeping-shell .hk-mobile-more-views button{border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text);font-size:12px;padding:5px 8px;min-height:44px}
+ .housekeeping-shell .hk-mobile-more-views button[aria-pressed=true]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 15%,var(--surface))}
+ .housekeeping-shell .hk-desktop-filter-label{display:none}
+ .housekeeping-shell .hk-mobile-filter-label{display:inline}
+ .housekeeping-shell .hk-workspace .hk-work-cards{grid-template-columns:minmax(0,1fr);gap:8px}
+ .housekeeping-shell .hk-workspace .hk-work-card{position:relative;display:grid;grid-template-columns:42px minmax(0,1fr) 22px;grid-template-rows:auto auto auto;align-content:center;column-gap:10px;row-gap:3px;min-height:83px;padding:12px 10px 12px 12px;border-radius:12px;border-inline-start:4px solid var(--accent);background:var(--surface)}
+ .housekeeping-shell .hk-workspace .hk-work-card[data-task-stage=in_progress]{border-inline-start-color:#d5a118}
+ .housekeeping-shell .hk-workspace .hk-work-card[data-task-stage=done]{border-inline-start-color:var(--border)}
+ .housekeeping-shell .hk-workspace .hk-work-card[data-priority=arrival],.housekeeping-shell .hk-workspace .hk-work-card[data-priority=overdue]{border-inline-start-color:#bc4938}
+ .housekeeping-shell .hk-mobile-room-icon{display:grid;grid-column:1;grid-row:1/4;place-items:center;align-self:center;width:42px;height:42px;border-radius:10px;background:color-mix(in srgb,var(--accent) 13%,var(--surface));color:var(--text)}
+ .housekeeping-shell .hk-workspace .hk-card-heading{grid-column:2;grid-row:1;display:flex;align-items:center;justify-content:space-between;gap:4px 8px;flex-wrap:wrap}
+ .housekeeping-shell .hk-workspace .hk-card-heading h4{font-size:18px;line-height:1.2;font-weight:750}
+ .housekeeping-shell .hk-workspace .hk-card-heading p,.housekeeping-shell .hk-workspace .hk-card-meta,.housekeeping-shell .hk-workspace .hk-card-progress,.housekeeping-shell .hk-workspace .hk-card-footer small{display:none}
+ .housekeeping-shell .hk-workspace .hk-card-type{grid-column:2;grid-row:2;font-size:13px;color:var(--muted);font-weight:450;line-height:1.3}
+ .housekeeping-shell .hk-workspace .hk-work-stage{font-size:10px;padding:4px 7px;white-space:normal;line-height:1.3;border-radius:7px}
+ .housekeeping-shell .hk-workspace .hk-work-stage[data-stage=todo]{--hk-stage:var(--accent)}
+ .housekeeping-shell .hk-workspace .hk-work-stage[data-stage=in_progress]{--hk-stage:#d5a118}
+ .housekeeping-shell .hk-workspace .hk-card-flags{grid-column:2;grid-row:3;gap:4px;font-size:10px}
+ .housekeeping-shell .hk-workspace .hk-card-flags span{padding:2px 5px;font-size:10px}
+ .housekeeping-shell .hk-workspace .hk-card-flags svg{width:12px;height:12px}
+ .housekeeping-shell .hk-workspace .hk-card-footer{display:contents}
+ .housekeeping-shell .hk-workspace .hk-card-footer button{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:inherit;background:transparent;color:var(--muted);justify-content:flex-end;padding:0 10px;cursor:pointer}
+ .housekeeping-shell .hk-workspace .hk-card-footer button:hover{background:transparent}
+ .housekeeping-shell .hk-workspace .hk-card-footer button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+ .housekeeping-shell .hk-task-action-label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+ .housekeeping-shell .hk-desktop-task-arrow{display:none}
+ .housekeeping-shell .hk-mobile-task-arrow{display:block}
+ .housekeeping-shell .hk-workspace .hk-work-card:has(button:active){background:var(--canvas)}
+ .housekeeping-shell .hk-workspace .hk-queue-pagination{margin-top:10px}
+}
+@media(max-width:360px){.housekeeping-shell .hk-workspace .hk-work-card{grid-template-columns:36px minmax(0,1fr) 20px;column-gap:8px;padding-inline:9px}.housekeeping-shell .hk-mobile-room-icon{width:36px;height:36px}.housekeeping-shell .hk-mobile-task-tabs button{font-size:10px}.housekeeping-shell .hk-workspace .hk-card-heading h4{font-size:16px}}

@@ -344,7 +344,7 @@ export function LiveHousekeeping(){
     onRetry={()=>void directTask.refetch()}/>
   </section>}
   <header className="hk-workspace-intro">
-   <h2>{admin?'Housekeeping tasks':'My Tasks'}</h2>
+   <div><h2>{admin?'Housekeeping tasks':'My Tasks'}</h2>{role==='housekeeping'&&<p className="hk-mobile-task-subtitle">View and update team tasks</p>}</div>
    {admin&&<button type="button" className="btn-primary" onClick={openCreate}><Plus size={17} aria-hidden="true"/> New cleaning task</button>}
   </header>
   {notice&&<p className="stay-feedback-success" role="status">{notice}</p>}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { UseQueryResult } from '@tanstack/react-query';
 import {
- AlertTriangle, ArrowRight, CalendarClock, CheckCircle2, ClipboardCheck, ClipboardList,
+ AlertTriangle, ArrowRight, BedDouble, ChevronRight, ShieldCheck, CalendarClock, CheckCircle2, ClipboardCheck, ClipboardList,
  Clock3, ListTodo, RefreshCcw, Search, SlidersHorizontal, UserRound, X,
 } from 'lucide-react';
 import type { HousekeepingList, HousekeepingSummary, LiveHousekeepingTask } from '../../api/liveHousekeeping';
@@ -65,7 +65,8 @@ function TaskCard({ task, hotelDate, assignee, editable, open }: {
  const action = !editable ? 'View details' : task.pendingInspection ? 'Complete final inspection'
   : task.status === 'todo' ? 'Start cleaning' : task.status === 'in_progress' ? 'Continue cleaning' : 'View details';
  const priority = task.arrivalToday ? 'arrival' : task.overdue ? 'overdue' : '';
- return <article className="hk-work-card" data-priority={priority}>
+ return <article className="hk-work-card" data-priority={priority} data-task-stage={task.pendingInspection?'inspection':task.status}>
+  <span className="hk-mobile-room-icon" aria-hidden="true">{task.pendingInspection?<ShieldCheck size={22}/>:<BedDouble size={22}/>}</span>
   <div className="hk-card-heading">
    <div>
     <h4>Room {task.roomNumber}</h4>
@@ -89,7 +90,7 @@ function TaskCard({ task, hotelDate, assignee, editable, open }: {
   <footer className="hk-card-footer">
    <small>HK-{task.id}</small>
    <button className={operational ? 'btn-primary' : 'btn-inline'} type="button" onClick={open}>
-    {action}<ArrowRight size={16} aria-hidden="true"/>
+    <span className="hk-task-action-label">{action}</span><ArrowRight className="hk-desktop-task-arrow" size={16} aria-hidden="true"/><ChevronRight className="hk-mobile-task-arrow" size={20} aria-hidden="true"/>
    </button>
   </footer>
  </article>;
@@ -104,6 +105,7 @@ export function TaskWorkspace({ filters, change, page, setPage, tasks, overview,
  canUpdate: (task: LiveHousekeepingTask) => boolean; open: (task: LiveHousekeepingTask) => void;
 }) {
  const [expanded, setExpanded] = useState(false);
+ const [mobileFiltersOpen,setMobileFiltersOpen]=useState(false);
  const overviewMeta = online && overview.isSuccess ? overview.data.meta : undefined;
  const summary = overviewMeta?.summary;
  const secondary: { key: keyof WorkspaceFilters; label: string }[] = [];
@@ -117,7 +119,11 @@ export function TaskWorkspace({ filters, change, page, setPage, tasks, overview,
  const list = online && tasks.isSuccess ? tasks.data : undefined;
  const refresh = () => { void Promise.all([tasks.refetch(), overview.refetch()]); };
 
- return <div className="hk-workspace">
+ const mobileViews=[{view:'all',label:'All',count:overviewMeta?.total},{view:'todo',label:'To do',count:summary?.todo},{view:'in_progress',label:'In progress',count:summary?.inProgress},{view:'pending_inspection',label:'Inspection',count:summary?.inspectionDue}] as const;
+ const mobileOwn=filters.own||filters.view==='mine';
+ const mobileExtraView=!mobileViews.some(item=>item.view===filters.view);
+ const mobileFilterCount=secondary.length+Number(!!filters.text.trim())+Number(mobileOwn)+Number(mobileExtraView&&!mobileOwn);
+ return <div className="hk-workspace" data-mobile-filters={mobileFiltersOpen?'open':'closed'}>
   <section aria-label="Team workload" className="hk-overview-panel">
    <div className="hk-workspace-heading">
     <h3>Team workload</h3>
@@ -141,11 +147,23 @@ export function TaskWorkspace({ filters, change, page, setPage, tasks, overview,
   </section>
 
   <section className="hk-work-list" aria-labelledby="hk-queue-title">
-   <div className="hk-workspace-heading">
+   <div className="hk-mobile-task-controls">
+    <div className="hk-mobile-task-tabs" role="group" aria-label="Task status filters">
+     {mobileViews.map(({view,label,count})=><button key={view} type="button" aria-pressed={filters.view===view} onClick={()=>change({view,own:view==='all'?false:mobileOwn})}>
+      <span>{label}</span>{!mobileOwn&&count!==undefined&&<strong>{count}</strong>}
+     </button>)}
+    </div>
+    <div className="hk-mobile-task-tools">
+     <span role="status">{list?list.meta.total+' '+(list.meta.total===1?'task':'tasks'):'Tasks'}{mobileOwn?' · My assignments':''}{mobileExtraView&&!mobileOwn?' · '+viewLabels[filters.view]:''}</span>
+     <button type="button" className="hk-mobile-tool" aria-label="Refresh tasks" disabled={!online||tasks.isFetching||overview.isFetching} onClick={refresh}><RefreshCcw size={17}/></button>
+     <button type="button" className="hk-mobile-tool" aria-expanded={mobileFiltersOpen} aria-controls="hk-task-advanced" onClick={()=>setMobileFiltersOpen(value=>!value)}><SlidersHorizontal size={17}/> Filters{mobileFilterCount?' ('+mobileFilterCount+')':''}</button>
+    </div>
+   </div>
+   <div className="hk-workspace-heading hk-desktop-queue-heading">
     <h3 id="hk-queue-title">Task queue</h3>
     {list && <span role="status">{list.meta.total} {list.meta.total === 1 ? 'task' : 'tasks'}</span>}
    </div>
-   <div className="hk-work-toolbar">
+   <div id="hk-task-advanced" className="hk-work-toolbar">
     <div className="hk-work-views" role="group" aria-label="Task views">
      {(['all', 'mine', 'completed', ...(admin ? ['unassigned'] as const : [])] as const).map(view =>
       <button type="button" key={view} aria-pressed={filters.view === view}
@@ -153,11 +171,15 @@ export function TaskWorkspace({ filters, change, page, setPage, tasks, overview,
        {viewLabels[view]}
       </button>)}
     </div>
+    <div className="hk-mobile-more-views" role="group" aria-label="Other task views">
+     {(['arrival_today','overdue','completed_today','active'] as const).map(view=><button key={view} type="button" aria-pressed={filters.view===view} onClick={()=>change({view,own:mobileOwn})}>{viewLabels[view]}</button>)}
+     {mobileOwn&&filters.view!=='mine'&&<button type="button" onClick={()=>change({own:false})}>Show all staff</button>}
+    </div>
     <div className="hk-work-search">
      <label><Search size={17} aria-hidden="true"/><input aria-label="Search tasks" type="search" maxLength={120}
       value={filters.text} placeholder="Search rooms, tasks or staff" onChange={event => change({ text: event.target.value })}/></label>
      <button type="button" className="btn-inline" aria-expanded={expanded} aria-controls="hk-secondary-filters" onClick={() => setExpanded(value => !value)}>
-      <SlidersHorizontal size={16} aria-hidden="true"/> Filters{secondary.length ? ' (' + secondary.length + ')' : ''}
+      <SlidersHorizontal size={16} aria-hidden="true"/> <span className="hk-desktop-filter-label">Filters</span><span className="hk-mobile-filter-label">More filters</span>{secondary.length ? ' (' + secondary.length + ')' : ''}
      </button>
     </div>
     <div id="hk-secondary-filters" className="hk-work-secondary" hidden={!expanded}>
@@ -168,8 +190,8 @@ export function TaskWorkspace({ filters, change, page, setPage, tasks, overview,
      {!!overviewMeta?.floors?.length && <label>Floor<select value={filters.floor} onChange={event => change({ floor: event.target.value })}>
       <option value="">All floors</option>{overviewMeta.floors.map(floor => <option key={floor} value={floor}>{floorLabel(floor)}</option>)}
      </select></label>}
-     {!!overviewMeta?.assignees?.length && <label>Assigned employee<select value={filters.assignee}
-      disabled={filters.own || filters.view === 'mine' || filters.view === 'unassigned'} onChange={event => change({ assignee: event.target.value })}>
+     {!!overviewMeta?.assignees?.length && !(filters.own || filters.view === 'mine' || filters.view === 'unassigned') && <label>Assigned employee<select value={filters.assignee}
+      onChange={event => change({ assignee: event.target.value })}>
       <option value="">All employees</option>{overviewMeta.assignees.map(staff => <option value={staff.id} key={staff.id}>{staff.name}</option>)}
      </select></label>}
      <label>Due date<input type="date" value={filters.dueDate} onChange={event => change({ dueDate: event.target.value })}/></label>

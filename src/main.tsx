@@ -154,9 +154,11 @@ const functionalRoutes=[
    checkOut:typeof value.checkOut==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.checkOut)?value.checkOut:undefined,
   }),component:Billing}),
  createRoute({getParentRoute:()=>root,path:'/housekeeping',
-  validateSearch:(value:Record<string,unknown>):{task?:string;hotel?:string;push?:string}=>({
+  validateSearch:(value:Record<string,unknown>):{task?:string;hotel?:string;push?:string;queue?:'active'|'arrival_today'|'overdue'|'pending_inspection';status?:'todo'|'in_progress'|'done'}=>({
    hotel:normalizeBillingBookingId(value.hotel),push:normalizeBillingBookingId(value.push)==='1'?'1':undefined,
    task:normalizeBillingBookingId(value.task),
+   queue:value.queue==='active'||value.queue==='arrival_today'||value.queue==='overdue'||value.queue==='pending_inspection'?value.queue:undefined,
+   status:value.status==='todo'||value.status==='in_progress'||value.status==='done'?value.status:undefined,
   }),component:dataMode==='api'?LiveHousekeeping:Housekeeping}),
  createRoute({getParentRoute:()=>root,path:'/lost-found',component:LostFound,validateSearch:(value:Record<string,unknown>):{room?:string;item?:string;hotel?:string;push?:string}=>({room:normalizeBillingBookingId(value.room),item:normalizeBillingBookingId(value.item),hotel:normalizeBillingBookingId(value.hotel),push:normalizeBillingBookingId(value.push)==='1'?'1':undefined})}),
  createRoute({getParentRoute:()=>root,path:'/maintenance',

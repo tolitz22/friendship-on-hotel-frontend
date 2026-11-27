@@ -42,7 +42,7 @@ const fromTask=(task:LiveHousekeepingTask):FormState=>({
 const formatDue=(value:string)=>value.trim()===''?null:value.replace('T',' ')+':00';
 export function LiveHousekeeping(){
  const {hotelId,user}=useHotelAuth();
- const {task:linkedTaskId}=useSearch({from:'/housekeeping'});
+ const {task:linkedTaskId,queue:linkedQueue,status:linkedStatus}=useSearch({from:'/housekeeping'});
  const navigate=useNavigate();
  const directTask=useDirectHousekeepingTask(linkedTaskId??null);
  const openedLinkedTask=useRef<string|null>(null);
@@ -89,11 +89,11 @@ export function LiveHousekeeping(){
  });
  const client=useQueryClient();
  const [page,setPage]=useState(1);
- const [statusFilter,setStatusFilter]=useState<HousekeepingStatus|''>('');
+ const [statusFilter,setStatusFilter]=useState<HousekeepingStatus|''>(linkedStatus??'');
  const [typeFilter,setTypeFilter]=useState<HousekeepingType|''>('');
  const [textFilter,setTextFilter]=useState('');
  const [mineOnly,setMineOnly]=useState(role==='housekeeping');
- const [queueFilter,setQueueFilter]=useState<HousekeepingQueue|''>('');
+ const [queueFilter,setQueueFilter]=useState<HousekeepingQueue|''>(linkedQueue??'');
  const [assigneeFilter,setAssigneeFilter]=useState('');
  useEffect(()=>{setMineOnly(role==='housekeeping');setPage(1);},[hotelId,user?.id,role]);
  const [moreFilters,setMoreFilters]=useState(false);
@@ -145,8 +145,9 @@ export function LiveHousekeeping(){
  });
  useEffect(()=>{
   setPage(1);setSelected(null);setForm(null);setError('');setHistoryOpen(false);setHistoryPage(1);
-  setTextFilter('');setStatusFilter('');setTypeFilter('');setQueueFilter('');setAssigneeFilter('');setMineOnly(role==='housekeeping');setMoreFilters(false);jumpToInspection.current=false;
+  setTextFilter('');setStatusFilter(linkedStatus??'');setTypeFilter('');setQueueFilter(linkedQueue??'');setAssigneeFilter('');setMineOnly(role==='housekeeping');setMoreFilters(false);jumpToInspection.current=false;
  },[hotelId]);
+ useEffect(()=>{setQueueFilter(linkedQueue??'');setStatusFilter(linkedStatus??'');setTextFilter('');setTypeFilter('');setAssigneeFilter('');setMineOnly(role==='housekeeping');setPage(1);},[linkedQueue,linkedStatus]);
  useEffect(()=>{
   openedLinkedTask.current=null;
  },[hotelId,linkedTaskId]);

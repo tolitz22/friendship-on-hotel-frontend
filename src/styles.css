@@ -4236,3 +4236,62 @@ dialog.no-show-dialog::backdrop { background: rgb(0 0 0 / 45%); }
  .hk-board-room{overflow-wrap:anywhere}
  .hk-install-help .btn-inline{min-height:44px}
 }
+
+/* Housekeeping home — action-first, responsive workspace */
+.hk-dash{gap:18px;max-width:1440px;margin-inline:auto}
+.hk-dash-header,.hk-dash-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hk-dash-header h1,.hk-dash-section h2,.hk-dash-task h3,.hk-dash-next h3{margin:0}
+.hk-dash-header .btn-inline,.hk-dash-section-head .btn-inline{min-height:40px}
+.hk-dash-eyebrow{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+.hk-dash-property,.hk-dash-section-head p{font-size:.82rem;color:var(--muted);margin:5px 0 0}
+.hk-dash-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.hk-dash-metric{display:grid;gap:5px;min-width:0;padding:15px;border:1px solid var(--border);border-radius:13px;background:var(--surface);color:var(--text);text-decoration:none;transition:border-color .15s}
+.hk-dash-metric:hover,.hk-dash-shortcuts a:hover,.hk-dash-inspection:hover{border-color:var(--accent)}
+.hk-dash-metric:focus-visible,.hk-dash-shortcuts a:focus-visible,.hk-dash-inspection:focus-visible,.hk-dash-task-action:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.hk-dash-metric-heading{display:flex;justify-content:space-between;align-items:center;color:var(--muted)}
+.hk-dash-metric-icon,.hk-dash-room-icon,.hk-dash-activity-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:10px;background:var(--canvas);color:var(--accent);flex:none}
+.hk-dash-tone-urgent .hk-dash-metric-icon{color:#b42318;background:#fee4e2}
+.hk-dash-tone-progress .hk-dash-metric-icon{color:#1d4ed8;background:#dbeafe}
+.hk-dash-tone-inspect .hk-dash-metric-icon{color:#92400e;background:#fef3c7}
+.hk-dash-metric>strong{font-size:1.85rem;font-variant-numeric:tabular-nums;line-height:1.15}
+.hk-dash-metric>span:not(.hk-dash-metric-heading){font-size:.9rem;font-weight:650}
+.hk-dash-metric>small,.hk-dash-activity small,.hk-dash-shortcuts small,.hk-dash-inspection small{font-size:.75rem;color:var(--muted);line-height:1.5}
+.hk-dash-activity{display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+.hk-dash-activity>div:nth-child(2){display:grid;gap:3px;flex:1;min-width:0}.hk-dash-activity-icon{color:#15803d;background:#dcfce7}
+.hk-dash-activity .btn-inline{min-height:44px}
+.hk-dash-layout{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:16px;align-items:start}
+.hk-dash-main,.hk-dash-side,.hk-dash-section{display:grid;gap:12px;min-width:0;align-content:start}
+.hk-dash-section{background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:17px}
+.hk-dash-section h2{font-size:1.05rem}
+.hk-dash-next,.hk-dash-task{display:grid;gap:11px;padding:15px;background:var(--canvas);border:1px solid var(--border);border-radius:12px;min-width:0}
+.hk-dash-next{border-inline-start:4px solid var(--accent)}
+.hk-dash-task-arrival_today,.hk-dash-task-overdue{border-inline-start:4px solid #b42318}
+.hk-dash-task-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+.hk-dash-task-top>div:nth-child(2){flex:1;min-width:80px}
+.hk-dash-task-top small{font-size:.75rem;color:var(--muted)}
+.hk-dash-task-top h3{font-size:1.3rem;overflow-wrap:anywhere}
+.hk-dash-next h3{font-size:1.65rem}
+.hk-dash-pill{padding:5px 8px;border-radius:999px;font-size:.72rem;font-weight:650;color:var(--text);background:var(--surface);border:1px solid var(--border)}
+.hk-dash-pill-arrival_today,.hk-dash-pill-overdue{color:#991b1b;background:#fee2e2;border-color:#fecaca}
+.hk-dash-pill-in_progress{color:#1e40af;background:#dbeafe;border-color:#bfdbfe}
+.hk-dash-task-meta{display:flex;gap:8px 14px;flex-wrap:wrap;color:var(--muted);font-size:.78rem}
+.hk-dash-task-meta span,.hk-dash-arrival,.hk-dash-clear,.hk-dash-details,.hk-dash-more{display:flex;align-items:center;gap:6px}
+.hk-dash-arrival{font-size:.8rem;line-height:1.5;margin:0;align-items:flex-start;color:var(--text)}
+.hk-dash-arrival svg{flex:none;color:#b42318}
+.hk-dash-task-action{display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;width:100%;box-sizing:border-box}
+.hk-dash-details,.hk-dash-more{justify-content:center;font-size:.8rem;min-height:32px;color:var(--text)}
+.hk-dash-check-progress{display:grid;grid-template-columns:1fr auto;gap:5px;font-size:.75rem;color:var(--muted)}
+.hk-dash-check-progress progress{grid-column:1/-1;width:100%;height:7px;accent-color:#15803d}
+.hk-dash-task-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.hk-dash-count{font-weight:700;font-size:1.1rem;background:var(--canvas);border-radius:8px;padding:5px 10px}
+.hk-dash-inspection,.hk-dash-shortcuts a{display:flex;align-items:center;gap:10px;min-height:60px;padding:10px;border:1px solid var(--border);border-radius:10px;color:var(--text);text-decoration:none;min-width:0}
+.hk-dash-inspection>span:nth-child(2),.hk-dash-shortcuts a>span{flex:1;display:grid;gap:3px;min-width:0;overflow-wrap:anywhere}
+.hk-dash-inspection strong,.hk-dash-shortcuts strong{font-size:.86rem}
+.hk-dash-shortcuts{display:grid;gap:8px}
+.hk-dash-shortcuts a>svg:first-child{color:var(--accent);flex:none}
+.hk-dash-clear{font-size:.83rem;color:var(--muted);padding:10px 0}
+.hk-dash-clear svg{color:#15803d;flex:none}
+.hk-dash-feedback{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--surface)}
+.hk-dash-feedback>div{flex:1;min-width:140px}.hk-dash-feedback p{margin:4px 0;color:var(--muted);font-size:.8rem}
+@media(max-width:1050px){.hk-dash-layout{grid-template-columns:minmax(0,1fr)}.hk-dash-side{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.hk-dash{gap:12px}.hk-dash-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.hk-dash-metric{padding:11px}.hk-dash-metric>strong{font-size:1.6rem}.hk-dash-section{padding:12px}.hk-dash-task-list,.hk-dash-side{grid-template-columns:minmax(0,1fr)}.hk-dash-activity{flex-wrap:wrap;padding:11px}.hk-dash-activity .btn-inline{width:100%;justify-content:center}.hk-dash-header .btn-inline,.hk-dash-section-head .btn-inline{min-height:44px}.hk-dash-details,.hk-dash-more{min-height:44px}.hk-dash-section-head{gap:6px}.hk-dash-next,.hk-dash-task{padding:12px}}

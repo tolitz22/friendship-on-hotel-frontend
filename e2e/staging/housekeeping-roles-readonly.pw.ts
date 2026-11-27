@@ -15,9 +15,9 @@ async function signInAndOpenHousekeeping(page:Page,email:string,password:string)
   await expect(page.getByRole('heading',{name:'Housekeeping workspace'})).toBeVisible();
   await expect(nav.getByRole('link',{name:'Billing',exact:true})).toHaveCount(0);
   await myTasks.click();
-  const mine=page.getByRole('checkbox',{name:'My tasks',exact:true});
+  const mine=page.getByRole('checkbox',{name:'My tasks only',exact:true});
   await expect(mine).toBeChecked();
-  // View the hotel-wide queue to exercise read-only unassigned tasks too.
+  // View the hotel-wide queue to exercise shared tasks too.
   await mine.uncheck();
  }else{
   const housekeeping=nav.getByRole('link',{name:'Housekeeping',exact:true});
@@ -42,7 +42,7 @@ test('hotel administrator sees assignment and management controls',async({page})
   await dialog.getByRole('button',{name:'Close',exact:true}).first().click();
  }
 });
-test('housekeeping account can update only assigned tasks',async({page})=>{
+test('housekeeping account can update team tasks without assignment controls',async({page})=>{
  const email=process.env.PMS_STAGING_HOUSEKEEPING_EMAIL;
  const password=process.env.PMS_STAGING_HOUSEKEEPING_PASSWORD;
  test.skip(!email||!password,'Dedicated housekeeping staging account is required.');
@@ -58,8 +58,8 @@ test('housekeeping account can update only assigned tasks',async({page})=>{
   await expect(dialog.getByRole('combobox',{name:'Assign staff member'})).toHaveCount(0);
   const status=dialog.getByRole('combobox',{name:'Cleaning progress'});
   if(/View task details/i.test(label)){
-   await expect(status).toBeDisabled();
-   await expect(dialog.getByRole('button',{name:'Save task updates'})).toHaveCount(0);
+   await expect(status).toBeEnabled();
+   await expect(dialog.getByRole('button',{name:'Save task updates'})).toBeVisible();
   }else if(/Start or update task|Update cleaning progress/i.test(label)){
    await expect(status).toBeEnabled();
    await expect(dialog.getByRole('button',{name:'Save task updates'})).toBeVisible();

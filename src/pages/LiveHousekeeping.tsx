@@ -13,7 +13,7 @@ import {readableDate} from '../lib/format';
 import {
  createHousekeepingTask,getHousekeepingHistory,listHousekeepingTasks,updateHousekeepingTask,completeHousekeepingInspection,
  type LiveHousekeepingTask,type HousekeepingStatus,type HousekeepingType,type TaskFilter,type HousekeepingQueue,getHousekeepingWorkload,
- parseLiveHousekeeping,parseUpdatedHousekeeping,useDirectHousekeepingTask,canFinishCleaningChecklist,claimHousekeepingTask,
+ parseLiveHousekeeping,parseUpdatedHousekeeping,useDirectHousekeepingTask,canFinishCleaningChecklist,
 } from '../api/liveHousekeeping';
 import {ApiError,getJson} from '../api/http';
 import {hotelPath,readSession} from '../api/session';
@@ -48,7 +48,7 @@ export function LiveHousekeeping(){
  const openedLinkedTask=useRef<string|null>(null);
  const role=user?.hotels.find(h=>h.id===hotelId)?.role;
  const admin=role==='admin';
- const canWork=admin||user?.hotels.find(h=>h.id===hotelId)?.permissions?.includes('housekeeping.assigned')!==false;
+ const canWork=admin||(role==='housekeeping'&&user?.hotels.find(h=>h.id===hotelId)?.permissions?.includes('housekeeping.assigned')!==false);
  const property=useLiveProperty();
  const hotelDate=hotelToday(new Date(),property.data?.data.timeZone??'Asia/Manila');
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin});
@@ -175,8 +175,7 @@ export function LiveHousekeeping(){
   setForm(current=>current?{...current,[key]:value}:current);
  async function save(e:FormEvent<HTMLFormElement>){
   e.preventDefault();
-  const assigned=!!selected&&role==='housekeeping'&&canWork&&selected.assignedUserId===user?.id;
-  if(!(admin||assigned)||!form||saving||!online)return;
+  if(!(admin||!!selected&&canWork)||!form||saving||!online)return;
   if(selected&&form.status==='done'&&!canFinishCleaningChecklist(selected,form.checkedItems)){setError('Complete all required cleaning items first.');return;}
   const checklistFields=selected?.checklist&&selected.status!=='done'?{checkedItems:form.checkedItems}:{};
   setSaving(true);setError('');setFieldErrors({});setSaveMessage('');
@@ -222,7 +221,7 @@ export function LiveHousekeeping(){
    }else setError(caught instanceof Error?caught.message:'Unable to save housekeeping task.');
   }finally{setSaving(false);}
  }
- const mayInspect=!!selected&&(admin||(role==='housekeeping'&&canWork&&selected.assignedUserId===user?.id));
+ const mayInspect=!!selected&&canWork;
  async function finishInspection(){
   if(!selected||selected.status!=='done'||!mayInspect||saving||!inspectionChecks.every(Boolean)
    ||inspectionNote.trim().length<5||!hotelId||!online)return;
@@ -263,19 +262,9 @@ export function LiveHousekeeping(){
  const assignedName=(task:LiveHousekeepingTask)=>task.assignedUserId
   ?task.assignedUserId===user?.id?'You':admin?staff.data?.data.find(m=>m.userId===task.assignedUserId)?.name??'Assigned staff':'Assigned staff'
   :task.assignedTo??'Unassigned';
- const canUpdate=(task:LiveHousekeepingTask)=>admin||(role==='housekeeping'&&canWork&&task.assignedUserId===user?.id);
+ const canUpdate=(task:LiveHousekeepingTask)=>canWork&&task.hotelId===hotelId;
  const maySave=admin||(!!selected&&canUpdate(selected));
- const mayClaim=!!selected&&role==='housekeeping'&&canWork&&selected.status==='todo'&&selected.assignedUserId===null&&!selected.assignedTo?.trim();
- async function claim(){
-  if(!selected||!mayClaim||!hotelId||!user?.id||!online||saving)return;
-  setSaving(true);setError('');setSaveMessage('');
-  try{
-   const updated=await claimHousekeepingTask(hotelId,selected,user.id);
-   if(readSession().hotelId!==hotelId)return;
-   setSelected(updated);setForm(fromTask(updated));setSaveMessage('Task assigned to you. You can now update cleaning progress.');
-  }catch(cause){if(readSession().hotelId===hotelId)setError(cause instanceof ApiError&&cause.status===409?'Task already claimed or changed. Close and reopen the latest task.':cause instanceof Error?cause.message:'Unable to claim task.');}
-  finally{setSaving(false);void Promise.all([['live-housekeeping',hotelId],['live-housekeeping-status-totals',hotelId],['role-home','housekeeping',hotelId],['live','housekeeping-room-board',hotelId],['live','housekeeping-direct-task',hotelId],['live','housekeeping-workload',hotelId],['live','housekeeping-manager-report',hotelId],['live','housekeeping-handoff',hotelId],['live','housekeeping-assigned-alerts',hotelId],['housekeeping-history',hotelId]].map(queryKey=>client.invalidateQueries({queryKey}))).catch(()=>{});}
- }
+
  return <>
   {linkedTaskId&&<section aria-label="Direct checkout cleaning task">
    <div className="desk-tools">
@@ -395,7 +384,7 @@ export function LiveHousekeeping(){
       <option value="">All types</option>
       {(['checkout_clean','stayover','inspection'] as const).map(type=><option key={type} value={type}>{taskNames[type]}</option>)}
      </select></label>
-     {user&&<label className="hk-mine-filter"><input type="checkbox" checked={mineOnly} onChange={e=>{setPage(1);setMineOnly(e.target.checked);}}/> My tasks</label>}
+     {user&&<label className="hk-mine-filter"><input type="checkbox" checked={mineOnly} onChange={e=>{setPage(1);setMineOnly(e.target.checked);}}/> My tasks only</label>}
      {hasFilters&&<button type="button" className="hk-clear" onClick={resetFilters}><X size={15}/> Clear filters</button>}
     </div>
    </div>
@@ -443,7 +432,7 @@ export function LiveHousekeeping(){
    <div className="catalog-modal-heading"><h3 id="hk-dialog-title">{selected?'Housekeeping task HK-'+selected.id:'Create housekeeping task'}</h3>
     <button type="button" className="icon-btn" aria-label="Close" disabled={saving} onClick={close}><X size={19}/></button></div>
    {!online&&<p className="hk-network-alert" role="status">You are offline. Changes are not saved. Reconnect to submit.</p>}
-   {selected&&<div className="hk-assignment-access"><div><strong>{maySave?'Editable task':mayClaim?'Available to claim':'Read-only task'}</strong><p>{maySave?(selected.assignedUserId===user?.id?'Assigned to you. Update progress and save as you work.':'You have administrator access to this task.'):mayClaim?'No employee is assigned. Claim this task to update its progress.':role==='housekeeping'&&!canWork?'Your account does not have housekeeping task update permission. Ask your manager.':selected.assignedUserId?'This task is assigned to another employee. Ask a manager to reassign it if necessary.':selected.assignedTo?'A staff name is recorded without a linked account. Ask a manager to link the correct account.':'This task cannot be self-claimed because it is no longer awaiting a new assignment. Ask your manager.'}</p></div>{mayClaim&&<button type="button" className="btn-primary" disabled={saving||!online} onClick={()=>void claim()}>{saving?'Claiming…':'Claim task'}</button>}</div>}
+   {selected&&<div className="hk-assignment-access"><div><strong>{maySave?'Team task · editable':'Read-only task'}</strong><p>{maySave?'Any authorized housekeeper at this hotel can record progress. Assignment: '+assignedName(selected)+'. Your own name and changes are recorded in task history.':'Your role or permissions do not allow housekeeping updates. Contact your manager.'}</p></div></div>}
    <div className="hk-dialog-guide"><Info size={17}/><p><strong>{selected?.type==='stayover'?'Stayover service.':selected?.type==='inspection'?'Room inspection.':'One task, two stages.'}</strong> {selected?.type==='stayover'?'Record completed cleaning without releasing the occupied room.':selected?.type==='inspection'?'Record inspection task progress; room readiness is evaluated separately.':'Save cleaning progress, then finish the final inspection below. Maintenance and inventory checks still apply.'}</p></div>
    {selected&&maySave&&hotelId&&<HousekeepingIssueReport key={hotelId+':'+selected.id} hotelId={hotelId} task={selected} disabled={saving}/>}
    {selected&&<>
@@ -534,18 +523,19 @@ export function LiveHousekeeping(){
         {mayInspect&&<button type="button" className="btn-primary"
          disabled={!online||saving||!inspectionChecks.every(Boolean)||inspectionNote.trim().length<5}
          onClick={()=>void finishInspection()}>{saving?'Recording inspection…':'Complete final inspection'}</button>}
-        {!mayInspect&&<p>Only assigned housekeeping staff or an authorized manager can inspect.</p>}
+        {!mayInspect&&<p>Only authorized housekeeping staff or a manager at this hotel can inspect.</p>}
        </>}
      </>}
     {inspectionMessage&&<p role="status" className="stay-feedback-success">{inspectionMessage}</p>}
     {error&&<p role="alert" className="auth-error">{error}</p>}
    </section>}
-   {selected&&<div className="catalog-audit-section">
-    <button type="button" className="btn-inline" onClick={()=>setHistoryOpen(v=>!v)}><History size={16}/>{historyOpen?'Hide':'View'} task history</button>
+   {selected&&<div className="catalog-audit-section hk-team-audit">
+    <button type="button" className="btn-inline" onClick={()=>setHistoryOpen(v=>!v)}><History size={16}/>{historyOpen?'Hide':'View'} task history{history.data?' · '+history.data.meta.total+' events':''}</button>
     {historyOpen&&<><QueryFeedback loading={history.isPending} error={history.error}/>
+     <p className="hk-audit-caption">Newest first · actual employee, time, and recorded changes. Assignment does not determine who gets credit for the work.</p>
      {history.data?.data.map(event=><ReadableAuditEvent key={event.id} event={event}
       actorName={event.actorName??staff.data?.data.find(member=>member.userId===event.actorId)?.name}
-      currentUserId={user?.id} currentUserName={user?.name}/>)}
+      currentUserId={user?.id} currentUserName={user?.name} housekeepingChecklist={selected.checklist}/>)}
      {history.data&&<div className="guest-pagination">
       <span>Event page {history.data.meta.page} of {Math.max(1,history.data.meta.totalPages)}</span>
       <div><button type="button" className="btn-inline" disabled={historyPage<=1}

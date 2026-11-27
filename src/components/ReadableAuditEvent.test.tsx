@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {auditActorName,cashEventDetails,describeAuditChanges,ReadableInspectionAuditEvent} from './ReadableAuditEvent';
+import {auditActorName,cashEventDetails,describeAuditChanges,housekeepingAuditChanges,ReadableInspectionAuditEvent} from './ReadableAuditEvent';
 import {renderToStaticMarkup} from 'react-dom/server';
 
 describe('staff-readable activity history',()=>{
@@ -84,4 +84,11 @@ it('describes expense payout evidence and excludes unrelated fields',()=>{
  expect(cashEventDetails('expense_payout',{amountMinor:35000,payee:'Supply Shop',description:'Cleaning supplies',expenseId:'7',password:'secret'})).toEqual([
   {label:'Cash paid out',value:'₱350.00'}, {label:'Payee',value:'Supply Shop'}, {label:'Purpose',value:'Cleaning supplies'}, {label:'Expense voucher',value:'#7'},
  ]);
+});
+
+it('shows actual checklist additions and removals plus inspection outcomes',()=>{
+ expect(housekeepingAuditChanges({checkedItems:['trash']},{checkedItems:['linens']})).toEqual([
+  {label:'Replace bed linens',from:'Not checked',to:'Checked'},{label:'Remove trash',from:'Checked',to:'Unchecked'},
+ ]);
+ expect(housekeepingAuditChanges({status:'done'},{status:'done',inspectionStatus:'approved'})).toEqual([{label:'Final inspection',from:null,to:'Completed and approved'}]);
 });

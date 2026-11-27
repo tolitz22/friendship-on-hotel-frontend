@@ -45,12 +45,27 @@ export function describeAuditChanges(before:Record<string,unknown>|null,after:Re
   }];
  });
 }
+const checklistLabels:Record<string,string>={trash:'Remove trash',linens:'Replace bed linens',bed:'Make bed',bathroom:'Clean bathroom',towels:'Refresh towels',amenities:'Replenish amenities',floors:'Clean floors',surfaces:'Disinfect surfaces',fixtures:'Check fixtures'};
+export function housekeepingAuditChanges(before:Record<string,unknown>|null,after:Record<string,unknown>,items?:readonly {key:string;label:string}[]):Change[]{
+ const result:Change[]=[];
+ const old=before?.checkedItems,next=after.checkedItems;
+ if(Array.isArray(old)&&Array.isArray(next)){
+  const label=(key:string)=>items?.find(item=>item.key===key)?.label??checklistLabels[key]??'Checklist item '+key;
+  const added=next.filter((key):key is string=>typeof key==='string'&&!old.includes(key));
+  const removed=old.filter((key):key is string=>typeof key==='string'&&!next.includes(key));
+  for(const key of added)result.push({label:label(key),from:'Not checked',to:'Checked'});
+  for(const key of removed)result.push({label:label(key),from:'Checked',to:'Unchecked'});
+ }
+ if(after.inspectionStatus==='approved'&&before?.inspectionStatus!=='approved')result.push({label:'Final inspection',from:null,to:'Completed and approved'});
+ if(after.completedBy!==undefined&&before?.status!=='done'&&after.status==='done')result.push({label:'Completion recorded',from:null,to:'By the employee shown above'});
+ return result;
+}
 const headline=(action:string):string=>{
  const labels:Record<string,string>={
   created:'Created this record',updated:'Updated the record',status_changed:'Changed work progress',
   assigned:'Changed the assignment',completed:'Completed the task',
   reopened:'Reopened the work order',resolved:'Marked repair resolved',
-  closed:'Closed the record',
+  closed:'Closed the record',inspection_completed:'Completed final room inspection',
  };
  return labels[action]??statusLabel(action).replace(/_/g,' ');
 };
@@ -60,13 +75,14 @@ export const auditActorName=(id:string,name?:string|null,currentId?:string|null,
  return 'Employee name unavailable';
 };
 
-export function ReadableAuditEvent({event,actorName,currentUserId,currentUserName}:{
- event:AuditEvent;actorName?:string|null;currentUserId?:string|null;currentUserName?:string|null;
+export function ReadableAuditEvent({event,actorName,currentUserId,currentUserName,housekeepingChecklist}:{
+ event:AuditEvent;actorName?:string|null;currentUserId?:string|null;currentUserName?:string|null;housekeepingChecklist?:readonly {key:string;label:string}[];
 }){
- const changes=describeAuditChanges(event.before,event.after);
+ const changes=[...describeAuditChanges(event.before,event.after),...housekeepingAuditChanges(event.before,event.after,housekeepingChecklist)];
+ const title=event.action==='updated'&&event.before?.status!==event.after.status?event.after.status==='done'?'Completed cleaning':event.after.status==='in_progress'?'Started cleaning':headline(event.action):event.action==='updated'&&changes.some(change=>change.to==='Checked'||change.to==='Unchecked')?'Updated cleaning checklist':headline(event.action);
  return <article className="readable-audit-event">
   <div className="readable-audit-heading"><span className="readable-audit-icon"><History size={16}/></span>
-   <div><strong>{headline(event.action)}</strong><span><UserRound size={13}/>
+   <div><strong>{title}</strong><span><UserRound size={13}/>
     {auditActorName(event.actorId,event.actorName??actorName,currentUserId,currentUserName)} <span aria-hidden="true">·</span>
     <Clock3 size={13}/> {readableDateTime(event.createdAt)}</span></div></div>
   {changes.length>0?<dl className="readable-audit-changes">

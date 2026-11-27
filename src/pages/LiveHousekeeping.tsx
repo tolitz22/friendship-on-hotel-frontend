@@ -226,6 +226,7 @@ export function LiveHousekeeping(){
     client.invalidateQueries({queryKey:['live','housekeeping-direct-task',hotelId]}),
     client.invalidateQueries({queryKey:['live-housekeeping',hotelId]}),
     client.invalidateQueries({queryKey:['live','housekeeping-workload',hotelId]}),
+    client.invalidateQueries({queryKey:['live-housekeeping-status-totals',hotelId]}),
     client.invalidateQueries({queryKey:['role-home','housekeeping',hotelId]}),
     client.invalidateQueries({queryKey:['housekeeping-history',hotelId]}),
     client.invalidateQueries({queryKey:['live','front-desk','manifest',hotelId]}),
@@ -349,7 +350,7 @@ export function LiveHousekeeping(){
     <div className="hk-queue-tabs hk-priority-tabs" role="group" aria-label="Task priority">
      {([['','All priorities'],['active','Active'],['arrival_today','Arrival today'],['overdue','Overdue'],['pending_inspection','Pending inspection'],...(admin?[['unassigned','Unassigned']] as const:[])] as const).map(([value,label])=>
       <button key={value} type="button" aria-pressed={queueFilter===value} className={queueFilter===value?'active':''}
-       onClick={()=>{setQueueFilter(value as HousekeepingQueue|'');setStatusFilter('');setPage(1);}}>{label}</button>)}
+       onClick={()=>{setQueueFilter(value as HousekeepingQueue|'');setStatusFilter('');if(value==='unassigned'){setAssigneeFilter('');setMineOnly(false);}setPage(1);}}>{label}</button>)}
     </div>
     {admin&&<label className="hk-assignee-filter">Assigned staff <select value={assigneeFilter} disabled={mineOnly||staff.isPending} onChange={e=>{setAssigneeFilter(e.target.value);setPage(1);}}>
      <option value="">All staff</option>{staff.data?.data.map(member=><option key={member.userId} value={member.userId}>{member.name}</option>)}</select></label>}

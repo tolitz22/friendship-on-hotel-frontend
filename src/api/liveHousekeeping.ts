@@ -7,14 +7,14 @@ export type HousekeepingStatus='todo'|'in_progress'|'done';
 export interface LiveHousekeepingTask{
  id:string;hotelId:string;roomId:string;roomNumber:string;type:HousekeepingType;
  status:HousekeepingStatus;assignedTo:string|null;assignedUserId:string|null;dueAt:string|null;completedAt:string|null;
- revision:number;createdAt:string;
+ revision:number;createdAt:string;arrivalToday?:boolean;overdue?:boolean;pendingInspection?:boolean;
 }
 export interface HousekeepingEvent{
  id:string;actorId:string;actorName?:string|null;action:string;
  before:Record<string,unknown>|null;after:Record<string,unknown>;note:string|null;createdAt:string;
 }
 export type HousekeepingList=CollectionResponse<LiveHousekeepingTask>&{
- meta:CollectionResponse<LiveHousekeepingTask>['meta']&{determinesRoomReadiness:false;pastDueCount?:number};
+ meta:CollectionResponse<LiveHousekeepingTask>['meta']&{determinesRoomReadiness:false;pastDueCount?:number;pendingInspectionCount?:number};
 };
 export interface CreateHousekeepingInput{
  roomId:string;type:HousekeepingType;assignedTo:string|null;assignedUserId?:string|null;dueAt:string|null;note?:string|null;
@@ -24,7 +24,7 @@ export interface UpdateHousekeepingInput{
  assignedTo?:string|null;assignedUserId?:string|null;dueAt?:string|null;note?:string|null;
 }
 export const listHousekeepingTasks=(page=1,perPage=50,filter:TaskFilter={})=>getJson<HousekeepingList>(
- hotelPath('/housekeeping-tasks'),{page,per_page:perPage,status:filter.status,type:filter.type,q:filter.q,mine:filter.mine });
+ hotelPath('/housekeeping-tasks'),{page,per_page:perPage,status:filter.status,type:filter.type,q:filter.q,mine:filter.mine,queue:filter.queue,sort:filter.sort,assignee:filter.assignee });
 export const createHousekeepingTask=(body:CreateHousekeepingInput)=>requestJson<ItemResponse<LiveHousekeepingTask>>(
  hotelPath('/housekeeping-tasks'),{method:'POST',body});
 export const updateHousekeepingTask=(id:string,body:UpdateHousekeepingInput)=>
@@ -51,13 +51,14 @@ const taskSchema=z.object({
  assignedTo:z.string().nullable(),assignedUserId:idSchema.nullable(),
  dueAt:z.string().nullable(),completedAt:z.string().nullable(),
  revision:z.number().int().positive(),createdAt:z.string(),
+ arrivalToday:z.boolean().optional(),overdue:z.boolean().optional(),pendingInspection:z.boolean().optional(),
 });
 const listSchema=z.object({
  data:z.array(taskSchema),
  meta:z.object({
   page:z.number().int().positive(),perPage:z.number().int().positive(),
   total:z.number().int().nonnegative(),totalPages:z.number().int().nonnegative(),
-  determinesRoomReadiness:z.literal(false),pastDueCount:z.number().int().nonnegative().optional(),
+  determinesRoomReadiness:z.literal(false),pastDueCount:z.number().int().nonnegative().optional(),pendingInspectionCount:z.number().int().nonnegative().optional(),
  }),
 });
 const historySchema=z.object({
@@ -70,7 +71,8 @@ const historySchema=z.object({
   total:z.number().int().nonnegative(),totalPages:z.number().int().nonnegative(),
  }),
 });
-export type TaskFilter={q?:string;mine?:number;status?:HousekeepingStatus;type?:HousekeepingType};
+export type HousekeepingQueue='active'|'arrival_today'|'overdue'|'unassigned'|'pending_inspection';
+export type TaskFilter={q?:string;mine?:number;status?:HousekeepingStatus;type?:HousekeepingType;queue?:HousekeepingQueue;sort?:'priority';assignee?:string};
 
 export function parseLiveHousekeeping(value:unknown,hotelId:string){
  const result=listSchema.parse(value);
@@ -94,11 +96,11 @@ export function canProgressHousekeeping(task:LiveHousekeepingTask,admin:boolean,
 export function useLiveHousekeeping(page:number,filter:TaskFilter){
  const {hotelId}=readSession();
  return useQuery({
-  queryKey:['live','housekeeping',hotelId,page,filter.status??'',filter.type??''],
+  queryKey:['live','housekeeping',hotelId,page,filter],
   enabled:!!hotelId,
   queryFn:async()=>parseLiveHousekeeping(await getJson<unknown>(
    hotelPath('/housekeeping-tasks'),{
-    page,per_page:20,status:filter.status,type:filter.type,
+    page,per_page:20,status:filter.status,type:filter.type,q:filter.q,mine:filter.mine,queue:filter.queue,sort:filter.sort,assignee:filter.assignee,
    }),hotelId!),
   retry:false,
  });
@@ -162,4 +164,17 @@ export function parsePersonalHousekeepingDashboard(value:unknown,hotelId:string,
 export async function getPersonalHousekeepingDashboard(hotelId:string,userId:string){
  if(readSession().hotelId!==hotelId)throw new Error('Hotel changed. Reload the housekeeping dashboard.');
  return parsePersonalHousekeepingDashboard(await getJson<unknown>(hotelPath('/housekeeping/dashboard')),hotelId,userId);
+}
+
+const workloadSchema=z.object({data:z.array(z.object({userId:idSchema,todo:z.number().int().nonnegative(),inProgress:z.number().int().nonnegative()})),
+ meta:z.object({hotelId:idSchema})});
+export function parseHousekeepingWorkload(value:unknown,hotelId:string){
+ const result=workloadSchema.parse(value);
+ if(result.meta.hotelId!==hotelId||new Set(result.data.map(row=>row.userId)).size!==result.data.length)
+  throw new Error('Housekeeping workload belongs to a different hotel or contains duplicate staff.');
+ return result.data;
+}
+export async function getHousekeepingWorkload(hotelId:string){
+ if(readSession().hotelId!==hotelId)throw new Error('Hotel changed. Reload housekeeping.');
+ return parseHousekeepingWorkload(await getJson<unknown>(hotelPath('/housekeeping/workload')),hotelId);
 }

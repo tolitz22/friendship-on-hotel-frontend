@@ -4165,3 +4165,12 @@ dialog.no-show-dialog::backdrop { background: rgb(0 0 0 / 45%); }
 .hk-home-empty{display:grid;gap:6px;padding:20px;border:1px dashed #a6b2c2;border-radius:12px}
 .hk-home-empty p{margin:0}
 @media(max-width:760px){.hk-home-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.hk-home-metric{padding:12px}.hk-home-task-list,.hk-home-shortcuts{grid-template-columns:minmax(0,1fr)}.hk-home{gap:16px}.hk-home-heading .btn-inline{min-height:44px}}
+
+/* HK-03 — priority queues and assignment workload */
+.hk-priority-tabs{flex-wrap:wrap}
+.hk-assignee-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0}
+.hk-assignee-filter select{min-width:180px;max-width:100%}
+.hk-staff-load{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:8px}
+.hk-staff-load .btn-inline{justify-content:space-between;min-height:44px;text-align:left;white-space:normal}
+.hk-staff-load .btn-inline[aria-pressed=true]{outline:2px solid #2563eb;outline-offset:1px}
+@media(max-width:760px){.hk-priority-tabs button{min-height:44px}.hk-assignee-filter select{width:100%}.hk-staff-load{grid-template-columns:minmax(0,1fr)}}

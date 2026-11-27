@@ -24,6 +24,23 @@ for(const width of [320,390,430,1280]){
   await expect(desk.getByRole('region',{name:'Arrivals',exact:true})).toContainText('Demo Arrival');
   await expect(desk.getByRole('region',{name:'Departures',exact:true})).toContainText('Demo Departure');
   await expect(alert).toContainText('1 overdue checkout needs attention');
+  if(width<768){
+   const refresh=desk.getByRole('button',{name:'Refresh front desk'});
+   const refreshSize=await refresh.boundingBox();
+   expect(refreshSize!.width).toBeLessThanOrEqual(48);
+   expect(refreshSize!.height).toBeGreaterThanOrEqual(44);
+   const review=alert.getByRole('button',{name:'Review overdue checkouts'});
+   const alertSize=await alert.boundingBox(),reviewSize=await review.boundingBox();
+   expect(reviewSize!.width).toBeLessThan(alertSize!.width/2);
+   expect(alertSize!.height).toBeLessThanOrEqual(115);
+   const row=desk.locator('.rd-guest').first();
+   expect((await row.boundingBox())!.height).toBeLessThan(170);
+   await expect(row.getByRole('link',{name:/Review check-in/})).toBeVisible();
+   const newBooking=desk.getByRole('link',{name:'New booking',exact:true});
+   expect(await newBooking.evaluate(el=>getComputedStyle(el).position)).not.toBe('fixed');
+   await expect(page.locator('.topbar .hk-mobile-brand')).toBeVisible();
+   await expect(page.getByRole('button',{name:'Open navigation'})).toBeVisible();
+  }
   const search=desk.getByRole('searchbox',{name:'Search guest, booking or room'});
   await search.fill('no match');
   await expect(desk.getByText('No matching bookings.')).toHaveCount(2);

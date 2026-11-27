@@ -92,8 +92,10 @@ export function AppShell(){
  const workspace=navigationForRole(role);
  const admin=role==='admin';
  const housekeepingMobile=dataMode==='api'&&role==='housekeeping';
+ const receptionMobile=dataMode==='api'&&role==='front_desk';
+ const staffMobile=housekeepingMobile||receptionMobile;
  const selectedHotelName=user?.hotels.find(h=>h.id===hotelId)?.name??'Hotel';
- const mobileTabs=[{to:'/' as const,label:'Home',icon:Home},{to:'/housekeeping' as const,label:'Tasks',icon:ClipboardCheck},{to:'/rooms' as const,label:'Rooms',icon:BedDouble},{to:'/messages' as const,label:'Messages',icon:MessageCircle}].filter(item=>canViewWorkspacePath(role,item.to,effectivePermissions));
+ const mobileTabs=(receptionMobile?[{to:'/' as const,label:'Overview',icon:Home},{to:'/reservations' as const,label:'Bookings',icon:CalendarDays},{to:'/rooms' as const,label:'Rooms',icon:BedDouble},{to:'/messages' as const,label:'Messages',icon:MessageCircle}]:[{to:'/' as const,label:'Home',icon:Home},{to:'/housekeeping' as const,label:'Tasks',icon:ClipboardCheck},{to:'/rooms' as const,label:'Rooms',icon:BedDouble},{to:'/messages' as const,label:'Messages',icon:MessageCircle}]).filter(item=>canViewWorkspacePath(role,item.to,effectivePermissions));
  const canMessage=dataMode==='api'&&!!user&&!!hotelId&&!user.mustChangePassword&&canViewWorkspacePath(role,'/messages',effectivePermissions);
  const showMessageShortcut=canMessage&&pathname!=='/messages'&&!open;
  const messageScope=hotelId+':'+user?.id;
@@ -178,7 +180,7 @@ export function AppShell(){
    <Icon size={18} aria-hidden="true"/><span>{dataMode==='api'&&role==='housekeeping'?(to==='/'?'My dashboard':to==='/housekeeping'?'My tasks':to==='/rooms'?'Room status':label):label}{to==='/messages'&&unreadMessages>0?' ('+unreadMessages+')':''}</span>
   </Link>);
 
- return <div className={'app-layout'+(dataMode==='api'&&role==='housekeeping'?' housekeeping-shell':'')}>
+ return <div className={'app-layout'+(housekeepingMobile?' housekeeping-shell':receptionMobile?' reception-shell':'')}>
   {open&&<div className="mobile-overlay" aria-hidden="true" onClick={closeNavigation}/>}
   <aside id="workspace-sidebar" className={'sidebar'+(open?' sidebar-open':'')}
    role={open?'dialog':undefined} aria-modal={open||undefined}
@@ -213,7 +215,7 @@ export function AppShell(){
      </div>}
     </>}
    </nav>
-   {housekeepingMobile&&<div className="hk-mobile-account-actions">
+   {staffMobile&&<div className="hk-mobile-account-actions">
     <div className="hk-profile-property"><span>Current hotel</span>
      {user&&user.hotels.length>1?<select aria-label="Switch hotel" value={hotelId??''} disabled={pending} onChange={event=>selectHotel(event.target.value)}>
       {user.hotels.map(h=><option key={h.id} value={h.id}>{h.name}</option>)}
@@ -228,12 +230,12 @@ export function AppShell(){
     </div>
    </div>
   </aside>
-  <main className={'main-area'+(showMessageShortcut?' has-message-shortcut':'')+(housekeepingMobile?' hk-bottom-nav-shell':'')+(housekeepingMobile&&pathname==='/'?' hk-minimal-home-shell':'')} inert={open}>
+  <main className={'main-area'+(showMessageShortcut?' has-message-shortcut':'')+(staffMobile?' hk-bottom-nav-shell':'')+(housekeepingMobile&&pathname==='/'?' hk-minimal-home-shell':'')} inert={open}>
    <header className="topbar">
     <div className="topbar-left">
      <button ref={menuButton} className="icon-btn mobile-menu" type="button" onClick={()=>{menuTrigger.current='header';setOpen(true);}}
       aria-label="Open navigation" aria-haspopup="dialog" aria-expanded={open} aria-controls="workspace-sidebar"><Menu size={20}/></button>
-     {housekeepingMobile&&<div className="hk-mobile-brand"><span className="hk-mobile-brand-mark" aria-hidden="true"><Hotel size={22}/></span><span className="hk-mobile-brand-name">{selectedHotelName}</span></div>}
+     {staffMobile&&<div className="hk-mobile-brand"><span className="hk-mobile-brand-mark" aria-hidden="true"><Hotel size={22}/></span><span className="hk-mobile-brand-name">{selectedHotelName}</span></div>}
      <div className="topbar-heading"><span className="eyebrow">FRIENDSHIP ON HOTEL</span><h1>{current}</h1></div>
     </div>
     <div className="topbar-actions">
@@ -280,7 +282,7 @@ export function AppShell(){
     </>}
    </div>}
    <div className="page-content">
-    {dataMode==='api'&&(admin||role==='housekeeping'||role==='front_desk')&&!(role==='housekeeping'&&pathname==='/')&&<div ref={setNotificationPromptHost}/>}
+    {dataMode==='api'&&(admin||role==='housekeeping'||role==='front_desk')&&!(staffMobile&&pathname==='/')&&<div ref={setNotificationPromptHost}/>}
     {dataMode==='api'&&!canViewWorkspacePath(role,pathname,effectivePermissions)
      ?<section className="panel" role="alert" aria-label="Page access denied">
        <h2>Page not available for your role</h2>
@@ -288,9 +290,9 @@ export function AppShell(){
        <Link className="btn-primary" to="/">Return to your workspace <ArrowRight size={15}/></Link>
       </section>
      :<Suspense fallback={<div role="status" className="workspace-loading">Loading hotel workspace…</div>}><Outlet/></Suspense>}
-    {dataMode==='api'&&role==='housekeeping'&&pathname==='/'&&<div className="hk-phone-secondary"><div ref={setNotificationPromptHost}/><HousekeepingInstallHelp/></div>}
+    {staffMobile&&pathname==='/'&&<div className="hk-phone-secondary"><div ref={setNotificationPromptHost}/>{housekeepingMobile&&<HousekeepingInstallHelp/>}</div>}
    </div>
-   {housekeepingMobile&&<nav className="hk-bottom-nav" aria-label="Housekeeping mobile navigation">
+   {staffMobile&&<nav className="hk-bottom-nav" aria-label={housekeepingMobile?'Housekeeping mobile navigation':'Front desk mobile navigation'}>
     {mobileTabs.map(({to,label,icon:Icon})=><Link to={to} key={to} className={'hk-bottom-tab'+(pathname===to?' is-current':'')} activeOptions={{exact:true}} aria-current={pathname===to?'page':undefined} aria-label={label+(to==='/messages'&&unreadMessages>0?', '+unreadMessages+' unread messages':'')}><span className="hk-bottom-icon"><Icon size={22} aria-hidden="true"/>{to==='/messages'&&unreadMessages>0&&<span className="hk-bottom-unread" aria-hidden="true">{unreadMessages>99?'99+':unreadMessages}</span>}</span><span>{label}</span></Link>)}
     <button ref={profileButton} type="button" className={'hk-bottom-tab'+(!mobileTabs.some(item=>item.to===pathname)?' is-current':'')} aria-haspopup="dialog" aria-expanded={open} aria-controls="workspace-sidebar" onClick={()=>{menuTrigger.current='profile';setOpen(true);}}><span className="hk-bottom-icon"><UserRound size={22} aria-hidden="true"/></span><span>Profile</span></button>
    </nav>}

@@ -43,11 +43,11 @@ export function parseManifest(payload:unknown,expectedDate:string,kind:ManifestK
  return parsed;
 }
 
-export function useLiveManifest(date:string,kind:ManifestKind,page:number,perPage=20,search?:string){
+export function useLiveManifest(date:string,kind:ManifestKind,page:number,perPage=20,search?:string,enabled=true){
  const {hotelId}=readSession();
  return useQuery({
   queryKey:['live','front-desk','manifest',hotelId,date,kind,page,perPage,search],
-  enabled:!!hotelId&&/^\d{4}-\d{2}-\d{2}$/.test(date),
+  enabled:enabled&&!!hotelId&&/^\d{4}-\d{2}-\d{2}$/.test(date),
   queryFn:async()=>parseManifest(await getJson<unknown>(
    hotelPath('/front-desk/manifest'),
    {date,kind,page,per_page:perPage,q:search||undefined}

@@ -8,7 +8,7 @@ export interface HotelSubscription {
  roomLimit:number|null;staffLimit:number|null;kind:'trial'|'paid';startsOn:string;expiresOn:string;
  status:Exclude<SubscriptionStatus,'unassigned'>;trialUsed:boolean;revision:number;
 }
-export interface SubscriptionHotel{hotelId:string;hotelName:string;currency:string;subscription:HotelSubscription|null;usage?:SubscriptionCapacity}
+export interface SubscriptionHotel{hotelId:string;hotelName:string;currency:string;subscription:HotelSubscription|null;usage?:SubscriptionCapacity;currentRevisionBilled?:boolean}
 export type SubscriptionInput={action:'renew';revision:number}|{action:'assign'|'trial';revision:number;planId:string;planRevision:number;cycle:BillingCycle;trialDays?:number};
 export interface SubscriptionRevision{revision:number;action:'trial'|'assign'|'renew';actorId:string|null;createdAt:string;snapshot:HotelSubscription}
 const path='/platform/hotel-subscriptions';

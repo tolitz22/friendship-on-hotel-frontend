@@ -1,0 +1,5 @@
+import {getJson,requestJson} from './http';
+import type {Paginated} from './platformPlans';
+export interface SubscriptionInvoice{id:string;hotelId:string;hotelName:string;reference:string;planName:string;agreementRevision:number;currency:'PHP';cycle:'monthly'|'annual';amountMinor:number;outstandingMinor:number;status:'unpaid'|'overdue';periodStart:string;periodEnd:string;issuedOn:string;dueOn:string;issuedBy:string|null}
+export function fetchSubscriptionInvoices(status:'all'|'unpaid'|'overdue',search:string,page:number,signal?:AbortSignal){return getJson<Paginated<SubscriptionInvoice>&{summary:{outstandingMinor:number;currency:'PHP'};today:string}>('/platform/subscription-invoices',{status,search,page},signal);}
+export function issueSubscriptionInvoice(hotelId:string,input:{revision:number;dueOn:string;confirmed:boolean}){return requestJson<{data:SubscriptionInvoice;replayed:boolean}>('/platform/hotels/'+encodeURIComponent(hotelId)+'/subscription-invoices',{method:'POST',body:input});}

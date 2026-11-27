@@ -9,8 +9,21 @@ async function signInAndOpenHousekeeping(page:Page,email:string,password:string)
  await expect(page.locator('.workspace-nav, .auth-hotel-list').first()).toBeVisible();
  if(await page.locator('.auth-hotel-list').isVisible())
   await page.locator('.auth-hotel-list button').first().click();
- await page.getByRole('navigation',{name:'Hotel workspace navigation'})
-  .getByRole('link',{name:'Housekeeping',exact:true}).click();
+ const nav=page.getByRole('navigation',{name:'Hotel workspace navigation'});
+ const myTasks=nav.getByRole('link',{name:'My tasks',exact:true});
+ if(await myTasks.isVisible()){
+  await expect(page.getByRole('heading',{name:'Housekeeping workspace'})).toBeVisible();
+  await expect(nav.getByRole('link',{name:'Billing',exact:true})).toHaveCount(0);
+  await myTasks.click();
+  const mine=page.getByRole('checkbox',{name:'My tasks',exact:true});
+  await expect(mine).toBeChecked();
+  // View the hotel-wide queue to exercise read-only unassigned tasks too.
+  await mine.uncheck();
+ }else{
+  const housekeeping=nav.getByRole('link',{name:'Housekeeping',exact:true});
+  if(!await housekeeping.isVisible())await nav.getByRole('button',{name:'More operations'}).click();
+  await housekeeping.click();
+ }
  await expect(page.getByRole('heading',{name:'Housekeeping',exact:true})).toBeVisible();
 }
 test('hotel administrator sees assignment and management controls',async({page})=>{

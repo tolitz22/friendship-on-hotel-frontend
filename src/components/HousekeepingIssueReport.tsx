@@ -3,9 +3,11 @@ import {useQueryClient} from '@tanstack/react-query';
 import {Link} from '@tanstack/react-router';
 import {reportHousekeepingMaintenance,type MaintenancePriority} from '../api/liveMaintenance';
 import {readSession} from '../api/session';
+import {useNetworkStatus} from '../features/housekeeping/useNetworkStatus';
 import type {LiveHousekeepingTask} from '../api/liveHousekeeping';
 export function HousekeepingIssueReport({hotelId,task,disabled}:{hotelId:string;task:LiveHousekeepingTask;disabled:boolean}){
  const client=useQueryClient();
+ const online=useNetworkStatus();
  const [open,setOpen]=useState(false);
  const [title,setTitle]=useState('');
  const [description,setDescription]=useState('');
@@ -16,7 +18,7 @@ export function HousekeepingIssueReport({hotelId,task,disabled}:{hotelId:string;
  const [error,setError]=useState('');
  const [created,setCreated]=useState<string|null>(null);
  async function submit(event:FormEvent){
-  event.preventDefault();if(busy||disabled||!title.trim()||!description.trim())return;
+  event.preventDefault();if(!online||busy||disabled||!title.trim()||!description.trim())return;
   setBusy(true);setError('');
   try{
    const order=await reportHousekeepingMaintenance(hotelId,task.id,task.roomId,{title:title.trim(),description:description.trim(),priority,affectsRoom:impact,requestKey:key});
@@ -36,8 +38,9 @@ export function HousekeepingIssueReport({hotelId,task,disabled}:{hotelId:string;
    <label>Severity<select value={priority} disabled={busy} onChange={e=>setPriority(e.target.value as MaintenancePriority)}>{['low','medium','high','urgent'].map(p=><option key={p} value={p}>{p}</option>)}</select></label>
    <label className="hk-report-check"><input type="checkbox" checked={impact} disabled={busy} onChange={e=>setImpact(e.target.checked)}/> Prevents the room from being marked ready</label>
    <small>Room-impacting issues block readiness; reception must separately manage inventory restrictions. Urgent hazards should also be reported directly to the duty manager.</small>
+   {!online&&<p role="status">Offline. Reconnect before submitting this report.</p>}
    {error&&<p role="alert">{error}</p>}
-   <button type="submit" className="btn-primary" disabled={busy||disabled||!title.trim()||!description.trim()}>{busy?'Submitting…':'Submit work order'}</button>
+   <button type="submit" className="btn-primary" disabled={!online||busy||disabled||!title.trim()||!description.trim()}>{busy?'Submitting…':'Submit work order'}</button>
   </form>}
  </section>;
 }

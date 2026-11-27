@@ -7,6 +7,7 @@ import {Heading} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
 import {createLostFound,listLostFound,lostFoundHistory,updateLostFound,type CustodyAction,type LostFoundItem} from '../api/lostFound';
 import {readSession} from '../api/session';
+import {useNetworkStatus} from '../features/housekeeping/useNetworkStatus';
 export function LostFound(){
  const {hotelId,user}=useHotelAuth();
  const {room,item}=useSearch({from:'/lost-found'});
@@ -16,6 +17,7 @@ export function LostFound(){
 }
 function Register({hotelId,userId,admin,canRegister,initialRoom,initialItem}:{hotelId:string;userId:string;admin:boolean;canRegister:boolean;initialRoom?:string;initialItem?:string}){
  const client=useQueryClient();
+ const online=useNetworkStatus();
  const [page,setPage]=useState(1);const [status,setStatus]=useState('');const [itemFilter,setItemFilter]=useState(initialItem);
  const [open,setOpen]=useState(!!initialRoom&&canRegister);const [roomId,setRoomId]=useState(initialRoom??'');
  const [search,setSearch]=useState('');const [description,setDescription]=useState('');const [storage,setStorage]=useState('');
@@ -28,7 +30,7 @@ function Register({hotelId,userId,admin,canRegister,initialRoom,initialItem}:{ho
  const history=useQuery({queryKey:['lost-found-history',hotelId,selected?.id,historyPage],enabled:!!selected,queryFn:()=>lostFoundHistory(hotelId,selected!.id,historyPage),retry:false});
  const refresh=()=>void client.invalidateQueries({queryKey:['lost-found',hotelId]});
  async function register(event:FormEvent){
-  event.preventDefault();if(busy||!canRegister||!roomId||!description.trim()||!storage.trim())return;
+  event.preventDefault();if(!online||busy||!canRegister||!roomId||!description.trim()||!storage.trim())return;
   setBusy(true);setError('');setMessage('');
   try{const row=await createLostFound(hotelId,{roomId,description:description.trim(),storageLocation:storage.trim(),requestKey});
    if(readSession().hotelId!==hotelId)return;
@@ -36,7 +38,7 @@ function Register({hotelId,userId,admin,canRegister,initialRoom,initialItem}:{ho
   catch(e){setError(e instanceof Error?e.message:'Unable to register item.');}finally{setBusy(false);}
  }
  async function custody(event:FormEvent){
-  event.preventDefault();if(!admin||!selected||busy||note.trim().length<5||action==='move'&&!destination.trim())return;
+  event.preventDefault();if(!online||!admin||!selected||busy||note.trim().length<5||action==='move'&&!destination.trim())return;
   setBusy(true);setError('');setMessage('');
   try{const row=await updateLostFound(hotelId,selected,{action,note:note.trim(),...(action==='move'?{storageLocation:destination.trim()}:{})});
    if(readSession().hotelId!==hotelId)return;
@@ -47,6 +49,7 @@ function Register({hotelId,userId,admin,canRegister,initialRoom,initialItem}:{ho
   <div className="hk-board-heading"><Heading title="Lost & found" description={admin?'Register, store and track items recovered at this hotel.':'Register found items and track your own reports.'}/>
    {canRegister&&<button type="button" className="btn-primary" disabled={busy} onClick={()=>{setOpen(v=>!v);setSelected(null);setError('');}}>{open?'Close registration':'Register found item'}</button>}</div>
   <p className="role-note">Record a neutral description and secure storage location. Do not record ID numbers, payment details or other sensitive guest information.</p>
+  {!online&&<p className="hk-network-alert" role="status">You are offline. Reconnect before registering or transferring items.</p>}
   {message&&<p role="status" className="stay-feedback-success">{message}</p>}{error&&<p role="alert">{error}</p>}
   {open&&canRegister&&<form className="hk-report-form hk-report-panel" onSubmit={e=>void register(e)}>
    <label>Find room<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search room number" disabled={busy}/></label>
@@ -56,7 +59,7 @@ function Register({hotelId,userId,admin,canRegister,initialRoom,initialItem}:{ho
    {rooms.data&&rooms.data.meta.total>100&&<small>Search by room number to find rooms outside the first 100.</small>}
    <label>Item description<textarea required maxLength={500} value={description} disabled={busy} onChange={e=>setDescription(e.target.value)} placeholder="e.g. Black umbrella"/></label>
    <label>Secure storage location<input required maxLength={160} value={storage} disabled={busy} onChange={e=>setStorage(e.target.value)} placeholder="e.g. Reception locker A"/></label>
-   <button type="submit" className="btn-primary" disabled={busy||!roomId||!description.trim()||!storage.trim()}>{busy?'Saving…':'Register item'}</button>
+   <button type="submit" className="btn-primary" disabled={!online||busy||!roomId||!description.trim()||!storage.trim()}>{busy?'Saving…':'Register item'}</button>
   </form>}
   {itemFilter&&<p role="status">Showing item LF-{itemFilter}. <button className="btn-inline" type="button" onClick={()=>{setItemFilter(undefined);setPage(1);}}>Show all items</button></p>}
   <div className="hk-queue-tabs" role="group" aria-label="Item status">{['','stored','returned','disposed'].map(value=><button type="button" key={value} aria-pressed={status===value} className={status===value?'active':''} onClick={()=>{setStatus(value);setPage(1);}}>{value||'All items'}</button>)}</div>
@@ -73,7 +76,7 @@ function Register({hotelId,userId,admin,canRegister,initialRoom,initialItem}:{ho
     {action==='move'&&<label>New storage location<input required maxLength={160} value={destination} disabled={busy} onChange={e=>setDestination(e.target.value)}/></label>}
     <label>{action==='dispose'?'Policy authorization and disposal evidence':action==='return'?'Claim verification and handover evidence':'Transfer reason'}<textarea required minLength={5} maxLength={2000} value={note} disabled={busy} onChange={e=>setNote(e.target.value)}/></label>
     {action!=='move'&&<p>Only record an actual completed handover or policy-authorized disposal. This final outcome cannot be reversed here.</p>}
-    <button type="submit" className="btn-primary" disabled={busy||note.trim().length<5||action==='move'&&!destination.trim()}>{busy?'Saving…':'Record custody action'}</button>
+    <button type="submit" className="btn-primary" disabled={!online||busy||note.trim().length<5||action==='move'&&!destination.trim()}>{busy?'Saving…':'Record custody action'}</button>
    </form>}
    <h4>Custody history</h4><QueryFeedback loading={history.isPending} error={history.error} onRetry={()=>void history.refetch()}/>
    {history.data?.data.map(event=><div key={event.id} className="hk-custody-event"><strong>{event.action} · {event.after.status}</strong><small>{event.createdAt} · Staff #{event.actorId}</small><span>{event.after.storageLocation}</span>{event.note&&<p>{event.note}</p>}</div>)}

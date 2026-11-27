@@ -5,6 +5,7 @@ import {Link,useNavigate,useSearch} from '@tanstack/react-router';
 import {AlertTriangle,ArrowRight,CheckCircle2,ClipboardCheck,Clock3,History,Info,Plus,RefreshCcw,Search,ShieldAlert,UserRound,X} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {HousekeepingIssueReport} from '../components/HousekeepingIssueReport';
+import {useNetworkStatus} from '../features/housekeeping/useNetworkStatus';
 import {HousekeepingManagerReport} from '../components/HousekeepingManagerReport';
 import {useLiveRooms,useLiveProperty} from '../api/liveCatalogQueries';
 import {hotelToday} from '../features/reservations/calendarDate';
@@ -126,6 +127,8 @@ export function LiveHousekeeping(){
  const [selected,setSelected]=useState<LiveHousekeepingTask|null>(null);
  const [form,setForm]=useState<FormState|null>(null);
  const [saving,setSaving]=useState(false);
+ const online=useNetworkStatus();
+ const [saveMessage,setSaveMessage]=useState('');
  useEffect(()=>{if(jumpToInspection.current&&selected?.status==='done'&&!saving){jumpToInspection.current=false;finalInspectionRef.current?.scrollIntoView({block:'start'});}},[selected?.status,saving]);
  const [inspectionChecks,setInspectionChecks]=useState([false,false,false]);
  const [inspectionNote,setInspectionNote]=useState('');
@@ -152,15 +155,17 @@ export function LiveHousekeeping(){
   // A background refetch must never discard unsaved notes/assignment changes.
   if(!shouldOpenLinkedTask(openedLinkedTask.current,hotelId,linkedTaskId))return;
   openedLinkedTask.current=linkedTaskKey(hotelId,linkedTaskId);
-  setSelected(directTask.data);setForm(fromTask(directTask.data));setError('');
+  setSelected(directTask.data);setForm(fromTask(directTask.data));setError('');setSaveMessage('');
   setFieldErrors({});setHistoryOpen(false);setHistoryPage(1);
  },[linkedTaskId,directTask.data,hotelId]);
- const openCreate=()=>{setSelected(null);setForm(empty());setError('');setFieldErrors({});setHistoryOpen(false);setHistoryPage(1);};
+ const openCreate=()=>{setSaveMessage('');setSelected(null);setForm(empty());setError('');setFieldErrors({});setHistoryOpen(false);setHistoryPage(1);};
  const openEdit=(task:LiveHousekeepingTask)=>{
+  setSaveMessage('');
   setInspectionChecks([false,false,false]);setInspectionNote('');setInspectionMessage('');
   setSelected(task);setForm(fromTask(task));setError('');setFieldErrors({});setHistoryOpen(false);setHistoryPage(1);
  };
  const close=()=>{
+  setSaveMessage('');
   setInspectionChecks([false,false,false]);setInspectionNote('');setInspectionMessage('');
   setSelected(null);setForm(null);setError('');setHistoryOpen(false);
   if(linkedTaskId)void navigate({to:'/housekeeping',search:{task:undefined}});
@@ -170,10 +175,10 @@ export function LiveHousekeeping(){
  async function save(e:FormEvent<HTMLFormElement>){
   e.preventDefault();
   const assigned=!!selected&&role==='housekeeping'&&canWork&&selected.assignedUserId===user?.id;
-  if(!(admin||assigned)||!form||saving)return;
+  if(!(admin||assigned)||!form||saving||!online)return;
   if(selected&&form.status==='done'&&!canFinishCleaningChecklist(selected,form.checkedItems)){setError('Complete all required cleaning items first.');return;}
   const checklistFields=selected?.checklist&&selected.status!=='done'?{checkedItems:form.checkedItems}:{};
-  setSaving(true);setError('');setFieldErrors({});
+  setSaving(true);setError('');setFieldErrors({});setSaveMessage('');
   try{
    const updated=selected?parseUpdatedHousekeeping(await updateHousekeepingTask(selected.id,admin?{
     expectedRevision:selected.revision,status:form.status,...checklistFields,
@@ -188,7 +193,7 @@ export function LiveHousekeeping(){
    setPage(1);
    if(updated&&updated.type==='checkout_clean'&&updated.status==='done'){
     jumpToInspection.current=selected?.status!=='done';setSelected(updated);setForm(fromTask(updated));
-   }else if(updated&&updated.status!=='done'&&selected?.checklist){setSelected(updated);setForm(fromTask(updated));}
+   }else if(updated&&updated.status!=='done'&&selected?.checklist){setSelected(updated);setForm(fromTask(updated));setSaveMessage('Cleaning progress saved.');}
    else close();
    // Failed cache refresh must not make an already committed update look failed.
    void Promise.all([
@@ -212,14 +217,14 @@ export function LiveHousekeeping(){
    if(readSession().hotelId!==hotelId)return;
    if(caught instanceof ApiError){
     setFieldErrors(caught.fieldErrors??{});
-    setError(caught.status===409?'This task changed. Close and reopen the latest task before saving.':caught.message);
+    setError(caught.status===409?'This task changed. Check the latest record before retrying; your draft is still open.':caught.status===0?'Connection interrupted. Your draft is still open, but the save outcome is unknown. Check the latest task before retrying.':caught.message);
    }else setError(caught instanceof Error?caught.message:'Unable to save housekeeping task.');
   }finally{setSaving(false);}
  }
  const mayInspect=!!selected&&(admin||(role==='housekeeping'&&canWork&&selected.assignedUserId===user?.id));
  async function finishInspection(){
   if(!selected||selected.status!=='done'||!mayInspect||saving||!inspectionChecks.every(Boolean)
-   ||inspectionNote.trim().length<5||!hotelId)return;
+   ||inspectionNote.trim().length<5||!hotelId||!online)return;
   setSaving(true);setError('');setInspectionMessage('');
   try{
    const updated=parseUpdatedHousekeeping(await completeHousekeepingInspection(
@@ -422,9 +427,10 @@ export function LiveHousekeeping(){
      <button type="button" className="btn-inline" disabled={page>=tasks.data.meta.totalPages} onClick={()=>setPage(x=>x+1)}>Next</button></div>
    </div>}
   </section>
-  {form&&<div className="guest-modal-backdrop" role="presentation"><section className="guest-modal ops-mobile-editor" role="dialog" aria-modal="true" aria-labelledby="hk-dialog-title">
+  {form&&<div className="guest-modal-backdrop" role="presentation"><section className="guest-modal ops-mobile-editor hk-mobile-task-editor" role="dialog" aria-modal="true" aria-labelledby="hk-dialog-title">
    <div className="catalog-modal-heading"><h3 id="hk-dialog-title">{selected?'Housekeeping task HK-'+selected.id:'Create housekeeping task'}</h3>
     <button type="button" className="icon-btn" aria-label="Close" disabled={saving} onClick={close}><X size={19}/></button></div>
+   {!online&&<p className="hk-network-alert" role="status">You are offline. Changes are not saved. Reconnect to submit.</p>}
    <div className="hk-dialog-guide"><Info size={17}/><p><strong>One task, two stages.</strong> Save cleaning progress, then finish the final inspection below. Maintenance and inventory checks still apply.</p></div>
    {selected&&maySave&&hotelId&&<HousekeepingIssueReport key={hotelId+':'+selected.id} hotelId={hotelId} task={selected} disabled={saving}/>}
    {selected&&<>
@@ -447,11 +453,11 @@ export function LiveHousekeeping(){
     </>}
    </>}
    {!selected&&rooms.data&&rooms.data.meta.total>100&&<p className="guest-info">Room selector displays only the first 100 registered rooms.</p>}
-   <form onSubmit={e=>void save(e)}>
+   <form id="hk-task-editor-form" onSubmit={e=>void save(e)}>
     {selected&&selected.type!=='inspection'&&<section className="hk-cleaning-checklist" aria-label="Cleaning checklist">
      <div className="hk-checklist-head"><div><h4>{selected.type==='checkout_clean'?'Checkout cleaning checklist':'Stayover service checklist'}</h4>
       <p>{selected.status==='done'?'Saved cleaning evidence.':'Check items as you finish them, then save your progress.'}</p></div>
-      {selected.checklist&&<strong>{form.checkedItems.length}/{selected.checklist.length}</strong>}</div>
+      {selected.checklist&&<strong aria-live="polite">{form.checkedItems.length}/{selected.checklist.length}</strong>}</div>
      {selected.checklist?.length?<><progress max={selected.checklist.length} value={form.checkedItems.length} aria-label="Cleaning checklist progress"/>
       {selected.checklist.map(item=><label key={item.key} className="hk-checklist-item">
        <input type="checkbox" checked={form.checkedItems.includes(item.key)} disabled={!maySave||saving||selected.status==='done'}
@@ -487,9 +493,10 @@ export function LiveHousekeeping(){
    </div>
    {Object.entries(fieldErrors).flatMap(([field,messages])=>messages.map((m,i)=><p key={field+i} className="catalog-field-error" role="alert">{field}: {m}</p>))}
    {error&&<p role="alert" className="auth-error">{error}</p>}
-   <div className="guest-modal-actions"><button type="button" className="btn-inline" disabled={saving} onClick={close}>Close</button>
-    {maySave&&<button type="submit" className="btn-primary" disabled={saving||!!selected&&form.status==='done'&&!canFinishCleaningChecklist(selected,form.checkedItems)}>{saving?'Saving…':selected&&selected.type==='checkout_clean'&&selected.status!=='done'&&form.status==='done'?'Save cleaning & continue':selected?'Save task updates':'Create task'}</button>}</div>
+   {saveMessage&&<p role="status" className="stay-feedback-success">{saveMessage}</p>}
    </form>
+   <div className="guest-modal-actions hk-task-save-bar"><button type="button" className="btn-inline" disabled={saving} onClick={close}>Close</button>
+    {maySave&&<button form="hk-task-editor-form" type="submit" className="btn-primary" disabled={!online||saving||!!selected&&form.status==='done'&&!canFinishCleaningChecklist(selected,form.checkedItems)}>{saving?'Saving…':selected&&selected.type==='checkout_clean'&&selected.status!=='done'&&form.status==='done'?'Save cleaning & continue':selected?'Save task updates':'Create task'}</button>}</div>
    {selected&&selected.type==='checkout_clean'&&<section ref={finalInspectionRef} className="hk-final-inspection" aria-label="Final inspection in housekeeping task">
     <h4>Step 2 · Final room inspection</h4>
     {selected.status!=='done'
@@ -512,7 +519,7 @@ export function LiveHousekeeping(){
           onChange={event=>setInspectionNote(event.target.value)} placeholder="Describe the final inspection"/>
         </label>
         {mayInspect&&<button type="button" className="btn-primary"
-         disabled={saving||!inspectionChecks.every(Boolean)||inspectionNote.trim().length<5}
+         disabled={!online||saving||!inspectionChecks.every(Boolean)||inspectionNote.trim().length<5}
          onClick={()=>void finishInspection()}>{saving?'Recording inspection…':'Complete final inspection'}</button>}
         {!mayInspect&&<p>Only assigned housekeeping staff or an authorized manager can inspect.</p>}
        </>}

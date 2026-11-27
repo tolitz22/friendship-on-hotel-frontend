@@ -5,6 +5,7 @@ import {MessageCircle} from 'lucide-react';
 import './FloatingMessages.css';
 import {requestedNotificationHotel} from '../features/notifications/pushNavigation';
 import {StaffNotifications} from './StaffNotifications';
+import {HousekeepingInstallHelp} from './HousekeepingInstallHelp';
 import {Link,Outlet,useRouterState} from '@tanstack/react-router';
 import {LayoutDashboard,CalendarDays,CalendarRange,BedDouble,Users,Wallet,ClipboardCheck,Wrench,ChartNoAxesCombined,Settings,Sun,Moon,Menu,X,Hotel,LogOut,ArrowRight,ChevronDown,ShieldCheck,ShieldAlert,ClipboardList,Receipt} from 'lucide-react';
 import {Suspense,useEffect,useRef,useState,type KeyboardEvent} from 'react';
@@ -264,6 +265,7 @@ export function AppShell(){
    </div>}
    <div className="page-content">
     {admin&&<div ref={setNotificationPromptHost}/>}
+    {dataMode==='api'&&role==='housekeeping'&&pathname==='/'&&<HousekeepingInstallHelp/>}
     {dataMode==='api'&&!canViewWorkspacePath(role,pathname,effectivePermissions)
      ?<section className="panel" role="alert" aria-label="Page access denied">
        <h2>Page not available for your role</h2>

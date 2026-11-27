@@ -30,9 +30,9 @@ for(const width of [320,390,760]){
   await expect(tile.locator('.rack-tile-problem')).toBeVisible();
   expect(await tile.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBeTruthy();
   await rack.getByRole('button',{name:'Filters',exact:true}).click();
-  await expect(rack.getByLabel('Room type',{exact:true})).toBeVisible();
+  await expect(rack.getByRole('combobox',{name:'Room type',exact:true})).toBeVisible();
   await rack.getByRole('button',{name:'Done · Hide filters'}).click();
-  await expect(rack.getByLabel('Room type',{exact:true})).toBeHidden();
+  await expect(rack.getByRole('combobox',{name:'Room type',exact:true})).toBeHidden();
   await tile.click();
   const drawer=page.getByRole('dialog',{name:'Room 101 details'});
   await expect(drawer).toBeVisible();

@@ -6,7 +6,8 @@ for(const width of [320,390,760]){
   await page.setViewportSize({width,height:740});
   await page.addInitScript(()=>{sessionStorage.setItem('foh.staff.bearer.v1','mobile-operations-fixture');sessionStorage.setItem('foh.staff.hotel.v1','1');});
   const task={id:'1',hotelId:'1',roomId:'1',roomNumber:'101',type:'checkout_clean',status:'todo',
-   assignedTo:null,assignedUserId:'1',dueAt:null,completedAt:null,revision:1,createdAt:'2026-11-27'};
+   assignedTo:null,assignedUserId:'1',dueAt:null,completedAt:null,revision:1,createdAt:'2026-11-27',
+   checklist:[{key:'trash',label:'Remove trash',checkedBy:null,checkedAt:null},{key:'linens',label:'Replace bed linens',checkedBy:null,checkedAt:null}]};
   const order={id:'2',hotelId:'1',roomId:'1',roomNumber:'101',title:'Repair air conditioning',description:'Cooling issue',
    priority:'urgent',status:'open',assignedTo:null,assignedUserId:'1',affectsRoom:true,revision:1,reportedAt:'2026-11-27',resolvedAt:null};
   let writes=0;
@@ -27,9 +28,22 @@ for(const width of [320,390,760]){
   await page.getByRole('button',{name:'Start or update task'}).click();
   const hk=page.getByRole('dialog',{name:'Housekeeping task HK-1'});
   await expect(hk).toBeVisible();
-  await hk.getByRole('group',{name:'Quick cleaning progress'}).getByRole('button',{name:'Cleaning completed'}).click();
+  const completed=hk.getByRole('group',{name:'Quick cleaning progress'}).getByRole('button',{name:'Cleaning completed'});
+  await expect(completed).toBeDisabled();
+  await hk.getByRole('checkbox',{name:'Remove trash',exact:true}).check();
+  await expect(completed).toBeDisabled();
+  await hk.getByRole('checkbox',{name:'Replace bed linens',exact:true}).check();
+  await expect(completed).toBeEnabled();
+  await completed.click();
   await expect(hk.getByLabel('Cleaning progress',{exact:true})).toHaveValue('done');
-  await expect(hk.getByRole('button',{name:'Save cleaning & continue'})).toBeVisible();
+  const save=hk.getByRole('button',{name:'Save cleaning & continue'});
+  await expect(save).toBeVisible();
+  await page.evaluate(()=>{Object.defineProperty(navigator,'onLine',{configurable:true,get:()=>false});window.dispatchEvent(new Event('offline'));});
+  await expect(hk.getByText('You are offline. Changes are not saved. Reconnect to submit.')).toBeVisible();
+  await expect(save).toBeDisabled();
+  await expect(hk.getByRole('checkbox',{name:'Remove trash',exact:true})).toBeChecked();
+  await page.evaluate(()=>{Object.defineProperty(navigator,'onLine',{configurable:true,get:()=>true});window.dispatchEvent(new Event('online'));});
+  await expect(save).toBeEnabled();
   await expect(hk.getByText('Step 1: Finish cleaning and save the task before inspecting Room 101.')).toBeVisible();
   expect(await hk.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBeTruthy();
   await hk.getByRole('button',{name:'Close',exact:true}).first().click();

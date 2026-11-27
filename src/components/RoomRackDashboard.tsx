@@ -259,21 +259,21 @@ export function RoomRackDashboard({hotelId,focusRoomNumber,onEditRoom}:{hotelId:
      aria-pressed={quick===value} className={quick===value?'active':''} onClick={()=>setQuick(value)}>{label}</button>)}
    </div>
    <div id="rack-advanced-filters" className={'rack-advanced'+(filtersOpen?' open':'')}>
-    <label>Room type<select value={filter.type} onChange={e=>setFilter(f=>({...f,type:e.target.value}))}>
+    <label>Room type<select aria-label="Room type" value={filter.type} onChange={e=>setFilter(f=>({...f,type:e.target.value}))}>
      <option value="all">All types</option>{(roomTypes.data?.data??[]).map(type=><option value={type.id} key={type.id}>{type.name}</option>)}
     </select></label>
-    <label>PMS occupancy<select value={filter.occupancy} onChange={e=>setFilter(f=>({...f,occupancy:e.target.value}))}>
+    <label>PMS occupancy<select aria-label="PMS occupancy" value={filter.occupancy} onChange={e=>setFilter(f=>({...f,occupancy:e.target.value}))}>
      <option value="all">All</option><option value="vacant">Vacant</option><option value="occupied">Occupied</option><option value="due_for_checkout">Departure due</option>
     </select></label>
-    <label>Inspection<select value={filter.readiness} onChange={e=>setFilter(f=>({...f,readiness:e.target.value}))}>
+    <label>Inspection<select aria-label="Inspection" value={filter.readiness} onChange={e=>setFilter(f=>({...f,readiness:e.target.value}))}>
      <option value="all">All</option><option value="approved_current">Current approved</option><option value="needs_inspection">Needs inspection</option>
      <option value="awaiting_review">Older inspection to redo</option><option value="blocked_or_stale">Blocked or outdated</option>
     </select></label>
-    <label>Housekeeping<select value={filter.cleaning} onChange={e=>setFilter(f=>({...f,cleaning:e.target.value}))}>
+    <label>Housekeeping<select aria-label="Housekeeping" value={filter.cleaning} onChange={e=>setFilter(f=>({...f,cleaning:e.target.value}))}>
      <option value="all">All</option><option value="checkout_cleaning">Checkout cleaning</option><option value="cleaning_in_progress">Cleaning in progress</option>
      <option value="awaiting_inspection">Awaiting inspection</option><option value="ready">Approved</option><option value="not_verified">Unverified</option>
     </select></label>
-    <label>Restriction<select value={filter.blocked} onChange={e=>setFilter(f=>({...f,blocked:e.target.value}))}>
+    <label>Restriction<select aria-label="Restriction" value={filter.blocked} onChange={e=>setFilter(f=>({...f,blocked:e.target.value}))}>
      <option value="all">All</option><option value="blocked">Active restriction</option><option value="clear">No active restriction</option>
     </select></label>
     <label>Arrival / departure date<input type="date" value={filter.date}

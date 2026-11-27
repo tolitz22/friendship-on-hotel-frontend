@@ -190,7 +190,7 @@ export function LiveHousekeeping(){
   setSelected(task);setForm(fromTask(task));
  }
  function close(){
-  if(selected&&progressDirty){setError('Wait for progress to save, or retry the save before leaving.');return;}
+  if(selected&&progressDirty){if(online&&!saving&&!needsReview)void save();return;}
   resetEditor();
   setSelected(null);setForm(null);
   if(linkedTaskId)void navigate({to:'/housekeeping',search:{queue:linkedQueue,status:linkedStatus,mine:linkedMine}});
@@ -342,7 +342,7 @@ export function LiveHousekeeping(){
  };
  const canUpdate=(task:LiveHousekeepingTask)=>canWork&&task.hotelId===hotelId;
  const maySave=admin||(!!selected&&canUpdate(selected));
- const progressDirty=!!selected&&!!form&&(form.note.trim()!==(selected.note??'').trim()||
+ const progressDirty=!!selected&&!!form&&(form.note.trim()!==fromTask(selected).note.trim()||
   (selected.status!=='done'&&!!selected.checklist&&
    (form.checkedItems.length!==fromTask(selected).checkedItems.length||
     form.checkedItems.some(key=>!fromTask(selected).checkedItems.includes(key)))));

@@ -14,9 +14,9 @@ function Pulse({name,description,heartbeat}:{name:string;description:string;hear
 function Metric({name,value,warning=false}:{name:string;value:string;warning?:boolean}){
  return <div className="platform-worker-metric"><span>{name}</span><strong className={warning?'platform-worker-warning':''}>{value}</strong></div>;
 }
-export function PlatformWorkersPanel({userId}:{userId:string}){
+export function PlatformWorkersPanel({userId,active=true}:{userId:string;active?:boolean}){
  const [auto,setAuto]=useState(true);
- const query=useQuery({queryKey:['platform-workers',userId],queryFn:fetchPlatformWorkers,retry:false,gcTime:0,staleTime:0,refetchOnWindowFocus:false,refetchInterval:auto?60000:false,refetchIntervalInBackground:false});
+ const query=useQuery({queryKey:['platform-workers',userId],queryFn:fetchPlatformWorkers,enabled:active,retry:false,gcTime:0,staleTime:30000,refetchOnWindowFocus:false,refetchInterval:active&&auto?60000:false,refetchIntervalInBackground:false});
  const data=query.isError?undefined:query.data?.data;
  const push=data?.push,queue=data?.queue;
  const start=data?.heartbeats.push_started,completed=data?.heartbeats.push_completed;

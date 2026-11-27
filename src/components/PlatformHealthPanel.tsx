@@ -8,10 +8,10 @@ import './PlatformHealthPanel.css';
 const labels:Record<ObservationState,string>={healthy:'Healthy',degraded:'Degraded',unavailable:'Unavailable',not_configured:'Not configured',unknown:'Not checked'};
 function Status({state}:{state:ObservationState}){return <span className={'platform-health-status state-'+state}><i aria-hidden="true"/>{labels[state]}</span>}
 const ms=(value:number|null|undefined)=>value===null||value===undefined?'—':value.toLocaleString()+' ms';
-export function PlatformHealthPanel({userId}:{userId:string}){
+export function PlatformHealthPanel({userId,active=true}:{userId:string;active?:boolean}){
  const [history,setHistory]=useState<HealthObservation[]>([]);
  const [auto,setAuto]=useState(true);
- const query=useQuery({queryKey:['platform-health',userId],queryFn:fetchPlatformHealth,retry:false,gcTime:0,staleTime:0,refetchOnWindowFocus:false,refetchInterval:auto?60000:false,refetchIntervalInBackground:false});
+ const query=useQuery({queryKey:['platform-health',userId],queryFn:fetchPlatformHealth,enabled:active,retry:false,gcTime:0,staleTime:30000,refetchOnWindowFocus:false,refetchInterval:active&&auto?60000:false,refetchIntervalInBackground:false});
  const health=query.isError?undefined:query.data?.data;
  useEffect(()=>{
   if(query.isError&&query.errorUpdatedAt){setHistory(h=>appendHealthObservation(h,{at:query.errorUpdatedAt,state:'unavailable',database:'unknown',cache:'unknown',grafana:'unknown'}));}

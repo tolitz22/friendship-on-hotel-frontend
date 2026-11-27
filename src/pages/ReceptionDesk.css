@@ -20,11 +20,6 @@
 .fdc-today-section .fdc-guest-row-v2+.fdc-guest-row-v2{border-top:1px solid var(--border)}
 .fdc-today-section .query-feedback{padding:12px}
 .fdc-alert-unavailable{font-size:12px;color:var(--muted)}
-.fd-overdue-toast{position:fixed;top:70px;right:12px;z-index:46;width:min(370px,calc(100vw - 24px));box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #f0a6a6;border-radius:12px;background:#fff1f0;color:#881b1b;box-shadow:0 6px 24px #0002}
-.fd-overdue-toast>div{flex:1;min-width:0;display:grid;gap:4px}
-.fd-overdue-toast strong{font-size:13px}
-.fd-overdue-toast a{color:#881b1b;display:flex;align-items:center;gap:5px;font-size:12px;min-height:30px;text-decoration:underline}
-.fd-overdue-toast button{border:0;background:transparent;color:inherit;width:44px;height:44px;display:grid;place-items:center;flex:none;cursor:pointer}
 @media(max-width:760px){
  .fdc-reception{gap:10px}
  .fdc-reception .fdc-heading{align-items:flex-start}
@@ -53,3 +48,5 @@
  .fdc-simple-tabs svg{width:15px}
  .fdc-simple-queues button{font-size:11px}
 }
+
+.fdc-selected-date{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);margin:0}

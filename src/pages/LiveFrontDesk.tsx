@@ -188,13 +188,14 @@ export function LiveFrontDesk(){
   </div>
   {reception&&<div className="fdc-simple-controls">
    <div className="fdc-simple-tabs" role="group" aria-label="Front desk views">
-    <button type="button" aria-pressed={combined} onClick={selectToday}><CalendarDays size={17}/> Today</button>
+    <button type="button" aria-pressed={combined} onClick={selectToday}><CalendarDays size={17}/> {combined&&!isToday?'Schedule':'Today'}</button>
     <button type="button" aria-pressed={!combined&&kind==='in_house'} onClick={()=>selectQueue('in_house')}><BedDouble size={17}/> In house</button>
     {canViewWorkspacePath(role,'/reservations',permissions)&&<Link to="/reservations"><CalendarDays size={17}/> Bookings</Link>}
     {canViewWorkspacePath(role,'/group-reservations',permissions)&&<Link to="/group-reservations"><Users size={17}/> Groups</Link>}
    </div>
    <div className="fdc-simple-search"><label className="search-box"><Search size={17}/><input type="search" aria-label="Search guest, booking or room" placeholder="Search guest, booking or room" maxLength={120} value={search} onChange={event=>changeSearch(event.target.value)}/></label>
     <button className="btn-inline" type="button" aria-expanded={filtersOpen} aria-controls="fdc-date-filters" onClick={()=>setFiltersOpen(v=>!v)}><SlidersHorizontal size={17}/> Filter</button></div>
+   {!isToday&&<p className="fdc-selected-date">Showing {dateLabel(date)} <button className="btn-inline" type="button" onClick={selectToday}>Return to today</button></p>}
    {!combined&&<div className="fdc-simple-queues" role="group" aria-label="Front desk queue filters">{queues.map(item=><button type="button" key={item.kind} aria-pressed={kind===item.kind} onClick={()=>selectQueue(item.kind)}>{item.title}</button>)}</div>}
   </div>}
   <div id="fdc-date-filters" className="fdc-date-strip" hidden={reception&&!filtersOpen}>

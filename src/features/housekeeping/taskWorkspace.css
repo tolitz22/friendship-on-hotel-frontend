@@ -339,3 +339,47 @@ body:has(.hk-editor[open]) { overflow: hidden; }
  .housekeeping-shell .hk-workspace .hk-queue-pagination{margin-top:10px}
 }
 @media(max-width:360px){.housekeeping-shell .hk-workspace .hk-work-card{grid-template-columns:36px minmax(0,1fr) 20px;column-gap:8px;padding-inline:9px}.housekeeping-shell .hk-mobile-room-icon{width:36px;height:36px}.housekeeping-shell .hk-mobile-task-tabs button{font-size:10px}.housekeeping-shell .hk-workspace .hk-card-heading h4{font-size:16px}}
+
+/* Minimal task details, shared staff workflow with progressive disclosure. */
+.hk-minimal-editor .hk-editor-header{justify-content:flex-start;gap:10px}
+.hk-minimal-editor .hk-detail-back{border:0;background:transparent}
+.hk-minimal-editor .hk-editor-header h2{font-size:20px;font-weight:750}
+.hk-minimal-editor .hk-editor-content{background:var(--canvas);display:flex;flex-direction:column;gap:12px}
+.hk-minimal-editor [hidden]{display:none!important}
+.hk-task-hero{display:grid;gap:12px;border:1px solid var(--border);border-inline-start:4px solid var(--accent);border-radius:13px;background:var(--surface);padding:14px}
+.hk-task-hero-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+.hk-task-hero-icon{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:10px;background:color-mix(in srgb,var(--surface) 85%,var(--accent));color:var(--text)}
+.hk-task-hero-top>div{flex:1;min-width:100px}
+.hk-task-hero-top h3{font-size:24px;letter-spacing:-.03em;line-height:1.15;margin:0;overflow-wrap:anywhere}
+.hk-task-hero-top p{font-size:13px;color:var(--muted);margin:4px 0 0}
+.hk-task-hero-top .hk-work-stage[data-stage=todo]{--hk-stage:var(--accent)}
+.hk-task-hero-meta{display:flex;flex-wrap:wrap;gap:8px 14px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)}
+.hk-task-hero-meta span{display:inline-flex;align-items:center;gap:6px;min-width:0;overflow-wrap:anywhere}.hk-task-hero-meta svg{flex:none}
+.hk-task-hero-flags{display:flex;gap:6px;flex-wrap:wrap;font-size:11px;font-weight:650}
+.hk-task-hero-flags span{background:color-mix(in srgb,var(--surface) 86%,#bc4938);border-radius:6px;padding:4px 7px}
+.hk-task-detail-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;background:var(--surface);border:1px solid var(--border);padding:4px;border-radius:10px;flex:none}
+.hk-task-detail-tabs button{min-height:44px;padding:6px;border:0;border-radius:7px;background:transparent;color:var(--muted);font:inherit;font-size:14px;font-weight:650;cursor:pointer}
+.hk-task-detail-tabs button[aria-pressed=true]{background:var(--accent);color:#222326}
+.hk-minimal-editor .hk-editor-step{margin:0}
+.hk-minimal-editor .hk-editor-step-heading{margin-bottom:7px}
+.hk-minimal-editor .hk-editor-checklist{gap:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--surface)}
+.hk-minimal-editor .hk-editor-check{min-height:50px;padding:9px 12px;background:var(--surface);border-radius:0;font-size:14px;line-height:1.4}
+.hk-minimal-editor .hk-editor-check+.hk-editor-check{border-top:1px solid var(--border)}
+.hk-minimal-editor .hk-editor-check input{width:22px;height:22px}
+.hk-minimal-editor .hk-editor-check:has(input:checked){background:color-mix(in srgb,var(--surface) 94%,#24795b)}
+.hk-minimal-editor .hk-task-note{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;margin-top:12px}
+.hk-minimal-editor .hk-task-note textarea{background:var(--canvas);min-height:64px}
+.hk-minimal-editor .hk-inspection-step{border:0;padding:0}
+.hk-task-extra-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,110px),1fr));gap:10px;padding:12px;border:1px solid var(--border);background:var(--surface);border-radius:12px}
+.hk-minimal-editor .hk-task-extra .hk-report-panel,.hk-minimal-editor .hk-task-extra .hk-editor-history{padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.hk-saved-checklist-toggle{margin-bottom:8px;width:100%;justify-content:center}
+.hk-minimal-editor .hk-editor-footer .hk-editor-controls{display:flex;flex-wrap:wrap;gap:8px}
+.hk-minimal-editor .hk-editor-footer .hk-editor-controls button{min-height:52px;flex:1 1 130px;justify-content:center;display:flex;align-items:center;gap:8px;font-size:14px;border-radius:10px}
+.hk-minimal-editor .hk-editor-footer .hk-editor-controls .btn-primary{font-weight:750}
+@media(max-width:767px){
+ .hk-minimal-editor .hk-editor-content{gap:12px;padding:12px max(12px,env(safe-area-inset-right,0px)) 18px max(12px,env(safe-area-inset-left,0px))}
+ .hk-minimal-editor .hk-editor-header{padding-block:6px}
+ .hk-task-hero{padding:12px;gap:9px}
+ .hk-task-hero-top h3{font-size:23px}
+ .hk-minimal-editor .hk-editor-footer{padding-top:10px}
+}

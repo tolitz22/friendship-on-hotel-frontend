@@ -2,7 +2,7 @@ import {useEffect,useRef,useState,type FormEvent} from 'react';
 import {z} from 'zod';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {useNavigate,useSearch} from '@tanstack/react-router';
-import {ArrowRight,CheckCircle2,History,Plus,RefreshCcw,X} from 'lucide-react';
+import {ArrowLeft,ArrowRight,BedDouble,CheckCircle2,Clock3,History,Play,Plus,RefreshCcw,UserRound,X} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {HousekeepingIssueReport} from '../components/HousekeepingIssueReport';
 import {useNetworkStatus} from '../features/housekeeping/useNetworkStatus';
@@ -107,6 +107,9 @@ export function LiveHousekeeping(){
  const [selected,setSelected]=useState<LiveHousekeepingTask|null>(null);
  const [form,setForm]=useState<FormState|null>(null);
  const [saving,setSaving]=useState(false);
+ const [editorTab,setEditorTab]=useState<'checklist'|'details'>('checklist');
+ const [showSavedChecklist,setShowSavedChecklist]=useState(false);
+ const minimalEditor=role==='housekeeping'&&!!selected;
  const rooms=useLiveRooms({page:1,perPage:100},admin&&!!form&&!selected);
  const online=useNetworkStatus();
  const [saveMessage,setSaveMessage]=useState('');
@@ -175,7 +178,7 @@ export function LiveHousekeeping(){
  function resetEditor(){
   setSaveMessage('');setError('');setFieldErrors({});setHistoryOpen(false);setHistoryPage(1);
   setInspectionChecks([false,false,false]);setInspectionNote('');setInspectionMessage('');
-  setNeedsReview(false);setLatest(null);jumpToInspection.current=false;
+  setNeedsReview(false);setLatest(null);jumpToInspection.current=false;setEditorTab('checklist');setShowSavedChecklist(false);
  }
  function openCreate(){
   resetEditor();
@@ -259,6 +262,7 @@ export function LiveHousekeeping(){
    setPage(1);
    if(updated){
     jumpToInspection.current=updated.type==='checkout_clean'&&updated.status==='done'&&selected?.status!=='done';
+    if(jumpToInspection.current){setEditorTab('checklist');setShowSavedChecklist(false);}
     setSelected(updated);setForm(fromTask(updated));
     setSaveMessage(updated.status==='done'&&selected?.status!=='done'?'Cleaning completed.'
      :updated.status==='in_progress'&&selected?.status==='todo'?'Cleaning started.':'Task updates saved.');
@@ -329,6 +333,8 @@ export function LiveHousekeeping(){
  const canUpdate=(task:LiveHousekeepingTask)=>canWork&&task.hotelId===hotelId;
  const maySave=admin||(!!selected&&canUpdate(selected));
  const canCompleteCleaning=!!selected&&selected.status!=='done'&&!!form&&canFinishCleaningChecklist(selected,form.checkedItems);
+ const inspecting=!!checkoutDone&&!inspectionRecorded;
+ const showCleaning=!minimalEditor||editorTab==='checklist'&&(!checkoutDone||showSavedChecklist);
  const assignmentChanged=admin&&!!selected&&!!form&&(
   form.assignedTo!==(selected.assignedTo??'')||form.assignedUserId!==(selected.assignedUserId??'')
   ||form.dueAt!==fromTask(selected).dueAt
@@ -396,19 +402,27 @@ export function LiveHousekeeping(){
     {sortedStaff.length===0&&<p>No eligible housekeeping accounts.</p>}</div>}
   </section>}
   </details>}
-  {form&&<dialog ref={dialog} className="hk-editor" aria-labelledby="hk-dialog-title"
+  {form&&<dialog ref={dialog} className={'hk-editor'+(minimalEditor?' hk-minimal-editor':'')} aria-labelledby="hk-dialog-title"
    onCancel={event=>{event.preventDefault();if(!saving&&!reviewLoading)close();}}>
    <header className="hk-editor-header">
+    {minimalEditor&&<button type="button" className="icon-btn hk-detail-back" aria-label="Close task" disabled={saving||reviewLoading} onClick={close} autoFocus><ArrowLeft size={22}/></button>}
     <div>
-     <p>{selected?taskNames[selected.type]:'Housekeeping'}{selected&&' · HK-'+selected.id}</p>
-     <h2 id="hk-dialog-title">{selected?'Room '+selected.roomNumber:'New cleaning task'}</h2>
+     {minimalEditor?<h2 id="hk-dialog-title" aria-label={'Room '+selected!.roomNumber}>Task details</h2>:<>
+      <p>{selected?taskNames[selected.type]:'Housekeeping'}{selected&&' · HK-'+selected.id}</p>
+      <h2 id="hk-dialog-title">{selected?'Room '+selected.roomNumber:'New cleaning task'}</h2></>}
     </div>
-    <button type="button" className="icon-btn" aria-label="Close task" disabled={saving||reviewLoading} onClick={close} autoFocus><X size={21}/></button>
+    {!minimalEditor&&<button type="button" className="icon-btn" aria-label="Close task" disabled={saving||reviewLoading} onClick={close} autoFocus><X size={21}/></button>}
    </header>
    <div className="hk-editor-content">
     {!online&&<p className="hk-network-alert" role="status">You’re offline. Your draft is open. Reconnect to save.</p>}
     {selected&&!maySave&&<p className="hk-workspace-note" role="status">Read-only task. Ask your manager to review your access if you need to record cleaning.</p>}
-    {selected&&<section className="hk-editor-meta" aria-label="Task information">
+    {minimalEditor&&selected&&<section className="hk-task-hero" aria-label="Task information">
+     <div className="hk-task-hero-top"><span className="hk-task-hero-icon"><BedDouble size={25} aria-hidden="true"/></span><div><h3>Room {selected.roomNumber}</h3><p>{taskNames[selected.type]}</p></div>
+      <span className="hk-work-stage" data-stage={inspecting?'inspection':selected.status}>{inspecting?'Inspection due':statusNames[selected.status]}</span></div>
+     <div className="hk-task-hero-meta"><span><Clock3 size={15} aria-hidden="true"/>{dueLabel(selected.dueAt,hotelDate)}</span><span><UserRound size={15} aria-hidden="true"/>{assignedName(selected)==='You'?'Assigned to you':assignedName(selected)}</span></div>
+     {(selected.arrivalToday||selected.overdue)&&<div className="hk-task-hero-flags">{selected.arrivalToday&&<span>Arrival today</span>}{selected.overdue&&<span>Overdue</span>}</div>}
+    </section>}
+    {selected&&!minimalEditor&&<section className="hk-editor-meta" aria-label="Task information">
      {selected.roomType&&<TaskDetail label="Room type" value={selected.roomType}/>}
      <TaskDetail label="Assigned employee" value={assignedName(selected)}/>
      <TaskDetail label="Due time" value={dueLabel(selected.dueAt,hotelDate)}/>
@@ -428,7 +442,11 @@ export function LiveHousekeeping(){
       </>}
     </section>}
 
-    <form id="hk-task-editor-form" onSubmit={(event:FormEvent<HTMLFormElement>)=>{
+    {minimalEditor&&selected&&<div className="hk-task-detail-tabs" role="group" aria-label="Task detail views">
+     <button type="button" aria-pressed={editorTab==='checklist'} onClick={()=>setEditorTab('checklist')}>{inspecting?'Inspection':selected.status==='done'?'Checklist':'Checklist'+(selected.checklist?.length?' ('+form.checkedItems.length+'/'+selected.checklist.length+')':'')}</button>
+     <button type="button" aria-pressed={editorTab==='details'} onClick={()=>setEditorTab('details')}>Details</button>
+    </div>}
+    <form id="hk-task-editor-form" hidden={minimalEditor&&editorTab==='details'} onSubmit={(event:FormEvent<HTMLFormElement>)=>{
      event.preventDefault();
      void save(selected?.status==='todo'?'in_progress':undefined);
     }}>
@@ -455,9 +473,10 @@ export function LiveHousekeeping(){
        {workload.isError&&<p role="status">Staff workload is unavailable.</p>}
       </div>
      </details>}
-     {selected&&<section className="hk-editor-step" aria-labelledby="hk-cleaning-step">
+     {minimalEditor&&checkoutDone&&<button type="button" className="hk-saved-checklist-toggle btn-inline" aria-expanded={showSavedChecklist} onClick={()=>setShowSavedChecklist(value=>!value)}>{showSavedChecklist?'Hide completed checklist':'View completed checklist'}</button>}
+     {selected&&<section className="hk-editor-step hk-task-cleaning" aria-labelledby="hk-cleaning-step" hidden={!showCleaning}>
       <div className="hk-editor-step-heading">
-       <h3 id="hk-cleaning-step">1. Cleaning</h3>
+       <h3 id="hk-cleaning-step">{minimalEditor?'Cleaning checklist':'1. Cleaning'}</h3>
        {!!selected.checklist?.length&&<strong aria-live="polite">{form.checkedItems.length}/{selected.checklist.length} checked</strong>}
       </div>
       {!!selected.checklist?.length&&<>
@@ -479,14 +498,13 @@ export function LiveHousekeeping(){
       {selected.status!=='done'&&selected.type!=='inspection'&&maySave&&
        <p className="hk-workspace-note">Check every item to enable Complete cleaning.</p>}
      </section>}
-     {maySave&&<div className="hk-editor-fields">
+     {maySave&&<div className={'hk-editor-fields'+(minimalEditor?' hk-task-note':'')}>
       <label>Handover note<textarea rows={2} maxLength={2000} disabled={saving} value={form.note}
        onChange={event=>{change('note',event.target.value);setSaveMessage('');}} placeholder="Record anything the next shift should know"/></label>
      </div>}
     </form>
-    {selected&&maySave&&hotelId&&<HousekeepingIssueReport key={hotelId+':'+selected.id} hotelId={hotelId} task={selected} disabled={saving}/>}
-    {selected?.type==='checkout_clean'&&<section className="hk-editor-step hk-inspection-step" aria-labelledby="hk-inspection-step">
-     <h3 id="hk-inspection-step" tabIndex={-1} ref={finalInspectionRef}>2. Final room inspection</h3>
+    {selected?.type==='checkout_clean'&&(!minimalEditor||checkoutDone)&&<section className="hk-editor-step hk-inspection-step" aria-labelledby="hk-inspection-step" hidden={minimalEditor&&editorTab==='details'}>
+     <h3 id="hk-inspection-step" tabIndex={-1} ref={finalInspectionRef}>{minimalEditor?'Final room inspection':'2. Final room inspection'}</h3>
      {!checkoutDone?<p>Complete cleaning to open final inspection.</p>:inspectionRecorded?
       <p role="status" className="hk-inspection-complete"><CheckCircle2 size={17} aria-hidden="true"/> Final inspection recorded</p>:
       <>
@@ -511,6 +529,13 @@ export function LiveHousekeeping(){
        </div>
       </>}
     </section>}
+    <div className="hk-task-extra" hidden={minimalEditor&&editorTab!=='details'}>
+    {minimalEditor&&selected&&<section className="hk-task-extra-meta" aria-label="Additional task details">
+     <TaskDetail label="Task reference" value={'HK-'+selected.id}/>
+     {selected.roomType&&<TaskDetail label="Room type" value={selected.roomType}/>}
+     <TaskDetail label="Cleaning status" value={statusNames[selected.status]}/>
+    </section>}
+    {selected&&maySave&&hotelId&&<HousekeepingIssueReport key={hotelId+':'+selected.id} hotelId={hotelId} task={selected} disabled={saving}/>}
     {selected&&<section className="hk-editor-history" aria-label="Activity history">
      <button type="button" className="btn-inline" aria-expanded={historyOpen} aria-controls="hk-history-events" onClick={()=>setHistoryOpen(value=>!value)}>
       <History size={17} aria-hidden="true"/> Activity history{history.data?' · '+history.data.meta.total:''}
@@ -536,6 +561,7 @@ export function LiveHousekeeping(){
       </>}
      </div>
     </section>}
+    </div>
    </div>
    <footer className="hk-editor-footer">
     {error&&<p role="alert" className="auth-error">{error}</p>}
@@ -545,18 +571,19 @@ export function LiveHousekeeping(){
      {!maySave&&<button type="button" className="btn-inline" onClick={close}>Close</button>}
      {maySave&&<>
       {(!selected||selected.status!=='done'||form.note.trim()||assignmentChanged)&&
-       <button form="hk-task-editor-form" type="submit" className={canCompleteCleaning||checkoutDone&&!inspectionRecorded?'btn-inline':'btn-primary'}
+       <button form="hk-task-editor-form" type="submit" className={canCompleteCleaning&&(!minimalEditor||selected?.status==='in_progress')||checkoutDone&&!inspectionRecorded?'btn-inline':'btn-primary'}
         disabled={!online||saving||needsReview}>
-        {!selected?'Create task':selected.status==='todo'?'Start cleaning':selected.status==='done'?'Save task updates':'Save progress'}
+        {minimalEditor&&selected?.status==='todo'&&<Play size={18} aria-hidden="true"/>}{!selected?'Create task':selected.status==='todo'?'Start cleaning':selected.status==='done'?'Save task updates':'Save progress'}
        </button>}
       {assignmentChanged&&selected?.status==='todo'&&<button type="button" className="btn-inline"
        disabled={!online||saving||needsReview} onClick={()=>void save()}>Save assignment</button>}
-      {selected&&selected.status!=='done'&&<button type="button" className={canCompleteCleaning?'btn-primary':'btn-inline'}
+      {selected&&selected.status!=='done'&&(!minimalEditor||selected.status==='in_progress'||canCompleteCleaning)&&<button type="button" className={canCompleteCleaning&&(!minimalEditor||selected.status==='in_progress')?'btn-primary':'btn-inline'}
        disabled={!online||saving||needsReview||!canCompleteCleaning} onClick={()=>void save('done')}>Complete cleaning</button>}
       {checkoutDone&&!inspectionRecorded&&<button type="button" className="btn-primary"
        disabled={!online||saving||needsReview||!readiness.isSuccess||inspectionBlockers.length>0||!inspectionChecks.every(Boolean)||inspectionNote.trim().length<5}
        onClick={()=>void finishInspection()}>Complete final inspection</button>}
      </>}
+     {minimalEditor&&maySave&&selected?.status==='done'&&!inspecting&&!form.note.trim()&&<button type="button" className="btn-inline" onClick={close}>Done</button>}
      {saving&&<span role="status">Saving…</span>}
     </div>
    </footer>

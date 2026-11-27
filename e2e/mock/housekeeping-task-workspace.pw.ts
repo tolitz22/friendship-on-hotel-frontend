@@ -190,8 +190,16 @@ for (const width of [320, 390, 430, 768, 1440]) {
   expect(await editor.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
   const bounds = await editor.boundingBox();
   if (width < 768) expect(bounds?.width).toBe(width);
-  const finish = await editor.getByRole('button', { name: 'Complete cleaning' }).boundingBox();
-  expect(finish?.height).toBeGreaterThanOrEqual(44);
+  const start = await editor.getByRole('button', { name: 'Start cleaning' }).boundingBox();
+  expect(start?.height).toBeGreaterThanOrEqual(52);
+  await expect(editor.getByRole('button',{name:'Complete cleaning'})).toHaveCount(0);
+  const tabs=editor.getByRole('group',{name:'Task detail views'});
+  await editor.getByRole('checkbox',{name:'Remove trash'}).check();
+  await tabs.getByRole('button',{name:'Details',exact:true}).click();
+  await expect(editor.getByRole('region',{name:'Activity history'})).toBeVisible();
+  await expect(editor.getByRole('checkbox',{name:'Remove trash'})).toBeHidden();
+  await tabs.getByRole('button',{name:/Checklist/}).click();
+  await expect(editor.getByRole('checkbox',{name:'Remove trash'})).toBeChecked();
   await page.keyboard.press('Escape');
   await expect(editor).toBeHidden();
   await expect(open).toBeFocused();
@@ -280,6 +288,7 @@ test('starts unassigned work, recovers a teammate draft, inspects, audits and fi
  await editor.getByRole('button', { name: 'Recheck restrictions' }).click();
  await inspect.click();
  await expect(editor.getByText('Final inspection recorded')).toBeVisible();
+ await editor.getByRole('group',{name:'Task detail views'}).getByRole('button',{name:'Details',exact:true}).click();
  await editor.getByRole('button', { name: 'Activity history' }).click();
  await expect(editor.getByText('Completed final room inspection')).toBeVisible();
  await expect(editor.getByText('Demo Cleaner', { exact: false }).first()).toBeVisible();

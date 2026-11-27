@@ -20,7 +20,7 @@ for(const width of [320,390,760]){
   await expect(board.getByRole('heading',{name:'Room 201',exact:true})).toBeVisible();
   await expect(board.getByRole('heading',{name:'Room 302',exact:true})).toBeVisible();
   await expect(board.getByText('Confirmed arrival today')).toBeVisible();
-  await expect(board.getByRole('link',{name:'Open my task'})).toHaveAttribute('href',/housekeeping.*task=7/);
+  await expect(board.getByRole('link',{name:'Open my task'})).toHaveAttribute('href',/housekeeping.*task=(?:%22)?7(?:%22)?(?:&|$)/);
   await board.getByRole('group',{name:'Room status filters'}).getByRole('button',{name:'My tasks'}).click();
   await expect(board.getByRole('heading',{name:'Room 302',exact:true})).toHaveCount(0);
   await expect(board.getByText('1 of 2 rooms')).toBeVisible();

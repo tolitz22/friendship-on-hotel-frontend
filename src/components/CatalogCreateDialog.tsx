@@ -1,7 +1,9 @@
 import {useEffect,useState,type FormEvent} from 'react';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {Plus,X} from 'lucide-react';
 import {ApiError} from '../api/http';
+import {fetchSubscriptionCapacity,capacityBlocked} from '../api/subscriptionCapacity';
+import {SubscriptionCapacityMeter} from './SubscriptionCapacityMeter';
 import {createLiveRoom,createLiveRoomType,type LiveRoomType} from '../api/liveCatalog';
 import {useHotelAuth} from './AuthProvider';
 
@@ -18,6 +20,9 @@ export function CatalogCreateDialog({mode,roomTypes,onClose,onCreated}:Props){
  const {hotelId,user}=useHotelAuth();
  const queryClient=useQueryClient();
  const authorized=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
+ const capacity=useQuery({queryKey:['subscription-capacity',hotelId],queryFn:({signal})=>fetchSubscriptionCapacity(hotelId!,signal),enabled:authorized&&!!hotelId&&mode==='room',retry:false,staleTime:0});
+ const usage=capacity.isError?undefined:capacity.data?.data;
+ const roomFull=mode==='room'&&capacityBlocked(usage,'rooms');
  const [name,setName]=useState('');
  const [occupancy,setOccupancy]=useState('2');
  const [number,setNumber]=useState('');
@@ -33,7 +38,7 @@ export function CatalogCreateDialog({mode,roomTypes,onClose,onCreated}:Props){
 
  async function submit(e:FormEvent<HTMLFormElement>){
   e.preventDefault();
-  if(!authorized||pending)return;
+  if(!authorized||pending||roomFull)return;
   setError('');setFieldErrors({});
   const errors:Record<string,string[]>={};
   if(mode==='type'){
@@ -52,6 +57,7 @@ export function CatalogCreateDialog({mode,roomTypes,onClose,onCreated}:Props){
    else await createLiveRoom({roomTypeId,number:number.trim(),floor:floor.trim()===''?null:Number(floor)});
    // Refresh every catalogue view. No live cache may retain old counts.
    await Promise.all([
+    queryClient.invalidateQueries({queryKey:['subscription-capacity',hotelId]}),
     queryClient.invalidateQueries({queryKey:['live-catalog']}),
     queryClient.invalidateQueries({queryKey:['live-rooms']}),
     queryClient.invalidateQueries({queryKey:['live-room-types']}),
@@ -83,10 +89,11 @@ export function CatalogCreateDialog({mode,roomTypes,onClose,onCreated}:Props){
       <label>Floor (optional)<input type="number" min={0} max={65535} step={1} value={floor} onChange={e=>setFloor(e.target.value)} disabled={pending} placeholder="Unassigned"/></label>
      </>}
     </div>
+    {mode==='room'&&usage?.assigned&&<div className="hotel-capacity-notice"><SubscriptionCapacityMeter label="Registered rooms" resource={usage.rooms} enforced={usage.enforced}/>{roomFull&&<p>Room limit reached. Contact your PMS provider to increase capacity.</p>}</div>}
     {Object.entries(fieldErrors).map(([field,messages])=>messages.map((message,i)=><p key={field+'-'+i} className="catalog-field-error" role="alert">{field}: {message}</p>))}
     {error&&<p className="auth-error" role="alert">{error}</p>}
     <div className="guest-modal-actions"><button type="button" className="btn-inline" disabled={pending} onClick={onClose}>Cancel</button>
-     <button className="btn-primary" type="submit" disabled={pending||(mode==='room'&&roomTypes.length===0)}><Plus size={16}/>{pending?'Saving…':mode==='type'?'Create room type':'Create room'}</button>
+     <button className="btn-primary" type="submit" disabled={pending||roomFull||(mode==='room'&&roomTypes.length===0)}><Plus size={16}/>{pending?'Saving…':mode==='type'?'Create room type':'Create room'}</button>
     </div>
    </form>
   </section>

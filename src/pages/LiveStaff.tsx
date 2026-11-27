@@ -3,6 +3,8 @@ import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {Plus,ShieldCheck,History,Mail,RefreshCcw,ShieldAlert,X,ChevronRight,UserPlus,UserRoundCog} from 'lucide-react';
 import {attachHotelStaff,getHotelStaffHistory,listHotelStaff,updateHotelStaff,inviteNewStaff,listStaffInvitations,revokeStaffInvitation,type StaffRole,getHotelRolePermissions,createHotelStaffAccount} from '../api/liveStaff';
 import {ApiError} from '../api/http';
+import {fetchSubscriptionCapacity,capacityBlocked} from '../api/subscriptionCapacity';
+import {SubscriptionCapacityMeter} from '../components/SubscriptionCapacityMeter';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
@@ -43,6 +45,9 @@ export function LiveStaff(){
  const {hotelId,user}=useHotelAuth();
  const admin=!!user?.hotels.some(h=>h.id===hotelId&&h.role==='admin');
  const client=useQueryClient();
+ const capacity=useQuery({queryKey:['subscription-capacity',hotelId],queryFn:({signal})=>fetchSubscriptionCapacity(hotelId!,signal),enabled:admin&&!!hotelId,retry:false,staleTime:0});
+ const usage=capacity.isError?undefined:capacity.data?.data;
+ const staffFull=capacityBlocked(usage,'staff');
  const staff=useQuery({queryKey:['hotel-staff',hotelId],queryFn:listHotelStaff,enabled:admin});
  const roleProfiles=useQuery({queryKey:['hotel-staff-role-profiles',hotelId],queryFn:getHotelRolePermissions,enabled:admin,retry:false});
  const invitations=useQuery({queryKey:['staff-invitations',hotelId],queryFn:listStaffInvitations,enabled:admin});
@@ -138,7 +143,7 @@ export function LiveStaff(){
     setPermissionEdit(null);
     void client.invalidateQueries({queryKey:['hotel-staff',hotelId]});
    }
-   setError(cause instanceof Error?cause.message:'Could not save employee permissions.');
+   setError(cause instanceof ApiError?(cause.fieldErrors?.subscriptionLimit?.[0]??cause.message):cause instanceof Error?cause.message:'Could not save employee permissions.');
   }finally{setSaving(null);}
  }
  async function attach(e:FormEvent<HTMLFormElement>){
@@ -149,8 +154,9 @@ export function LiveStaff(){
    await client.invalidateQueries({queryKey:['hotel-staff',hotelId]});
    await client.invalidateQueries({queryKey:['hotel-staff-history',hotelId]});
    await client.invalidateQueries({queryKey:['hotel-staff-role-profiles',hotelId]});
+   void capacity.refetch();
    setEmail('');setAttachManagerAcknowledged(false);setAddOpen(false);setSection('team');setNotice('Existing account added to the selected hotel.');
-  }catch(e){setError(e instanceof ApiError?e.message:e instanceof Error?e.message:'Unable to add staff.');}
+  }catch(e){setError(e instanceof ApiError?(e.fieldErrors?.subscriptionLimit?.[0]??e.message):e instanceof Error?e.message:'Unable to add staff.');}
   finally{setSaving(null);}
  }
  async function confirmChange(){
@@ -168,13 +174,14 @@ export function LiveStaff(){
     client.invalidateQueries({queryKey:['hotel-staff-history',hotelId]}),
     client.invalidateQueries({queryKey:['hotel-staff-role-profiles',hotelId]}),
    ]);
+   void capacity.refetch();
    setNotice('Access updated for '+change.name+'. Permissions are enforced immediately. Staff may need to sign in again to refresh the visible workspace.');
   }catch(e){
    if(e instanceof ApiError&&e.status===409){
     setProposed(null);
     void client.invalidateQueries({queryKey:['hotel-staff',hotelId]});
    }
-   setError(e instanceof Error?e.message:'Unable to update staff access.');
+   setError(e instanceof ApiError?(e.fieldErrors?.subscriptionLimit?.[0]??e.message):e instanceof Error?e.message:'Unable to update staff access.');
   }finally{setSaving(null);}
  }
  async function createManualAccount(e:FormEvent<HTMLFormElement>){
@@ -199,12 +206,13 @@ export function LiveStaff(){
     client.invalidateQueries({queryKey:['hotel-staff-history',property]}),
     client.invalidateQueries({queryKey:['hotel-staff-role-profiles',property]}),
    ]);
+   void capacity.refetch();
    setManualName('');setManualEmail('');setManualRole('front_desk');
    setManualManagerAcknowledged(false);
    setAddOpen(false);setSection('team');setNotice(created.message);
   }catch(cause){
    setManualPassword('');setManualPasswordConfirm('');
-   if(property===hotelId)setError(cause instanceof Error?cause.message:'Unable to create staff account.');
+   if(property===hotelId)setError(cause instanceof ApiError?(cause.fieldErrors?.subscriptionLimit?.[0]??cause.message):cause instanceof Error?cause.message:'Unable to create staff account.');
   }finally{setSaving(null);}
  }
  async function sendInvitation(e:FormEvent<HTMLFormElement>){
@@ -232,8 +240,9 @@ export function LiveStaff(){
  return <>
   <div className="staff-page-heading">
    <Heading title="Staff & access" description="Manage employees, roles and permissions."/>
-   <button type="button" className="btn-primary" onClick={openAdd}><UserPlus size={17}/> Add employee</button>
+   <button type="button" className="btn-primary" disabled={staffFull} onClick={openAdd}><UserPlus size={17}/> Add employee</button>
   </div>
+  {usage?.assigned&&<div className="hotel-capacity-notice"><SubscriptionCapacityMeter label="Staff seats" resource={usage.staff} enforced={usage.enforced}/>{staffFull&&<p>Contact your PMS provider to increase capacity. Existing staff access is unchanged.</p>}</div>}
   <div className="staff-overview" aria-label="Staff overview">
    <div><strong>{staff.isPending?'—':staff.data?.data.length??0}</strong><span>Total staff</span></div>
    <div><strong>{staff.isPending?'—':activeStaff}</strong><span>Active staff</span></div>

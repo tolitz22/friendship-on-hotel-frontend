@@ -78,7 +78,7 @@ export function parseRoomRack(raw:unknown,hotelId:string,page:number){
   throw new Error('Room rack occupancy or readiness conflicts with the source records.');
  return parsed;
 }
-export function useRoomRack(page:number,perPage:number,days=7,enabled=true){
+export function useRoomRack(page:number,perPage:number,days=7,enabled=true,refreshInterval:false|number=false){
  const {hotelId}=readSession();
  return useQuery({
   queryKey:['live','room-rack',hotelId,page,perPage,days],
@@ -86,6 +86,6 @@ export function useRoomRack(page:number,perPage:number,days=7,enabled=true){
   queryFn:async()=>parseRoomRack(await getJson<unknown>(
    hotelPath('/rooms/rack'),{page,per_page:perPage,days}
   ),hotelId!,page),
-  retry:false,staleTime:0,
+  retry:false,staleTime:0,refetchInterval:refreshInterval,refetchIntervalInBackground:false,
  });
 }

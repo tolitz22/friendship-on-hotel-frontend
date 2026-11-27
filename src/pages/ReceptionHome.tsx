@@ -22,7 +22,7 @@ export function ReceptionHome(){
  const arrivals=useLiveManifest(today,'arrivals',1,1,undefined,canRead);
  const departures=useLiveManifest(today,'departures',1,1,undefined,canRead);
  const overdue=useLiveManifest(today,'overdue',1,1,undefined,canRead);
- const rack=useRoomRack(1,1,1,canRooms);
+ const rack=useRoomRack(1,1,1,canRooms,30000);
  const summary=online&&rack.isSuccess&&rack.data.data.hotelDate===today?rack.data.data.summary:undefined;
  const arrivalCount=online&&arrivals.isSuccess?arrivals.data.meta.queueTotal??arrivals.data.meta.total:undefined;
  const departureCount=online&&departures.isSuccess?departures.data.meta.queueTotal??departures.data.meta.total:undefined;

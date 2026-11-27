@@ -83,9 +83,9 @@ export function LiveDashboard(){
    <Link to="/front-desk" search={{queue:'departures'}}><LogOut size={24}/> Check out</Link>
    <Link to="/front-desk" search={{queue:'in_house'}}><Clock3 size={24}/> Extend stay</Link>
    <Link to="/reservations" search={{filter:'needs_room'}}><BedDouble size={24}/> Assign room</Link>
-   <Link to="/expenses"><Receipt size={24}/> Expenses</Link>
+   <Link to="/expenses" search={{record:true}}><Receipt size={24}/> Record expense</Link>
   </div></section>
-  <section className="ao-card ao-activity" aria-labelledby="ao-activity-title"><div className="ao-card-head"><h3 id="ao-activity-title">Recent activity</h3><Link to="/operational-exceptions" className="ao-link">View audit log <ChevronRight size={15}/></Link></div>
+  <section className="ao-card ao-activity" aria-labelledby="ao-activity-title"><div className="ao-card-head"><h3 id="ao-activity-title">Recent activity</h3><Link to="/operational-exceptions" search={{tab:'activity'}} className="ao-link">View audit log <ChevronRight size={15}/></Link></div>
    <QueryFeedback loading={exceptions.isPending} error={exceptions.error} onRetry={()=>void exceptions.refetch()} empty={exceptions.isSuccess&&activity.length===0} emptyMessage="No recent reservation activity."/>
    {activity.length>0&&<div className="table-scroll"><table><thead><tr><th>Time</th><th>Activity</th><th>Booking</th><th>User</th></tr></thead><tbody>{activity.map(entry=><tr key={entry.id}><td>{activityTime(entry.createdAt,zone)}</td><td><span className="ao-event"><CheckCircle2 size={15}/>{eventLabel(entry.eventType)}</span></td><td><Link to="/reservations" search={{booking:entry.bookingId}}>{entry.reference}</Link></td><td>{entry.actorName|| (entry.actorId===user?.id?user.name:'Staff #'+entry.actorId)}</td></tr>)}</tbody></table></div>}
   </section>

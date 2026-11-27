@@ -22,4 +22,7 @@
  .admin-profile-menu :is(a,button):hover{background:var(--canvas)}
  .admin-shell .page-content:has(.ao-page){padding:20px 24px}
 }
-@media(min-width:761px) and (max-width:1100px){.admin-shell .topbar{padding-inline:12px}.admin-shell .topbar .topbar-actions{gap:7px}.admin-shell .topbar .demo-pill{display:none}.admin-shell .topbar .hotel-context-select select{min-width:100px;max-width:145px}.admin-profile summary>span:nth-child(2){display:none}}
+@media(min-width:761px) and (max-width:1100px){.admin-shell .topbar{padding-inline:12px}.admin-shell .topbar .topbar-actions{gap:7px}.admin-shell .topbar .demo-pill{font-size:9px;max-width:112px;white-space:normal;text-align:center}.admin-shell .topbar .hotel-context-select select{min-width:100px;max-width:145px}.admin-profile summary>span:nth-child(2){display:none}}
+
+.admin-top-search:focus-within{outline:2px solid var(--accent);outline-offset:1px}
+@media(min-width:761px) and (max-width:950px){.admin-shell .topbar{height:auto;min-height:64px}.admin-shell .topbar .topbar-actions{flex-wrap:wrap}.admin-shell .admin-top-search{order:5;flex-basis:100%;max-width:none;margin-left:0}.admin-shell .admin-profile{margin-left:auto}}

@@ -1,5 +1,5 @@
 import {useMemo,useState} from 'react';
-import {Link} from '@tanstack/react-router';
+import {Link,useSearch} from '@tanstack/react-router';
 import {AlertTriangle,ArrowRight,ClipboardList,Clock3,RefreshCw,Search,ShieldCheck} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading} from '../components/ui';
@@ -54,7 +54,8 @@ export function OperationalExceptions(){
  const [days,setDays]=useState(7);
  const [filter,setFilter]=useState<Filter>('all');
  const [search,setSearch]=useState('');
- const [showActivity,setShowActivity]=useState(false);
+ const {tab:initialTab}=useSearch({from:'/operational-exceptions'});
+ const [showActivity,setShowActivity]=useState(initialTab==='activity');
  const [area,setArea]=useState('all');
  const report=useOperationalExceptions(days,admin);
  const data=report.data?.data;

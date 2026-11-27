@@ -41,11 +41,11 @@ for(const viewport of [
   test('overview tasks and deep-linked queues are legible and read-only',async({page})=>{
    await login(page);
    // Only hotel managers receive the LiveDashboard; reception uses RoleHome.
-   const isManager=await page.getByRole('heading',{name:/Good day,/}).isVisible();
+   const isManager=await page.locator('.ao-page').getByRole('heading',{name:'Overview',exact:true}).isVisible();
    if(!isManager)test.skip(true,'Selected staff role has a different authorized home screen.');
-   await expect(page.getByRole('heading',{name:'Front desk today'})).toBeVisible();
+   await expect(page.getByRole('heading',{name:"Today's activity"})).toBeVisible();
    await expect(page.getByRole('heading',{name:'Quick actions'})).toBeVisible();
-   await expect(page.getByRole('heading',{name:'Registered room inventory'})).toBeVisible();
+   await expect(page.getByText('Registered room inventory & property details',{exact:true})).toBeVisible();
    await expect(page.getByRole('link',{name:'New booking'})).toHaveAttribute('href',/mode=new/);
    await noHorizontalOverflow(page);
    for(const [name,queue,pressed] of [
@@ -69,7 +69,7 @@ for(const viewport of [
      await page.getByRole('navigation',{name:'Hotel workspace navigation'})
       .getByRole('link',{name:'Overview'}).click();
     }
-    await expect(page.getByRole('heading',{name:/Good day,/})).toBeVisible();
+    await expect(page.locator('.ao-page').getByRole('heading',{name:'Overview',exact:true})).toBeVisible();
    }
   });
 

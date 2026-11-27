@@ -103,7 +103,8 @@ const functionalRoutes=[
  createRoute({getParentRoute:()=>root,path:'/messages',validateSearch:(value:Record<string,unknown>):{conversation?:string;hotel?:string;push?:string}=>({conversation:normalizeBillingBookingId(value.conversation),hotel:normalizeBillingBookingId(value.hotel),push:normalizeBillingBookingId(value.push)==='1'?'1':undefined}),component:Messages}),
  createRoute({getParentRoute:()=>root,path:'/my-expense-claims',component:MyExpenseClaims}),
  createRoute({getParentRoute:()=>root,path:'/expenses',component:Expenses,
- validateSearch:(value:Record<string,unknown>):{expense?:string;date?:string;hotel?:string;tab?:ExpenseView;push?:string}=>({
+ validateSearch:(value:Record<string,unknown>):{expense?:string;date?:string;hotel?:string;tab?:ExpenseView;push?:string;record?:true}=>({
+ record:value.record===true?true:undefined,
  push:normalizeBillingBookingId(value.push)==='1'?'1':undefined,
  tab:value.tab==='bills'||value.tab==='suppliers'||value.tab==='reimbursements'?value.tab:undefined,
  expense:normalizeBillingBookingId(value.expense),
@@ -120,7 +121,7 @@ const functionalRoutes=[
    queue:value.queue==='arrivals'||value.queue==='departures'||value.queue==='in_house'||value.queue==='overdue'?value.queue:undefined,
   }),
   component:FrontDesk}),
- createRoute({getParentRoute:()=>root,path:'/operational-exceptions',component:OperationalExceptions}),
+ createRoute({getParentRoute:()=>root,path:'/operational-exceptions',validateSearch:(value:Record<string,unknown>):{tab?:'activity'}=>({tab:value.tab==='activity'?'activity':undefined}),component:OperationalExceptions}),
  createRoute({getParentRoute:()=>root,path:'/manager-approvals',validateSearch:(value:Record<string,unknown>):{approval?:string;hotel?:string;push?:string}=>({approval:normalizeBillingBookingId(value.approval),hotel:normalizeBillingBookingId(value.hotel),push:normalizeBillingBookingId(value.push)==='1'?'1':undefined}),component:ManagerApprovals}),
  createRoute({getParentRoute:()=>root,path:'/cashier-shifts',
   validateSearch:(value:Record<string,unknown>):{booking?:string;hotel?:string;shift?:string;push?:string}=>({

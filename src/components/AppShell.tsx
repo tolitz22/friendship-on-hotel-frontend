@@ -97,6 +97,7 @@ export function AppShell(){
  const admin=role==='admin';
  const adminLive=dataMode==='api'&&admin;
  useEffect(()=>{setBookingSearch('');if(adminProfile.current)adminProfile.current.open=false;},[hotelId,pathname]);
+ useEffect(()=>{if(!adminLive)return;const close=(event:PointerEvent)=>{const menu=adminProfile.current;if(menu?.open&&event.target instanceof Node&&!menu.contains(event.target))menu.open=false;};document.addEventListener('pointerdown',close);return()=>document.removeEventListener('pointerdown',close);},[adminLive]);
  const housekeepingMobile=dataMode==='api'&&role==='housekeeping';
  const receptionMobile=dataMode==='api'&&role==='front_desk';
  const staffMobile=housekeepingMobile||receptionMobile;

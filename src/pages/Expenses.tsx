@@ -109,10 +109,11 @@ const expenseViews:ReadonlyArray<{id:ExpenseView;label:string;Icon:typeof Receip
  {id:'reimbursements',label:'Reimbursements',Icon:UserRound},
 ];
 
-function ExpensesWorkspace({hotel,date,tab}:{hotel:string;date?:string;tab:ExpenseView}){
+function ExpensesWorkspace({hotel,date,tab,recordRequested=false}:{hotel:string;date?:string;tab:ExpenseView;recordRequested?:boolean}){
  const {user}=useHotelAuth();
  const navigate=useNavigate({from:'/expenses'});
- const [chooserOpen,setChooserOpen]=useState(false);
+ const [chooserOpen,setChooserOpen]=useState(recordRequested);
+ useEffect(()=>{if(recordRequested){setChooserOpen(true);void navigate({search:previous=>({...previous,record:undefined}),replace:true});}},[recordRequested,navigate]);
  const [recordPath,setRecordPath]=useState<RecordPath|null>(null);
  const recordButton=useRef<HTMLButtonElement>(null);
  const chooser=useRef<HTMLDialogElement>(null);
@@ -214,5 +215,5 @@ export function Expenses(){
  if(!hotelId||user?.hotels.find(h=>h.id===hotelId)?.role!=='admin')return <Heading title="Expenses" description="This workspace requires administrator access."/>;
  if(search.hotel&&search.hotel!==hotelId)return <Heading title="Expenses" description="Select the original hotel to open this voucher."/>; 
  if(search.expense)return <Navigate to="/expenses/$expenseId" params={{expenseId:search.expense}} search={{hotel:hotelId,date:search.date}} replace/>;
- return <ExpensesWorkspace key={hotelId+':'+(search.date??'')} hotel={hotelId} date={search.date} tab={search.tab??'expenses'}/>;
+ return <ExpensesWorkspace key={hotelId+':'+(search.date??'')} hotel={hotelId} date={search.date} tab={search.tab??'expenses'} recordRequested={search.record===true}/>;
 }

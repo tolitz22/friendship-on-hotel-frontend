@@ -107,3 +107,5 @@
 @media(max-width:360px){:is(.housekeeping-shell,.reception-shell) .hk-bottom-nav-shell .topbar .topbar-left{gap:5px}:is(.housekeeping-shell,.reception-shell) .hk-mobile-brand .hk-mobile-brand-mark{display:none}:is(.housekeeping-shell,.reception-shell) .hk-mobile-brand-name{font-size:13px}}
 
 @media(max-width:760px){.reception-shell .workflow-shortcuts{display:none}.reception-shell .hk-bottom-nav-shell .page-content{padding-inline:12px}.reception-shell .hk-bottom-nav-shell .message-arrival-alert{top:calc(70px + env(safe-area-inset-top,0px));bottom:auto}.reception-shell .hk-phone-secondary:has(>div:empty){display:none}}
+
+@media(max-width:760px){.reception-shell .hk-bottom-nav-shell>.topbar{position:sticky;top:0;z-index:7;flex-shrink:0;min-height:60px;height:auto;grid-template-rows:auto;background:var(--surface)}.reception-shell .hk-bottom-nav-shell>.topbar .topbar-left{flex-wrap:nowrap}.reception-shell .hk-bottom-nav-shell>.topbar .topbar-action-notifications.has-urgent{border-color:#e05252}}

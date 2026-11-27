@@ -114,6 +114,23 @@ export function LiveFrontDesk(){
       ?maintenanceNotes.data.data.filter(note=>note.roomId===row.assignedRoomId):[];
      const advisoryCount=informationalMaintenanceCount(relatedNotes);
      const noteCoverageComplete=maintenanceNotes.isSuccess&&maintenanceNotes.data.meta.totalPages<=1;
+     const hasRoomWarning=kind!=='overdue'&&isToday&&!!row.assignedRoomId&&(signal?.tone==='attention'||signal?.tone==='blocked'||advisoryCount>0||maintenanceNotes.isError||!noteCoverageComplete&&maintenanceNotes.isSuccess||!status);
+     if(reception)return <article className="rd-guest" key={row.id}>
+      <div className="rd-guest-main">
+       <span className="rd-avatar" aria-hidden="true"><Users size={17}/></span>
+       <div className="rd-guest-info"><Link to="/reservations" search={{booking:row.id}} className="rd-guest-name">{displayGuest(row)}</Link><small>{row.roomNumber?'Room '+row.roomNumber:'Unassigned room'} <span title={row.reference}>· {row.reference}</span></small>
+        <span className={'rd-status '+(kind==='overdue'?'rd-status-overdue':row.status==='checked_in'?'rd-status-inhouse':'rd-status-confirmed')}>{kind==='overdue'?'Overdue':row.status==='checked_in'?'In house':'Confirmed'}</span>
+       </div>
+       <Link to="/reservations" search={{booking:row.id,...(action.kind==='view'?{}:{deskAction:action.kind})}} className="rd-row-action" aria-label={action.label+' · '+displayGuest(row)}>{action.kind==='check-in'?'Check in':action.kind==='check-out'?'Check out':action.kind==='assign'?'Assign room':'View stay'}</Link>
+      </div>
+      {hasRoomWarning&&<Link to="/rooms" search={{room:row.roomNumber??'',inspect:shouldInspect||undefined}} className="rd-room-warning"><Info size={14}/><span>{signal?.title??(advisoryCount>0?'Maintenance notes':'Readiness not verified')}</span><ChevronRight size={14}/></Link>}
+      {(kind==='overdue'||!combined&&row.status==='checked_in')&&<div className="rd-extra">
+       {kind==='overdue'&&<span className="rd-due">Due {dateLabel(row.checkOut)}</span>}
+       {hotelId&&canExtend&&row.assignedRoomId&&row.status==='checked_in'&&<button className="rd-text-action" type="button" onClick={()=>setExtension({hotelId,record:row})}>Extend stay <ChevronRight size={14}/></button>}
+       {kind==='overdue'&&row.departureFollowUp&&<p className="rd-handoff">{row.departureFollowUp}</p>}
+       {kind==='overdue'&&canExtend&&<DepartureFollowUp key={hotelId+'-'+row.id} bookingId={row.id} savedNote={row.departureFollowUp} onSaved={refresh}/>}
+      </div>}
+     </article>;
      return <article className={'fdc-guest-row fdc-guest-row-v2'+(kind==='overdue'?' is-overdue':'')} key={row.id}>
       <div className="fdc-v2-identity">
        <div className="fdc-v2-avatar" aria-hidden="true">{displayGuest(row).trim().slice(0,1).toUpperCase()}</div>
@@ -179,13 +196,13 @@ export function LiveFrontDesk(){
   <Panel title="Hotel selection required"><p role="status">Select your hotel before loading arrivals, departures or in-house stays.</p></Panel>
  </>;
  return <div className={reception?'fdc-reception':'fdc-manager'}>
-  <div className="fdc-heading">
+  {reception?<header className="rd-heading"><div><h2>Front Desk</h2><p>Arrivals, departures and today's guests</p></div><button type="button" className="rd-refresh" aria-label="Refresh front desk" disabled={loadingAny} onClick={refresh}><RefreshCw size={18}/></button></header>:<div className="fdc-heading">
    <Heading title="Front desk" description="Your daily arrival, departure and room-assignment workspace."/>
    <div className="fdc-heading-actions">
     <button type="button" className="btn-inline" disabled={loadingAny} onClick={refresh}><RefreshCw size={15}/> {loadingAny?'Refreshing…':'Refresh'}</button>
     {canCreate&&<Link to="/reservations" search={{mode:"new",checkIn:date}} className="btn-primary fdc-new-booking"><Plus size={16}/> New booking</Link>}
    </div>
-  </div>
+  </div>}
   {reception&&<div className="fdc-simple-controls">
    <div className="fdc-simple-tabs" role="group" aria-label="Front desk views">
     <button type="button" aria-pressed={combined} onClick={selectToday}><CalendarDays size={17}/> {combined&&!isToday?'Schedule':'Today'}</button>
@@ -227,10 +244,10 @@ export function LiveFrontDesk(){
    <div className="fdc-overdue-alert-icon"><AlertTriangle size={22}/></div>
    <div className="fdc-overdue-alert-copy">
     <strong>{urgentCount} overdue checkout{urgentCount===1?' needs':'s need'} attention</strong>
-    <p>Guests remain checked in past their scheduled departure cutoff. Confirm occupancy, contact the guest or extend the stay before recording checkout.</p>
+    <p>{reception?'Guest checkout time has passed.':'Guests remain checked in past their scheduled departure cutoff. Confirm occupancy, contact the guest or extend the stay before recording checkout.'}</p>
    </div>
-   <button type="button" className="fdc-overdue-alert-action" onClick={()=>selectQueue('overdue')}>
-    Review overdue checkouts <ArrowRight size={15}/>
+   <button type="button" className="fdc-overdue-alert-action" aria-label="Review overdue checkouts" onClick={()=>selectQueue('overdue')}>
+    {reception?'Review':'Review overdue checkouts'} <ArrowRight size={15}/>
    </button>
   </section>}
   {reception&&overdueTotal.isError&&<p className="fdc-alert-unavailable" role="status">Overdue checkout status unavailable. <button type="button" className="btn-inline" onClick={()=>void overdueTotal.refetch()}>Retry</button></p>}
@@ -240,7 +257,7 @@ export function LiveFrontDesk(){
   </div>}
   {combined?<div className="fdc-today-queues">
    {([{kind:'arrivals',title:'Arrivals',query:arrivals,Icon:LogIn},{kind:'departures',title:'Departures',query:departures,Icon:LogOut}] as const).map(({kind:queue,title,query,Icon})=><section className="fdc-today-section" key={queue} aria-label={title}>
-    <div className="fdc-today-head"><h3><Icon size={20}/>{title} <span>({query.isSuccess?query.data.meta.total:'—'})</span></h3><button type="button" className="btn-inline" onClick={()=>{setTodayView(false);setKind(queue);setPageByKind(prev=>({...prev,[queue]:1}));}}>View all <ChevronRight size={16}/></button></div>
+    <div className="fdc-today-head"><h3><Icon size={20}/>{title} <span>({query.isSuccess?query.data.meta.total:'—'})</span></h3><button type="button" className="rd-view-all" onClick={()=>{setTodayView(false);setKind(queue);setPageByKind(prev=>({...prev,[queue]:1}));}}>View all <ChevronRight size={16}/></button></div>
     <QueryFeedback loading={query.isPending} error={query.error} onRetry={()=>void query.refetch()} empty={query.isSuccess&&query.data.data.length===0} emptyMessage={term?'No matching bookings.':'No '+title.toLowerCase()+' scheduled.'}/>
     {query.isSuccess&&query.data.data.slice(0,3).map(row=>renderRow(row,queue))}
    </section>)}
@@ -285,9 +302,10 @@ export function LiveFrontDesk(){
    hotelId={hotelId} record={extension.record} today={hotelDate} openOnEntry hideTrigger
    onDismiss={()=>setExtension(null)}
    onSaved={()=>client.invalidateQueries({queryKey:['live'],refetchType:'active'})}/>}
-  <p className="fdc-safety-note"><AlertTriangle size={17}/>
+  {reception&&canCreate&&<div className="rd-booking-bar"><Link to="/reservations" search={{mode:'new',checkIn:date}} className="rd-new-booking"><Plus size={19}/> New booking</Link></div>}
+  {!reception&&<p className="fdc-safety-note"><AlertTriangle size={17}/>
    Actions open the existing guarded reservation workflow for review and confirmation. This screen does not verify room cleanliness, cash collection or actual physical occupancy.
-  </p>
+  </p>}
  </div>;
 }
 

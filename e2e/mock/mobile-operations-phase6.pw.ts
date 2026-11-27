@@ -30,7 +30,7 @@ for(const width of [320,390,760]){
   await expect(hk).toBeVisible();
   await expect(hk.getByRole('combobox',{name:'Room',exact:true})).toHaveCount(0);
   await expect(hk.getByRole('combobox',{name:'Task type',exact:true})).toHaveCount(0);
-  await expect(hk.locator('.hk-task-detail').filter({hasText:'Room 201'})).toBeVisible();
+  await expect(hk.locator('.hk-task-detail').filter({hasText:'Room 101'})).toBeVisible();
   const completed=hk.getByRole('group',{name:'Quick cleaning progress'}).getByRole('button',{name:'Cleaning completed'});
   await expect(completed).toBeDisabled();
   await hk.getByRole('checkbox',{name:'Remove trash',exact:true}).check();

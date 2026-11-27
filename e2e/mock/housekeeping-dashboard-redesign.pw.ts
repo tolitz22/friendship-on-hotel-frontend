@@ -39,6 +39,7 @@ for(const width of [320,390,430,768,1280]){
    const nav=page.getByRole('navigation',{name:'Housekeeping mobile navigation'});
    await expect(nav).toBeVisible();
    await expect(nav.getByRole('link',{name:'Home',exact:true})).toHaveAttribute('aria-current','page');
+   await expect(page.getByRole('button',{name:/^Notifications/})).toBeVisible();
    for(const label of ['Tasks','Rooms','Messages'])await expect(nav.getByRole('link',{name:label,exact:true})).toBeVisible();
    const navBounds=await nav.boundingBox();
    expect(navBounds!.y+navBounds!.height).toBeGreaterThanOrEqual(799);

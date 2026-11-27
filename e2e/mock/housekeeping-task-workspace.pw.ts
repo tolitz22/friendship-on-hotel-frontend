@@ -153,7 +153,11 @@ for (const width of [320, 390, 430, 768, 1440]) {
    await page.getByRole('button', { name: 'Open navigation' }).click();
    await page.getByRole('link', { name: 'My tasks', exact: true }).click();
   }
-  await page.getByRole('button', { name: 'Switch to dark mode' }).click();
+  if(width<768){
+   await page.getByRole('navigation',{name:'Housekeeping mobile navigation'}).getByRole('button',{name:'Profile'}).click();
+   await page.getByRole('dialog',{name:'Workspace navigation'}).getByRole('button',{name:'Dark mode',exact:true}).click();
+   await page.getByRole('button',{name:'Close menu'}).click();
+  }else await page.getByRole('button', { name: 'Switch to dark mode' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   const open = card(page, 201).getByRole('button', { name: 'Start cleaning' });
   await open.click();

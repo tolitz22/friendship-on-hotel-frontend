@@ -12,7 +12,7 @@ async function signInAndOpenHousekeeping(page:Page,email:string,password:string)
  const nav=page.getByRole('navigation',{name:'Hotel workspace navigation'});
  const myTasks=nav.getByRole('link',{name:'My tasks',exact:true});
  if(await myTasks.isVisible()){
-  await expect(page.getByRole('heading',{name:'Housekeeping workspace'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Housekeeping',exact:true})).toBeVisible();
   await expect(nav.getByRole('link',{name:'Billing',exact:true})).toHaveCount(0);
   await myTasks.click();
   const mine=page.getByRole('checkbox',{name:'My tasks only',exact:true});

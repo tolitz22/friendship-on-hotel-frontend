@@ -8,6 +8,7 @@ import {isApi,isAuthFailure,isError,isFrontend,summarizeMonitoring} from '../fea
 import {aggregateCards} from '../features/monitoring/aggregate';
 import './SuperAdminDashboard.css';
 import {PlatformHealthPanel} from '../components/PlatformHealthPanel';
+import {PlatformWorkersPanel} from '../components/PlatformWorkersPanel';
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const time=(s:string)=>new Date(s).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
@@ -46,6 +47,7 @@ export function SuperAdminDashboard(){
   <main className="platform-main">
    <div className="platform-title"><div><span className="eyebrow">PLATFORM OPERATIONS</span><h1>System monitoring</h1><p>Backend, worker and frontend diagnostics across the platform.</p></div><button className="btn-primary" disabled={query.isFetching||metricsQuery.isFetching} onClick={()=>{void query.refetch();void metricsQuery.refetch();}}><RefreshCw size={16} className={query.isFetching||metricsQuery.isFetching?'platform-spin':''}/> Refresh</button></div>
    {user&&<PlatformHealthPanel key={user.id} userId={user.id}/>}
+   {user&&<PlatformWorkersPanel key={user.id} userId={user.id}/>}
    <div className="platform-filters panel">
     <label>Time range<select value={minutes} onChange={e=>{setMinutes(Number(e.target.value));setPage(0);}}><option value={15}>Last 15 minutes</option><option value={60}>Last hour</option><option value={360}>Last 6 hours</option><option value={1440}>Last 24 hours</option></select></label>
     <label>Environment<select value={environment} onChange={e=>{setEnvironment(e.target.value);setPage(0);}}>{['all','staging','production','local','testing','other'].map(v=><option key={v} value={v}>{v==='all'?'All environments':v}</option>)}</select></label>

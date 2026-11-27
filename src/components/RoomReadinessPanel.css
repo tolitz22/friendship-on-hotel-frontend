@@ -1,0 +1,14 @@
+.rr-compact-panel{display:grid;gap:10px;min-width:0;color:var(--text)}
+.rr-compact-panel .rr-compact-type{font-size:13px;color:var(--muted);margin:0}
+.rr-compact-panel .rr-inspection-status,.rr-compact-panel .rr-blocker-section,.rr-compact-panel .rr-latest-inspection{margin:0;padding:10px 12px}
+.rr-compact-panel .rr-blocker-clear{margin:6px 0 0}
+.rr-compact-panel .rr-latest-inspection{font-size:12px;color:var(--muted)}
+.rr-compact-panel .rr-mobile-checklist{display:grid;gap:8px}
+.rr-compact-panel .rr-mobile-checklist h4,.rr-compact-panel .rr-mobile-checklist p{margin:0}
+.rr-compact-panel .rr-mobile-checklist p{font-size:12px;color:var(--muted)}
+.rr-compact-panel .rr-inspection-check{margin:0;min-height:44px}
+.rr-compact-panel .rr-mobile-checklist textarea{min-height:64px}
+.rr-compact-panel .rr-compact-details,.rr-compact-panel .rr-inspection-history{border-top:1px solid var(--border);padding:8px 0;margin:0}
+.rr-compact-panel summary{cursor:pointer;min-height:36px;padding:8px 0;font-size:13px}
+.rr-compact-panel .rr-compact-details p{font-size:12px;color:var(--muted)}
+@media(max-width:767px){.rr-compact-panel .rr-mobile-checklist .btn-primary{width:100%;min-height:48px}.rr-compact-panel .rr-inspection-check{font-size:14px}}

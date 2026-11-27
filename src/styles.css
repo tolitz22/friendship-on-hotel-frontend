@@ -4214,3 +4214,6 @@ dialog.no-show-dialog::backdrop { background: rgb(0 0 0 / 45%); }
 .hk-report-form .hk-report-check{display:flex;align-items:center;gap:8px;min-height:44px}
 .hk-custody-event{display:grid;gap:4px;border-top:1px solid #cbd5e1;padding:10px 0}
 @media(max-width:760px){.hk-report-actions .btn-inline{min-height:44px}.hk-report-form .btn-primary{width:100%;min-height:44px}}
+
+/* HK-07 — manager operational reporting */
+.hk-manager-report{display:grid;gap:12px}.hk-manager-report h4{margin:0}.hk-manager-metric{display:grid;gap:4px;text-align:left;background:transparent;color:inherit;border:1px solid #cbd5e1;border-radius:10px;padding:12px;min-height:70px}.hk-manager-metric strong{font-size:1.5rem}.hk-report-table-wrap{overflow-x:auto;max-width:100%;min-width:0}.hk-report-table{border-collapse:collapse;width:100%;font-size:.85rem}.hk-report-table th,.hk-report-table td{padding:10px;text-align:left;border-bottom:1px solid #cbd5e1;white-space:nowrap}.hk-report-table .btn-inline{min-height:44px}.hk-manager-report .hk-board-summary-card{cursor:default}

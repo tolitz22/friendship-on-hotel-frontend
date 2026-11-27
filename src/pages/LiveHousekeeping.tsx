@@ -5,6 +5,7 @@ import {Link,useNavigate,useSearch} from '@tanstack/react-router';
 import {AlertTriangle,ArrowRight,CheckCircle2,ClipboardCheck,Clock3,History,Info,Plus,RefreshCcw,Search,ShieldAlert,UserRound,X} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {HousekeepingIssueReport} from '../components/HousekeepingIssueReport';
+import {HousekeepingManagerReport} from '../components/HousekeepingManagerReport';
 import {useLiveRooms,useLiveProperty} from '../api/liveCatalogQueries';
 import {hotelToday} from '../features/reservations/calendarDate';
 import {readableDate} from '../lib/format';
@@ -193,6 +194,7 @@ export function LiveHousekeeping(){
    void Promise.all([
     client.invalidateQueries({queryKey:['live-housekeeping',hotelId]}),
     client.invalidateQueries({queryKey:['live','housekeeping-workload',hotelId]}),
+    client.invalidateQueries({queryKey:['live','housekeeping-manager-report',hotelId]}),
     client.invalidateQueries({queryKey:['role-home','housekeeping',hotelId]}),
     client.invalidateQueries({queryKey:['live','housekeeping-handoff',hotelId]}),
     client.invalidateQueries({queryKey:['live','housekeeping-assigned-alerts',hotelId]}),
@@ -234,6 +236,7 @@ export function LiveHousekeeping(){
     client.invalidateQueries({queryKey:['live','housekeeping-direct-task',hotelId]}),
     client.invalidateQueries({queryKey:['live-housekeeping',hotelId]}),
     client.invalidateQueries({queryKey:['live','housekeeping-workload',hotelId]}),
+    client.invalidateQueries({queryKey:['live','housekeeping-manager-report',hotelId]}),
     client.invalidateQueries({queryKey:['live-housekeeping-status-totals',hotelId]}),
     client.invalidateQueries({queryKey:['role-home','housekeeping',hotelId]}),
     client.invalidateQueries({queryKey:['housekeeping-history',hotelId]}),
@@ -272,6 +275,10 @@ export function LiveHousekeeping(){
    {admin&&<button type="button" className="btn-primary" onClick={openCreate}><Plus size={16}/> New cleaning task</button>}
   </div>
   <div className="hk-guidance"><Info size={18}/><p><strong>One task, two stages.</strong> Finish cleaning, then complete the final inspection in that same housekeeping task. Room readiness is confirmed only after all operational checks pass.</p></div>
+  {admin&&hotelId&&<HousekeepingManagerReport key={hotelId+':'+user?.id} hotelId={hotelId} staff={staff.data?.data??[]} onQueue={(queue,assignee)=>{
+   setQueueFilter(queue);setAssigneeFilter(assignee??'');setMineOnly(false);setStatusFilter('');setTypeFilter('');setTextFilter('');setPage(1);
+   document.getElementById('hk-queue-title')?.scrollIntoView({block:'start',behavior:'smooth'});
+  }}/>}
   {role==='housekeeping'&&<section className="hk-manager-handoff"
    aria-label="Housekeeping assignments to you">
    <div className="hk-work-heading"><div><span className="rr-eyebrow">ASSIGNED TO YOU</span>

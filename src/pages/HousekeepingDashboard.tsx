@@ -30,6 +30,7 @@ export function HousekeepingDashboard(){
    void Promise.all([
     client.invalidateQueries({queryKey:['role-home','housekeeping',hotelId]}),
     client.invalidateQueries({queryKey:['live-housekeeping',hotelId]}),
+    client.invalidateQueries({queryKey:['live','housekeeping-manager-report',hotelId]}),
     client.invalidateQueries({queryKey:['live-housekeeping-status-totals',hotelId]}),
     client.invalidateQueries({queryKey:['live','housekeeping-assigned-alerts',hotelId]}),
     client.invalidateQueries({queryKey:['live','housekeeping-direct-task',hotelId]}),

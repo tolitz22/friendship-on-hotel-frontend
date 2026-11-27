@@ -14,14 +14,15 @@ test('front desk separates current restrictions from reported room-impact notes'
  await page.getByRole('navigation',{name:'Hotel workspace navigation'})
   .getByRole('link',{name:'Front desk',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Front desk',exact:true})).toBeVisible();
- await expect(page.getByText('Current room checks:',{exact:false})).toBeVisible();
- const rows=page.locator('.fdc-guest-row');
+ await expect(page.getByText('Current room checks:',{exact:false})).toHaveCount(0);
+ await expect(page.getByRole('region',{name:'Arrivals',exact:true})).toBeVisible();
+ const rows=page.locator('.mdesk-guest');
  if(await rows.count()){
-  const roomSignals=rows.locator('.fdc-room-signals');
+  const roomSignals=rows.locator('.mdesk-room-warning');
   if(await roomSignals.count()){
-   const advisories=roomSignals.locator('.fdc-maint-note');
+   const advisories=roomSignals.filter({hasText:'Maintenance note'});
    for(let n=0;n<Math.min(10,await advisories.count());n++){
-    await expect(advisories.nth(n)).toContainText('(note only)');
+    await expect(advisories.nth(n)).toContainText('(advisory)');
    }
   }
  }
@@ -42,6 +43,6 @@ test('different arrival date cannot reuse current room-readiness evidence',async
  await page.getByRole('navigation',{name:'Hotel workspace navigation'})
   .getByRole('link',{name:'Front desk',exact:true}).click();
  await page.getByRole('button',{name:'Next date'}).click();
- await expect(page.getByText('This future or past schedule does not guarantee',{exact:false})).toBeVisible();
- await expect(page.locator('.fdc-room-signals')).toHaveCount(0);
+ await expect(page.getByText(/In-house and overdue: current hotel status/)).toBeVisible();
+ await expect(page.locator('.mdesk-room-warning')).toHaveCount(0);
 });

@@ -86,7 +86,7 @@ for(const viewport of [
    await page.getByRole('button',{name:'Today',exact:true}).click();
    await page.getByRole('button',{name:/^Departures\s/}).first().click();
    await expect(page.getByRole('button',{name:/^Departures\s/}).first()).toHaveAttribute('aria-pressed','true');
-   const search=page.getByRole('textbox',{name:'Search current manifest page'});
+   const search=page.getByRole('textbox',{name:'Search the selected manifest'});
    await search.fill('unlikely-search-term-123xyz');
    await expect(page.getByRole('button',{name:'Clear search'})).toBeVisible();
    await page.getByRole('button',{name:'Clear search'}).click();

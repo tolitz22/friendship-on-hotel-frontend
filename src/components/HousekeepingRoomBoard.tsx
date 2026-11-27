@@ -1,53 +1,83 @@
 import {useEffect,useMemo,useState} from 'react';
 import {Link} from '@tanstack/react-router';
-import {AlertTriangle,ArrowRight,BedDouble,RefreshCw,Search} from 'lucide-react';
+import {AlertTriangle,ArrowRight,BedDouble,Brush,CheckCircle2,ChevronDown,ClipboardCheck,Clock3,DoorOpen,Layers,LayoutGrid,RefreshCw,Search,ShieldAlert,UserRound,Wrench,X} from 'lucide-react';
 import {boardStageLabel,groupHousekeepingRooms,useHousekeepingRoomBoard,type HousekeepingBoardRoom} from '../api/housekeepingRoomBoard';
+import {useNetworkStatus} from '../features/housekeeping/useNetworkStatus';
 import {Heading} from './ui';
 type Filter='all'|'vacant'|'occupied'|'dirty'|'cleaning'|'service_due'|'inspection_due'|'ready'|'blocked'|'arrival'|'mine'|'unverified';
 const filters:{key:Filter;label:string}[]=[{key:'all',label:'All rooms'},{key:'arrival',label:'Arrivals today'},{key:'mine',label:'My tasks'},{key:'vacant',label:'Vacant'},{key:'occupied',label:'Occupied'},{key:'dirty',label:'Cleaning required'},{key:'cleaning',label:'Cleaning'},{key:'service_due',label:'Service due'},{key:'inspection_due',label:'Inspection due'},{key:'ready',label:'Ready'},{key:'blocked',label:'Blocked'},{key:'unverified',label:'Unverified'}];
+const quickFilters=['all','arrival','mine'] as const;
+const metrics=[{key:'all',label:'Total rooms',icon:LayoutGrid,tone:'neutral'},{key:'dirty',label:'Needs cleaning',icon:Brush,tone:'dirty'},{key:'cleaning',label:'In cleaning',icon:Clock3,tone:'cleaning'},{key:'inspection_due',label:'Inspection due',icon:ClipboardCheck,tone:'inspection_due'},{key:'ready',label:'Ready',icon:CheckCircle2,tone:'ready'},{key:'blocked',label:'Blocked',icon:ShieldAlert,tone:'blocked'}] as const;
+const taskLabels={checkout_clean:'Checkout cleaning',stayover:'Stayover service',inspection:'Room inspection'};
+const assignmentLabels={mine:'Assigned to you',other:'Assigned to another staff member',unassigned:'Unassigned'};
+const stageIcons={blocked:ShieldAlert,cleaning:Brush,dirty:Brush,service_due:ClipboardCheck,occupied:UserRound,ready:CheckCircle2,inspection_due:ClipboardCheck,unverified:AlertTriangle};
 function matches(room:HousekeepingBoardRoom,filter:Filter){
  return filter==='all'||(filter==='arrival'?room.arrivalToday:filter==='mine'?room.task?.assignment==='mine':filter==='vacant'?room.occupancy==='vacant':filter==='occupied'?room.occupancy!=='vacant':room.stage===filter);
 }
+const floorLabel=(floor:number|null)=>floor===null?'Floor not set':'Floor '+floor;
+const hotelDate=(date:string)=>new Date(date+'T12:00:00Z').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',year:'numeric',timeZone:'UTC'});
+function RoomCard({room}:{room:HousekeepingBoardRoom}){
+ const StatusIcon=stageIcons[room.stage];
+ return <article className={'hk-rb-room hk-rb-tone-'+room.stage}>
+  <div className="hk-rb-room-top"><div className="hk-rb-room-ident"><span className="hk-rb-room-icon"><BedDouble size={20}/></span><div><h4>Room {room.roomNumber}</h4><small>{room.roomType}</small></div></div>
+   <span className="hk-rb-status"><StatusIcon size={13} aria-hidden="true"/>{boardStageLabel[room.stage]}</span></div>
+  <div className="hk-rb-occupancy"><DoorOpen size={15} aria-hidden="true"/>{room.occupancy==='vacant'?'Vacant in PMS':room.occupancy==='due_for_checkout'?'Due for checkout today':'Occupied in PMS'}</div>
+  {room.arrivalToday&&<div className="hk-rb-notice hk-rb-arrival"><AlertTriangle size={15} aria-hidden="true"/><span>Confirmed arrival today</span></div>}
+  {(room.maintenanceBlocked||room.inventoryBlocked)&&<div className="hk-rb-notice hk-rb-restriction"><ShieldAlert size={15} aria-hidden="true"/><span>{[room.maintenanceBlocked?'Maintenance restriction':null,room.inventoryBlocked?'Inventory restriction':null].filter(Boolean).join(' · ')}</span></div>}
+  {room.task&&<div className="hk-rb-task-info"><ClipboardCheck size={16} aria-hidden="true"/><div><strong>{taskLabels[room.task.type]}</strong><small className={room.task.assignment==='mine'?'hk-rb-mine':''}>{assignmentLabels[room.task.assignment]}</small></div></div>}
+  {room.stage==='unverified'&&<p className="hk-rb-note">Confirm readiness with reception or your manager.</p>}
+  {(room.task||room.maintenanceBlocked)&&<div className="hk-rb-card-actions">
+   {room.task&&<Link to="/housekeeping" search={{task:room.task.id}} className={'hk-rb-action '+(room.task.assignment==='mine'?'hk-rb-action-primary':'')}>{room.task.assignment==='mine'?(room.task.status==='done'?'Open inspection task':'Open my task'):'View task'} <ArrowRight size={15}/></Link>}
+   {room.maintenanceBlocked&&<Link to="/maintenance" className="hk-rb-action"><Wrench size={15}/> View maintenance <ArrowRight size={15}/></Link>}
+  </div>}
+ </article>;
+}
 export function HousekeepingRoomBoard({hotelId,userId,focusRoom}:{hotelId:string;userId:string;focusRoom?:string}){
  const board=useHousekeepingRoomBoard(hotelId,userId);
+ const online=useNetworkStatus();
  const [filter,setFilter]=useState<Filter>('all');
  const [floor,setFloor]=useState('all');
  const [search,setSearch]=useState(focusRoom??'');
  useEffect(()=>{setSearch(focusRoom??'');setFilter('all');setFloor('all');},[focusRoom]);
- const rooms=board.isError?[]:board.data?.data.rooms??[];
+ const rooms=board.isSuccess&&online?board.data.data.rooms:[];
  const floors=useMemo(()=>groupHousekeepingRooms(rooms).map(group=>group.floor),[rooms]);
  const shown=rooms.filter(room=>matches(room,filter)&&(floor==='all'||floor===String(room.floor))&&
   (room.roomNumber.toLowerCase().includes(search.trim().toLowerCase())||room.roomType.toLowerCase().includes(search.trim().toLowerCase())));
  const groups=groupHousekeepingRooms(shown);
  const count=(key:Filter)=>rooms.filter(room=>matches(room,key)).length;
- return <div className="hk-room-board">
-  <div className="hk-board-heading"><Heading title="Room status" description="Review cleaning, PMS occupancy and restrictions by floor."/>
-   <button type="button" className="btn-inline" disabled={board.isFetching} onClick={()=>void board.refetch()}><RefreshCw size={16}/> {board.isFetching?'Refreshing…':'Refresh'}</button></div>
-  {board.isPending&&<p role="status">Loading room status…</p>}
-  {board.isError&&<p role="alert">Room status is unavailable. Refresh to get a current snapshot.</p>}
-  {board.isSuccess&&<><p className="desk-muted">Hotel date {board.data.data.hotelDate} · PMS-recorded occupancy, not physical verification.</p>
-   <div className="hk-board-summary">{(['all','dirty','cleaning','inspection_due','ready','blocked'] as const).map(key=><button type="button" key={key} className={'hk-board-summary-card hk-board-'+key} aria-pressed={filter===key} onClick={()=>setFilter(key)}>
-    <strong>{count(key)}</strong><span>{filters.find(item=>item.key===key)?.label}</span></button>)}</div>
-   <div className="hk-board-controls"><label><Search size={16}/><input type="search" aria-label="Search rooms" placeholder="Room number or type" value={search} onChange={event=>setSearch(event.target.value)}/></label>
-    <label>Floor <select value={floor} onChange={event=>setFloor(event.target.value)}><option value="all">All floors</option>{floors.map(value=><option key={String(value)} value={String(value)}>{value===null?'Floor not set':'Floor '+value}</option>)}</select></label></div>
-   <div className="hk-queue-tabs hk-priority-tabs" role="group" aria-label="Room status filters">{filters.map(item=><button type="button" key={item.key} className={filter===item.key?'active':''} aria-pressed={filter===item.key} onClick={()=>setFilter(item.key)}>{item.label}</button>)}</div>
-   <p className="desk-muted">{shown.length} of {rooms.length} rooms</p>
-   {!shown.length&&<div className="hk-home-empty"><BedDouble size={22}/> No rooms match these filters. <button type="button" className="btn-inline" onClick={()=>{setFilter('all');setFloor('all');setSearch('');}}>Clear filters</button></div>}
-   {groups.map(group=><section key={String(group.floor)} aria-label={group.floor===null?'Floor not set':'Floor '+group.floor}>
-    <h3>{group.floor===null?'Floor not set':'Floor '+group.floor} <small>· {group.rooms.length} rooms</small></h3>
-    <div className="hk-board-grid">{group.rooms.map(room=><article key={room.roomId} className={'hk-board-room hk-board-'+room.stage}>
-     <div className="hk-board-room-head"><h4>Room {room.roomNumber}</h4><span className="hk-board-stage">{boardStageLabel[room.stage]}</span></div>
-     <small>{room.roomType}</small>
-     <span>{room.occupancy==='vacant'?'Vacant in PMS':room.occupancy==='due_for_checkout'?'Due for checkout today':'Occupied in PMS'}</span>
-     {room.arrivalToday&&<span className="hk-board-alert"><AlertTriangle size={15}/> Confirmed arrival today</span>}
-     {room.maintenanceBlocked&&<span>Maintenance restriction</span>}
-     {room.inventoryBlocked&&<span>Inventory restriction</span>}
-     {room.task&&<><small>{room.task.assignment==='mine'?'Assigned to you':room.task.assignment==='unassigned'?'Unassigned':'Assigned to another staff member'} · {room.task.type.replaceAll('_',' ')}</small>
-      <Link to="/housekeeping" search={{task:room.task.id}} className="btn-inline">{room.task.assignment==='mine'?(room.task.status==='done'?'Open inspection task':'Open my task'):'View task'} <ArrowRight size={15}/></Link></>}
-     {room.stage==='blocked'&&room.maintenanceBlocked&&<Link to="/maintenance" className="btn-inline">View maintenance <ArrowRight size={15}/></Link>}
-     {room.stage==='unverified'&&<small>Ask reception or your manager to confirm the next action.</small>}
-    </article>)}</div></section>)}
-   <p className="role-note">Ready means a vacant PMS room with current inspection evidence and no known blockers. It is not a booking availability guarantee.</p>
+ const clear=()=>{setFilter('all');setFloor('all');setSearch('');};
+ const filtered=filter!=='all'||floor!=='all'||!!search.trim();
+ const showData=online&&board.isSuccess;
+ const urgent=rooms.filter(room=>room.arrivalToday&&room.stage!=='ready').length;
+ const activeLabel=filters.find(item=>item.key===filter)?.label;
+ return <div className="hk-room-board hk-rb">
+  <header className="hk-rb-heading"><div><span className="hk-rb-eyebrow">HOUSEKEEPING / ROOM OPERATIONS</span><Heading title="Room status" description="Track room cleaning, readiness and restrictions at a glance."/>
+   {showData&&<p className="hk-rb-date">{hotelDate(board.data.data.hotelDate)} <span aria-hidden="true">·</span> <span className="hk-rb-live-dot"/> Updates every 30 sec</p>}</div>
+   <button type="button" className="hk-rb-refresh" disabled={!online||board.isFetching} onClick={()=>void board.refetch()}><RefreshCw size={17} className={board.isFetching?'hk-rb-spinning':undefined}/> {board.isFetching?'Refreshing…':'Refresh'}</button></header>
+  {!online&&<div className="hk-network-alert" role="status">Offline. Reconnect to view current room status.</div>}
+  {online&&board.isPending&&<div className="hk-rb-message" role="status"><RefreshCw size={21} className="hk-rb-spinning"/> Loading room status…</div>}
+  {online&&board.isError&&<div className="hk-rb-message" role="alert"><AlertTriangle size={21}/><div><strong>Room status unavailable</strong><p>Refresh to get a current snapshot.</p></div><button type="button" className="hk-rb-refresh" disabled={board.isFetching} onClick={()=>void board.refetch()}>Retry</button></div>}
+  {showData&&<>
+   <div className="hk-rb-metrics" aria-label="Room status summary">{metrics.map(({key,label,icon:Icon,tone})=><button type="button" key={key} className={'hk-rb-metric hk-rb-tone-'+tone} aria-pressed={filter===key} onClick={()=>setFilter(key)}>
+    <span className="hk-rb-metric-top"><span className="hk-rb-metric-icon"><Icon size={18}/></span><span className="hk-rb-metric-label">{label}</span></span><strong>{count(key)}</strong>
+    </button>)}</div>
+   {urgent>0&&<div className="hk-rb-urgent"><AlertTriangle size={20}/><div><strong>{urgent} {urgent===1?'arriving room needs':'arriving rooms need'} attention</strong><small>Confirmed arrivals today that are not marked ready.</small></div><button type="button" className="hk-rb-action" onClick={()=>{setFloor('all');setSearch('');setFilter('arrival');}}>View arrivals <ArrowRight size={15}/></button></div>}
+   <section className="hk-rb-toolbar" aria-label="Room filters">
+    <div className="hk-rb-filter-top"><div className="hk-rb-quick" role="group" aria-label="Room status filters">{quickFilters.map(key=><button key={key} type="button" aria-pressed={filter===key} onClick={()=>setFilter(key)}>{filters.find(item=>item.key===key)?.label} <span>{count(key)}</span></button>)}</div>
+    <div className="hk-rb-search"><Search size={17} aria-hidden="true"/><input type="search" aria-label="Search rooms" placeholder="Search room or type" value={search} onChange={event=>setSearch(event.target.value)}/>{search&&<button type="button" aria-label="Clear room search" onClick={()=>setSearch('')}><X size={16}/></button>}</div></div>
+    <div className="hk-rb-filter-bottom">
+     <label className="hk-rb-select"><Layers size={16}/><select aria-label="Floor" value={floor} onChange={event=>setFloor(event.target.value)}><option value="all">All floors</option>{floors.map(value=><option key={String(value)} value={String(value)}>{floorLabel(value)}</option>)}</select><ChevronDown size={15}/></label>
+     <label className="hk-rb-select"><select aria-label="Room status" value={quickFilters.some(key=>key===filter)?'':filter} onChange={event=>setFilter((event.target.value||'all') as Filter)}><option value="">Any room status</option>{filters.filter(item=>!quickFilters.some(key=>key===item.key)).map(item=><option key={item.key} value={item.key}>{item.label}</option>)}</select><ChevronDown size={15}/></label>
+     <span className="hk-rb-result" aria-live="polite">{shown.length} of {rooms.length} rooms{filter!=='all'&&<small> · {activeLabel}</small>}</span>
+     {filtered&&<button type="button" className="hk-rb-clear" onClick={clear}><X size={14}/> Clear filters</button>}
+    </div>
+   </section>
+   {!shown.length&&<div className="hk-rb-message hk-rb-empty"><BedDouble size={27}/><strong>{rooms.length?'No matching rooms':'No rooms registered'}</strong><p>{rooms.length?'Try another floor, room number or status.':'Rooms will appear when configured for this hotel.'}</p>{filtered&&<button type="button" className="hk-rb-refresh" onClick={clear}>Clear filters</button>}</div>}
+   {groups.map(group=><section className="hk-rb-floor" key={String(group.floor)} aria-label={floorLabel(group.floor)}>
+    <div className="hk-rb-floor-head"><span className="hk-rb-floor-icon"><Layers size={17}/></span><h3>{floorLabel(group.floor)}</h3><span className="hk-rb-floor-count">{group.rooms.length} {group.rooms.length===1?'room':'rooms'}</span><span className="hk-rb-floor-line"/></div>
+    <div className="hk-rb-grid">{group.rooms.map(room=><RoomCard key={room.roomId} room={room}/>)}</div>
+   </section>)}
+   <footer className="hk-rb-footnote"><ShieldAlert size={16}/><span>Occupancy reflects PMS records, not physical verification. Ready means vacant with current inspection evidence and no known blockers; it is not a booking availability guarantee.</span></footer>
   </>}
  </div>;
 }

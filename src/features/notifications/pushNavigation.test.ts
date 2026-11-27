@@ -62,3 +62,11 @@ it('does not allow encoded or malformed push markers to bypass administrator aut
  expect(requestedNotificationHotel('/billing','?hotel=1&booking=9&push=%221%22',hotels)).toBe('1');
  expect(requestedNotificationHotel('/billing','?hotel=1&booking=9&push=0',hotels)).toBeNull();
 });
+
+it('validates found-item push links and preserves administrator authorization',()=>{
+ const hotels=[{id:'1',role:'admin'},{id:'2',role:'housekeeping'}];
+ expect(requestedNotificationHotel('/lost-found','?hotel=1&item=7&push=1',hotels)).toBe('1');
+ expect(requestedNotificationHotel('/lost-found','?hotel=2&item=7&push=1',hotels)).toBeNull();
+ expect(requestedNotificationHotel('/lost-found','?hotel=1&item=7&item=8&push=1',hotels)).toBeNull();
+ expect(requestedNotificationHotel('/lost-found','?hotel=1&item=bad&push=1',hotels)).toBeNull();
+});

@@ -41,3 +41,9 @@ describe('push-only service worker',()=>{
   }
  });
 });
+
+it('routes a found-item alert through the safe push worker',async()=>{
+ const w=worker();
+ await w.dispatch('push',{data:{json:()=>({url:'/lost-found?hotel=1&item=7'})}});
+ expect(w.showNotification).toHaveBeenCalledWith('Friendship On Hotel PMS',expect.objectContaining({data:{url:'/lost-found?hotel=1&item=7&push=1'}}));
+});

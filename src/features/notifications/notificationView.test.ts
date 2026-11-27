@@ -16,3 +16,10 @@ describe('notification center',()=>{
   expect(priorityFor('payment_verified')).toBe(0);
  });
 });
+
+it('prioritizes urgent arrivals and actionable housekeeping assignments',()=>{
+ expect(priorityFor('hk_arrival_urgent')).toBe(2);
+ expect(priorityFor('hk_assigned')).toBe(1);
+ expect(priorityFor('hk_overdue')).toBe(1);
+ expect(groupFor('lost_found_registered')).toBe('Operations');
+});

@@ -63,3 +63,44 @@
 .messenger-back{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:8px;margin-bottom:10px}
 @media(min-width:768px){.messenger-back{display:none}}
 @media(max-width:767px){.messenger-mode-row label{flex:1 1 135px}.messenger-recipient{min-height:52px}.messenger-filter button{min-height:36px}.messenger-heading h2{font-size:1.2rem}}
+
+/* Progressive disclosure keeps ordinary chat uncluttered. */
+.messenger-thread-search summary,.messenger-options summary{cursor:pointer;font-size:.8rem;color:inherit;padding:8px 0}
+@media(max-width:767px){
+ .staff-messenger{padding:8px;min-width:0}
+ .messenger-heading{margin-bottom:8px;flex-wrap:nowrap}
+ .messenger-heading p{display:none}
+ .messenger-heading .btn-primary{min-height:44px;font-size:12px;white-space:nowrap}
+ .messenger-layout{border:0;border-radius:0;overflow:visible}
+ .messenger-inbox{padding:0}
+ .staff-messenger.is-chat .messenger-inbox,.staff-messenger.is-compose .messenger-inbox{display:none}
+ .staff-messenger.is-chat .messenger-heading,.staff-messenger.is-compose .messenger-heading{display:none}
+ .messenger-search{margin-bottom:8px;min-height:44px;padding:6px 10px}
+ .staff-messenger input,.staff-messenger textarea,.staff-messenger select{font-size:16px}
+ .messenger-toolbar{margin-bottom:6px}
+ .messenger-filter button{min-height:40px}
+ .messenger-conversation{padding:10px 6px;margin:0;border-radius:0;border-bottom:1px solid var(--border,#dbe2ea);min-height:68px}
+ .messenger-preview-time{margin-top:2px}
+ .messenger-thread{padding:0}
+ .messenger-back{min-height:44px;margin-bottom:4px;border:0;padding:4px 6px}
+ .messenger-thread-heading{gap:8px;padding-bottom:8px;margin-bottom:0}
+ .messenger-thread-heading h3{font-size:16px}
+ .messenger-thread-heading .messenger-avatar{flex-basis:34px;height:34px}
+ .messenger-history{height:clamp(180px,calc(100dvh - 310px),620px);padding:8px;gap:7px;border-radius:8px}
+ .messenger-bubble{max-width:88%;padding:7px 10px}
+ .messenger-bubble p{margin:3px 0}
+ .messenger-bubble .messenger-meta{margin-top:3px}
+ .messenger-bubble .messenger-meta button{min-height:32px}
+ .messenger-options summary,.messenger-thread-search summary{min-height:36px;padding:9px 2px}
+ .messenger-mode-row{margin-top:4px}
+ .messenger-composer{position:sticky;bottom:env(safe-area-inset-bottom,0px);z-index:5;background:var(--surface,#fff);grid-template-columns:44px 44px minmax(0,1fr) 44px;gap:3px;padding:4px;margin-top:6px}
+ .messenger-composer .icon-btn{min-width:44px;min-height:44px;padding:0}
+ .messenger-composer .messenger-draft{grid-column:3;grid-row:auto;min-height:44px;max-height:100px;resize:none;padding:8px 3px}
+ .messenger-composer .btn-primary{grid-column:4;min-width:44px;min-height:44px;padding:0;justify-content:center}
+ .messenger-send-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+ .messenger-composer-meta{margin-top:2px}
+ .messenger-directory{max-height:50dvh}
+ .messenger-recipient{padding:8px;min-height:52px}
+}
+
+@media(max-width:767px){.messenger-keyboard-hint{display:none}}

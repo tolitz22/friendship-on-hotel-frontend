@@ -44,7 +44,23 @@ for(const width of [320,390,430,1280]){
    expect((await row.boundingBox())!.height).toBeLessThan(170);
    await expect(row.getByRole('link',{name:/Review check-in/})).toBeVisible();
    const newBooking=desk.getByRole('link',{name:'New booking',exact:true});
-   expect(await newBooking.evaluate(el=>getComputedStyle(el).position)).not.toBe('fixed');
+   await expect(newBooking).toBeInViewport();
+   expect(await newBooking.evaluate(el=>getComputedStyle(el).position)).toBe('fixed');
+   const bookingBefore=await newBooking.boundingBox();
+   const bottomNav=await page.getByRole('navigation',{name:'Front desk mobile navigation'}).boundingBox();
+   expect(bookingBefore!.height).toBeGreaterThanOrEqual(44);
+   expect(bookingBefore!.y+bookingBefore!.height).toBeLessThanOrEqual(bottomNav!.y-4);
+   // A longer real queue should scroll underneath the fixed action. Its final
+   // row must be able to scroll fully above the button and bottom navigation.
+   await desk.getByRole('region',{name:'Departures',exact:true}).evaluate(el=>{(el as HTMLElement).style.minHeight='1200px';});
+   await page.evaluate(()=>window.scrollTo(0,document.documentElement.scrollHeight));
+   await expect(newBooking).toBeInViewport();
+   const bookingAfter=await newBooking.boundingBox();
+   expect(Math.abs(bookingAfter!.y-bookingBefore!.y)).toBeLessThanOrEqual(1);
+   const lastSection=await desk.getByRole('region',{name:'Departures',exact:true}).boundingBox();
+   expect(lastSection!.y+lastSection!.height).toBeLessThanOrEqual(bookingAfter!.y);
+   await desk.getByRole('region',{name:'Departures',exact:true}).evaluate(el=>{(el as HTMLElement).style.removeProperty('min-height');});
+   await page.evaluate(()=>window.scrollTo(0,0));
    await expect(page.locator('.topbar .hk-mobile-brand')).toBeVisible();
    await expect(page.getByRole('button',{name:'Open navigation'})).toBeVisible();
   }

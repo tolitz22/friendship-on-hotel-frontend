@@ -508,7 +508,7 @@ export function LiveHousekeeping(){
        <progress max={selected.checklist.length} value={form.checkedItems.length} aria-label="Cleaning checklist progress"/>
        <div className="hk-editor-checklist">
         {selected.checklist.map(item=><label key={item.key} className="hk-editor-check">
-         <input type="checkbox" checked={form.checkedItems.includes(item.key)} disabled={!maySave||saving||selected.status==='done'}
+         <input type="checkbox" checked={form.checkedItems.includes(item.key)} disabled={!maySave||saving||selected.status!=='in_progress'}
           onChange={event=>{
            const checked=event.target.checked;
            setForm(old=>old?{...old,checkedItems:checked?[...old.checkedItems,item.key]:old.checkedItems.filter(key=>key!==item.key)}:old);
@@ -521,7 +521,7 @@ export function LiveHousekeeping(){
       </>}
       {selected.type!=='inspection'&&!selected.checklist?.length&&<p role="status">Checklist unavailable. Reopen the task to load it before completing cleaning.</p>}
       {selected.status!=='done'&&selected.type!=='inspection'&&maySave&&
-       <p className="hk-workspace-note">Check every item to enable Complete cleaning.</p>}
+       <p className="hk-workspace-note">{selected.status==='todo'?'Start cleaning to unlock the checklist.':'Check every item to enable Complete cleaning.'}</p>}
      </section>}
      {maySave&&<div className={'hk-editor-fields'+(minimalEditor?' hk-task-note':'')}>
       <label>Handover note<textarea rows={2} maxLength={2000} disabled={saving} value={form.note}

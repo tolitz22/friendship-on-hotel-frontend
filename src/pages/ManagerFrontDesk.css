@@ -32,3 +32,38 @@
 @media(max-width:1250px){.mdesk-layout{grid-template-columns:minmax(0,1fr)}.mdesk-rail{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:900px){.mdesk-panels{grid-template-columns:minmax(0,1fr)}.mdesk-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:760px){.mdesk-heading h2{font-size:25px}.mdesk-overdue{flex-wrap:wrap}.mdesk-overdue>span{flex-basis:100%}.mdesk-rail{grid-template-columns:minmax(0,1fr)}.mdesk-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.mdesk-table{min-width:470px}.mdesk-action,.mdesk-text-button,.mdesk-pagination button{min-height:44px}.mdesk-search input{font-size:16px}}
+
+/* Compact manager-only mobile workspace; desktop and reception stay unchanged. */
+@media(max-width:767px){
+ .mdesk{gap:8px;padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))}
+ .mdesk-heading h2{font-size:23px}
+ .mdesk-heading p{font-size:12px;line-height:1.35}
+ .mdesk>.fdc-date-strip{padding:8px;gap:5px}
+ .mdesk .desk-date-nav{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:5px;width:100%}
+ .mdesk .desk-date-nav>label{grid-column:1/-1;min-width:0;width:100%}
+ .mdesk .desk-date-nav input{min-width:0;width:100%}
+ .mdesk .desk-date-nav>button{min-height:44px}
+ .mdesk-overdue{padding:6px 9px;gap:6px;flex-wrap:nowrap}
+ .mdesk-overdue>strong{flex:1;min-width:0;font-size:13px}
+ .mdesk-overdue>span{display:none}
+ .mdesk-overdue>svg{width:18px}
+ .mdesk-overdue>.mdesk-action{font-size:11px;padding-inline:6px}
+ .mdesk-layout,.mdesk-main,.mdesk-rail,.mdesk-panels{gap:8px}
+ .mdesk-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+ .mdesk-metric{min-height:48px;padding:6px 8px;gap:6px}
+ .mdesk-metric>span{display:flex;align-items:center;justify-content:space-between;flex:1;gap:4px}
+ .mdesk-metric small{font-size:11px}
+ .mdesk-metric strong{font-size:20px}
+ .mdesk-metric:last-child{grid-column:1/-1}
+ .mdesk-panel-head{padding:6px 10px}
+ .mdesk-table-wrap{overflow:visible;padding:0 8px 8px}
+ .mdesk-table{min-width:0;width:100%;display:block}
+ .mdesk-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+ .mdesk-table tbody{display:grid;gap:6px}
+ .mdesk-table tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 8px;padding:8px;border-bottom:1px solid var(--border)}
+ .mdesk-table td{display:block;border:0;padding:2px;min-width:0}
+ .mdesk-table td:first-child,.mdesk-table td:last-child{grid-column:1/-1}
+ .mdesk-table .mdesk-reference{max-width:none}
+ .mdesk-row-actions{justify-items:stretch}
+ .mdesk-quick-body>.mdesk-new-booking{position:fixed;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:12px;right:88px;z-index:30;min-height:48px;justify-content:center;font-size:14px;box-shadow:0 4px 16px #0003}
+}

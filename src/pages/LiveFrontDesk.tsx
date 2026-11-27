@@ -254,9 +254,9 @@ export function LiveFrontDesk(){
    </div>
    <aside className="mdesk-rail">
     <section className="mdesk-panel mdesk-quick" aria-label="Quick actions"><header className="mdesk-panel-head"><h3><Zap size={20}/>Quick actions</h3></header><div className="mdesk-quick-body">
-     <Link className="mdesk-action primary" to="/reservations" search={{mode:'new',checkIn:date>=hotelDate?date:hotelDate}}><Plus size={17}/> New booking</Link>
+     {canCreate&&<Link className="mdesk-action primary mdesk-new-booking" to="/reservations" search={{mode:'new',checkIn:date>=hotelDate?date:hotelDate}}><Plus size={17}/> New booking</Link>}
      <button type="button" className="mdesk-action" onClick={()=>selectQueue('in_house')}><Clock3 size={17}/> Extend stay</button>
-     <Link className="mdesk-action" to="/reservations" search={{mode:'new',checkIn:hotelDate}}><UserPlus size={17}/> Walk-in booking</Link>
+     {canCreate&&<Link className="mdesk-action" to="/reservations" search={{mode:'new',checkIn:hotelDate}}><UserPlus size={17}/> Walk-in booking</Link>}
      <Link className="mdesk-action" to="/rooms"><BedDouble size={17}/> Open room rack</Link>
      <Link className="mdesk-action" to="/reservations"><List size={17}/> Open bookings list</Link>
     </div></section>

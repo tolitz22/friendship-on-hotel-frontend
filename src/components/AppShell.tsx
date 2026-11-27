@@ -172,7 +172,7 @@ export function AppShell(){
    <Icon size={18} aria-hidden="true"/><span>{dataMode==='api'&&role==='housekeeping'?(to==='/'?'My dashboard':to==='/housekeeping'?'My tasks':to==='/rooms'?'Room status':label):label}{to==='/messages'&&unreadMessages>0?' ('+unreadMessages+')':''}</span>
   </Link>);
 
- return <div className="app-layout">
+ return <div className={'app-layout'+(dataMode==='api'&&role==='housekeeping'?' housekeeping-shell':'')}>
   {open&&<div className="mobile-overlay" aria-hidden="true" onClick={closeNavigation}/>}
   <aside id="workspace-sidebar" className={'sidebar'+(open?' sidebar-open':'')}
    role={open?'dialog':undefined} aria-modal={open||undefined}

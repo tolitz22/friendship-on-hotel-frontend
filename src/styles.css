@@ -4377,3 +4377,49 @@ dialog.no-show-dialog::backdrop { background: rgb(0 0 0 / 45%); }
 
 /* Housekeeping task metadata is informational, not a disabled input. */
 .hk-task-detail{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:6px;min-width:0;padding:2px 0 8px;border-bottom:1px solid var(--border)}.hk-task-detail-label{font-size:12px;font-weight:600;color:var(--muted);line-height:1.4}.hk-task-detail-value{font-size:14px;font-weight:600;color:var(--text);line-height:1.5;overflow-wrap:anywhere}.hk-mobile-task-editor .guest-fields>.hk-task-detail{align-self:stretch}
+
+/* Phone-first housekeeping: put the next room ahead of navigation chrome. */
+.hk-dash-refresh,.hk-dash-section-head .btn-inline{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.hk-dash-check-progress progress{appearance:none;border:0;border-radius:999px;overflow:hidden;background:var(--border)}
+.hk-dash-check-progress progress::-webkit-progress-bar{background:var(--border)}
+.hk-dash-check-progress progress::-webkit-progress-value{background:var(--accent);border-radius:999px}
+.hk-dash-check-progress progress::-moz-progress-bar{background:var(--accent);border-radius:999px}
+@media(max-width:767px){
+ .housekeeping-shell .topbar{padding:6px 12px;row-gap:4px;min-height:0}
+ .housekeeping-shell .topbar .hotel-context-select{gap:8px;font-size:11px}
+ .housekeeping-shell .topbar .hotel-context-select select{border:0;background:var(--canvas);height:44px;padding-block:6px}
+ .housekeeping-shell .workflow-shortcuts{display:none}
+ .housekeeping-shell .page-content{padding-top:12px}
+ .housekeeping-shell .hk-dash-header{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:8px;align-items:center}
+ .housekeeping-shell .hk-dash-title{font-size:20px;font-weight:700;letter-spacing:-.025em}
+ .housekeeping-shell .hk-dash-eyebrow{font-size:10px;letter-spacing:.025em;margin-bottom:4px}
+ .housekeeping-shell .hk-dash-refresh{width:44px;height:44px;padding:0}
+ .housekeeping-shell .hk-dash-refresh span{display:none}
+ .housekeeping-shell .hk-dash-main{gap:10px}
+ .housekeeping-shell .hk-dash-section{padding:12px;gap:8px;border-radius:12px}
+ .housekeeping-shell .hk-dash-section-head{align-items:center;flex-wrap:nowrap;gap:8px}
+ .housekeeping-shell .hk-dash-section-head h2{font-size:15px;font-weight:700}
+ .housekeeping-shell .hk-dash-section-head .btn-inline{padding:6px 8px;font-size:12px;border:0;background:transparent;flex-shrink:0}
+ .housekeeping-shell .hk-dash-next{padding:0;border:0;border-radius:0;background:transparent;gap:9px}
+ .housekeeping-shell .hk-dash-next .hk-dash-room-icon{display:none}
+ .housekeeping-shell .hk-dash-next h3{font-size:28px;font-weight:750;line-height:1.2}
+ .housekeeping-shell .hk-dash-task-top small{font-size:12px}
+ .housekeeping-shell .hk-dash-task-meta{font-size:12px;gap:6px 12px}
+ .housekeeping-shell .hk-dash-task-action{min-height:48px;font-size:14px;border-radius:10px}
+ .housekeeping-shell .hk-dash-details{min-height:44px;font-size:13px}
+ .housekeeping-shell .hk-dash-metrics{gap:8px}
+ .housekeeping-shell .hk-dash-metric{grid-template-columns:1fr auto;align-items:center;padding:10px;gap:3px 8px}
+ .housekeeping-shell .hk-dash-metric-heading{grid-column:2;grid-row:1/3}
+ .housekeeping-shell .hk-dash-metric-heading>svg{display:none}
+ .housekeeping-shell .hk-dash-metric>strong{grid-column:1;grid-row:1;font-size:23px}
+ .housekeeping-shell .hk-dash-metric>span:not(.hk-dash-metric-heading){grid-column:1;grid-row:2;font-size:12px}
+ .housekeeping-shell .hk-dash-done-count{font-size:12px}
+ .housekeeping-shell .hk-workspace-intro{margin-bottom:12px}
+ .housekeeping-shell .hk-workspace-intro h2{font-size:22px}
+ .housekeeping-shell .hk-work-views{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+ .housekeeping-shell .hk-work-views button{padding-inline:5px}
+ .housekeeping-shell .hk-work-card{padding:12px}
+ .housekeeping-shell .hk-card-footer button{width:100%;min-height:48px}
+ .housekeeping-shell .hk-shift-header h2{font-size:22px}
+ .housekeeping-shell .hk-shift-header>button{flex:0 1 auto;display:inline-flex;align-items:center;gap:6px}
+}

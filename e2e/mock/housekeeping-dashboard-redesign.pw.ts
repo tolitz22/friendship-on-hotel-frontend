@@ -30,6 +30,15 @@ for(const width of [320,390,1280]){
   await expect(home.getByRole('link',{name:/My active tasks/})).toHaveAttribute('href',/mine=true/);
   await expect(home.getByRole('link',{name:/Lost & found/})).toBeVisible();
   expect(await home.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBeTruthy();
+  if(width<768){
+   await page.evaluate(()=>window.scrollTo(0,0));
+   const action=await home.getByRole('button',{name:'Start cleaning'}).boundingBox();
+   expect(action).not.toBeNull();
+   expect(action!.height).toBeGreaterThanOrEqual(48);
+   expect(action!.y+action!.height).toBeLessThan(600);
+   await expect(page.getByRole('button',{name:'Refresh assignments'})).toBeVisible();
+   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+  }
   expect(writes).toBe(0);
  });
 }

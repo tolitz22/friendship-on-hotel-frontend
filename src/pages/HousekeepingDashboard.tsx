@@ -85,7 +85,7 @@ export function HousekeepingDashboard(){
  return <div className="hk-home hk-dash">
   <header className="hk-dash-header"><div><span className="hk-dash-eyebrow"><CalendarDays size={15}/> {data?dateLabel(data.hotelDate):'Housekeeping operations'}</span>
    <h2 className="hk-dash-title">Housekeeping workspace</h2></div>
-   <button type="button" className="btn-inline" disabled={!online||busy} onClick={refresh}><RefreshCcw size={16}/>{busy?'Refreshing…':'Refresh'}</button>
+   <button type="button" className="btn-inline hk-dash-refresh" aria-label={busy?'Refreshing assignments':'Refresh assignments'} disabled={!online||busy} onClick={refresh}><RefreshCcw size={16}/><span>{busy?'Refreshing…':'Refresh'}</span></button>
   </header>
   {!online&&<div className="hk-network-alert" role="status"><WifiOff size={18}/> Offline. Reconnect to see current assignments. No changes are submitted.</div>}
   {dashboard.isError&&online&&<div className="hk-dash-feedback" role="alert"><AlertTriangle size={20}/><div><strong>Assignments unavailable</strong><p>Refresh to get current tasks, or open My tasks.</p></div><button type="button" className="btn-inline" onClick={refresh}>Retry</button></div>}

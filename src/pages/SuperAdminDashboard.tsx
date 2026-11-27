@@ -1,6 +1,6 @@
 import {useEffect,useState,type FormEvent,type KeyboardEvent} from 'react';
 import {useQuery} from '@tanstack/react-query';
-import {Activity,AlertTriangle,Clock3,Globe2,LogOut,Moon,RefreshCw,Search,ShieldCheck,Sun,Terminal,Server,LayoutDashboard,HeartPulse,Cpu,ScrollText,ArrowRight} from 'lucide-react';
+import {Activity,AlertTriangle,Clock3,Globe2,LogOut,Moon,RefreshCw,Search,ShieldCheck,Sun,Terminal,Server,LayoutDashboard,HeartPulse,Cpu,ScrollText,ArrowRight,Building2} from 'lucide-react';
 import {useHotelAuth} from '../components/AuthProvider';
 import {useTheme} from '../components/ThemeProvider';
 import {fetchPlatformMonitoring,fetchPlatformMetrics,type MonitoringEvent} from '../api/platformMonitoring';
@@ -11,6 +11,7 @@ import {ApiError} from '../api/http';
 import {isMonitoringActivity,monitoringRequestIds} from '../features/monitoring/activity';
 import {PlatformHealthPanel} from '../components/PlatformHealthPanel';
 import {PlatformWorkersPanel} from '../components/PlatformWorkersPanel';
+import {PlatformHotelsPanel} from '../components/PlatformHotelsPanel';
 import {monitoringTabs,monitoringQueryScope,nextMonitoringTab,type MonitoringTab} from '../features/monitoring/tabs';
 
 const tabDetails={
@@ -28,8 +29,10 @@ const matches=(e:MonitoringEvent,k:Kind,monitoring:boolean)=>k==='all'||(k==='mo
 export function SuperAdminDashboard(){
  const {user,signOut,pending}=useHotelAuth();
  const {theme,toggle}=useTheme();
+ const [module,setModule]=useState<'monitoring'|'hotels'>('monitoring');
  const [tab,setTab]=useState<MonitoringTab>('overview');
- const scope=monitoringQueryScope(tab);
+ const activeScope=monitoringQueryScope(tab);
+ const scope=module==='monitoring'?activeScope:{metrics:false,events:false,health:false,workers:false};
  const logView=scope.metrics||scope.events;
  const selectTab=(next:MonitoringTab)=>setTab(next);
  const onTabKey=(e:KeyboardEvent<HTMLButtonElement>)=>{const next=nextMonitoringTab(tab,e.key);if(next){e.preventDefault();selectTab(next);document.getElementById('platform-tab-'+next)?.focus();}};
@@ -85,7 +88,11 @@ export function SuperAdminDashboard(){
   <header className="platform-header"><div className="platform-brand"><span className="platform-mark"><ShieldCheck size={23}/></span><div><strong>Friendship On Hotel</strong><small>SUPER ADMIN · PRIVATE WORKSPACE</small></div></div>
    <div className="platform-account"><span className="platform-user">{user?.name}</span><button className="icon-btn" aria-label="Toggle theme" onClick={toggle}>{theme==='light'?<Moon size={17}/>:<Sun size={17}/>}</button><button className="btn-inline platform-signout" disabled={pending} onClick={()=>void signOut()}><LogOut size={16}/> Sign out</button></div>
   </header>
+  <div className="platform-workspace">
+   <aside className="platform-sidebar"><nav aria-label="Super admin modules"><span className="platform-nav-label">Workspace</span><button type="button" aria-current={module==='monitoring'?'page':undefined} onClick={()=>setModule('monitoring')}><Activity size={18}/> System monitoring</button><span className="platform-nav-label">Customers</span><button type="button" disabled={false} aria-current={module==='hotels'?'page':undefined} onClick={()=>setModule('hotels')}><Building2 size={18}/> Hotels</button></nav></aside>
   <main className="platform-main">
+   {module==='hotels'&&user&&<PlatformHotelsPanel key={user.id} userId={user.id}/>}
+   <div hidden={module!=='monitoring'} className="platform-monitoring-module">
    <div className="platform-title"><div><span className="eyebrow">PLATFORM OPERATIONS</span><h1>System monitoring</h1><p>{tabDetails[tab].description}</p></div>{logView&&<button className="btn-primary" disabled={settling||cooling||refreshUntil>0||activeQuery.isFetching} onClick={()=>{setRefreshUntil(Date.now()+30000);void activeQuery.refetch({cancelRefetch:false});}}><RefreshCw size={16} className={activeQuery.isFetching?'platform-spin':''}/> Refresh</button>}</div>
    <div className="platform-tabs" role="tablist" aria-label="Monitoring sections">{monitoringTabs.map(id=>{const {label,Icon}=tabDetails[id];return <button key={id} type="button" role="tab" id={'platform-tab-'+id} aria-selected={tab===id} aria-controls={'platform-panel-'+id} tabIndex={tab===id?0:-1} onClick={()=>selectTab(id)} onKeyDown={onTabKey}><Icon size={17}/><span>{label}</span></button>;})}</div>
    <div role="tabpanel" id="platform-panel-health" aria-labelledby="platform-tab-health" hidden={!scope.health}>{user&&<PlatformHealthPanel key={user.id} userId={user.id} active={scope.health}/>}</div>
@@ -120,7 +127,9 @@ export function SuperAdminDashboard(){
         <section className="panel"><div className="panel-title"><h3>Slow API routes</h3><small>Recent sample only</small></div>{!summary?<p className="empty-state">Recent event sample unavailable.</p>:summary.slowRoutes.length===0?<p className="empty-state">No request duration records in this sample.</p>:<div className="platform-routes">{summary.slowRoutes.map(r=><div key={r.route}><span className="platform-route">{r.route}<small>{r.count} requests · max {r.max} ms</small></span><strong>{r.average} ms</strong></div>)}</div>}</section>
    </>}
    </div>}
-   <footer className="platform-footer"><ShieldCheck size={15}/> Read-only platform diagnostics · No hotel operations or financial records are modified.</footer>
+   </div>
+   <footer className="platform-footer"><ShieldCheck size={15}/> Private platform workspace · Hotel operations remain isolated.</footer>
   </main>
+  </div>
  </div>;
 }

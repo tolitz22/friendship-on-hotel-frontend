@@ -95,9 +95,9 @@ export function HousekeepingDashboard(){
     <span className="hk-dash-metric-heading"><span className="hk-dash-metric-icon"><Icon size={19}/></span><ArrowRight size={15}/></span>
     <strong>{value??'—'}</strong><span>{label}</span><small>{description}</small></Link>)}
   </div>
-  <div className="hk-dash-activity"><div className="hk-dash-activity-icon"><CheckCircle2 size={23}/></div><div><strong>{summary?.completedToday??'—'} tasks completed today</strong><small>Recorded task completions · not a room-ready count</small></div><Link to="/housekeeping" search={{status:'done'}} className="btn-inline">Completed tasks <ArrowRight size={15}/></Link></div>
+  <div className="hk-dash-activity"><div className="hk-dash-activity-icon"><CheckCircle2 size={23}/></div><div><strong>{summary?.completedToday??'—'} tasks completed today</strong><small>Recorded task completions · not a room-ready count</small></div><Link to="/housekeeping" search={{status:'done'}} className="btn-inline">All completed tasks <ArrowRight size={15}/></Link></div>
   <div className="hk-dash-layout">
-   <main className="hk-dash-main">
+   <div className="hk-dash-main">
     <section className="hk-dash-section" aria-labelledby="hk-next-title">
      <div className="hk-dash-section-head"><div><span className="hk-dash-eyebrow">NEXT ACTION</span><h2 id="hk-next-title">Your next room</h2><p>Arrivals first, then overdue and ongoing tasks.</p></div><Link to="/housekeeping" search={{queue:'active'}} className="btn-inline">All active tasks <ArrowRight size={15}/></Link></div>
      {dashboard.isPending&&online&&<p role="status">Loading your assigned tasks…</p>}
@@ -112,7 +112,7 @@ export function HousekeepingDashboard(){
      <div className="hk-dash-task-list">{data.tasks.slice(1,5).map(task=><article className={'hk-dash-task hk-dash-task-'+task.priority} key={task.id}>{taskDetails(task)}{renderAction(task)}</article>)}</div>
      {data.activeTotal>5&&<Link to="/housekeeping" search={{queue:'active'}} className="hk-dash-more">View all {data.activeTotal} active tasks <ArrowRight size={15}/></Link>}
     </section>}
-   </main>
+   </div>
    <aside className="hk-dash-side">
     <section className="hk-dash-section" aria-labelledby="hk-inspect-title">
      <div className="hk-dash-section-head"><div><h2 id="hk-inspect-title">Final inspections</h2><p>Finish readiness checks after cleaning.</p></div><span className="hk-dash-count">{pending?.meta.total??'—'}</span></div>

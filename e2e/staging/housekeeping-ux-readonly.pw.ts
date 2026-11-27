@@ -11,7 +11,7 @@ async function openHousekeeping(page:Page,mobile=false){
  await page.getByRole('button',{name:'Sign in',exact:true}).click();
  await expect(page.locator('.workspace-nav, .auth-hotel-list').first()).toBeVisible();
  if(await page.locator('.auth-hotel-list').isVisible())await page.locator('.auth-hotel-list button').first().click();
- if(mobile)await page.getByRole('button',{name:'Open navigation'}).click();
+ if(mobile)await page.getByRole('navigation',{name:'Housekeeping mobile navigation'}).getByRole('button',{name:'Profile'}).click();
  await page.getByRole('navigation',{name:'Hotel workspace navigation'})
   .getByRole('link',{name:'Housekeeping',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Housekeeping',exact:true})).toBeVisible();

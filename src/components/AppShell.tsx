@@ -92,6 +92,7 @@ export function AppShell(){
  const workspace=navigationForRole(role);
  const admin=role==='admin';
  const housekeepingMobile=dataMode==='api'&&role==='housekeeping';
+ const selectedHotelName=user?.hotels.find(h=>h.id===hotelId)?.name??'Hotel';
  const mobileTabs=[{to:'/' as const,label:'Home',icon:Home},{to:'/housekeeping' as const,label:'Tasks',icon:ClipboardCheck},{to:'/rooms' as const,label:'Rooms',icon:BedDouble},{to:'/messages' as const,label:'Messages',icon:MessageCircle}].filter(item=>canViewWorkspacePath(role,item.to,effectivePermissions));
  const canMessage=dataMode==='api'&&!!user&&!!hotelId&&!user.mustChangePassword&&canViewWorkspacePath(role,'/messages',effectivePermissions);
  const showMessageShortcut=canMessage&&pathname!=='/messages'&&!open;
@@ -129,7 +130,7 @@ export function AppShell(){
    closeNavigation();
   }
   if(event.key==='Tab'){
-   const controls=event.currentTarget.querySelectorAll<HTMLElement>('button, a[href]');
+   const controls=Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], select:not(:disabled)')).filter(control=>control.getClientRects().length>0);
    const first=controls[0];
    const last=controls[controls.length-1];
    const boundary=event.shiftKey?first:last;
@@ -213,6 +214,11 @@ export function AppShell(){
     </>}
    </nav>
    {housekeepingMobile&&<div className="hk-mobile-account-actions">
+    <div className="hk-profile-property"><span>Current hotel</span>
+     {user&&user.hotels.length>1?<select aria-label="Switch hotel" value={hotelId??''} disabled={pending} onChange={event=>selectHotel(event.target.value)}>
+      {user.hotels.map(h=><option key={h.id} value={h.id}>{h.name}</option>)}
+     </select>:<strong>{selectedHotelName}</strong>}
+    </div>
     <button type="button" onClick={toggle} className="nav-link">{theme==='light'?<Moon size={18}/>:<Sun size={18}/>} {theme==='light'?'Dark mode':'Light mode'}</button>
     <button type="button" onClick={()=>void signOut()} disabled={pending} className="nav-link"><LogOut size={18}/> Sign out</button>
    </div>}
@@ -224,6 +230,7 @@ export function AppShell(){
   </aside>
   <main className={'main-area'+(showMessageShortcut?' has-message-shortcut':'')+(housekeepingMobile?' hk-bottom-nav-shell':'')+(housekeepingMobile&&pathname==='/'?' hk-minimal-home-shell':'')} inert={open}>
    <header className="topbar">
+    {housekeepingMobile&&<div className="hk-mobile-brand"><span className="hk-mobile-brand-mark" aria-hidden="true"><Hotel size={22}/></span><span className="hk-mobile-brand-name">{selectedHotelName}</span></div>}
     <div className="topbar-left">
      <button ref={menuButton} className="icon-btn mobile-menu" type="button" onClick={()=>{menuTrigger.current='header';setOpen(true);}}
       aria-label="Open navigation" aria-haspopup="dialog" aria-expanded={open} aria-controls="workspace-sidebar"><Menu size={20}/></button>

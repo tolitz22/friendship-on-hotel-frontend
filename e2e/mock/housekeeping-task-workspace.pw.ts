@@ -171,7 +171,7 @@ for (const width of [320, 390, 430, 768, 1440]) {
   await expect(card(page, 201)).toContainText('Arrival today');
   await expect(card(page, 202)).toContainText('Demo Teammate');
   if (width < 768) {
-   await page.getByRole('button', { name: 'Open navigation' }).click();
+   await page.getByRole('navigation',{name:'Housekeeping mobile navigation'}).getByRole('button',{name:'Profile'}).click();
    await page.getByRole('link', { name: 'My tasks', exact: true }).click();
   }
   if(width<768){

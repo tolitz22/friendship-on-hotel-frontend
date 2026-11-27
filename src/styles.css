@@ -4185,3 +4185,22 @@ dialog.no-show-dialog::backdrop { background: rgb(0 0 0 / 45%); }
 .hk-checklist-item input[type=checkbox]{width:20px;height:20px;flex:0 0 20px;accent-color:#15803d;margin:1px 0}
 .hk-checklist-item span{display:grid;gap:4px}
 .hk-checklist-item small{font-size:.75rem;font-weight:400}
+
+/* HK-05 — room-only housekeeping board */
+.hk-room-board{display:grid;gap:16px;min-width:0}
+.hk-board-heading,.hk-board-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.hk-board-summary,.hk-board-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px}
+.hk-board-summary-card,.hk-board-room{border:1px solid #cbd5e1;border-left:4px solid #94a3b8;border-radius:12px;padding:14px;display:grid;gap:8px;min-width:0;text-align:left;background:transparent;color:inherit}
+.hk-board-summary-card{cursor:pointer;min-height:70px}
+.hk-board-summary-card strong{font-size:1.5rem}
+.hk-board-summary-card[aria-pressed=true]{outline:2px solid currentColor;outline-offset:1px}
+.hk-board-ready{border-left-color:#15803d}.hk-board-blocked{border-left-color:#b91c1c}
+.hk-board-dirty,.hk-board-inspection_due,.hk-board-service_due{border-left-color:#b45309}.hk-board-cleaning{border-left-color:#2563eb}
+.hk-board-room-head{display:flex;align-items:start;justify-content:space-between;gap:6px;flex-wrap:wrap}
+.hk-board-room h4,.hk-room-board h3{margin:0}.hk-board-stage{font-size:.8rem;font-weight:700}
+.hk-board-alert{display:flex;gap:4px;align-items:center;color:#b45309;font-weight:600}
+.hk-board-controls label{display:flex;align-items:center;gap:6px;max-width:100%}
+.hk-board-controls input,.hk-board-controls select{min-height:40px;min-width:0;max-width:100%}
+.hk-board-room .btn-inline{min-height:44px;justify-content:space-between}
+@media(max-width:760px){.hk-board-summary,.hk-board-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.hk-board-room,.hk-board-summary-card{padding:10px}.hk-board-controls label{width:100%}.hk-board-controls input,.hk-board-controls select{flex:1}}
+@media(max-width:360px){.hk-board-grid{grid-template-columns:1fr}}

@@ -79,15 +79,17 @@ export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumb
  const query=useReadinessDashboard(days,page);
  const data=query.data?.data;
  const meta=query.data?.meta;
+ const member=user?.hotels.find(h=>h.id===hotelId);
+ const canSeeArrivals=meta?.arrivalsVisible!==false&&(member?.role==='admin'||member?.role==='front_desk'&&(member.permissions===undefined||member.permissions.includes('reservation.read')&&member.permissions.includes('guest.read')));
  const queue=useMemo(()=>{
   if(!data)return [];
   const today=data.asOfHotelDate;
-  const arrivals=data.arrivals.filter(a=>a.risk!=='no_current_readiness_issue').map(a=>createArrivalItem(a,today));
+  const arrivals=(canSeeArrivals?data.arrivals:[]).filter(a=>a.risk!=='no_current_readiness_issue').map(a=>createArrivalItem(a,today));
   const rooms=data.rooms.map(createRoomItem).filter((item):item is QueueItem=>item!==null);
   return [...arrivals,...rooms].sort((a,b)=>a.priority-b.priority||a.date.localeCompare(b.date)||a.key.localeCompare(b.key));
- },[data]);
- const arrivalsToday=data?.arrivals.filter(a=>a.checkIn===data.asOfHotelDate&&a.risk!=='no_current_readiness_issue')??[];
- const arrivalCount=data?.arrivals.filter(a=>a.risk!=='no_current_readiness_issue').length??0;
+ },[data,canSeeArrivals]);
+ const arrivalsToday=canSeeArrivals?data?.arrivals.filter(a=>a.checkIn===data.asOfHotelDate&&a.risk!=='no_current_readiness_issue')??[]:[];
+ const arrivalCount=canSeeArrivals?data?.arrivals.filter(a=>a.risk!=='no_current_readiness_issue').length??0:0;
  const roomCount=data?data.rooms.filter(room=>room.status!=='approved_current').length:0;
  const filtered=queue.filter(item=>filter==='all'||
   filter==='arrivals'&&item.kind==='booking'||
@@ -103,11 +105,11 @@ export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumb
    <div><span className="rr-eyebrow">FRONT DESK · ACTION QUEUE</span>
     <h3>Rooms to prepare</h3><p>Start at the top. Each task shows what is wrong and where to fix it.</p></div>
    <div className="rh-header-controls">
-    <label>Arrival window
+    {canSeeArrivals&&<label>Arrival window
      <select aria-label="Arrival reporting window" value={days}
       onChange={event=>{setDays(Number(event.target.value));setPage(1);}}>
       <option value={3}>Next 3 days</option><option value={7}>Next 7 days</option><option value={14}>Next 14 days</option>
-     </select></label>
+     </select></label>}
     <button className="rr-secondary-action" type="button" disabled={query.isFetching}
      onClick={()=>void query.refetch()}><RefreshCw size={15}/>{query.isFetching?'Refreshing…':'Refresh'}</button>
    </div>
@@ -117,15 +119,15 @@ export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumb
    <div className="rh-simple-summary" role="group" aria-label="Filter outstanding tasks">
     <button type="button" aria-pressed={filter==='all'} className={filter==='all'?'active':''}
      onClick={()=>setFilter('all')}><strong>{arrivalCount+roomCount}</strong><span>Loaded tasks</span></button>
-    <button type="button" aria-pressed={filter==='arrivals'} className={filter==='arrivals'?'active':''}
-     onClick={()=>setFilter('arrivals')}><strong>{arrivalCount}</strong><span>Arrivals to prepare</span></button>
+    {canSeeArrivals&&<button type="button" aria-pressed={filter==='arrivals'} className={filter==='arrivals'?'active':''}
+     onClick={()=>setFilter('arrivals')}><strong>{arrivalCount}</strong><span>Arrivals to prepare</span></button>}
     <button type="button" aria-pressed={filter==='rooms'} className={filter==='rooms'?'active':''}
      onClick={()=>setFilter('rooms')}><strong>{roomCount}</strong><span>Rooms on this page</span></button>
    </div>
-   <p className="desk-muted">Hotel-wide exceptions: {data.summary.needsInspection} need inspection · {data.summary.awaitingReview} await review · {data.summary.blockedOrStale} blocked or outdated. Room action counts above reflect only the current room page; arrivals cover the selected arrival window.</p>
+   <p className="desk-muted">Hotel-wide exceptions: {data.summary.needsInspection} need inspection · {data.summary.awaitingReview} await review · {data.summary.blockedOrStale} blocked or outdated. Room action counts above reflect only the current room page.</p>
    <div className="rh-snapshot"><Clock3 size={15} aria-hidden="true"/>
     <span>{arrivalsToday.length>0?arrivalsToday.length+' arrival(s) needing attention today · ':''}
-     {meta.arrivalTotal} confirmed arrivals over {days} days · Snapshot {readableDate(data.asOfHotelDate)}</span>
+     {canSeeArrivals?meta.arrivalTotal+' confirmed arrivals over '+days+' days · ': 'Reservation details restricted · '}Snapshot {readableDate(data.asOfHotelDate)}</span>
    </div>
    <section className="rh-section" aria-labelledby="rh-action-heading">
     <div className="rh-section-head"><div className="rh-section-copy">
@@ -158,7 +160,7 @@ export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumb
         Open housekeeping task <ArrowRight size={15}/></Link>}
        {item.kind==='maintenance'&&item.roomNumber&&<Link to="/maintenance" search={{order:item.orderId}}>
         Open maintenance order <ArrowRight size={15}/></Link>}
-       {item.kind==='inventory'&&item.roomNumber&&<Link to="/room-calendar" search={{date:data.asOfHotelDate,room:item.roomNumber}}>
+       {canSeeArrivals&&item.kind==='inventory'&&item.roomNumber&&<Link to="/room-calendar" search={{date:data.asOfHotelDate,room:item.roomNumber}}>
         Review inventory block <ArrowRight size={15}/></Link>}
        {item.kind!=='booking'&&item.roomNumber&&<button type="button" className="rh-secondary-action" onClick={()=>{if(item.roomNumber)onInspectRoom(item.roomNumber);}}>
         Inspection details</button>}
@@ -166,7 +168,7 @@ export function ReadinessDashboardPanel({onInspectRoom}:{onInspectRoom:(roomNumb
      </article>)}
      {shown.length===0&&<div className="rh-empty"><CheckCircle2 size={21} aria-hidden="true"/>
       <strong>No matching actions in this loaded snapshot</strong>
-      <p>Arrivals cover the whole selected period; room exceptions are paginated. Choose another filter or room page.</p>
+      <p>Room exceptions are paginated. Choose another filter or room page.</p>
       <button type="button" className="btn-inline" onClick={()=>setFilter('all')}>Show all issues</button>
      </div>}
     </div>

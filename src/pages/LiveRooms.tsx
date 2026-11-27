@@ -10,6 +10,7 @@ import {ReadinessEnforcementPanel} from '../components/ReadinessEnforcementPanel
 import {ReadinessDashboardPanel} from '../components/ReadinessDashboardPanel';
 import {RoomReadinessPanel} from '../components/RoomReadinessPanel';
 import {RoomRackDashboard} from '../components/RoomRackDashboard';
+import {HousekeepingRoomBoard} from '../components/HousekeepingRoomBoard';
 import {useHotelAuth} from '../components/AuthProvider';
 import {Heading} from '../components/ui';
 
@@ -43,6 +44,7 @@ export function LiveRooms(){
    queryClient.invalidateQueries({queryKey:['live-rooms']}),
   ]);
  };
+ if(role==='housekeeping'&&hotelId)return <HousekeepingRoomBoard key={hotelId+':'+user?.id} hotelId={hotelId} userId={user!.id} focusRoom={linkedRoomNumber}/>;
  return <>
   <div className="rr-page-heading rack-page-heading">
    <Heading title="Rooms" description="See every room at a glance. Select a room to inspect its status or manage it."/>

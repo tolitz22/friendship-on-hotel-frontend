@@ -34,6 +34,7 @@ export function HousekeepingDashboard(){
     client.invalidateQueries({queryKey:['live','housekeeping-assigned-alerts',hotelId]}),
     client.invalidateQueries({queryKey:['live','housekeeping-direct-task',hotelId]}),
     client.invalidateQueries({queryKey:['live','readiness-dashboard',hotelId]}),
+    client.invalidateQueries({queryKey:['live','housekeeping-room-board',hotelId]}),
    ]).catch(()=>{});
   },
  });

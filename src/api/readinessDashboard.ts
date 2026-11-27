@@ -49,7 +49,7 @@ const report=z.object({
  meta:z.object({
   roomPage:z.number().int().positive(),
   roomPerPage:z.number().int().positive(),
-  roomTotalPages:count,arrivalTotal:count,
+  roomTotalPages:count,arrivalTotal:count,arrivalsVisible:z.boolean().optional(),
   snapshotOnly:z.literal(true),
   futureRoomReadinessGuaranteed:z.literal(false),
   inventoryGuaranteed:z.literal(false),
@@ -71,6 +71,8 @@ export function parseReadinessDashboard(value:unknown,hotelId:string,days:number
  if(data.rooms.some(room=>room.status==='approved_current'
    &&(room.inspectionStatus!=='approved'||Object.values(room.blockers).some(Boolean))))
   throw new Error('The server claims a room is ready despite an unapproved or blocked inspection.');
+ if(meta.arrivalsVisible===false&&data.arrivals.length!==0)
+  throw new Error('Restricted readiness report contains arrivals.');
  if(data.arrivals.length!==meta.arrivalTotal)
   throw new Error('Arrival report is incomplete. Do not represent its totals as hotel-wide.');
  if(data.arrivals.some(a=>a.checkIn<data.asOfHotelDate||

@@ -190,6 +190,7 @@ export function LiveHousekeeping(){
   setSelected(task);setForm(fromTask(task));
  }
  function close(){
+  if(selected&&progressDirty){setError('Wait for progress to save, or retry the save before leaving.');return;}
   resetEditor();
   setSelected(null);setForm(null);
   if(linkedTaskId)void navigate({to:'/housekeeping',search:{queue:linkedQueue,status:linkedStatus,mine:linkedMine}});
@@ -341,6 +342,21 @@ export function LiveHousekeeping(){
  };
  const canUpdate=(task:LiveHousekeepingTask)=>canWork&&task.hotelId===hotelId;
  const maySave=admin||(!!selected&&canUpdate(selected));
+ const progressDirty=!!selected&&!!form&&(form.note.trim()!==(selected.note??'').trim()||
+  (selected.status!=='done'&&!!selected.checklist&&
+   (form.checkedItems.length!==fromTask(selected).checkedItems.length||
+    form.checkedItems.some(key=>!fromTask(selected).checkedItems.includes(key)))));
+ useEffect(()=>{
+  if(!progressDirty||!maySave||saving||!online||needsReview||error)return;
+  const timer=window.setTimeout(()=>void save(),250);
+  return ()=>window.clearTimeout(timer);
+ },[progressDirty,form,selected,saving,online,needsReview,error,maySave]);
+ useEffect(()=>{
+  if(!progressDirty&&!saving)return;
+  const warn=(event:BeforeUnloadEvent)=>{event.preventDefault();event.returnValue='';};
+  window.addEventListener('beforeunload',warn);
+  return ()=>window.removeEventListener('beforeunload',warn);
+ },[progressDirty,saving]);
  const canCompleteCleaning=!!selected&&selected.status!=='done'&&!!form&&canFinishCleaningChecklist(selected,form.checkedItems);
  const inspecting=!!checkoutDone&&!inspectionRecorded;
  const showCleaning=!minimalEditor||editorTab==='checklist'&&(!checkoutDone||showSavedChecklist);
@@ -496,7 +512,7 @@ export function LiveHousekeeping(){
           onChange={event=>{
            const checked=event.target.checked;
            setForm(old=>old?{...old,checkedItems:checked?[...old.checkedItems,item.key]:old.checkedItems.filter(key=>key!==item.key)}:old);
-           setSaveMessage('');
+           setSaveMessage('');setError('');
           }}/>
          <span>{item.label}</span>
         </label>)}
@@ -509,7 +525,7 @@ export function LiveHousekeeping(){
      </section>}
      {maySave&&<div className={'hk-editor-fields'+(minimalEditor?' hk-task-note':'')}>
       <label>Handover note<textarea rows={2} maxLength={2000} disabled={saving} value={form.note}
-       onChange={event=>{change('note',event.target.value);setSaveMessage('');}} placeholder="Record anything the next shift should know"/></label>
+       onChange={event=>{change('note',event.target.value);setSaveMessage('');setError('');}} placeholder="Record anything the next shift should know"/></label>
      </div>}
     </form>
     {selected?.type==='checkout_clean'&&(!minimalEditor||checkoutDone)&&<section className="hk-editor-step hk-inspection-step" aria-labelledby="hk-inspection-step" hidden={minimalEditor&&editorTab==='details'}>
@@ -576,7 +592,7 @@ export function LiveHousekeeping(){
    <footer className="hk-editor-footer">
     {error&&<p role="alert" className="auth-error">{error}</p>}
     {Object.entries(fieldErrors).flatMap(([field,messages])=>messages.map((message,index)=><p key={field+index} className="catalog-field-error" role="alert">{message}</p>))}
-    {(inspectionMessage||saveMessage)&&<p role="status" className="hk-save-feedback">{inspectionMessage||saveMessage}</p>}
+    {(inspectionMessage||saveMessage||progressDirty||saving)&&<p role="status" className="hk-save-feedback">{saving?'Saving progress…':progressDirty?(error||needsReview?'Progress not saved. Review or retry.':!online?'Offline — progress not saved.':'Saving progress…'):inspectionMessage||saveMessage}</p>}{progressDirty&&maySave&&!saving&&online&&!needsReview&&!!error&&<button type="button" className="btn-inline" onClick={()=>void save()}>Retry saving progress</button>}
     {checkoutDone&&!inspectionRecorded&&inspectionReason&&<div className="hk-inspection-action-hint" id="hk-inspection-action-hint" role="status">{inspectionReason}
      {!readiness.isSuccess&&!readiness.isFetching&&online&&<button type="button" className="btn-inline" onClick={()=>void readiness.refetch()}>Retry check</button>}
      {minimalEditor&&editorTab==='details'&&<button type="button" className="btn-inline" onClick={()=>setEditorTab('checklist')}>View inspection</button>}

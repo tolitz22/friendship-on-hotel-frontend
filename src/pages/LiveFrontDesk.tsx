@@ -4,7 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 import {useQueryClient} from '@tanstack/react-query';
 import {Link,useSearch} from '@tanstack/react-router';
 import {
- ArrowLeft,ArrowRight,BedDouble,CalendarDays,LogIn,LogOut,
+ ArrowRight,BedDouble,CalendarDays,LogIn,LogOut,
  Search,Users,AlertTriangle,RefreshCw,ClipboardCheck,Plus,Clock3,Info,SlidersHorizontal,ChevronRight,
 } from 'lucide-react';
 import {useLiveManifest} from '../api/liveFrontDesk';
@@ -17,11 +17,12 @@ import {hotelPath,readSession} from '../api/session';
 import {useHotelAuth} from '../components/AuthProvider';
 import {selectedRole,canViewWorkspacePath} from '../features/workspaces/roleNavigation';
 import './ReceptionDesk.css';
+import {OperationalDateStrip} from '../components/OperationalDateStrip';
 import type {ManifestKind,ManifestEntry} from '../api/liveFrontDesk';
 import {recommendedDeskAction} from '../features/front-desk/deskActions';
 import {Heading,Panel} from '../components/ui';
 import {QueryFeedback} from '../components/QueryFeedback';
-import {addDays,hotelToday} from '../features/reservations/calendarDate';
+import {hotelToday} from '../features/reservations/calendarDate';
 import {dateLabel} from '../lib/format';
 
 const queues:{kind:ManifestKind;title:string}[]=[
@@ -33,10 +34,10 @@ const queues:{kind:ManifestKind;title:string}[]=[
 const displayGuest=(record:ManifestEntry)=>record.guestName?.trim()||'Guest name unavailable';
 
 export function LiveFrontDesk(){
- const {queue:initialQueue}=useSearch({from:'/front-desk'});
+ const {queue:initialQueue,date:initialDate}=useSearch({from:'/front-desk'});
  const property=useLiveProperty();
  const hotelDate=hotelToday(new Date(),property.data?.data.timeZone??'Asia/Manila');
- const [date,setDate]=useState(hotelToday);
+ const [date,setDate]=useState(initialDate??hotelDate);
  const [kind,setKind]=useState<ManifestKind>(initialQueue??'arrivals');
  const [pageByKind,setPageByKind]=useState<Record<ManifestKind,number>>({
   arrivals:1,departures:1,in_house:1,overdue:1,
@@ -61,8 +62,8 @@ export function LiveFrontDesk(){
  const departures=useLiveManifest(date,'departures',pageByKind.departures,20,combined||kind==='departures'?term:undefined);
  const inHouse=useLiveManifest(date,'in_house',pageByKind.in_house,20,kind==='in_house'?term:undefined);
  const overdue=useLiveManifest(hotelDate,'overdue',pageByKind.overdue,20,kind==='overdue'?term:undefined);
- const overdueTotal=useLiveManifest(hotelDate,'overdue',1,1,undefined,reception);
- const urgentCount=reception?(overdueTotal.isSuccess?overdueTotal.data.meta.queueTotal??overdueTotal.data.meta.total:undefined):(overdue.isSuccess?overdue.data.meta.queueTotal??overdue.data.meta.total:undefined);
+ const overdueTotal=useLiveManifest(hotelDate,'overdue',1,1);
+ const urgentCount=overdueTotal.isSuccess?overdueTotal.data.meta.queueTotal??overdueTotal.data.meta.total:undefined;
  const queries={arrivals,departures,in_house:inHouse,overdue};
  const current=queries[kind];
  const rows=current.isSuccess?current.data.data:[];
@@ -93,7 +94,7 @@ export function LiveFrontDesk(){
   setDate(next);setPageByKind({arrivals:1,departures:1,in_house:1,overdue:1});setSearch('');
  };
  useEffect(()=>{setExtension(null);},[hotelId]);
- useEffect(()=>{changeDate(hotelDate);setKind(initialQueue??'arrivals');setTodayView(!initialQueue);setFiltersOpen(false);},[hotelId,hotelDate,initialQueue]);
+ useEffect(()=>{changeDate(initialQueue==='overdue'?hotelDate:initialDate??hotelDate);setKind(initialQueue??'arrivals');setTodayView(!initialQueue);setFiltersOpen(false);},[hotelId,hotelDate,initialQueue,initialDate]);
  const selectQueue=(next:ManifestKind)=>{setTodayView(false);setKind(next);setPageByKind(prev=>({...prev,[next]:1}));setSearch('');};
  const selectToday=()=>{changeDate(hotelDate);setKind('arrivals');setTodayView(true);};
  const changeSearch=(value:string)=>{setPageByKind({arrivals:1,departures:1,in_house:1,overdue:1});setSearch(value);};
@@ -216,16 +217,7 @@ export function LiveFrontDesk(){
    {!isToday&&<p className="fdc-selected-date">Showing {dateLabel(date)} <button className="btn-inline" type="button" onClick={selectToday}>Return to today</button></p>}
    {!combined&&<div className="fdc-simple-queues" role="group" aria-label="Front desk queue filters">{queues.map(item=><button type="button" key={item.kind} aria-pressed={kind===item.kind} onClick={()=>selectQueue(item.kind)}>{item.title}</button>)}</div>}
   </div>}
-  <div id="fdc-date-filters" className="fdc-date-strip" hidden={reception&&!filtersOpen}>
-   <div className="desk-date-nav">
-    <button type="button" className="icon-btn" aria-label="Previous date" onClick={()=>changeDate(addDays(date,-1))}><ArrowLeft size={16}/></button>
-    <button type="button" className="btn-inline" onClick={()=>changeDate(hotelDate)}>Today</button>
-    <button type="button" className="icon-btn" aria-label="Next date" onClick={()=>changeDate(addDays(date,1))}><ArrowRight size={16}/></button>
-    <label><CalendarDays size={16}/><input type="date" aria-label="Front desk operational date"
-     value={date} onChange={event=>changeDate(event.target.value||hotelDate)}/></label>
-   </div>
-   <span><Clock3 size={15}/> {dateLabel(date)} · Hotel-local date</span>
-  </div>
+  <OperationalDateStrip id="fdc-date-filters" date={date} today={hotelDate} onChange={changeDate} label="Front desk operational date" hidden={reception&&!filtersOpen}/>
   {!reception&&<section className="fdc-stats" aria-label="Reservation queue summary">
    <button type="button" className={'fdc-stat'+(kind==='arrivals'?' active':'')} onClick={()=>{setKind('arrivals');setSearch('');}} aria-pressed={kind==='arrivals'}><LogIn size={20}/><span>Expected arrivals</span><strong>{count('arrivals')}</strong><small>Confirmed for this date</small>
    </button>

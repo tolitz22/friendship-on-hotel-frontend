@@ -117,7 +117,8 @@ const functionalRoutes=[
   date:typeof value.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.date)?value.date:undefined,
  })}),
  createRoute({getParentRoute:()=>root,path:'/front-desk',
-  validateSearch:(value:Record<string,unknown>):{queue?:'arrivals'|'departures'|'in_house'|'overdue'}=>({
+  validateSearch:(value:Record<string,unknown>):{queue?:'arrivals'|'departures'|'in_house'|'overdue';date?:string}=>({
+   date:typeof value.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.date)&&!Number.isNaN(Date.parse(value.date+'T00:00:00Z'))&&new Date(value.date+'T00:00:00Z').toISOString().slice(0,10)===value.date?value.date:undefined,
    queue:value.queue==='arrivals'||value.queue==='departures'||value.queue==='in_house'||value.queue==='overdue'?value.queue:undefined,
   }),
   component:FrontDesk}),

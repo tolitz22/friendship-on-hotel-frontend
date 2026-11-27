@@ -12,7 +12,7 @@ test('admin desktop overview uses hotel totals, preserves navigation and provide
   if(path.endsWith('/hotels/1'))return route.fulfill({json:{data:{id:'1',name:'Demo Hotel',timeZone:'Asia/Manila',currency:'PHP'}}});
   if(path.endsWith('/rooms/rack'))return route.fulfill({json:{data:{hotelId:'1',hotelDate:date,enforcedAtCheckIn:true,allowedActions:{completeInspection:true},rooms:[],arrivals:[],summary:{totalRooms:30,pmsVacantRooms:12,pmsOccupiedRooms:18,arrivalsToday:6,departuresToday:4,roomsNeedingCleaning:5,legacyPendingInspections:0,activelyBlockedRooms:0}},meta:{page:1,perPage:1,total:30,totalPages:30,snapshotOnly:true,availabilityGuaranteed:false,physicalOccupancyVerified:false,financialSettlementVerified:false}}});
   if(path.endsWith('/front-desk/manifest')){
-   const kind=url.searchParams.get('kind'),day=url.searchParams.get('date'),total=kind==='arrivals'?6:kind==='departures'?4:kind==='overdue'?1:18;
+   const kind=url.searchParams.get('kind'),day=url.searchParams.get('date'),total=kind==='arrivals'?(day===date?6:2):kind==='departures'?4:kind==='overdue'?1:18;
    const rows=[{id:'1',reference:'BK-001',guestId:'1',guestName:'Demo Guest',assignedRoomId:'1',roomNumber:'201',checkIn:day,checkOut:day,status:kind==='arrivals'?'confirmed':'checked_in'}];
    return route.fulfill({json:{data:rows,meta:{date:day,kind,page:1,perPage:Number(url.searchParams.get('per_page')??5),total,totalPages:total,determinesHousekeepingReadiness:false}}});
   }
@@ -40,6 +40,17 @@ test('admin desktop overview uses hotel totals, preserves navigation and provide
  await expect(top.getByRole('link',{name:'Account security'})).toBeVisible();
  await top.locator('.admin-profile summary').press('Escape');
  await expect(top.getByRole('link',{name:'Account security'})).toBeHidden();
+ await expect(home.getByRole('button',{name:'Next date'})).toBeVisible();
+ await home.getByRole('button',{name:'Next date'}).click();
+ await expect(home.getByRole('heading',{name:'Scheduled activity'})).toBeVisible();
+ await expect(home.getByRole('button',{name:'Arrivals (2)'})).toBeVisible();
+ await expect(home.locator('.ao-ring')).toContainText('60%');
+ await expect(home.locator('.ao-attention-row').first()).toContainText('1');
+ const selectedDate=await home.getByLabel('Overview operational date').inputValue();
+ await home.getByRole('link',{name:'View expected arrivals'}).click();
+ await expect(page.getByLabel('Front desk operational date')).toHaveValue(selectedDate);
+ await page.getByRole('navigation',{name:'Hotel workspace navigation'}).getByRole('link',{name:'Overview',exact:true}).click();
+ await expect(home.getByLabel('Overview operational date')).toHaveValue(date);
  await expect(home.getByRole('button',{name:'Departures (4)'})).toBeVisible();
  await home.getByRole('button',{name:'Departures (4)'}).click();
  await expect(home.getByRole('link',{name:'Check out',exact:true}).first()).toBeVisible();

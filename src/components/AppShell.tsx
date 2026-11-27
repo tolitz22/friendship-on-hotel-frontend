@@ -1,7 +1,8 @@
 import {useStaffRealtime} from '../features/messages/useStaffRealtime';
 import {useMessageInbox} from '../pages/Messages';
 import {MessageArrivalAlert} from './MessageArrivalAlert';
-import {MessageCircle} from 'lucide-react';
+import {MessageCircle,Home,UserRound} from 'lucide-react';
+import '../features/housekeeping/minimalMobile.css';
 import './FloatingMessages.css';
 import {requestedNotificationHotel} from '../features/notifications/pushNavigation';
 import {StaffNotifications} from './StaffNotifications';
@@ -76,6 +77,8 @@ export function AppShell(){
  const unreadMessages=messageInbox.data?.data.reduce((sum,c)=>sum+Number(c.unread),0)??0;
  const [open,setOpen]=useState(false);
  const menuButton=useRef<HTMLButtonElement>(null);
+ const profileButton=useRef<HTMLButtonElement>(null);
+ const menuTrigger=useRef<'header'|'profile'>('header');
  const closeButton=useRef<HTMLButtonElement>(null);
  const restoreMenuFocus=useRef(false);
  const [showAdvanced,setShowAdvanced]=useState(false);
@@ -88,6 +91,8 @@ export function AppShell(){
  const effectivePermissions=user?.hotels.find(h=>h.id===hotelId)?.permissions;
  const workspace=navigationForRole(role);
  const admin=role==='admin';
+ const housekeepingMobile=dataMode==='api'&&role==='housekeeping';
+ const mobileTabs=[{to:'/' as const,label:'Home',icon:Home},{to:'/housekeeping' as const,label:'Tasks',icon:ClipboardCheck},{to:'/rooms' as const,label:'Rooms',icon:BedDouble},{to:'/messages' as const,label:'Messages',icon:MessageCircle}].filter(item=>canViewWorkspacePath(role,item.to,effectivePermissions));
  const canMessage=dataMode==='api'&&!!user&&!!hotelId&&!user.mustChangePassword&&canViewWorkspacePath(role,'/messages',effectivePermissions);
  const showMessageShortcut=canMessage&&pathname!=='/messages'&&!open;
  const messageScope=hotelId+':'+user?.id;
@@ -102,7 +107,7 @@ export function AppShell(){
  useEffect(()=>{setOpen(false);},[pathname,hotelId]);
  useEffect(()=>{
   if(!open){
-   if(restoreMenuFocus.current)menuButton.current?.focus();
+   if(restoreMenuFocus.current)(menuTrigger.current==='profile'?profileButton:menuButton).current?.focus();
    restoreMenuFocus.current=false;
    return;
   }
@@ -207,16 +212,20 @@ export function AppShell(){
      </div>}
     </>}
    </nav>
+   {housekeepingMobile&&<div className="hk-mobile-account-actions">
+    <button type="button" onClick={toggle} className="nav-link">{theme==='light'?<Moon size={18}/>:<Sun size={18}/>} {theme==='light'?'Dark mode':'Light mode'}</button>
+    <button type="button" onClick={()=>void signOut()} disabled={pending} className="nav-link"><LogOut size={18}/> Sign out</button>
+   </div>}
    <div className="sidebar-footer"><div className="avatar">FO</div>
     <div><strong>{dataMode==='api'?user?.name:'Demo workspace'}</strong>
      <span>{dataMode==='api'?workspace.label+' workspace':'Design preview only'}</span>
     </div>
    </div>
   </aside>
-  <main className={'main-area'+(showMessageShortcut?' has-message-shortcut':'')} inert={open}>
+  <main className={'main-area'+(showMessageShortcut?' has-message-shortcut':'')+(housekeepingMobile?' hk-bottom-nav-shell':'')+(housekeepingMobile&&pathname==='/'?' hk-minimal-home-shell':'')} inert={open}>
    <header className="topbar">
     <div className="topbar-left">
-     <button ref={menuButton} className="icon-btn mobile-menu" type="button" onClick={()=>setOpen(true)}
+     <button ref={menuButton} className="icon-btn mobile-menu" type="button" onClick={()=>{menuTrigger.current='header';setOpen(true);}}
       aria-label="Open navigation" aria-haspopup="dialog" aria-expanded={open} aria-controls="workspace-sidebar"><Menu size={20}/></button>
      <div className="topbar-heading"><span className="eyebrow">FRIENDSHIP ON HOTEL</span><h1>{current}</h1></div>
     </div>
@@ -274,6 +283,10 @@ export function AppShell(){
      :<Suspense fallback={<div role="status" className="workspace-loading">Loading hotel workspace…</div>}><Outlet/></Suspense>}
     {dataMode==='api'&&role==='housekeeping'&&pathname==='/'&&<div className="hk-phone-secondary"><div ref={setNotificationPromptHost}/><HousekeepingInstallHelp/></div>}
    </div>
+   {housekeepingMobile&&<nav className="hk-bottom-nav" aria-label="Housekeeping mobile navigation">
+    {mobileTabs.map(({to,label,icon:Icon})=><Link to={to} key={to} className={'hk-bottom-tab'+(pathname===to?' is-current':'')} activeOptions={{exact:true}} aria-current={pathname===to?'page':undefined} aria-label={label+(to==='/messages'&&unreadMessages>0?', '+unreadMessages+' unread messages':'')}><span className="hk-bottom-icon"><Icon size={22} aria-hidden="true"/>{to==='/messages'&&unreadMessages>0&&<span className="hk-bottom-unread" aria-hidden="true">{unreadMessages>99?'99+':unreadMessages}</span>}</span><span>{label}</span></Link>)}
+    <button ref={profileButton} type="button" className={'hk-bottom-tab'+(!mobileTabs.some(item=>item.to===pathname)?' is-current':'')} aria-haspopup="dialog" aria-expanded={open} aria-controls="workspace-sidebar" onClick={()=>{menuTrigger.current='profile';setOpen(true);}}><span className="hk-bottom-icon"><UserRound size={22} aria-hidden="true"/></span><span>Profile</span></button>
+   </nav>}
    {canMessage&&<MessageArrivalAlert key={messageScope} conversations={messageInbox.isSuccess?messageInbox.data.data:undefined} userId={user.id}/>}
    {showMessageShortcut&&<Link key={messageScope+':'+attention} to="/messages" className={'floating-messages'+(unreadMessages>0?' has-unread is-new':'')}
     aria-label={unreadMessages>0?'Open messages, '+unreadMessages+' unread messages':'Open messages'} title={unreadMessages>0?unreadMessages+' unread messages':'Open messages'}>

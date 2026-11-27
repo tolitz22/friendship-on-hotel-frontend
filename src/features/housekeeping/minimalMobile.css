@@ -1,0 +1,63 @@
+/* Minimal housekeeping home. Existing brand tokens are the only primary colors. */
+.hk-bottom-nav,.hk-mobile-account-actions{display:none}
+.hk-minimal-home{gap:16px;max-width:980px;margin-inline:auto;min-width:0}
+.hk-minimal-header{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+.hk-minimal-header .hk-dash-title{font-size:clamp(1.45rem,3vw,2rem);font-weight:750;letter-spacing:-.025em;line-height:1.2}
+.hk-minimal-header p{margin:5px 0 0;font-size:13px;color:var(--muted)}
+.hk-minimal-refresh{width:44px;height:44px;flex:none}
+.hk-minimal-layout{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;align-items:start}
+.hk-minimal-hero{display:grid;gap:14px;min-width:0;padding:18px;border:1px solid var(--border);border-radius:16px;background:var(--surface);box-shadow:0 3px 10px #00000008;grid-row:span 2}
+.hk-minimal-hero>h3{display:flex;align-items:center;gap:9px;font-size:14px;margin:0;color:var(--muted);font-weight:650}
+.hk-minimal-room-line{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap;min-width:0}
+.hk-minimal-room-line>div{flex:1;min-width:110px}
+.hk-minimal-room-line h3{font-size:clamp(1.65rem,4vw,2.25rem);line-height:1.1;font-weight:750;letter-spacing:-.035em;margin:0;overflow-wrap:anywhere}
+.hk-minimal-room-line p{margin:5px 0 0;font-size:14px;color:var(--muted)}
+.hk-minimal-room-line .hk-dash-pill{border:0;font-size:11px;line-height:1.35;padding:5px 8px}
+.hk-minimal-room-line .hk-dash-pill-arrival_today{background:#fef3c7;color:#92400e}
+.hk-minimal-due{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;margin:0}
+.hk-minimal-progress{display:flex;align-items:center;gap:10px;min-width:0}
+.hk-minimal-progress strong{font-size:12px;white-space:nowrap}
+.hk-minimal-progress progress{flex:1;min-width:0;height:7px;appearance:none;border:0;border-radius:99px;background:var(--border);overflow:hidden;accent-color:var(--accent)}
+.hk-minimal-progress progress::-webkit-progress-bar{background:var(--border)}.hk-minimal-progress progress::-webkit-progress-value{background:var(--accent);border-radius:99px}.hk-minimal-progress progress::-moz-progress-bar{background:var(--accent)}
+.hk-minimal-home .hk-dash-task-action{min-height:52px;font-size:15px;font-weight:700;border-radius:10px}
+.hk-minimal-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.hk-minimal-metric{display:grid;grid-template-columns:1fr;gap:5px;min-width:0;padding:11px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text);text-decoration:none;min-height:92px;align-content:start}
+.hk-minimal-metric .hk-dash-metric-icon{width:30px;height:30px;color:var(--muted);background:var(--canvas)}
+.hk-minimal-metric.hk-dash-tone-progress:not([data-empty=true]) .hk-dash-metric-icon{background:color-mix(in srgb,var(--surface) 85%,var(--accent));color:var(--text)}
+.hk-minimal-metric.hk-dash-tone-inspect:not([data-empty=true]) .hk-dash-metric-icon{background:#fef3c7;color:#92400e}
+.hk-minimal-metric-label{font-size:12px;font-weight:600;line-height:1.25;overflow-wrap:anywhere}
+.hk-minimal-metric strong{font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
+.hk-minimal-upcoming{min-width:0;display:grid;gap:5px}
+.hk-minimal-section-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.hk-minimal-section-head h3{margin:0;font-size:17px;font-weight:750}
+.hk-minimal-list{display:grid;overflow:hidden;border:1px solid var(--border);border-radius:13px;background:var(--surface)}
+.hk-minimal-row{display:flex;align-items:center;gap:12px;padding:12px;min-height:66px;color:var(--text);text-decoration:none;min-width:0}
+.hk-minimal-row+.hk-minimal-row{border-top:1px solid var(--border)}
+.hk-minimal-row>span:nth-child(2){flex:1;min-width:0;display:grid;gap:3px;overflow-wrap:anywhere}
+.hk-minimal-row strong{font-size:16px;line-height:1.25}.hk-minimal-row small{color:var(--muted);font-size:12px;line-height:1.4}
+.hk-minimal-row>svg{flex:none;color:var(--muted)}.hk-minimal-row .hk-dash-room-icon{color:var(--muted)}
+.hk-minimal-inspection-error{margin:0;font-size:12px;color:var(--muted)}
+.hk-minimal-home :is(a,button):focus-visible,.hk-bottom-tab:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+@media(max-width:1050px){.hk-minimal-layout{grid-template-columns:minmax(0,1fr)}.hk-minimal-hero{grid-row:auto}}
+@media(max-width:760px){
+ .housekeeping-shell .hk-bottom-nav-shell .page-content{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
+ .housekeeping-shell .hk-bottom-nav-shell.has-message-shortcut .floating-messages{display:none}
+ .hk-bottom-nav{display:flex;align-items:stretch;position:fixed;z-index:50;inset:auto 0 0;padding:6px max(4px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(4px,env(safe-area-inset-left,0px));background:var(--surface);border-top:1px solid var(--border);box-shadow:0 -3px 12px #00000008}
+ .hk-bottom-tab{display:flex;flex:1 1 0;min-width:0;min-height:56px;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:3px 1px;border:0;background:transparent;color:var(--muted);font:inherit;font-size:11px;line-height:1.2;text-decoration:none;cursor:pointer}
+ .hk-bottom-icon{position:relative;display:grid;place-items:center;width:44px;height:30px;border-radius:99px}
+ .hk-bottom-tab.is-current{color:var(--text);font-weight:750}.hk-bottom-tab.is-current .hk-bottom-icon{color:#754000;background:#ffe7c0}
+ :root[data-theme=dark] .hk-bottom-tab.is-current .hk-bottom-icon{color:var(--accent);background:color-mix(in srgb,var(--surface) 72%,var(--accent))}
+ .hk-bottom-unread{position:absolute;right:-3px;top:-3px;border-radius:99px;min-width:16px;padding:2px 4px;background:#b42318;color:white;font-size:10px;line-height:1.2;font-weight:700}
+ .hk-bottom-nav-shell .topbar-action-theme,.hk-bottom-nav-shell .topbar-action-signout{display:none}
+ .hk-mobile-account-actions{display:grid;gap:3px;margin-top:10px}
+ .hk-mobile-account-actions .nav-link{min-height:44px;width:100%;background:transparent;border:0;text-align:left}
+ .hk-minimal-home{gap:12px}
+ .hk-minimal-hero{padding:16px;gap:12px}
+ .hk-minimal-layout{gap:12px}
+ .hk-minimal-metric{padding:10px;min-height:95px}
+ .hk-minimal-metric-label{font-size:11px}
+ .hk-minimal-header .hk-dash-title{font-size:24px}
+ .hk-minimal-home-shell .topbar .topbar-heading h1{font-size:16px}
+ .hk-minimal-home-shell .hk-phone-secondary{margin-top:14px}
+ .hk-minimal-home-shell .hk-phone-secondary .hk-install-help{padding:6px;border:0;background:transparent}
+}

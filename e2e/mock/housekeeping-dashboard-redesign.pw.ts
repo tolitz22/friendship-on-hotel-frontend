@@ -1,8 +1,8 @@
 import {expect,test} from '@playwright/test';
 
-for(const width of [320,390,1280]){
+for(const width of [320,390,430,768,1280]){
  test('housekeeping home prioritizes assigned tasks and unfinished inspections at '+width+'px',async({page},testInfo)=>{
-  test.skip(testInfo.project.name!==(width===1280?'desktop-chromium':'mobile-chromium'),'Dashboard viewport');
+  test.skip(testInfo.project.name!==(width>=768?'desktop-chromium':'mobile-chromium'),'Dashboard viewport');
   await page.setViewportSize({width,height:800});
   await page.addInitScript(()=>{sessionStorage.setItem('foh.staff.bearer.v1','housekeeping-home-fixture');sessionStorage.setItem('foh.staff.hotel.v1','1');});
   const common={hotelId:'1',assignedTo:null,assignedUserId:'2',type:'checkout_clean',dueAt:'2026-11-27 14:00:00',completedAt:null,revision:1,createdAt:'2026-11-27'};
@@ -34,7 +34,14 @@ for(const width of [320,390,1280]){
    await page.evaluate(()=>window.scrollTo(0,0));
    const action=await home.getByRole('button',{name:'Start cleaning'}).boundingBox();
    expect(action).not.toBeNull();
-   expect(action!.height).toBeGreaterThanOrEqual(48);
+   expect(action!.height).toBeGreaterThanOrEqual(52);
+   const inspections=await home.getByRole('region',{name:'Final inspections'}).boundingBox();
+   const upcoming=await home.getByRole('region',{name:'Up next'}).boundingBox();
+   expect(inspections!.y).toBeLessThan(upcoming!.y);
+   const help=page.getByRole('region',{name:'Install housekeeping workspace'});
+   if(await help.count())expect((await help.boundingBox())!.y).toBeGreaterThan(action!.y);
+   const quick=home.getByRole('region',{name:'Quick actions'});
+   expect(await quick.getByRole('link').first().evaluate(el=>el.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
    expect(action!.y+action!.height).toBeLessThan(600);
    await expect(page.getByRole('button',{name:'Refresh assignments'})).toBeVisible();
    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);

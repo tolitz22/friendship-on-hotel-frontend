@@ -264,8 +264,7 @@ export function AppShell(){
     </>}
    </div>}
    <div className="page-content">
-    {dataMode==='api'&&(admin||role==='housekeeping'||role==='front_desk')&&<div ref={setNotificationPromptHost}/>}
-    {dataMode==='api'&&role==='housekeeping'&&pathname==='/'&&<HousekeepingInstallHelp/>}
+    {dataMode==='api'&&(admin||role==='housekeeping'||role==='front_desk')&&!(role==='housekeeping'&&pathname==='/')&&<div ref={setNotificationPromptHost}/>}
     {dataMode==='api'&&!canViewWorkspacePath(role,pathname,effectivePermissions)
      ?<section className="panel" role="alert" aria-label="Page access denied">
        <h2>Page not available for your role</h2>
@@ -273,6 +272,7 @@ export function AppShell(){
        <Link className="btn-primary" to="/">Return to your workspace <ArrowRight size={15}/></Link>
       </section>
      :<Suspense fallback={<div role="status" className="workspace-loading">Loading hotel workspace…</div>}><Outlet/></Suspense>}
+    {dataMode==='api'&&role==='housekeeping'&&pathname==='/'&&<div className="hk-phone-secondary"><div ref={setNotificationPromptHost}/><HousekeepingInstallHelp/></div>}
    </div>
    {canMessage&&<MessageArrivalAlert key={messageScope} conversations={messageInbox.isSuccess?messageInbox.data.data:undefined} userId={user.id}/>}
    {showMessageShortcut&&<Link key={messageScope+':'+attention} to="/messages" className={'floating-messages'+(unreadMessages>0?' has-unread is-new':'')}

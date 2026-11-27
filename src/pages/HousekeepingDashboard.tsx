@@ -79,7 +79,7 @@ export function HousekeepingDashboard(){
  const taskDetails=(task:PriorityTask)=><>
   <div className="hk-dash-task-top"><div className="hk-dash-room-icon"><BedDouble size={22}/></div><div><small>{taskNames[task.type]}</small><h3>Room {task.roomNumber}</h3></div>
    <span className={'hk-dash-pill hk-dash-pill-'+task.priority}>{priorityLabels[task.priority]}</span></div>
-  <div className="hk-dash-task-meta"><span><Clock3 size={15}/>{task.dueAt?'Due ':''}{dueLabel(task.dueAt,data?.hotelDate??'')}</span><span>{task.status==='todo'?'Not started':'In progress'}</span></div>
+  <div className="hk-dash-task-meta"><span><Clock3 size={15}/>{task.dueAt?'Due ':''}{dueLabel(task.dueAt,data?.hotelDate??'')}</span>{task.priority!=='in_progress'&&<span>{task.status==='todo'?'Not started':'In progress'}</span>}</div>
   {task.checklist&&task.checklist.length>0&&<div className="hk-dash-check-progress"><span>Checklist</span><strong>{task.checklist.filter(item=>item.checkedAt!==null).length}/{task.checklist.length}</strong><progress aria-label={'Room '+task.roomNumber+' saved checklist progress'} max={task.checklist.length} value={task.checklist.filter(item=>item.checkedAt!==null).length}/></div>}
  </>;
  return <div className="hk-home hk-dash">
@@ -89,41 +89,43 @@ export function HousekeepingDashboard(){
   </header>
   {!online&&<div className="hk-network-alert" role="status"><WifiOff size={18}/> Offline. Reconnect to see current assignments. No changes are submitted.</div>}
   {dashboard.isError&&online&&<div className="hk-dash-feedback" role="alert"><AlertTriangle size={20}/><div><strong>Assignments unavailable</strong><p>Refresh to get current tasks, or open My tasks.</p></div><button type="button" className="btn-inline" onClick={refresh}>Retry</button></div>}
-  <div className="hk-dash-layout">
-   <div className="hk-dash-main">
-    <section className="hk-dash-section" aria-labelledby="hk-next-title">
+  <div className="hk-dash-layout hk-phone-dashboard">
+    <section className="hk-dash-section hk-phone-next" aria-labelledby="hk-next-title">
      <div className="hk-dash-section-head"><div><h2 id="hk-next-title">Your next room</h2></div><Link to="/housekeeping" search={{queue:'active',mine:true}} className="btn-inline">My active tasks <ArrowRight size={15}/></Link></div>
      {dashboard.isPending&&online&&<p role="status">Loading your assigned tasks…</p>}
      {start.isError&&<p role="alert" className="hk-network-alert">{start.error instanceof ApiError&&start.error.status===409?'This task changed. Refresh and try again.':start.error instanceof ApiError&&start.error.status===0?'Connection interrupted. Check the task before retrying.':start.error.message}</p>}
      {next&&<article className={'hk-dash-next hk-dash-task-'+next.priority}>{taskDetails(next)}
       {next.priority==='arrival_today'&&<p className="hk-dash-arrival"><AlertTriangle size={16}/> Prepare this room for today’s arrival.</p>}
       {renderAction(next,true)}{next.status==='todo'&&canWork&&<Link to="/housekeeping" search={{task:next.id}} className="hk-dash-details">View checklist <ArrowRight size={14}/></Link>}</article>}
-     {data?.activeTotal===0&&<div className="hk-home-empty"><CheckCircle2 size={26}/><strong>No active cleaning assignments</strong><Link to="/housekeeping" search={{}} className="btn-inline">Open team tasks <ArrowRight size={15}/></Link></div>}
+     {data?.activeTotal===0&&<div className="hk-phone-empty"><CheckCircle2 size={26}/><div><strong>No active cleaning assignments</strong><p>{pending?.data.length?'Your cleaning is complete. Finish the remaining inspection.':'Check the team queue for work you can help with.'}</p></div>
+      {pending?.data[0]?<Link to="/housekeeping" search={{task:pending.data[0].id}} className="btn-primary hk-dash-task-action">Inspect Room {pending.data[0].roomNumber} <ArrowRight size={16}/></Link>:<Link to="/housekeeping" search={{}} className="btn-inline hk-dash-task-action">Open team tasks <ArrowRight size={15}/></Link>}
+     </div>}
     </section>
+    <section className="hk-phone-summary" aria-labelledby="hk-phone-summary-title">
+    <div className="hk-phone-summary-head"><h2 id="hk-phone-summary-title">My assignments</h2><Link to="/housekeeping" search={{}} className="hk-phone-text-link">Team tasks <ArrowRight size={15}/></Link></div>
     <div className="hk-dash-metrics" aria-label="Personal housekeeping summary">
-     {metrics.map(({label,value,icon:Icon,tone,search})=><Link to="/housekeeping" search={{...search,mine:true}} key={label} data-empty={!value} className={'hk-dash-metric hk-dash-tone-'+tone}>
+     {metrics.map(({label,value,icon:Icon,tone,search})=><Link to="/housekeeping" search={{...search,mine:true}} key={label} data-empty={value===0||value===undefined} className={'hk-dash-metric hk-dash-tone-'+tone}>
       <span className="hk-dash-metric-heading"><span className="hk-dash-metric-icon"><Icon size={19}/></span><ArrowRight size={15}/></span>
       <strong>{value??'—'}</strong><span>{label}</span></Link>)}
     </div>
     {summary?.completedToday!==undefined&&<p className="hk-dash-done-count"><CheckCircle2 size={17} aria-hidden="true"/> {summary.completedToday} cleaning {summary.completedToday===1?'task':'tasks'} completed today</p>}
-    {!!data&&data.tasks.length>1&&<section className="hk-dash-section" aria-labelledby="hk-home-priorities">
-     <div className="hk-dash-section-head"><div><h2 id="hk-home-priorities">Up next</h2><p>{data.activeTotal-1} other active assignments</p></div><Link to="/housekeeping" search={{queue:'active',mine:true}} className="btn-inline">View all <ArrowRight size={15}/></Link></div>
-     <div className="hk-dash-task-list">{data.tasks.slice(1,5).map(task=><article className={'hk-dash-task hk-dash-task-'+task.priority} key={task.id}>{taskDetails(task)}{renderAction(task)}</article>)}</div>
-     {data.activeTotal>5&&<Link to="/housekeeping" search={{queue:'active',mine:true}} className="hk-dash-more">View all {data.activeTotal} active tasks <ArrowRight size={15}/></Link>}
-    </section>}
-   </div>
-   <aside className="hk-dash-side">
-    <section className="hk-dash-section" aria-labelledby="hk-inspect-title">
+    </section>
+    <section className="hk-dash-section hk-phone-inspections" aria-labelledby="hk-inspect-title">
      <div className="hk-dash-section-head"><div><h2 id="hk-inspect-title">Final inspections</h2><p>Finish readiness checks after cleaning.</p></div><span className="hk-dash-count">{pending?.meta.total??'—'}</span></div>
      {inspections.isPending&&online&&<p role="status">Loading inspections…</p>}
      {inspections.isError&&online&&<p role="alert">Inspection queue unavailable. <button type="button" className="btn-inline" onClick={()=>void inspections.refetch()}>Retry</button></p>}
      {pending?.meta.total===0&&<div className="hk-dash-clear"><CheckCircle2 size={20}/> No pending final inspections</div>}
      {pending?.data.map(task=><Link to="/housekeeping" search={{task:task.id}} className="hk-dash-inspection" key={task.id}><span className="hk-dash-room-icon"><ShieldCheck size={19}/></span><span><strong>Room {task.roomNumber}</strong><small>Cleaning completed · inspection due</small></span><ArrowRight size={16}/></Link>)}
-     <Link to="/housekeeping" search={{queue:'pending_inspection',mine:true}} className="btn-inline">My pending inspections <ArrowRight size={15}/></Link>
+     {pending?.meta.total!==0&&<Link to="/housekeeping" search={{queue:'pending_inspection',mine:true}} className="btn-inline hk-phone-inspection-link">My pending inspections <ArrowRight size={15}/></Link>}
     </section>
-    <section className="hk-dash-section" aria-labelledby="hk-shortcuts-title"><h2 id="hk-shortcuts-title">Quick actions</h2>
+    {!!data&&data.tasks.length>1&&<section className="hk-dash-section hk-phone-upcoming" aria-labelledby="hk-home-priorities">
+     <div className="hk-dash-section-head"><div><h2 id="hk-home-priorities">Up next</h2><p>{data.activeTotal-1} other active assignments</p></div><Link to="/housekeeping" search={{queue:'active',mine:true}} className="btn-inline">View all <ArrowRight size={15}/></Link></div>
+     <div className="hk-dash-task-list">{data.tasks.slice(1,4).map(task=><article className={'hk-dash-task hk-dash-task-'+task.priority} key={task.id}><div className="hk-phone-upcoming-room"><div><small>{taskNames[task.type]}</small><h3>Room {task.roomNumber}</h3></div><span className={'hk-dash-pill hk-dash-pill-'+task.priority}>{priorityLabels[task.priority]}</span></div><div className="hk-phone-upcoming-footer"><span>{task.dueAt?'Due ':''}{dueLabel(task.dueAt,data.hotelDate)}</span><Link to="/housekeeping" search={{task:task.id}} className="hk-phone-text-link">{task.status==='in_progress'&&canWork?'Continue':'Open task'} <ArrowRight size={15}/></Link></div></article>)}</div>
+     {data.activeTotal>4&&<Link to="/housekeeping" search={{queue:'active',mine:true}} className="hk-dash-more">View all {data.activeTotal} active tasks <ArrowRight size={15}/></Link>}
+    </section>}
+    <section className="hk-dash-section hk-phone-shortcuts" aria-labelledby="hk-shortcuts-title"><h2 id="hk-shortcuts-title">Quick actions</h2>
      <div className="hk-dash-shortcuts">
-      <Link to="/housekeeping" search={{}}><ClipboardCheck size={22}/><span><strong>My Tasks</strong><small>Open the team queue</small></span><ArrowRight size={16}/></Link>
+      <Link to="/housekeeping" search={{}}><ClipboardCheck size={22}/><span><strong>Team tasks</strong><small>All housekeeping work</small></span><ArrowRight size={16}/></Link>
       <Link to="/rooms"><BedDouble size={22}/><span><strong>Room status</strong><small>Readiness by floor</small></span><ArrowRight size={16}/></Link>
       <Link to="/maintenance"><Wrench size={22}/><span><strong>Maintenance</strong><small>Review room defects</small></span><ArrowRight size={16}/></Link>
       <Link to="/lost-found"><Package size={22}/><span><strong>Lost & found</strong><small>Register recovered belongings</small></span><ArrowRight size={16}/></Link>
@@ -131,7 +133,6 @@ export function HousekeepingDashboard(){
       <Link to="/messages"><MessageCircle size={22}/><span><strong>Messages</strong><small>Coordinate with staff</small></span><ArrowRight size={16}/></Link>
      </div>
     </section>
-   </aside>
   </div>
   {!canWork&&<p className="role-note">Your current permissions allow viewing assignments only.</p>}
  </div>;

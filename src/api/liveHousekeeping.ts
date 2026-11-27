@@ -4,10 +4,12 @@ import type {CollectionResponse,ItemResponse} from './types';
 
 export type HousekeepingType='checkout_clean'|'stayover'|'inspection';
 export type HousekeepingStatus='todo'|'in_progress'|'done';
+export interface CleaningChecklistItem{key:string;label:string;checkedBy:string|null;checkedAt:string|null}
 export interface LiveHousekeepingTask{
  id:string;hotelId:string;roomId:string;roomNumber:string;type:HousekeepingType;
  status:HousekeepingStatus;assignedTo:string|null;assignedUserId:string|null;dueAt:string|null;completedAt:string|null;
  revision:number;createdAt:string;arrivalToday?:boolean;overdue?:boolean;pendingInspection?:boolean;
+ checklist?:CleaningChecklistItem[];completedBy?:string|null;
 }
 export interface HousekeepingEvent{
  id:string;actorId:string;actorName?:string|null;action:string;
@@ -20,7 +22,7 @@ export interface CreateHousekeepingInput{
  roomId:string;type:HousekeepingType;assignedTo:string|null;assignedUserId?:string|null;dueAt:string|null;note?:string|null;
 }
 export interface UpdateHousekeepingInput{
- expectedRevision:number;status?:HousekeepingStatus;
+ expectedRevision:number;status?:HousekeepingStatus;checkedItems?:string[];
  assignedTo?:string|null;assignedUserId?:string|null;dueAt?:string|null;note?:string|null;
 }
 export const listHousekeepingTasks=(page=1,perPage=50,filter:TaskFilter={})=>getJson<HousekeepingList>(
@@ -44,6 +46,8 @@ import {z} from 'zod';
 import {readSession} from './session';
 
 const idSchema=z.string().regex(/^[1-9]\d*$/);
+const checklistItemSchema=z.object({key:z.string().min(1),label:z.string().min(1),checkedBy:idSchema.nullable(),checkedAt:z.string().nullable()})
+ .refine(item=>(item.checkedBy===null)===(item.checkedAt===null),'Incomplete checklist evidence');
 const taskSchema=z.object({
  id:idSchema,hotelId:idSchema,roomId:idSchema,roomNumber:z.string(),
  type:z.enum(['checkout_clean','stayover','inspection']),
@@ -52,6 +56,7 @@ const taskSchema=z.object({
  dueAt:z.string().nullable(),completedAt:z.string().nullable(),
  revision:z.number().int().positive(),createdAt:z.string(),
  arrivalToday:z.boolean().optional(),overdue:z.boolean().optional(),pendingInspection:z.boolean().optional(),
+ checklist:z.array(checklistItemSchema).refine(items=>new Set(items.map(item=>item.key)).size===items.length,'Duplicate checklist items').optional(),completedBy:idSchema.nullable().optional(),
 });
 const listSchema=z.object({
  data:z.array(taskSchema),
@@ -177,4 +182,11 @@ export function parseHousekeepingWorkload(value:unknown,hotelId:string){
 export async function getHousekeepingWorkload(hotelId:string){
  if(readSession().hotelId!==hotelId)throw new Error('Hotel changed. Reload housekeeping.');
  return parseHousekeepingWorkload(await getJson<unknown>(hotelPath('/housekeeping/workload')),hotelId);
+}
+
+/** Old API responses lack a checklist; do not treat that as a completed checklist. */
+export function canFinishCleaningChecklist(task:LiveHousekeepingTask,checkedItems:readonly string[]):boolean{
+ if(task.type==='inspection'||task.status==='done')return true;
+ const items=task.checklist;
+ return !!items?.length&&new Set(checkedItems).size===items.length&&checkedItems.length===items.length&&items.every(item=>checkedItems.includes(item.key));
 }

@@ -10,7 +10,7 @@ import {readableDate} from '../lib/format';
 import {
  createHousekeepingTask,getHousekeepingHistory,listHousekeepingTasks,updateHousekeepingTask,completeHousekeepingInspection,
  type LiveHousekeepingTask,type HousekeepingStatus,type HousekeepingType,type TaskFilter,type HousekeepingQueue,getHousekeepingWorkload,
- parseLiveHousekeeping,parseUpdatedHousekeeping,useDirectHousekeepingTask,
+ parseLiveHousekeeping,parseUpdatedHousekeeping,useDirectHousekeepingTask,canFinishCleaningChecklist,
 } from '../api/liveHousekeeping';
 import {ApiError,getJson} from '../api/http';
 import {hotelPath,readSession} from '../api/session';
@@ -29,11 +29,12 @@ const transitions:Record<HousekeepingStatus,HousekeepingStatus[]>={
  todo:['in_progress','done'],in_progress:['done'],done:[],
 };
 type FormState={roomId:string;type:HousekeepingType;status:HousekeepingStatus;
- assignedTo:string;assignedUserId:string;dueAt:string;note:string};
-const empty=():FormState=>({roomId:'',type:'checkout_clean',status:'todo',assignedTo:'',assignedUserId:'',dueAt:'',note:''});
+ assignedTo:string;assignedUserId:string;dueAt:string;note:string;checkedItems:string[]};
+const empty=():FormState=>({roomId:'',type:'checkout_clean',status:'todo',assignedTo:'',assignedUserId:'',dueAt:'',note:'',checkedItems:[]});
 const fromTask=(task:LiveHousekeepingTask):FormState=>({
  roomId:task.roomId,type:task.type,status:task.status,
  assignedTo:task.assignedTo??'',assignedUserId:task.assignedUserId??'',dueAt:task.dueAt?task.dueAt.replace('T',' ').slice(0,16):'',note:'',
+ checkedItems:task.checklist?.filter(item=>item.checkedAt!==null).map(item=>item.key)??[],
 });
 const formatDue=(value:string)=>value.trim()===''?null:value.replace('T',' ')+':00';
 export function LiveHousekeeping(){
@@ -168,13 +169,15 @@ export function LiveHousekeeping(){
   e.preventDefault();
   const assigned=!!selected&&role==='housekeeping'&&canWork&&selected.assignedUserId===user?.id;
   if(!(admin||assigned)||!form||saving)return;
+  if(selected&&form.status==='done'&&!canFinishCleaningChecklist(selected,form.checkedItems)){setError('Complete all required cleaning items first.');return;}
+  const checklistFields=selected?.checklist&&selected.status!=='done'?{checkedItems:form.checkedItems}:{};
   setSaving(true);setError('');setFieldErrors({});
   try{
    const updated=selected?parseUpdatedHousekeeping(await updateHousekeepingTask(selected.id,admin?{
-    expectedRevision:selected.revision,status:form.status,
+    expectedRevision:selected.revision,status:form.status,...checklistFields,
     assignedTo:form.assignedTo.trim()||null,assignedUserId:form.assignedUserId||null,
     dueAt:formatDue(form.dueAt),note:form.note.trim()||null,
-   }:{expectedRevision:selected.revision,status:form.status,note:form.note.trim()||null}),hotelId!,selected.id):null;
+   }:{expectedRevision:selected.revision,status:form.status,note:form.note.trim()||null,...checklistFields}),hotelId!,selected.id):null;
    if(!selected)await createHousekeepingTask({
     roomId:form.roomId,type:form.type,assignedTo:form.assignedTo.trim()||null,
     assignedUserId:form.assignedUserId||null,dueAt:formatDue(form.dueAt),note:form.note.trim()||null,
@@ -183,7 +186,8 @@ export function LiveHousekeeping(){
    setPage(1);
    if(updated&&updated.type==='checkout_clean'&&updated.status==='done'){
     jumpToInspection.current=selected?.status!=='done';setSelected(updated);setForm(fromTask(updated));
-   }else close();
+   }else if(updated&&updated.status!=='done'&&selected?.checklist){setSelected(updated);setForm(fromTask(updated));}
+   else close();
    // Failed cache refresh must not make an already committed update look failed.
    void Promise.all([
     client.invalidateQueries({queryKey:['live-housekeeping',hotelId]}),
@@ -222,6 +226,7 @@ export function LiveHousekeeping(){
    setInspectionChecks([false,false,false]);setInspectionNote('');
    void Promise.all([
     client.invalidateQueries({queryKey:['live','room-readiness',hotelId,selected.roomId]}),
+    client.invalidateQueries({queryKey:['live','room-inventory-status',hotelId]}),
     client.invalidateQueries({queryKey:['live','readiness-dashboard',hotelId]}),
     client.invalidateQueries({queryKey:['live','housekeeping-direct-task',hotelId]}),
     client.invalidateQueries({queryKey:['live-housekeeping',hotelId]}),
@@ -432,10 +437,25 @@ export function LiveHousekeeping(){
    </>}
    {!selected&&rooms.data&&rooms.data.meta.total>100&&<p className="guest-info">Room selector displays only the first 100 registered rooms.</p>}
    <form onSubmit={e=>void save(e)}>
+    {selected&&selected.type!=='inspection'&&<section className="hk-cleaning-checklist" aria-label="Cleaning checklist">
+     <div className="hk-checklist-head"><div><h4>{selected.type==='checkout_clean'?'Checkout cleaning checklist':'Stayover service checklist'}</h4>
+      <p>{selected.status==='done'?'Saved cleaning evidence.':'Check items as you finish them, then save your progress.'}</p></div>
+      {selected.checklist&&<strong>{form.checkedItems.length}/{selected.checklist.length}</strong>}</div>
+     {selected.checklist?.length?<><progress max={selected.checklist.length} value={form.checkedItems.length} aria-label="Cleaning checklist progress"/>
+      {selected.checklist.map(item=><label key={item.key} className="hk-checklist-item">
+       <input type="checkbox" checked={form.checkedItems.includes(item.key)} disabled={!maySave||saving||selected.status==='done'}
+        onChange={e=>{const checked=e.target.checked;setForm(old=>old?{...old,checkedItems:checked?[...old.checkedItems,item.key]:old.checkedItems.filter(key=>key!==item.key)}:old);}}/>
+       <span>{item.label}{item.checkedAt&&form.checkedItems.includes(item.key)&&<small>Recorded {new Date(item.checkedAt).toLocaleString(undefined,{timeZone:property.data?.data.timeZone??'Asia/Manila'})} · {item.checkedBy===user?.id?'you':'staff #'+item.checkedBy}</small>}</span>
+      </label>)}
+      {selected.status==='done'&&form.checkedItems.length!==selected.checklist.length&&<p className="hk-notice">Legacy completion: detailed checklist evidence was not recorded.</p>}
+     </>:<p role="status">Checklist unavailable. Refresh or reopen the task before completing cleaning.</p>}
+     {selected.completedBy&&<p>Cleaning recorded by {selected.completedBy===user?.id?'you':staff.data?.data.find(member=>member.userId===selected.completedBy)?.name??'staff #'+selected.completedBy}{selected.completedAt?' · '+selected.completedAt:''}.</p>}
+     {selected.status!=='done'&&maySave&&<p>Use the handover note below to record damage, missing items or cleaning issues. Report urgent issues to reception or maintenance.</p>}
+    </section>}
     {selected&&maySave&&transitions[selected.status].length>0&&<div className="ops-quick-progress" role="group" aria-label="Quick cleaning progress">
      <strong>Step 1 · Cleaning progress</strong>
      <small>Choose progress, then save the task to record it.</small>
-     <div>{[selected.status,...transitions[selected.status]].map(status=><button key={status} type="button" className="btn-inline" disabled={saving} aria-pressed={form.status===status} onClick={()=>change('status',status)}>{statusNames[status]}</button>)}</div>
+     <div>{[selected.status,...transitions[selected.status]].map(status=><button key={status} type="button" className="btn-inline" disabled={saving||(status==='done'&&!canFinishCleaningChecklist(selected,form.checkedItems))} aria-pressed={form.status===status} onClick={()=>change('status',status)}>{statusNames[status]}</button>)}</div>
     </div>}
     <div className="guest-fields">
     <label>Room<select required disabled={!!selected||!admin||saving} value={form.roomId} onChange={e=>change('roomId',e.target.value)}>
@@ -443,7 +463,7 @@ export function LiveHousekeeping(){
     <label>Task type<select disabled={!!selected||!admin||saving} value={form.type} onChange={e=>change('type',e.target.value as HousekeepingType)}>
      {taskTypes.map(type=><option key={type} value={type}>{taskNames[type]}</option>)}</select></label>
     <label>Cleaning progress<select disabled={!selected||!maySave||saving} value={form.status} onChange={e=>change('status',e.target.value as HousekeepingStatus)}>
-     {[selected?.status??'todo',...(transitions[selected?.status??'todo']??[])].map(status=><option key={status} value={status}>{statusNames[status]}</option>)}</select></label>
+     {[selected?.status??'todo',...(transitions[selected?.status??'todo']??[])].map(status=><option key={status} value={status} disabled={!!selected&&status==='done'&&!canFinishCleaningChecklist(selected,form.checkedItems)}>{statusNames[status]}</option>)}</select></label>
     {admin&&<label>Assign staff member<select value={form.assignedUserId} disabled={saving} onChange={e=>change('assignedUserId',e.target.value)}>
      <option value="">No linked account</option>
      {form.assignedUserId&&!sortedStaff.some(m=>m.userId===form.assignedUserId)&&<option value={form.assignedUserId}>Current assignee (not eligible for new work)</option>}
@@ -457,7 +477,7 @@ export function LiveHousekeeping(){
    {Object.entries(fieldErrors).flatMap(([field,messages])=>messages.map((m,i)=><p key={field+i} className="catalog-field-error" role="alert">{field}: {m}</p>))}
    {error&&<p role="alert" className="auth-error">{error}</p>}
    <div className="guest-modal-actions"><button type="button" className="btn-inline" disabled={saving} onClick={close}>Close</button>
-    {maySave&&<button type="submit" className="btn-primary" disabled={saving}>{saving?'Saving…':selected&&selected.type==='checkout_clean'&&selected.status!=='done'&&form.status==='done'?'Save cleaning & continue':selected?'Save task updates':'Create task'}</button>}</div>
+    {maySave&&<button type="submit" className="btn-primary" disabled={saving||!!selected&&form.status==='done'&&!canFinishCleaningChecklist(selected,form.checkedItems)}>{saving?'Saving…':selected&&selected.type==='checkout_clean'&&selected.status!=='done'&&form.status==='done'?'Save cleaning & continue':selected?'Save task updates':'Create task'}</button>}</div>
    </form>
    {selected&&selected.type==='checkout_clean'&&<section ref={finalInspectionRef} className="hk-final-inspection" aria-label="Final inspection in housekeeping task">
     <h4>Step 2 · Final room inspection</h4>
@@ -487,6 +507,7 @@ export function LiveHousekeeping(){
        </>}
      </>}
     {inspectionMessage&&<p role="status" className="stay-feedback-success">{inspectionMessage}</p>}
+    {error&&<p role="alert" className="auth-error">{error}</p>}
    </section>}
    {selected&&<div className="catalog-audit-section">
     <button type="button" className="btn-inline" onClick={()=>setHistoryOpen(v=>!v)}><History size={16}/>{historyOpen?'Hide':'View'} task history</button>

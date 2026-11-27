@@ -4174,3 +4174,14 @@ dialog.no-show-dialog::backdrop { background: rgb(0 0 0 / 45%); }
 .hk-staff-load .btn-inline{justify-content:space-between;min-height:44px;text-align:left;white-space:normal}
 .hk-staff-load .btn-inline[aria-pressed=true]{outline:2px solid #2563eb;outline-offset:1px}
 @media(max-width:760px){.hk-priority-tabs button{min-height:44px}.hk-assignee-filter select{width:100%}.hk-staff-load{grid-template-columns:minmax(0,1fr)}}
+
+/* HK-04 — cleaning checklist evidence */
+.hk-cleaning-checklist{display:grid;gap:10px;padding:14px;border:1px solid #d5dce5;border-radius:12px;margin:0 0 14px}
+.hk-checklist-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.hk-checklist-head h4,.hk-checklist-head p,.hk-cleaning-checklist p{margin:0}
+.hk-checklist-head p,.hk-cleaning-checklist p{font-size:.85rem}
+.hk-cleaning-checklist progress{width:100%;height:8px;accent-color:#15803d}
+.hk-checklist-item{display:flex!important;align-items:flex-start;gap:12px;padding:10px 4px;min-height:44px;box-sizing:border-box;border-bottom:1px solid #d5dce5;cursor:pointer}
+.hk-checklist-item input[type=checkbox]{width:20px;height:20px;flex:0 0 20px;accent-color:#15803d;margin:1px 0}
+.hk-checklist-item span{display:grid;gap:4px}
+.hk-checklist-item small{font-size:.75rem;font-weight:400}

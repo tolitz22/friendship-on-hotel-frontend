@@ -9,8 +9,8 @@ export interface MonitoringSnapshot{
  limitReached:boolean;observedAt:string;events:MonitoringEvent[];
 }
 export interface MonitoringFilters{minutes:number;environment:string;role:string;requestId?:string}
-export function fetchPlatformMonitoring(filters:MonitoringFilters){
- return getJson<{data:MonitoringSnapshot}>('/platform/monitoring',{minutes:filters.minutes,environment:filters.environment,role:filters.role,requestId:filters.requestId});
+export function fetchPlatformMonitoring(filters:MonitoringFilters,signal?:AbortSignal){
+ return getJson<{data:MonitoringSnapshot}>('/platform/monitoring',{minutes:filters.minutes,environment:filters.environment,role:filters.role,requestId:filters.requestId},signal);
 }
 
 export interface MonitoringCounts{requests:number;serverErrors:number;errors:number;frontendErrors:number;authFailures:number}
@@ -19,6 +19,6 @@ export interface MonitoringMetrics{
  state:'ready'|'partial'|'unavailable'|'not_configured';observedAt:string;minutes:number;
  counts:MonitoringCounts|null;p95:number|null;latencyState:'ready'|'no_data'|'unavailable';trend:MonitoringBucket[]|null;
 }
-export function fetchPlatformMetrics(filters:MonitoringFilters){
- return getJson<{data:MonitoringMetrics}>('/platform/monitoring/metrics',{minutes:filters.minutes,environment:filters.environment,role:filters.role,requestId:filters.requestId});
+export function fetchPlatformMetrics(filters:MonitoringFilters,signal?:AbortSignal){
+ return getJson<{data:MonitoringMetrics}>('/platform/monitoring/metrics',{minutes:filters.minutes,environment:filters.environment,role:filters.role,requestId:filters.requestId},signal);
 }

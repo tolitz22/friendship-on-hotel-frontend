@@ -2,7 +2,7 @@ import {readSession} from './session';
 import {reportFrontendError} from '../features/telemetry/frontendErrors';
 
 export class ApiError extends Error {
- constructor(public status:number,public code:string,message:string,public fieldErrors?:Record<string,string[]>,public requestId?:string){
+ constructor(public status:number,public code:string,message:string,public fieldErrors?:Record<string,string[]>,public requestId?:string,public retryAfterSeconds?:number){
   super(message);this.name='ApiError';
  }
 }
@@ -13,7 +13,7 @@ let sessionExpiredHandler:(()=>void)|null=null;
 export function onSpaSessionExpired(handler:(()=>void)|null){sessionExpiredHandler=handler;}
 type JsonOptions={
  method?:'GET'|'POST'|'PATCH'|'PUT'|'DELETE';body?:unknown;authenticated?:boolean;
- params?:Record<string,string|number|undefined>;
+ params?:Record<string,string|number|undefined>;signal?:AbortSignal;
 };
 
 function xsrfToken():string|null{
@@ -59,10 +59,11 @@ export async function requestJson<T>(path:string,options:JsonOptions={}):Promise
  let response:Response;
  try{
   response=await fetch(url.toString(),{
-   method,headers,credentials:cookie?'include':'omit',
+   method,headers,credentials:cookie?'include':'omit',signal:options.signal,
    ...(options.body!==undefined?{body:JSON.stringify(options.body)}:{}),
   });
  }catch(error){
+  if(options.signal?.aborted)throw error;
   reportFrontendError('api_network_error',{error,status:0});
   throw new ApiError(0,'NETWORK_ERROR','Unable to reach the Laravel API. Check VITE_API_URL and CORS.');
  }
@@ -77,13 +78,14 @@ export async function requestJson<T>(path:string,options:JsonOptions={}):Promise
   throw new ApiError(response.status,typeof obj.code==='string'?obj.code:'HTTP_ERROR',
    typeof obj.message==='string'?obj.message:response.status===419?'Session expired or CSRF validation failed. Reload and sign in again.':
    response.status===401?'Session expired. Sign in again.':'The request failed.',
-   obj.errors&&typeof obj.errors==='object'?obj.errors as Record<string,string[]>:undefined,requestId);
+   obj.errors&&typeof obj.errors==='object'?obj.errors as Record<string,string[]>:undefined,requestId,
+   response.status===429?Math.max(1,Math.min(120,Number(response.headers?.get('Retry-After'))||60)):undefined);
  }
  try{return await response.json() as T;}
  catch(error){reportFrontendError('api_invalid_response',{error,requestId});throw error;}
 }
-export function getJson<T>(path:string,params:Record<string,string|number|undefined>={}):Promise<T>{
- return requestJson<T>(path,{params});
+export function getJson<T>(path:string,params:Record<string,string|number|undefined>={},signal?:AbortSignal):Promise<T>{
+ return requestJson<T>(path,{params,signal});
 }
 
 /** Download protected files without exposing credentials in a URL. */

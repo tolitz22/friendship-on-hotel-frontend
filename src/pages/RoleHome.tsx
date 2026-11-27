@@ -42,28 +42,38 @@ function ReceptionHome(){
 function HousekeepingHome(){
  const {hotelId,user}=useHotelAuth();
  const tasks=useQuery({
-  queryKey:['role-home','housekeeping',hotelId],
-  enabled:!!hotelId,
-  queryFn:()=>listHousekeepingTasks(1,100,{status:'todo'})
-   .then(response=>parseLiveHousekeeping(response,hotelId!)),
-  retry:false,refetchInterval:60000,refetchIntervalInBackground:false,
+  queryKey:['role-home','housekeeping',hotelId,user?.id],
+  enabled:!!hotelId&&!!user?.id,
+  queryFn:async()=>{
+   const [todo,inProgress,hotelQueue]=await Promise.all([
+    listHousekeepingTasks(1,1,{status:'todo',mine:1}),
+    listHousekeepingTasks(1,1,{status:'in_progress',mine:1}),
+    listHousekeepingTasks(1,1,{status:'todo'}),
+   ]);
+   return {todo:parseLiveHousekeeping(todo,hotelId!).meta.total,
+    inProgress:parseLiveHousekeeping(inProgress,hotelId!).meta.total,
+    hotelQueue:parseLiveHousekeeping(hotelQueue,hotelId!).meta.total};
+  },
+  retry:false,refetchInterval:30000,refetchIntervalInBackground:false,
  });
- const mine=tasks.data?.data.filter(item=>item.assignedUserId===user?.id)??[];
+ const canWork=user?.hotels.find(h=>h.id===hotelId)?.permissions?.includes('housekeeping.assigned')!==false;
  return <>
-  <Heading title="Housekeeping workspace" description="Focus on cleaning assignments and the next rooms requiring attention."/>
+  <Heading title="Housekeeping workspace" description="See your cleaning assignments and open the next room task."/>
   <div className="role-summary" aria-label="Housekeeping task summary">
-   <div><small>My assigned to-do tasks</small><strong>{tasks.isSuccess?mine.length:'—'}</strong>
-    <span>On the first page (up to 100 to-do tasks)</span></div>
-   <div><small>Task queue</small><strong>{tasks.data?.meta.total??'—'}</strong>
-    <span>Hotel-wide to-do tasks · not a room-readiness certificate</span></div>
+   <div><small>My tasks to do</small><strong>{tasks.isError?'—':tasks.data?.todo??'—'}</strong>
+    <span>Assigned to you · not started</span></div>
+   <div><small>My tasks in progress</small><strong>{tasks.isError?'—':tasks.data?.inProgress??'—'}</strong>
+    <span>Assigned to you · cleaning underway</span></div>
+   <div><small>Hotel cleaning queue</small><strong>{tasks.isError?'—':tasks.data?.hotelQueue??'—'}</strong>
+    <span>All hotel tasks not started</span></div>
   </div>
+  {tasks.isError&&<p className="role-note" role="alert">Housekeeping task totals could not be loaded. <button type="button" className="btn-inline" onClick={()=>void tasks.refetch()}>Retry totals</button></p>}
   <section className="role-tasks" aria-label="Housekeeping tasks">
-   <Entry to="/housekeeping" title="My cleaning tasks" description="Review assignments and update your own tasks" icon={ClipboardCheck}/>
-   <Entry to="/rooms" title="Room readiness" description="Review recorded room inspections and blockers" icon={BedDouble}/>
+   <Entry to="/housekeeping" title="My cleaning tasks" description={canWork?"Open your assignments, clean and complete final inspection":"View your assignments"} icon={ClipboardCheck}/>
+   <Entry to="/rooms" title="Room status" description="Review recorded room readiness and blockers" icon={BedDouble}/>
    <Entry to="/maintenance" title="Maintenance work orders" description="Check issues affecting room turnover" icon={Wrench}/>
   </section>
-  {tasks.isError&&<p className="role-note" role="alert">Housekeeping task totals could not be loaded. Open the task queue to retry.</p>}
-  <p className="role-note"><ShieldCheck size={17}/> Completing a cleaning task does not independently certify that a room is ready for guests. Administrators handle approval and inspections.</p>
+  <p className="role-note"><ShieldCheck size={17}/> {canWork?"Complete cleaning and final inspection in the same assigned task. Rooms are ready only when all operational checks pass.":"Your current permissions allow viewing tasks only. Ask your manager about task updates."}</p>
  </>;
 }
 function MaintenanceHome(){

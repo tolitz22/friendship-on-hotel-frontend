@@ -97,3 +97,14 @@ it('only exposes personal claims to staff with the selected hotel permission',()
   expect(canViewWorkspacePath(role,'/my-expense-claims')).toBe(false);
  }
 });
+
+ it('keeps the housekeeping workspace focused and blocks sensitive direct routes',()=>{
+  const nav=navigationForRole('housekeeping');
+  for(const path of ['/','/housekeeping','/rooms','/maintenance','/messages'] as const){
+   expect(nav.daily).toContain(path);
+   expect(canViewWorkspacePath('housekeeping',path)).toBe(true);
+  }
+  for(const path of ['/reservations','/room-calendar','/guests','/billing','/cashier-shifts','/reports','/settings','/staff','/rate-calendar']){
+   expect(canViewWorkspacePath('housekeeping',path)).toBe(false);
+  }
+ });

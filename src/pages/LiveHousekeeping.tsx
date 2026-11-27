@@ -83,13 +83,14 @@ export function LiveHousekeeping(){
  const [statusFilter,setStatusFilter]=useState<HousekeepingStatus|''>('');
  const [typeFilter,setTypeFilter]=useState<HousekeepingType|''>('');
  const [textFilter,setTextFilter]=useState('');
- const [mineOnly,setMineOnly]=useState(false);
+ const [mineOnly,setMineOnly]=useState(role==='housekeeping');
+ useEffect(()=>{setMineOnly(role==='housekeeping');setPage(1);},[hotelId,user?.id,role]);
  const [moreFilters,setMoreFilters]=useState(false);
  const finalInspectionRef=useRef<HTMLElement>(null);
  const jumpToInspection=useRef(false);
  const filter:TaskFilter={...(statusFilter?{status:statusFilter}:{}),...(typeFilter?{type:typeFilter}:{}),q:textFilter.trim()||undefined,mine:mineOnly?1:undefined};
  const tasks=useQuery({
-  queryKey:['live-housekeeping',hotelId,page,filter],
+  queryKey:['live-housekeeping',hotelId,user?.id,page,filter],
   enabled:!!hotelId,
   queryFn:async()=>parseLiveHousekeeping(await listHousekeepingTasks(page,20,filter),hotelId!),
   retry:false,
@@ -178,6 +179,7 @@ export function LiveHousekeeping(){
    // Failed cache refresh must not make an already committed update look failed.
    void Promise.all([
     client.invalidateQueries({queryKey:['live-housekeeping',hotelId]}),
+    client.invalidateQueries({queryKey:['role-home','housekeeping',hotelId]}),
     client.invalidateQueries({queryKey:['live','housekeeping-handoff',hotelId]}),
     client.invalidateQueries({queryKey:['live','housekeeping-assigned-alerts',hotelId]}),
     client.invalidateQueries({queryKey:['live-housekeeping-status-totals',hotelId]}),
@@ -214,6 +216,7 @@ export function LiveHousekeeping(){
     client.invalidateQueries({queryKey:['live','readiness-dashboard',hotelId]}),
     client.invalidateQueries({queryKey:['live','housekeeping-direct-task',hotelId]}),
     client.invalidateQueries({queryKey:['live-housekeeping',hotelId]}),
+    client.invalidateQueries({queryKey:['role-home','housekeeping',hotelId]}),
     client.invalidateQueries({queryKey:['housekeeping-history',hotelId]}),
     client.invalidateQueries({queryKey:['live','front-desk','manifest',hotelId]}),
    ]).catch(()=>{});
@@ -226,7 +229,7 @@ export function LiveHousekeeping(){
  const filtered=data;
   const overdueCount=tasks.data?.meta.pastDueCount??'—';
  const hasFilters=!!statusFilter||!!typeFilter||!!textFilter.trim()||mineOnly;
- const resetFilters=()=>{setPage(1);setStatusFilter('');setTypeFilter('');setTextFilter('');setMineOnly(false);};
+ const resetFilters=()=>{setPage(1);setStatusFilter('');setTypeFilter('');setTextFilter('');setMineOnly(role==='housekeeping');};
  const assignedName=(task:LiveHousekeepingTask)=>task.assignedUserId
   ?task.assignedUserId===user?.id?'You':admin?staff.data?.data.find(m=>m.userId===task.assignedUserId)?.name??'Assigned staff':'Assigned staff'
   :task.assignedTo??'Unassigned';

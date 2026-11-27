@@ -167,7 +167,7 @@ export function AppShell(){
   .map(({to,label,icon:Icon})=><Link key={to} to={to} activeOptions={{exact:true}} onClick={open?closeNavigation:undefined}
    aria-current={pathname===to?'page':undefined}
    className={'nav-link'+(pathname===to||to==='/expenses'&&pathname.startsWith('/expenses/')?' active':'')}>
-   <Icon size={18} aria-hidden="true"/><span>{label}{to==='/messages'&&unreadMessages>0?' ('+unreadMessages+')':''}</span>
+   <Icon size={18} aria-hidden="true"/><span>{dataMode==='api'&&role==='housekeeping'?(to==='/'?'My dashboard':to==='/housekeeping'?'My tasks':to==='/rooms'?'Room status':label):label}{to==='/messages'&&unreadMessages>0?' ('+unreadMessages+')':''}</span>
   </Link>);
 
  return <div className="app-layout">
@@ -181,8 +181,8 @@ export function AppShell(){
    </div>
    <nav aria-label="Hotel workspace navigation" className="workspace-nav">
     <p className="nav-heading">{dataMode==='api'?workspace.label.toUpperCase()+' WORKSPACE':'DAILY OPERATIONS'}</p>
-    {renderNav(primaryDaily,'daily')}
-    {(dataMode==='mock'||secondaryDaily.some(item=>workspace.daily.includes(item.to)))&&<>
+    {dataMode==='api'&&role==='housekeeping'?renderNav(workspace.daily.flatMap(path=>daily.filter(item=>item.to===path)),'daily'):renderNav(primaryDaily,'daily')}
+    {(dataMode==='mock'||role!=='housekeeping'&&secondaryDaily.some(item=>workspace.daily.includes(item.to)))&&<>
      <button type="button" className="nav-link nav-expand"
       aria-expanded={showMoreOperations||secondaryDaily.some(item=>item.to===pathname)}
       onClick={()=>setShowMoreOperations(v=>!v)}>

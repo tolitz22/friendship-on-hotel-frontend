@@ -8,7 +8,7 @@ import './AdminTopbar.css';
 import {requestedNotificationHotel} from '../features/notifications/pushNavigation';
 import {StaffNotifications} from './StaffNotifications';
 import {HousekeepingInstallHelp} from './HousekeepingInstallHelp';
-import {Link,Outlet,useNavigate,useRouterState} from '@tanstack/react-router';
+import {Link,Navigate,Outlet,useNavigate,useRouterState} from '@tanstack/react-router';
 import {LayoutDashboard,CalendarDays,CalendarRange,BedDouble,Users,Wallet,ClipboardCheck,Wrench,ChartNoAxesCombined,Settings,Sun,Moon,Menu,X,Hotel,LogOut,ArrowRight,ChevronDown,ShieldCheck,ShieldAlert,ClipboardList,Receipt,Search} from 'lucide-react';
 import {Suspense,useEffect,useRef,useState,type KeyboardEvent} from 'react';
 import {useTheme} from './ThemeProvider';
@@ -171,7 +171,11 @@ export function AppShell(){
    <Link to="/" className="btn-inline">Return to workspace</Link>
   </div></div>;
  }
+ // Platform monitoring is a separate workspace; hotel role navigation
+ // never grants access. The API independently enforces the same boundary.
+ if(pathname==='/super-admin')return <Outlet/>;
  if(dataMode==='api'&&user&&!hotelId&&pathname==='/change-password')return <Outlet/>;
+ if(dataMode==='api'&&user?.platformAdmin&&!hotelId)return <Navigate to="/super-admin" replace/>;
  if(dataMode==='api'&&!hotelId)return <HotelChooser/>;
 
  const renderNav=(items:readonly NavItem[],section:'daily'|'management'|'advanced')=>items

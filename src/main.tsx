@@ -1,5 +1,6 @@
 import {parseGroupDetailTab} from './features/groups/groupNavigation';
 import {Messages} from './pages/Messages';
+import {SuperAdminDashboard} from './pages/SuperAdminDashboard';
 import {installFrontendErrorTracking,reportFrontendError} from './features/telemetry/frontendErrors';
 import {FrontendErrorFallback} from './components/FrontendErrorFallback';
 import React from 'react';import ReactDOM from 'react-dom/client';
@@ -102,6 +103,7 @@ const roomCalendar=createRoute({getParentRoute:()=>root,path:'/room-calendar',
   hotel:normalizeBillingBookingId(value.hotel),
  }),component:LiveRoomCalendar});
 const functionalRoutes=[
+ createRoute({getParentRoute:()=>root,path:'/super-admin',component:SuperAdminDashboard}),
  createRoute({getParentRoute:()=>root,path:'/messages',validateSearch:(value:Record<string,unknown>):{conversation?:string;hotel?:string;push?:string}=>({conversation:normalizeBillingBookingId(value.conversation),hotel:normalizeBillingBookingId(value.hotel),push:normalizeBillingBookingId(value.push)==='1'?'1':undefined}),component:Messages}),
  createRoute({getParentRoute:()=>root,path:'/my-expense-claims',component:MyExpenseClaims}),
  createRoute({getParentRoute:()=>root,path:'/expenses',component:Expenses,

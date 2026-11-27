@@ -1,0 +1,64 @@
+import {useState,type FormEvent} from 'react';
+import {useQuery} from '@tanstack/react-query';
+import {Activity,AlertTriangle,Clock3,Globe2,LogOut,Moon,RefreshCw,Search,ShieldCheck,Sun,Terminal,Server} from 'lucide-react';
+import {useHotelAuth} from '../components/AuthProvider';
+import {useTheme} from '../components/ThemeProvider';
+import {fetchPlatformMonitoring,type MonitoringEvent} from '../api/platformMonitoring';
+import {isApi,isAuthFailure,isError,isFrontend,summarizeMonitoring} from '../features/monitoring/summary';
+import './SuperAdminDashboard.css';
+
+const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const time=(s:string)=>new Date(s).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+const eventName=(e:MonitoringEvent)=>e.event.replace(/^pms\./,'').replace(/[._]/g,' ');
+const kinds=['all','errors','requests','frontend','auth'] as const;
+type Kind=typeof kinds[number];
+const matches=(e:MonitoringEvent,k:Kind)=>k==='all'||(k==='errors'&&isError(e))||(k==='requests'&&isApi(e))||(k==='frontend'&&isFrontend(e))||(k==='auth'&&isAuthFailure(e));
+export function SuperAdminDashboard(){
+ const {user,signOut,pending}=useHotelAuth();
+ const {theme,toggle}=useTheme();
+ const [minutes,setMinutes]=useState(60),[environment,setEnvironment]=useState('all'),[role,setRole]=useState('all');
+ const [input,setInput]=useState(''),[requestId,setRequestId]=useState(''),[searchError,setSearchError]=useState('');
+ const [kind,setKind]=useState<Kind>('all'),[page,setPage]=useState(0);
+ const authorized=user?.platformAdmin===true&&!user.mustChangePassword;
+ const query=useQuery({queryKey:['platform-monitoring',user?.id,minutes,environment,role,requestId],
+  queryFn:()=>fetchPlatformMonitoring({minutes,environment,role,requestId:requestId||undefined}),
+  enabled:authorized,retry:false,gcTime:0,staleTime:0,refetchOnWindowFocus:false});
+ const data=query.isError?undefined:query.data?.data;
+ const ready=data?.state==='ready';
+ const summary=ready?summarizeMonitoring(data.events,data.observedAt,data.minutes):null;
+ const filtered=ready?data.events.filter(e=>matches(e,kind)):[];
+ const pageCount=Math.max(1,Math.ceil(filtered.length/20));
+ const currentPage=Math.min(page,pageCount-1);
+ const submit=(e:FormEvent)=>{e.preventDefault();const v=input.trim().toLowerCase();if(v&&!uuid.test(v)){setSearchError('Enter a valid request UUID.');return;}setSearchError('');setRequestId(v);setPage(0);};
+ if(!authorized)return <div className="auth-shell"><div className="auth-card"><h1>Access restricted</h1><p>This dashboard requires a dedicated platform administrator account.</p><a className="btn-inline" href="/">Return to sign-in or hotel workspace</a></div></div>;
+ return <div className="platform-shell">
+  <header className="platform-header"><div className="platform-brand"><span className="platform-mark"><ShieldCheck size={23}/></span><div><strong>Friendship On Hotel</strong><small>SUPER ADMIN · PRIVATE WORKSPACE</small></div></div>
+   <div className="platform-account"><span className="platform-user">{user?.name}</span><button className="icon-btn" aria-label="Toggle theme" onClick={toggle}>{theme==='light'?<Moon size={17}/>:<Sun size={17}/>}</button><button className="btn-inline platform-signout" disabled={pending} onClick={()=>void signOut()}><LogOut size={16}/> Sign out</button></div>
+  </header>
+  <main className="platform-main">
+   <div className="platform-title"><div><span className="eyebrow">PLATFORM OPERATIONS</span><h1>System monitoring</h1><p>Backend, worker and frontend diagnostics across the platform.</p></div><button className="btn-primary" disabled={query.isFetching} onClick={()=>void query.refetch()}><RefreshCw size={16} className={query.isFetching?'platform-spin':''}/> Refresh</button></div>
+   <div className="platform-filters panel">
+    <label>Time range<select value={minutes} onChange={e=>{setMinutes(Number(e.target.value));setPage(0);}}><option value={15}>Last 15 minutes</option><option value={60}>Last hour</option><option value={360}>Last 6 hours</option><option value={1440}>Last 24 hours</option></select></label>
+    <label>Environment<select value={environment} onChange={e=>{setEnvironment(e.target.value);setPage(0);}}>{['all','staging','production','local','testing','other'].map(v=><option key={v} value={v}>{v==='all'?'All environments':v}</option>)}</select></label>
+    <label>Service<select value={role} onChange={e=>{setRole(e.target.value);setPage(0);}}>{['all','backend','worker','scheduler','unspecified'].map(v=><option key={v} value={v}>{v==='all'?'All services':v}</option>)}</select></label>
+    <form onSubmit={submit} className="platform-search"><label>Request ID<input value={input} onChange={e=>setInput(e.target.value)} maxLength={36} placeholder="Search request UUID" aria-invalid={!!searchError}/></label><button className="btn-inline" aria-label="Search request ID"><Search size={17}/></button>{requestId&&<button type="button" className="btn-inline" onClick={()=>{setInput('');setRequestId('');setSearchError('');setPage(0);}}>Clear</button>}</form>
+    {searchError&&<p role="alert" className="platform-error">{searchError}</p>}
+   </div>
+   {query.isPending?<div className="panel query-feedback" role="status">Loading monitoring data…</div>:query.isError?<div className="panel query-feedback" role="alert">Monitoring access or request failed. Refresh your session and try again.</div>:data?.state==='not_configured'?<div className="panel platform-state" role="status"><Terminal size={25}/><h2>Connect Grafana</h2><p>The private monitoring read connection has not been configured on the backend. Existing log ingestion is unaffected.</p><p>Configure the Grafana stack URL, Loki data source UID and read-only service account token in Railway.</p></div>:data?.state==='unavailable'?<div className="panel platform-state" role="alert"><AlertTriangle size={25}/><h2>Monitoring source unavailable</h2><p>Check the Grafana read credentials, data source and network. This is not evidence that the PMS is down.</p></div>:null}
+   {ready&&summary&&<><div className="platform-coverage"><span><Activity size={15}/> Grafana query succeeded · {data.sampleSize} sampled records</span><span>Updated {time(data.observedAt)} · {data.limitReached?'Sample limit reached':'Up to '+data.sampleLimit+' recent records'}</span></div>
+    <p className="platform-note">Sampled exported logs, not complete platform totals or uptime. Warning-only export omits routine API traffic. {requestId?'Results are restricted to the searched request.':''}</p>
+    <div className="platform-stats">
+     {([{label:'API requests',value:summary.requests,icon:Globe2},{label:'HTTP 5xx',value:summary.serverErrors,icon:AlertTriangle},{label:'Error-level logs',value:summary.errors,icon:Server},{label:'P95 latency',value:summary.p95===null?'—':summary.p95+' ms',icon:Clock3},{label:'Frontend errors',value:summary.frontendErrors,icon:Activity},{label:'Failed sign-ins',value:summary.authFailures,icon:ShieldCheck}]).map(({label,value,icon:Icon})=><article className="stat platform-stat" key={label}><div className="stat-header">{label}<Icon size={18} className="stat-icon"/></div><strong>{value}</strong><small>In selected sample</small></article>)}
+    </div>
+    {data.sampleSize===0?<div className="panel platform-state"><Activity size={24}/><h2>No matching exported logs</h2><p>Try a wider time range or different filters. No logs is not proof of system health.</p></div>:<div className="platform-charts">
+     <section className="panel"><div className="panel-title"><h3>Warning & error trend</h3><small>Sampled events</small></div><div className="platform-legend"><span><i className="warn"/> Warnings</span><span><i className="err"/> Errors</span></div><div className="platform-bars" aria-label="Sampled warnings and errors over time">{summary.trend.map(b=>{const max=Math.max(1,...summary.trend.map(x=>x.errors+x.warnings));return <div className="platform-bar-slot" key={b.start} title={time(new Date(b.start).toISOString())+' — '+b.warnings+' warnings, '+b.errors+' errors'}><div className="platform-bar-stack" style={{height:((b.errors+b.warnings)/max*100)+'%'}}><div className="err" style={{flex:b.errors}}/><div className="warn" style={{flex:b.warnings}}/></div></div>;})}</div><div className="platform-axis"><span>{time(new Date(summary.trend[0].start).toISOString())}</span><span>{time(data.observedAt)}</span></div></section>
+     <section className="panel"><div className="panel-title"><h3>Slow API routes</h3><small>Sample average</small></div>{summary.slowRoutes.length===0?<p className="empty-state">No request duration records in this sample.</p>:<div className="platform-routes">{summary.slowRoutes.map(r=><div key={r.route}><span className="platform-route">{r.route}<small>{r.count} requests · max {r.max} ms</small></span><strong>{r.average} ms</strong></div>)}</div>}</section>
+    </div>}
+    <section className="panel platform-events"><div className="panel-title"><div><h3>Recent events</h3><small>{filtered.length} matching records</small></div><label>Event type <select value={kind} onChange={e=>{setKind(e.target.value as Kind);setPage(0);}}>{kinds.map(k=><option key={k} value={k}>{k==='all'?'All events':k}</option>)}</select></label></div>
+     {filtered.length===0?<p className="empty-state">No events match the current selection.</p>:<><div className="table-scroll"><table><thead><tr><th>Time</th><th>Severity</th><th>Event</th><th>Service / environment</th><th>HTTP / duration</th><th>Request ID</th></tr></thead><tbody>{filtered.slice(currentPage*20,currentPage*20+20).map((e,i)=><tr key={e.timestamp+e.event+i}><td>{time(e.timestamp)}<span className="cell-note">{new Date(e.timestamp).toLocaleDateString()}</span></td><td><span className={'platform-level '+(isError(e)?'level-error':e.level==='WARNING'?'level-warning':'')}>{e.level}</span></td><td><strong>{eventName(e)}</strong>{(e.route||e.screen)&&<span className="cell-note platform-route">{e.route||e.screen}</span>}</td><td>{e.serviceRole}<span className="cell-note">{e.environment}</span></td><td>{e.statusCode??'—'}{e.durationMs!==null&&<span className="cell-note">{e.durationMs} ms</span>}</td><td>{(e.requestId||e.relatedRequestId)?<button className="btn-inline platform-id" title={e.requestId||e.relatedRequestId||''} onClick={()=>{const id=e.requestId||e.relatedRequestId||'';setInput(id);setRequestId(id);setSearchError('');setPage(0);}}>Search { (e.requestId||e.relatedRequestId)?.slice(0,8)}…</button>:'—'}</td></tr>)}</tbody></table></div><div className="platform-pagination"><button className="btn-inline" disabled={currentPage===0} onClick={()=>setPage(currentPage-1)}>Previous</button><span>Page {currentPage+1} of {pageCount}</span><button className="btn-inline" disabled={currentPage+1>=pageCount} onClick={()=>setPage(currentPage+1)}>Next</button></div></>}
+    </section>
+   </>}
+   <footer className="platform-footer"><ShieldCheck size={15}/> Read-only platform diagnostics · No hotel operations or financial records are modified.</footer>
+  </main>
+ </div>;
+}

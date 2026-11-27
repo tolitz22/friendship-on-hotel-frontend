@@ -1,6 +1,6 @@
 import {expect,test} from '@playwright/test';
 
-for(const width of [320,390,760,1440]){
+for(const width of [320,390,430,760,1440]){
  test('housekeeping room board is private and usable at '+width+'px',async({page},testInfo)=>{
   test.skip(testInfo.project.name!==(width===1440?'desktop-chromium':'mobile-chromium'),'Mobile housekeeping board regression');
   await page.setViewportSize({width,height:740});
@@ -17,6 +17,36 @@ for(const width of [320,390,760,1440]){
   });
   await page.goto('http://127.0.0.1:5174/rooms');
   const board=page.locator('.hk-room-board');
+  if(width<=760){
+   const tile=board.getByRole('button',{name:/^Room 201,/});
+   await expect(tile).toBeVisible();
+   await expect(board.getByRole('button',{name:/^Room 302,/})).toBeVisible();
+   await expect(page.getByRole('navigation',{name:'Housekeeping mobile navigation'}).getByRole('link',{name:'Rooms',exact:true})).toHaveAttribute('aria-current','page');
+   await tile.click();
+   const detail=page.getByRole('dialog',{name:'Room details'});
+   await expect(detail).toBeVisible();
+   await expect(detail.getByRole('link',{name:'Open my task'})).toHaveAttribute('href',/housekeeping.*task=(?:%22)?7(?:%22)?(?:&|$)/);
+   await expect(detail.getByText('Vacant in PMS')).toBeVisible();
+   await page.keyboard.press('Escape');
+   await expect(detail).toHaveCount(0);
+   await expect(tile).toBeFocused();
+   const tabs=board.getByRole('group',{name:'Cleaning status filters'});
+   await tabs.getByRole('button',{name:'Ready 1'}).click();
+   await expect(tile).toHaveCount(0);
+   await expect(board.getByRole('button',{name:/^Room 302,/})).toBeVisible();
+   await tabs.getByRole('button',{name:'All 2'}).click();
+   await board.getByRole('button',{name:'Filter',exact:true}).click();
+   await board.getByRole('group',{name:'More room filters'}).getByRole('button',{name:'My tasks 1'}).click();
+   await expect(board.getByRole('button',{name:/^Room 302,/})).toHaveCount(0);
+   await board.getByRole('button',{name:'Clear filters',exact:true}).click();
+   await board.getByRole('combobox',{name:'Floor',exact:true}).selectOption('3');
+   await expect(tile).toHaveCount(0);
+   await board.getByRole('button',{name:'Clear filters',exact:true}).click();
+   await board.getByRole('searchbox',{name:'Search rooms'}).fill('201');
+   await expect(board.getByRole('button',{name:/^Room 302,/})).toHaveCount(0);
+   expect((await tile.boundingBox())?.height??0).toBeGreaterThanOrEqual(44);
+   expect(await board.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBeTruthy();
+  }else{
   await expect(board.getByRole('heading',{name:'Room 201',exact:true})).toBeVisible();
   await expect(board.getByRole('heading',{name:'Room 302',exact:true})).toBeVisible();
   await expect(board.getByText('Confirmed arrival today')).toHaveCount(2);
@@ -41,6 +71,8 @@ for(const width of [320,390,760,1440]){
   await board.getByRole('button',{name:'Clear filters',exact:true}).click();
   await board.getByRole('searchbox',{name:'Search rooms'}).fill('201');
   await expect(board.getByRole('heading',{name:'Room 302',exact:true})).toHaveCount(0);
+
+  }
   expect(rackRequests).toBe(0);
  });
 }

@@ -118,7 +118,7 @@ export function StaffNotifications({hotelId,userId,canPush=false,promptHost,hous
  }
  return <>
   {housekeeping&&<HousekeepingAssignmentAlert key={storageKey} scope={storageKey} alerts={feed.isSuccess?items.filter(item=>item.kind==='hk_assigned'||item.kind==='hk_arrival_urgent'||item.kind==='hk_overdue'):undefined} read={read} onRead={markRead} dialogOpen={open}/>}
-  {pushEnabled&&promptHost&&createPortal(<PushPermissionPrompt userId={userId} hotelId={hotelId} active={!open} onSettings={()=>{dialog.current?.showModal();setSettings(true);setOpen(true);}}/>,promptHost)}
+  {pushEnabled&&promptHost&&createPortal(<PushPermissionPrompt userId={userId} hotelId={hotelId} role={pushRole} active={!open} onSettings={()=>{dialog.current?.showModal();setSettings(true);setOpen(true);}}/>,promptHost)}
   <button ref={bell} type="button" className={'icon-btn topbar-action-notifications'+(urgent?' has-urgent':'')+(unread?' has-unread':'')}
    aria-label={unread?`Notifications, ${unread} unread`:'Notifications'} aria-haspopup="dialog"
    onClick={()=>{dialog.current?.showModal();setOpen(true);void feed.refetch();}}>

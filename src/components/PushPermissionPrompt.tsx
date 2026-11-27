@@ -4,7 +4,7 @@ import {BellRing,ShieldCheck,X} from 'lucide-react';
 import {enablePush,pushKey,pushSupported,registeredDevice} from '../features/notifications/pushDevice';
 import {currentPushPrompt,snoozePushPrompt,type PushPromptState} from '../features/notifications/pushPrompt';
 
-export function PushPermissionPrompt({userId,hotelId,active,onSettings}:{userId:string;hotelId:string;active:boolean;onSettings:()=>void}){
+export function PushPermissionPrompt({userId,hotelId,active,onSettings,role='admin'}:{userId:string;hotelId:string;active:boolean;onSettings:()=>void;role?:'admin'|'housekeeping'|'front_desk'}){
  const [prompt,setPrompt]=useState<PushPromptState>(null);
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState('');
@@ -40,7 +40,7 @@ export function PushPermissionPrompt({userId,hotelId,active,onSettings}:{userId:
  return <aside className="push-permission-prompt" aria-label="Enable hotel notifications">
   <header><span className="push-prompt-icon"><BellRing size={22} aria-hidden="true"/></span><button type="button" className="icon-btn" aria-label="Dismiss notification reminder" disabled={busy} onClick={dismiss}><X size={18}/></button></header>
   <h2>{prompt==='blocked'?'Notifications are blocked':prompt==='repair'?'Restore device notifications':'Stay updated with hotel notifications'}</h2>
-  <p>{prompt==='blocked'?'Allow notifications for this site in your browser or device settings, then return to the PMS to enable them.':prompt==='repair'?'Your browser permission has changed. Restore notifications for the selected hotel.':'Receive booking, payment, operational and staff alerts for the selected hotel, even after signing out.'}</p>
+  <p>{prompt==='blocked'?'Allow notifications for this site in your browser or device settings, then return to the PMS to enable them.':prompt==='repair'?'Your browser permission has changed. Restore notifications for the selected hotel.':role==='housekeeping'?'Receive your cleaning assignments and urgent task reminders even when the PMS is closed.':role==='front_desk'?'Receive approved room inspection alerts even when the PMS is closed.':'Receive booking, payment, operational and staff alerts for the selected hotel, even after signing out.'}</p>
   <div className="push-prompt-privacy"><ShieldCheck size={17} aria-hidden="true"/><span>Enable only on a personal or trusted device. You can disable notifications anytime from the bell settings.</span></div>
   {error&&<p role="alert" className="push-prompt-error">{error}</p>}
   <div className="push-prompt-actions">
